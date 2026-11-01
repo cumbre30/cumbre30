@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Cumbre30</string>
+    <string name="title_activity_main">Cumbre30</string>
+    <string name="package_name">cl.cumbre30.app</string>
+    <string name="custom_url_scheme">cl.cumbre30.app</string>
+</resources>

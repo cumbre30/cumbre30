@@ -2,9 +2,43 @@
 // Motor de alertas: beeps WebAudio, voz (TTS es), vibración
 // y Wake Lock (pantalla siempre encendida).
 // Diseñado para operar sin mirar la pantalla.
+// En el APK nativo (Capacitor): TTS del sistema Android y
+// KeepAwake nativo; en el navegador: speechSynthesis / Wake Lock API.
 // ============================================================
 
+import { Capacitor } from "@capacitor/core";
+
+// Plugins nativos con import dinámico: sus implementaciones web tocan
+// window/document en el constructor y romperían el prerender SSR.
+type TtsModule = typeof import("@capacitor-community/text-to-speech");
+type KeepAwakeModule = typeof import("@capacitor-community/keep-awake");
+
 type VoicePrefs = { enabled: boolean; soundEnabled: boolean; vibrationEnabled: boolean };
+
+/** true cuando la app corre dentro del WebView nativo (APK). */
+function isNative(): boolean {
+  return Capacitor.isNativePlatform();
+}
+
+let ttsPromise: Promise<TtsModule | null> | null = null;
+function loadTts(): Promise<TtsModule | null> {
+  if (!ttsPromise) {
+    ttsPromise = isNative()
+      ? import("@capacitor-community/text-to-speech").catch(() => null)
+      : Promise.resolve(null);
+  }
+  return ttsPromise;
+}
+
+let keepAwakePromise: Promise<KeepAwakeModule | null> | null = null;
+function loadKeepAwake(): Promise<KeepAwakeModule | null> {
+  if (!keepAwakePromise) {
+    keepAwakePromise = isNative()
+      ? import("@capacitor-community/keep-awake").catch(() => null)
+      : Promise.resolve(null);
+  }
+  return keepAwakePromise;
+}
 
 class AlertEngine {
   private ctx: AudioContext | null = null;
@@ -14,6 +48,7 @@ class AlertEngine {
   private vibrateTimer: ReturnType<typeof setInterval> | null = null;
   private lastSpeakAt: Record<string, number> = {};
   private wakeLock: WakeLockSentinel | null = null;
+  private nativeKeepAwake = false;
   prefs: VoicePrefs = { enabled: true, soundEnabled: true, vibrationEnabled: true };
 
   private ensureCtx(): AudioContext | null {
@@ -123,10 +158,28 @@ class AlertEngine {
   // ---- Voz ----
 
   speak(key: string, text: string, minIntervalSec = 8): void {
-    if (!this.prefs.enabled || typeof window === "undefined" || !("speechSynthesis" in window)) return;
+    if (!this.prefs.enabled || typeof window === "undefined") return;
     const now = Date.now();
     if (now - (this.lastSpeakAt[key] ?? 0) < minIntervalSec * 1000) return;
     this.lastSpeakAt[key] = now;
+    // APK nativo: motor TTS de Android (el WebView no implementa speechSynthesis).
+    if (isNative()) {
+      void loadTts().then((tts) => {
+        if (!tts) return;
+        tts.TextToSpeech.speak({
+          text,
+          lang: "es-CL",
+          rate: 1.05,
+          pitch: 1,
+          volume: 1,
+        }).catch(async () => {
+          // Algunos dispositivos no tienen voz es-CL: probar genérico es-.
+          try { await tts.TextToSpeech.speak({ text, lang: "es-ES", rate: 1.05, pitch: 1, volume: 1 }); } catch { /* sin TTS */ }
+        });
+      });
+      return;
+    }
+    if (!("speechSynthesis" in window)) return;
     try {
       const u = new SpeechSynthesisUtterance(text);
       u.lang = "es-CL";
@@ -146,6 +199,19 @@ class AlertEngine {
   // ---- Wake Lock (Always-on) ----
 
   async requestWakeLock(): Promise<void> {
+    // APK nativo: KeepAwake bloquea el apagado de pantalla a nivel de sistema.
+    if (isNative()) {
+      try {
+        const m = await loadKeepAwake();
+        if (m) {
+          await m.KeepAwake.keepAwake();
+          this.nativeKeepAwake = true;
+        }
+      } catch {
+        // KeepAwake no disponible
+      }
+      return;
+    }
     try {
       if (typeof navigator !== "undefined" && "wakeLock" in navigator) {
         this.wakeLock = await navigator.wakeLock.request("screen");
@@ -157,12 +223,19 @@ class AlertEngine {
   }
 
   async reacquireIfVisible(): Promise<void> {
-    if (typeof document !== "undefined" && document.visibilityState === "visible" && !this.wakeLock) {
+    if (typeof document !== "undefined" && document.visibilityState === "visible" && !this.wakeLock && !this.nativeKeepAwake) {
       await this.requestWakeLock();
     }
   }
 
   releaseWakeLock(): void {
+    if (isNative()) {
+      if (this.nativeKeepAwake) {
+        void loadKeepAwake().then((m) => m?.KeepAwake.allowSleep()).catch(() => { /* noop */ });
+        this.nativeKeepAwake = false;
+      }
+      return;
+    }
     try { this.wakeLock?.release(); } catch { /* noop */ }
     this.wakeLock = null;
   }
