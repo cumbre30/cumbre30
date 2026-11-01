@@ -1,0 +1,888 @@
+     1→     1→"use client";
+     2→     2→
+     3→     3→// ============================================================
+     4→     4→// Minimapa del velocímetro — NAVEGACIÓN REAL 3D (MapLibre GL).
+     5→     5→// Nada de trucos CSS: el motor WebGL de MapLibre (el mismo núcleo
+     6→     6→// que MapLibre Native en apps Android/iOS) dibuja con cámara de
+     7→     7→// perspectiva: inclinación (pitch), rotación al rumbo y el pin del
+     8→     8→// ciclista anclado abajo, como Waze.
+     9→     9→// · Banner superior: flecha de maniobra + metros + calle en celeste.
+    10→    10→// · Ruta COMPLETA inicio→fin: ciclovía violeta, vía compartida
+    11→    11→//   blanca, flechas de dirección sobre la ruta y tramo recorrido
+    12→    12→//   atenuado.
+    13→    13→// · Barra inferior: llegada estimada + botón amarillo de reporte.
+    14→    14→//   SIN velocímetro: la velocidad vive en el velocímetro principal.
+    15→    15→// · Pin de posición = elegido por el usuario (o flecha clásica).
+    16→    16→// · Si el WebView no soporta WebGL: aviso elegante sin romper la UI.
+    17→    17→// ============================================================
+    18→    18→
+    19→    19→import { useEffect, useMemo, useRef, useState } from "react";
+    20→    20→import * as maplibregl from "maplibre-gl";
+    21→    21→import { setWorkerUrl } from "maplibre-gl";
+    22→    22→import type { Map as MlMap } from "maplibre-gl";
+    23→    23→import "maplibre-gl/dist/maplibre-gl.css";
+    24→    24→
+    25→    25→// El bundler rompe la resolución automática del worker (import.meta.url),
+    26→    26→// así que lo servimos nosotros: public/maplibre-gl-worker.mjs — mismo
+    27→    27→// archivo incluido en el APK como asset.
+    28→    28→setWorkerUrl("/maplibre-gl-worker.mjs?v=6.16.0");
+    29→    29→import type { Feature as GeoFeature, FeatureCollection as GeoFeatureCollection } from "geojson";
+    30→    30→import { Crosshair, Flag, Plus, Route as RouteIcon, TriangleAlert, X } from "lucide-react";
+    31→    31→import { GATES, NAV_DESTINATIONS, PARK_POLYGON, RISK_ZONES, type LatLng } from "@/lib/park";
+    32→    32→import { DEFAULT_PIN, PINS, type PinId } from "@/lib/pins";
+    33→    33→import { INCIDENT_BY_ID } from "@/lib/incidents";
+    34→    34→import { circlePolygon, navStyle } from "@/lib/navStyle";
+    35→    35→import { groupSegments, pointAhead, routeProgress, streetAt, streetOfStep } from "@/lib/routing";
+    36→    36→import { INCIDENT_TYPES, type IncidentTypeId } from "@/lib/incidents";
+    37→    37→import { addIncident, loadLocalIncidents, saveLocalIncidents, useIncidentFeed, type IncidentItem } from "@/hooks/useIncidentFeed";
+    38→    38→import type { NavEngine } from "@/hooks/useNavEngine";
+    39→    39→import type { RouteStep } from "@/lib/routing";
+    40→    40→
+    41→    41→const PARK_CENTER: [number, number] = [-33.408, -70.636];
+    42→    42→const PARK_CENTER_OBJ: LatLng = { lat: PARK_CENTER[0], lon: PARK_CENTER[1] };
+    43→    43→
+    44→    44→/** Anticipación de la cámara: con el pin abajo, estilo Waze. */
+    45→    45→const LOOKAHEAD_NAV_M = 130;
+    46→    46→const LOOKAHEAD_FREE_M = 80;
+    47→    47→const ARRIVAL_M = 150;
+    48→    48→const NAV_ZOOM = 16.5;
+    49→    49→const ARRIVAL_ZOOM = 17.4;
+    50→    50→const NAV_PITCH = 50;
+    51→    51→
+    52→    52→const COLOR_CICLO = "#a855f7";
+    53→    53→const COLOR_VIA = "#f4f4f5";
+    54→    54→const COLOR_CASING = "#05070a";
+    55→    55→
+    56→    56→type Props = {
+    57→    57→  position: LatLng | null;
+    58→    58→  heading: number | null;
+    59→    59→  track: LatLng[];
+    60→    60→  accuracyM: number | null;
+    61→    61→  userPin?: string;
+    62→    62→  nav: NavEngine;
+    63→    63→  speedKmh?: number;
+    64→    64→};
+    65→    65→
+    66→    66→const wrap360 = (deg: number) => ((deg % 360) + 360) % 360;
+    67→    67→const fmtKmM = (m: number) => (m >= 950 ? `${(m / 1000).toFixed(1)} km` : `${Math.max(10, Math.round(m / 10) * 10)} m`);
+    68→    68→
+    69→    69→/** ¿Hay WebGL disponible? (maplibre v6 ya no exporta supported()) */
+    70→    70→function webglSupported(): boolean {
+    71→    71→  try {
+    72→    72→    const c = document.createElement("canvas");
+    73→    73→    return !!(c.getContext("webgl2") || c.getContext("webgl"));
+    74→    74→  } catch {
+    75→    75→    return false;
+    76→    76→  }
+    77→    77→}
+    78→    78→
+    79→    79→/** Rumbo (0-360) entre dos puntos. */
+    80→    80→function bearingOf(a: LatLng, b: LatLng): number {
+    81→    81→  const toR = Math.PI / 180;
+    82→    82→  const y = Math.sin((b.lon - a.lon) * toR) * Math.cos(b.lat * toR);
+    83→    83→  const x = Math.cos(a.lat * toR) * Math.sin(b.lat * toR) - Math.sin(a.lat * toR) * Math.cos(b.lat * toR) * Math.cos((b.lon - a.lon) * toR);
+    84→    84→  return (Math.atan2(y, x) / toR + 360) % 360;
+    85→    85→}
+    86→    86→
+    87→    87→/** Desplaza un punto `distM` metros según un rumbo (modo libre). */
+    88→    88→function offsetAlong(p: LatLng, headingDeg: number, distM: number): LatLng {
+    89→    89→  const r = (headingDeg * Math.PI) / 180;
+    90→    90→  const mPerDegLat = 111_320;
+    91→    91→  const mPerDegLon = 111_320 * Math.cos((p.lat * Math.PI) / 180);
+    92→    92→  return {
+    93→    93→    lat: p.lat + (Math.cos(r) * distM) / mPerDegLat,
+    94→    94→    lon: p.lon + (Math.sin(r) * distM) / mPerDegLon,
+    95→    95→  };
+    96→    96→}
+    97→    97→
+    98→    98→/**
+    99→    99→ * Flecha de maniobra estilo Waze: trazos gruesos blancos con
+   100→   100→ * puntas redondeadas y punta de flecha maciza.
+   101→   101→ */
+   102→   102→function TurnArrow({ icon, className }: { icon: RouteStep["icon"]; className?: string }) {
+   103→   103→  if (icon === "end") {
+   104→   104→    return (
+   105→   105→      <svg viewBox="0 0 96 96" className={className} aria-hidden>
+   106→   106→        <path d="M32 90 L32 12" stroke="currentColor" strokeWidth="9" strokeLinecap="round" fill="none" />
+   107→   107→        <path d="M32 16 L74 16 L74 48 L32 48 Z" fill="currentColor" />
+   108→   108→        <g fill="#0a0a0a" opacity="0.85">
+   109→   109→          <rect x="43" y="16" width="10" height="10" />
+   110→   110→          <rect x="63" y="16" width="11" height="10" />
+   111→   111→          <rect x="32" y="27" width="11" height="10" />
+   112→   112→          <rect x="53" y="27" width="10" height="10" />
+   113→   113→          <rect x="43" y="38" width="10" height="10" />
+   114→   114→          <rect x="63" y="38" width="11" height="10" />
+   115→   115→        </g>
+   116→   116→      </svg>
+   117→   117→    );
+   118→   118→  }
+   119→   119→  if (icon === "left") {
+   120→   120→    return (
+   121→   121→      <svg viewBox="0 0 96 96" className={className} aria-hidden>
+   122→   122→        <path d="M64 90 L64 58 Q64 38 44 38 L30 38" stroke="currentColor" strokeWidth="13" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+   123→   123→        <path d="M42 14 L12 38 L42 62 Z" fill="currentColor" />
+   124→   124→      </svg>
+   125→   125→    );
+   126→   126→  }
+   127→   127→  if (icon === "right") {
+   128→   128→    return (
+   129→   129→      <svg viewBox="0 0 96 96" className={className} aria-hidden>
+   130→   130→        <path d="M32 90 L32 58 Q32 38 52 38 L66 38" stroke="currentColor" strokeWidth="13" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+   131→   131→        <path d="M54 14 L84 38 L54 62 Z" fill="currentColor" />
+   132→   132→      </svg>
+   133→   133→    );
+   134→   134→  }
+   135→   135→  return (
+   136→   136→    <svg viewBox="0 0 96 96" className={className} aria-hidden>
+   137→   137→      <path d="M48 90 L48 34" stroke="currentColor" strokeWidth="13" strokeLinecap="round" fill="none" />
+   138→   138→      <path d="M48 8 L70 42 L26 42 Z" fill="currentColor" />
+   139→   139→    </svg>
+   140→   140→  );
+   141→   141→}
+   142→   142→
+   143→   143→/** Chevron blanco (borde oscuro) que va sobre la ruta indicando dirección. */
+   144→   144→function makeChevronImage(): ImageData {
+   145→   145→  const c = document.createElement("canvas");
+   146→   146→  c.width = 48;
+   147→   147→  c.height = 48;
+   148→   148→  const ctx = c.getContext("2d")!;
+   149→   149→  ctx.lineJoin = "round";
+   150→   150→  ctx.lineCap = "round";
+   151→   151→  ctx.strokeStyle = "rgba(4,7,11,0.95)";
+   152→   152→  ctx.lineWidth = 9;
+   153→   153→  ctx.beginPath();
+   154→   154→  ctx.moveTo(11, 32);
+   155→   155→  ctx.lineTo(24, 15);
+   156→   156→  ctx.lineTo(37, 32);
+   157→   157→  ctx.stroke();
+   158→   158→  ctx.strokeStyle = "#ffffff";
+   159→   159→  ctx.lineWidth = 4.5;
+   160→   160→  ctx.beginPath();
+   161→   161→  ctx.moveTo(14, 31);
+   162→   162→  ctx.lineTo(24, 19);
+   163→   163→  ctx.lineTo(34, 31);
+   164→   164→  ctx.stroke();
+   165→   165→  return ctx.getImageData(0, 0, 48, 48);
+   166→   166→}
+   167→   167→
+   168→   168→/** Elemento DOM del pin del usuario (flecha o burbuja del pin elegido). */
+   169→   169→function buildPuck(pinId: string | undefined): { el: HTMLElement; arrow: HTMLElement | null } {
+   170→   170→  const p = PINS[(pinId ?? DEFAULT_PIN) as PinId] ?? PINS[DEFAULT_PIN as PinId];
+   171→   171→  const wrap = document.createElement("div");
+   172→   172→  wrap.className = "c30-puck";
+   173→   173→  if (p.id === DEFAULT_PIN) {
+   174→   174→    wrap.innerHTML = `<div class="c30-puck-pulse"></div>
+   175→   175→      <div class="c30-puck-arrow-wrap" style="width:38px;height:38px;filter:drop-shadow(0 2px 6px rgba(0,0,0,.7));">
+   176→   176→        <svg width="38" height="38" viewBox="0 0 34 34">
+   177→   177→          <circle cx="17" cy="17" r="12.5" fill="${p.color}" stroke="#fafafa" stroke-width="3"/>
+   178→   178→          <path d="M17 9 L21.5 19.5 L17 17.2 L12.5 19.5 Z" fill="#09090b"/>
+   179→   179→        </svg>
+   180→   180→      </div>`;
+   181→   181→    const arrow = wrap.querySelector(".c30-puck-arrow-wrap") as HTMLElement;
+   182→   182→    return { el: wrap, arrow };
+   183→   183→  }
+   184→   184→  wrap.innerHTML = `<div class="c30-puck-pulse"></div>
+   185→   185→    <div style="display:flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:9999px 9999px 9999px 4px;background:${p.color};border:3px solid #fafafa;box-shadow:0 2px 8px rgba(0,0,0,.65);font-size:17px;line-height:1;">${p.emoji}</div>`;
+   186→   186→  return { el: wrap, arrow: null };
+   187→   187→}
+   188→   188→
+   189→   189→function buildFlagEl(): HTMLElement {
+   190→   190→  const d = document.createElement("div");
+   191→   191→  d.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:9999px;background:#0ea5e9;border:2.5px solid #fafafa;box-shadow:0 2px 10px rgba(0,0,0,.7);font-size:14px;line-height:1;">🏁</div>`;
+   192→   192→  return d.firstChild as HTMLElement;
+   193→   193→}
+   194→   194→
+   195→   195→function buildBadgeEl(icon: RouteStep["icon"]): HTMLElement {
+   196→   196→  const stroke = `stroke="#09090b" stroke-width="15" fill="none" stroke-linecap="round" stroke-linejoin="round"`;
+   197→   197→  let inner: string;
+   198→   198→  if (icon === "left") {
+   199→   199→    inner = `<path d="M64 84 L64 58 Q64 38 44 38 L30 38" ${stroke}/><path d="M40 18 L12 38 L40 58 Z" fill="#09090b"/>`;
+   200→   200→  } else if (icon === "right") {
+   201→   201→    inner = `<path d="M32 84 L32 58 Q32 38 52 38 L66 38" ${stroke}/><path d="M56 18 L84 38 L56 58 Z" fill="#09090b"/>`;
+   202→   202→  } else if (icon === "end") {
+   203→   203→    inner = `<path d="M44 86 L44 20" ${stroke}/><path d="M44 16 L82 16 L82 46 L44 46 Z" fill="#09090b"/>`;
+   204→   204→  } else {
+   205→   205→    inner = `<path d="M48 84 L48 40" ${stroke}/><path d="M48 12 L70 44 L26 44 Z" fill="#09090b"/>`;
+   206→   206→  }
+   207→   207→  const d = document.createElement("div");
+   208→   208→  d.innerHTML = `<div style="width:30px;height:30px;border-radius:8px;background:#fafafa;border:2px solid #09090b;box-shadow:0 2px 8px rgba(0,0,0,.65);display:flex;align-items:center;justify-content:center;">
+   209→   209→    <svg width="22" height="22" viewBox="0 0 96 96">${inner}</svg>
+   210→   210→  </div>`;
+   211→   211→  return d.firstChild as HTMLElement;
+   212→   212→}
+   213→   213→
+   214→   214→function buildIncidentEl(type: string): HTMLElement {
+   215→   215→  const t = INCIDENT_BY_ID[type] ?? INCIDENT_BY_ID.otro;
+   216→   216→  const d = document.createElement("div");
+   217→   217→  d.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:9999px;background:${t.color};border:2px solid #09090b;box-shadow:0 0 0 1.5px ${t.color}55;font-size:11px;line-height:1;">${t.emoji}</div>`;
+   218→   218→  return d.firstChild as HTMLElement;
+   219→   219→}
+   220→   220→
+   221→   221→const toFc = (features: GeoFeature[]): GeoFeatureCollection => ({ type: "FeatureCollection", features });
+   222→   222→const lineFeat = (coords: LatLng[], props: Record<string, unknown> = {}): GeoFeature => ({
+   223→   223→  type: "Feature",
+   224→   224→  properties: props,
+   225→   225→  geometry: { type: "LineString", coordinates: coords.map((c) => [c.lon, c.lat]) },
+   226→   226→});
+   227→   227→const polyFeat = (ring: [number, number][], props: Record<string, unknown> = {}): GeoFeature => ({
+   228→   228→  type: "Feature",
+   229→   229→  properties: props,
+   230→   230→  geometry: { type: "Polygon", coordinates: [ring] },
+   231→   231→});
+   232→   232→
+   233→   233→// ============================================================
+   234→   234→// Lienzo del mapa (MapLibre). Se monta una vez y reacciona a
+   235→   235→// posición/ruta/estado vía efectos.
+   236→   236→// ============================================================
+   237→   237→type NavCanvasProps = {
+   238→   238→  position: LatLng | null;
+   239→   239→  heading: number | null;
+   240→   240→  track: LatLng[];
+   241→   241→  onRoute: boolean;
+   242→   242→  route: NonNullable<NavEngine["route"]> | null;
+   243→   243→  nearestIdx: number | null;
+   244→   244→  offRoute: boolean;
+   245→   245→  remainingM: number;
+   246→   246→  nextStep: RouteStep | null;
+   247→   247→  dest: LatLng | null;
+   248→   248→  pickMode: boolean;
+   249→   249→  onPick: (p: LatLng) => void;
+   250→   250→  userPin?: string;
+   251→   251→  incidents: IncidentItem[];
+   252→   252→  locateTarget: LatLng | null;
+   253→   253→};
+   254→   254→
+   255→   255→function NavCanvas(props: NavCanvasProps) {
+   256→   256→  const boxRef = useRef<HTMLDivElement>(null);
+   257→   257→  const mapRef = useRef<MlMap | null>(null);
+   258→   258→  const [ready, setReady] = useState(false);
+   259→   259→  const firstFixRef = useRef(false);
+   260→   260→
+   261→   261→  // refs vivas para handlers registrados una sola vez
+   262→   262→  const pickModeRef = useRef(props.pickMode);
+   263→   263→  const onPickRef = useRef(props.onPick);
+   264→   264→  useEffect(() => {
+   265→   265→    pickModeRef.current = props.pickMode;
+   266→   266→    onPickRef.current = props.onPick;
+   267→   267→  }, [props.pickMode, props.onPick]);
+   268→   268→
+   269→   269→  // ---- init ----
+   270→   270→  useEffect(() => {
+   271→   271→    if (!boxRef.current || mapRef.current) return;
+   272→   272→    const map = new maplibregl.Map({
+   273→   273→      container: boxRef.current,
+   274→   274→      style: navStyle(),
+   275→   275→      center: PARK_CENTER,
+   276→   276→      zoom: 13.5,
+   277→   277→      pitch: 0,
+   278→   278→      bearing: 0,
+   279→   279→      attributionControl: false,
+   280→   280→      dragRotate: false,
+   281→   281→      dragPan: false,
+   282→   282→      scrollZoom: false,
+   283→   283→      doubleClickZoom: false,
+   284→   284→      touchZoomRotate: false,
+   285→   285→      keyboard: false,
+   286→   286→      boxZoom: false,
+   287→   287→      maxPitch: 70,
+   288→   288→    });
+   289→   289→    mapRef.current = map;
+   290→   290→    map.on("load", () => {
+   291→   291→      map.addImage("c30-chev", makeChevronImage());
+   292→   292→
+   293→   293→      // asa de depuración/E2E (no interfiere en producción)
+   294→   294→      (window as unknown as Record<string, unknown>).__c30nav = map;
+   295→   295→
+   296→   296→      // --- fuentes ---
+   297→   297→      map.addSource("park", { type: "geojson", data: toFc([polyFeat(PARK_POLYGON.map((p) => [p.lon, p.lat] as [number, number]))]) });
+   298→   298→      map.addSource("risk", {
+   299→   299→        type: "geojson",
+   300→   300→        data: toFc(RISK_ZONES.map((z) => polyFeat(circlePolygon(z.position.lat, z.position.lon, z.radiusM), { id: z.id }))),
+   301→   301→      });
+   302→   302→      map.addSource("gates", {
+   303→   303→        type: "geojson",
+   304→   304→        data: toFc(GATES.map((g) => polyFeat(circlePolygon(g.position.lat, g.position.lon, 18), { id: g.id }))),
+   305→   305→      });
+   306→   306→      map.addSource("track", { type: "geojson", data: toFc([]) });
+   307→   307→      map.addSource("route-remaining", { type: "geojson", data: toFc([]) });
+   308→   308→      map.addSource("route-traveled", { type: "geojson", data: toFc([]) });
+   309→   309→
+   310→   310→      // --- capas ---
+   311→   311→      map.addLayer({ id: "park-fill", type: "fill", source: "park", paint: { "fill-color": "#10b981", "fill-opacity": 0.09 } });
+   312→   312→      map.addLayer({ id: "park-line", type: "line", source: "park", paint: { "line-color": "#34d399", "line-width": 1.4, "line-opacity": 0.8 } });
+   313→   313→      map.addLayer({ id: "risk-fill", type: "fill", source: "risk", paint: { "fill-color": "#f59e0b", "fill-opacity": 0.14 } });
+   314→   314→      map.addLayer({ id: "risk-line", type: "line", source: "risk", paint: { "line-color": "#f59e0b", "line-width": 1, "line-opacity": 0.7 } });
+   315→   315→      map.addLayer({ id: "gates-fill", type: "fill", source: "gates", paint: { "fill-color": "#0f766e", "fill-opacity": 0.9 } });
+   316→   316→      map.addLayer({
+   317→   317→        id: "track-line", type: "line", source: "track",
+   318→   318→        layout: { "line-cap": "round", "line-join": "round" },
+   319→   319→        paint: { "line-color": "#a3e635", "line-width": 3.5, "line-opacity": 0.9 },
+   320→   320→      });
+   321→   321→      map.addLayer({
+   322→   322→        id: "traveled-line", type: "line", source: "route-traveled",
+   323→   323→        filter: ["==", ["get", "ciclo"], true],
+   324→   324→        layout: { "line-cap": "round", "line-join": "round" },
+   325→   325→        paint: { "line-color": COLOR_CICLO, "line-width": 5, "line-opacity": 0.3 },
+   326→   326→      });
+   327→   327→      map.addLayer({
+   328→   328→        id: "traveled-line-via", type: "line", source: "route-traveled",
+   329→   329→        filter: ["==", ["get", "ciclo"], false],
+   330→   330→        layout: { "line-cap": "round", "line-join": "round" },
+   331→   331→        paint: { "line-color": COLOR_VIA, "line-width": 4, "line-opacity": 0.28 },
+   332→   332→      });
+   333→   333→      map.addLayer({
+   334→   334→        id: "route-casing", type: "line", source: "route-remaining",
+   335→   335→        filter: ["==", ["get", "kind"], "casing"],
+   336→   336→        layout: { "line-cap": "round", "line-join": "round" },
+   337→   337→        paint: { "line-color": COLOR_CASING, "line-width": ["interpolate", ["linear"], ["zoom"], 15, 9, 18, 14], "line-opacity": 0.9 },
+   338→   338→      });
+   339→   339→      map.addLayer({
+   340→   340→        id: "route-ciclo", type: "line", source: "route-remaining",
+   341→   341→        filter: ["==", ["get", "ciclo"], true],
+   342→   342→        layout: { "line-cap": "round", "line-join": "round" },
+   343→   343→        paint: { "line-color": COLOR_CICLO, "line-width": ["interpolate", ["linear"], ["zoom"], 15, 6.5, 18, 10], "line-opacity": 0.98 },
+   344→   344→      });
+   345→   345→      map.addLayer({
+   346→   346→        id: "route-via", type: "line", source: "route-remaining",
+   347→   347→        filter: ["all", ["==", ["get", "ciclo"], false], ["==", ["get", "kind"], "seg"]],
+   348→   348→        layout: { "line-cap": "round", "line-join": "round" },
+   349→   349→        paint: { "line-color": COLOR_VIA, "line-width": ["interpolate", ["linear"], ["zoom"], 15, 5, 18, 8], "line-opacity": 0.98 },
+   350→   350→      });
+   351→   351→      map.addLayer({
+   352→   352→        id: "route-arrows", type: "symbol", source: "route-remaining",
+   353→   353→        filter: ["==", ["get", "kind"], "seg"],
+   354→   354→        layout: {
+   355→   355→          "symbol-placement": "line",
+   356→   356→          "symbol-spacing": 130,
+   357→   357→          "icon-image": "c30-chev",
+   358→   358→          "icon-size": ["interpolate", ["linear"], ["zoom"], 15, 0.35, 18, 0.6],
+   359→   359→          "icon-rotation-alignment": "map",
+   360→   360→          "icon-allow-overlap": true,
+   361→   361→          "icon-ignore-placement": true,
+   362→   362→        },
+   363→   363→        paint: { "icon-opacity": 0.95 },
+   364→   364→      });
+   365→   365→
+   366→   366→      setReady(true);
+   367→   367→    });
+   368→   368→
+   369→   369→    map.on("click", (e) => {
+   370→   370→      if (pickModeRef.current) onPickRef.current({ lat: e.lngLat.lat, lon: e.lngLat.lng });
+   371→   371→    });
+   372→   372→
+   373→   373→    const ro = new ResizeObserver(() => map.resize());
+   374→   374→    ro.observe(boxRef.current);
+   375→   375→
+   376→   376→    return () => {
+   377→   377→      ro.disconnect();
+   378→   378→      map.remove();
+   379→   379→      mapRef.current = null;
+   380→   380→    };
+   381→   381→  }, []);
+   382→   382→
+   383→   383→  // ---- marcadores DOM ----
+   384→   384→  const puckRef = useRef<maplibregl.Marker | null>(null);
+   385→   385→  const arrowRef = useRef<HTMLElement | null>(null);
+   386→   386→  const puckPinRef = useRef<string | undefined>(undefined);
+   387→   387→  const flagRef = useRef<maplibregl.Marker | null>(null);
+   388→   388→  const badgeRef = useRef<maplibregl.Marker | null>(null);
+   389→   389→  const badgeIconRef = useRef<string | null>(null);
+   390→   390→  const incidentMarkersRef = useRef<maplibregl.Marker[]>([]);
+   391→   391→
+   392→   392→  // pin del usuario (recrear solo si cambia el pin elegido)
+   393→   393→  useEffect(() => {
+   394→   394→    const map = mapRef.current;
+   395→   395→    if (!map || !ready || !props.position) return;
+   396→   396→    if (!puckRef.current) {
+   397→   397→      const { el, arrow } = buildPuck(props.userPin);
+   398→   398→      puckPinRef.current = props.userPin;
+   399→   399→      arrowRef.current = arrow;
+   400→   400→      puckRef.current = new maplibregl.Marker({ element: el, rotationAlignment: "map" })
+   401→   401→        .setLngLat([props.position.lon, props.position.lat])
+   402→   402→        .addTo(map);
+   403→   403→    } else if (props.userPin !== puckPinRef.current) {
+   404→   404→      const { el, arrow } = buildPuck(props.userPin);
+   405→   405→      puckPinRef.current = props.userPin;
+   406→   406→      arrowRef.current = arrow;
+   407→   407→      puckRef.current.remove();
+   408→   408→      puckRef.current = new maplibregl.Marker({ element: el, rotationAlignment: "map" })
+   409→   409→        .setLngLat([props.position.lon, props.position.lat])
+   410→   410→        .addTo(map);
+   411→   411→    }
+   412→   412→  }, [ready, props.position, props.userPin]);
+   413→   413→
+   414→   414→  // posición viva del pin: sigue cada arreglo GPS
+   415→   415→  useEffect(() => {
+   416→   416→    if (puckRef.current && props.position) {
+   417→   417→      puckRef.current.setLngLat([props.position.lon, props.position.lat]);
+   418→   418→    }
+   419→   419→  }, [props.position]);
+   420→   420→
+   421→   421→  // bandera de destino + insignia del próximo giro
+   422→   422→  useEffect(() => {
+   423→   423→    const map = mapRef.current;
+   424→   424→    if (!map || !ready) return;
+   425→   425→    if (props.dest) {
+   426→   426→      if (!flagRef.current) {
+   427→   427→        flagRef.current = new maplibregl.Marker({ element: buildFlagEl() }).setLngLat([props.dest.lon, props.dest.lat]).addTo(map);
+   428→   428→      } else {
+   429→   429→        flagRef.current.setLngLat([props.dest.lon, props.dest.lat]);
+   430→   430→      }
+   431→   431→    } else if (flagRef.current) {
+   432→   432→      flagRef.current.remove();
+   433→   433→      flagRef.current = null;
+   434→   434→    }
+   435→   435→
+   436→   436→    const badge = props.nextStep && props.nextStep.icon !== "end" ? props.nextStep : null;
+   437→   437→    if (badge) {
+   438→   438→      if (!badgeRef.current) {
+   439→   439→        badgeRef.current = new maplibregl.Marker({ element: buildBadgeEl(badge.icon) }).setLngLat([badge.point.lon, badge.point.lat]).addTo(map);
+   440→   440→        badgeIconRef.current = badge.icon;
+   441→   441→      } else {
+   442→   442→        badgeRef.current.setLngLat([badge.point.lon, badge.point.lat]);
+   443→   443→        if (badgeIconRef.current !== badge.icon) {
+   444→   444→          // reemplazo del elemento: el DOM interno cambia de glifo
+   445→   445→          const oldEl = badgeRef.current.getElement();
+   446→   446→          const newEl = buildBadgeEl(badge.icon);
+   447→   447→          if (oldEl.parentNode) oldEl.parentNode.replaceChild(newEl, oldEl);
+   448→   448→          badgeIconRef.current = badge.icon;
+   449→   449→        }
+   450→   450→      }
+   451→   451→    } else if (badgeRef.current) {
+   452→   452→      badgeRef.current.remove();
+   453→   453→      badgeRef.current = null;
+   454→   454→      badgeIconRef.current = null;
+   455→   455→    }
+   456→   456→  }, [ready, props.dest, props.nextStep]);
+   457→   457→
+   458→   458→  // incidencias de la comunidad
+   459→   459→  useEffect(() => {
+   460→   460→    const map = mapRef.current;
+   461→   461→    if (!map || !ready) return;
+   462→   462→    for (const m of incidentMarkersRef.current) m.remove();
+   463→   463→    incidentMarkersRef.current = props.incidents.map((inc) =>
+   464→   464→      new maplibregl.Marker({ element: buildIncidentEl(inc.type) }).setLngLat([inc.lon, inc.lat]).addTo(map)
+   465→   465→    );
+   466→   466→  }, [ready, props.incidents]);
+   467→   467→
+   468→   468→  // ---- datos GeoJSON ----
+   469→   469→  useEffect(() => {
+   470→   470→    const map = mapRef.current;
+   471→   471→    if (!map || !ready) return;
+   472→   472→
+   473→   473→    // recorrido del ride
+   474→   474→    const trackSrc = map.getSource("track") as maplibregl.GeoJSONSource | undefined;
+   475→   475→    trackSrc?.setData(props.track.length > 1 ? toFc([lineFeat(props.track)]) : toFc([]));
+   476→   476→
+   477→   477→    if (!props.onRoute || !props.route) {
+   478→   478→      (map.getSource("route-remaining") as maplibregl.GeoJSONSource | undefined)?.setData(toFc([]));
+   479→   479→      (map.getSource("route-traveled") as maplibregl.GeoJSONSource | undefined)?.setData(toFc([]));
+   480→   480→      return;
+   481→   481→    }
+   482→   482→
+   483→   483→    const r = props.route;
+   484→   484→    const from = props.nearestIdx ?? 0;
+   485→   485→    const remainingGroups = groupSegments(r.coords, r.flags, from, r.coords.length - 2);
+   486→   486→    const traveledGroups = props.nearestIdx !== null ? groupSegments(r.coords, r.flags, 0, from - 1) : [];
+   487→   487→
+   488→   488→    const remainingFeats: GeoFeature[] = [
+   489→   489→      // casing bajo la ruta completa restante
+   490→   490→      lineFeat(r.coords.slice(from), { kind: "casing", ciclo: false }),
+   491→   491→      ...remainingGroups.map((g) => lineFeat(g.coords, { kind: "seg", ciclo: g.ciclovia })),
+   492→   492→    ];
+   493→   493→    const traveledFeats = traveledGroups.map((g) => lineFeat(g.coords, { ciclo: g.ciclovia }));
+   494→   494→
+   495→   495→    (map.getSource("route-remaining") as maplibregl.GeoJSONSource | undefined)?.setData(toFc(remainingFeats));
+   496→   496→    (map.getSource("route-traveled") as maplibregl.GeoJSONSource | undefined)?.setData(toFc(traveledFeats));
+   497→   497→  }, [ready, props.onRoute, props.route, props.nearestIdx, props.track]);
+   498→   498→
+   499→   499→  // ---- cámara de navegación ----
+   500→   500→  useEffect(() => {
+   501→   501→    const map = mapRef.current;
+   502→   502→    if (!map || !ready) return;
+   503→   503→
+   504→   504→    // Sin posición: encuadra la ruta completa (vista previa plana)
+   505→   505→    if (!props.position) {
+   506→   506→      if (props.onRoute && props.route) {
+   507→   507→        const lons = props.route.coords.map((c) => c.lon);
+   508→   508→        const lats = props.route.coords.map((c) => c.lat);
+   509→   509→        map.easeTo({
+   510→   510→          center: [(Math.min(...lons) + Math.max(...lons)) / 2, (Math.min(...lats) + Math.max(...lats)) / 2],
+   511→   511→          zoom: 13.8,
+   512→   512→          pitch: 0,
+   513→   513→          bearing: 0,
+   514→   514→          duration: 700,
+   515→   515→        });
+   516→   516→      }
+   517→   517→      return;
+   518→   518→    }
+   519→   519→
+   520→   520→    const h = boxRef.current?.clientHeight ?? 260;
+   521→   521→    const onRouteClean = props.onRoute && !props.offRoute && props.remainingM >= ARRIVAL_M && props.route && props.nearestIdx !== null;
+   522→   522→    let target: LatLng;
+   523→   523→    if (onRouteClean) {
+   524→   524→      target = pointAhead(props.route!.coords, props.nearestIdx!, LOOKAHEAD_NAV_M);
+   525→   525→    } else if (props.heading !== null) {
+   526→   526→      target = offsetAlong(props.position, props.heading, props.onRoute ? LOOKAHEAD_NAV_M : LOOKAHEAD_FREE_M);
+   527→   527→    } else if (props.route && props.nearestIdx !== null && props.nearestIdx < props.route.coords.length - 1) {
+   528→   528→      const br = bearingOf(props.route.coords[props.nearestIdx], props.route.coords[props.nearestIdx + 1]);
+   529→   529→      target = offsetAlong(props.position, br, LOOKAHEAD_NAV_M);
+   530→   530→    } else {
+   531→   531→      target = props.position;
+   532→   532→    }
+   533→   533→
+   534→   534→    const wantedBearing = props.heading !== null ? props.heading : map.getBearing();
+   535→   535→    const cur = map.getBearing();
+   536→   536→    let b = wantedBearing;
+   537→   537→    // giro por el camino corto (evita vueltas de 340°)
+   538→   538→    while (b - cur > 180) b -= 360;
+   539→   539→    while (b - cur < -180) b += 360;
+   540→   540→
+   541→   541→    const camZoom = props.onRoute && props.remainingM < ARRIVAL_M ? ARRIVAL_ZOOM : NAV_ZOOM;
+   542→   542→
+   543→   543→    if (!firstFixRef.current) {
+   544→   544→      firstFixRef.current = true;
+   545→   545→      map.jumpTo({
+   546→   546→        center: [target.lon, target.lat],
+   547→   547→        bearing: b,
+   548→   548→        pitch: NAV_PITCH,
+   549→   549→        zoom: camZoom,
+   550→   550→        padding: { top: 0, bottom: Math.round(h * 0.3), left: 0, right: 0 },
+   551→   551→      });
+   552→   552→      return;
+   553→   553→    }
+   554→   554→
+   555→   555→    map.easeTo({
+   556→   556→      center: [target.lon, target.lat],
+   557→   557→      bearing: b,
+   558→   558→      pitch: NAV_PITCH,
+   559→   559→      zoom: camZoom,
+   560→   560→      padding: { top: 0, bottom: Math.round(h * 0.3), left: 0, right: 0 },
+   561→   561→      duration: 680,
+   562→   562→      easing: (t) => t,
+   563→   563→    });
+   564→   564→  }, [ready, props.position, props.heading, props.onRoute, props.offRoute, props.remainingM, props.nearestIdx, props.route]);
+   565→   565→
+   566→   566→  // rotación del pin flecha respecto al mapa (queda alineado al rumbo)
+   567→   567→  useEffect(() => {
+   568→   568→    const map = mapRef.current;
+   569→   569→    if (!map || !ready) return;
+   570→   570→    const apply = () => {
+   571→   571→      const m = puckRef.current;
+   572→   572→      const arrow = arrowRef.current;
+   573→   573→      if (!m || !arrow) return;
+   574→   574→      const hdg = props.heading ?? 0;
+   575→   575→      arrow.style.transform = `rotate(${hdg - map.getBearing()}deg)`;
+   576→   576→    };
+   577→   577→    apply();
+   578→   578→    map.on("rotate", apply);
+   579→   579→    return () => {
+   580→   580→      map.off("rotate", apply);
+   581→   581→    };
+   582→   582→  }, [ready, props.heading, props.position]);
+   583→   583→
+   584→   584→  // vista a un punto (localización sin ride)
+   585→   585→  useEffect(() => {
+   586→   586→    const map = mapRef.current;
+   587→   587→    if (!map || !ready || !props.locateTarget) return;
+   588→   588→    map.flyTo({ center: [props.locateTarget.lon, props.locateTarget.lat], zoom: Math.max(map.getZoom(), 16), duration: 800 });
+   589→   589→  }, [ready, props.locateTarget]);
+   590→   590→
+   591→   591→  return (
+   592→   592→    // position absolute por estilo inline: el CSS de maplibre usa
+   593→   593→    // .maplibregl-map{position:relative} y pisa la utilidad `absolute`
+   594→   594→    <div ref={boxRef} style={{ position: "absolute", inset: 0 }} />
+   595→   595→  );
+   596→   596→}
+   597→   597→
+   598→   598→// ============================================================
+   599→   599→// Componente principal: lienzo + capa Waze (banner, barra, etc.)
+   600→   600→// ============================================================
+   601→   601→export default function MiniMap({ position, heading, track, accuracyM, userPin, nav, speedKmh = 0 }: Props) {
+   602→   602→  const incidents = useIncidentFeed();
+   603→   603→  const [pickMode, setPickMode] = useState(false);
+   604→   604→  const [locateTarget, setLocateTarget] = useState<LatLng | null>(null);
+   605→   605→  const [reportOpen, setReportOpen] = useState(false);
+   606→   606→  const [status, setStatus] = useState<string | null>(null);
+   607→   607→  const route = nav.route;
+   608→   608→  const dest = nav.dest;
+   609→   609→
+   610→   610→  const webglOk = useMemo(() => {
+   611→   611→    try {
+   612→   612→      return webglSupported();
+   613→   613→    } catch {
+   614→   614→      return false;
+   615→   615→    }
+   616→   616→  }, []);
+   617→   617→
+   618→   618→  const pick = (p: LatLng) => {
+   619→   619→    nav.setDestination({ name: "Punto en el mapa", position: p });
+   620→   620→    setPickMode(false);
+   621→   621→  };
+   622→   622→
+   623→   623→  const locate = () => {
+   624→   624→    if (position) {
+   625→   625→      setLocateTarget(position);
+   626→   626→      return;
+   627→   627→    }
+   628→   628→    if ("geolocation" in navigator) {
+   629→   629→      navigator.geolocation.getCurrentPosition(
+   630→   630→        (pos) => setLocateTarget({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
+   631→   631→        () => {},
+   632→   632→        { enableHighAccuracy: true, timeout: 8000 }
+   633→   633→      );
+   634→   634→    }
+   635→   635→  };
+   636→   636→
+   637→   637→  const onRoute = !!route && route.coords.length > 1;
+   638→   638→
+   639→   639→  const progress = useMemo(
+   640→   640→    () => (onRoute && position ? routeProgress(route!, position) : null),
+   641→   641→    [onRoute, route, position]
+   642→   642→  );
+   643→   643→
+   644→   644→  const nextStep = progress?.nextStep ?? route?.steps[0] ?? null;
+   645→   645→  const laterStep = onRoute && progress && route ? route.steps[progress.passedCount + 1] ?? null : null;
+   646→   646→  const offRoute = !!progress && progress.offRouteM > 140;
+   647→   647→  const remainingM = progress?.remainingM ?? route?.distanceM ?? 0;
+   648→   648→
+   649→   649→  const currentStreet = onRoute && progress ? streetAt(route!, progress.nearestIdx) : "";
+   650→   650→
+   651→   651→  const spd = speedKmh > 4 ? speedKmh : 15;
+   652→   652→  const etaMin = remainingM > 0 ? Math.max(1, Math.round((remainingM / 1000 / spd) * 60)) : 0;
+   653→   653→  const arrivalClock = useMemo(
+   654→   654→    () => new Date(Date.now() + etaMin * 60000).toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit", hourCycle: "h23" }),
+   655→   655→    [etaMin]
+   656→   656→  );
+   657→   657→
+   658→   658→  // ---- Reporte rápido de incidencias (botón amarillo) ----
+   659→   659→  const reportIncident = async (type: IncidentTypeId) => {
+   660→   660→    if (!position) {
+   661→   661→      setStatus("Aún sin GPS: no podemos fijar la ubicación del reporte.");
+   662→   662→      setReportOpen(false);
+   663→   663→      setTimeout(() => setStatus(null), 4000);
+   664→   664→      return;
+   665→   665→    }
+   666→   666→    setReportOpen(false);
+   667→   667→    const payload = { type, lat: position.lat, lon: position.lon };
+   668→   668→    try {
+   669→   669→      const r = await fetch("/api/incidents", {
+   670→   670→        method: "POST",
+   671→   671→        headers: { "Content-Type": "application/json" },
+   672→   672→        body: JSON.stringify(payload),
+   673→   673→      });
+   674→   674→      const d = (await r.json()) as { incident?: IncidentItem; error?: string };
+   675→   675→      if (!r.ok || !d.incident) throw new Error(d.error ?? "error");
+   676→   676→      addIncident(d.incident);
+   677→   677→      setStatus("Incidencia reportada ✓ visible para toda la comunidad");
+   678→   678→    } catch {
+   679→   679→      const local: IncidentItem = {
+   680→   680→        id: crypto.randomUUID(),
+   681→   681→        ...payload,
+   682→   682→        note: null,
+   683→   683→        createdAt: new Date().toISOString(),
+   684→   684→        username: "tú (local)",
+   685→   685→        authorPin: userPin ?? DEFAULT_PIN,
+   686→   686→        mine: true,
+   687→   687→        localOnly: true,
+   688→   688→      };
+   689→   689→      addIncident(local);
+   690→   690→      saveLocalIncidents([local, ...loadLocalIncidents()]);
+   691→   691→      setStatus("Sin conexión: reporte guardado en este dispositivo.");
+   692→   692→    }
+   693→   693→    setTimeout(() => setStatus(null), 5000);
+   694→   694→  };
+   695→   695→
+   696→   696→  return (
+   697→   697→    <div className={`relative rounded-xl overflow-hidden border border-zinc-800 z-0 c30-minimap ${onRoute ? "h-80" : "h-52 sm:h-56"}`}>
+   698→   698→      {webglOk ? (
+   699→   699→        <NavCanvas
+   700→   700→          position={position}
+   701→   701→          heading={heading}
+   702→   702→          track={track}
+   703→   703→          onRoute={onRoute}
+   704→   704→          route={onRoute ? route : null}
+   705→   705→          nearestIdx={progress ? progress.nearestIdx : null}
+   706→   706→          offRoute={offRoute}
+   707→   707→          remainingM={remainingM}
+   708→   708→          nextStep={nextStep}
+   709→   709→          dest={dest ? dest.position : null}
+   710→   710→          pickMode={pickMode}
+   711→   711→          onPick={pick}
+   712→   712→          userPin={userPin}
+   713→   713→          incidents={incidents}
+   714→   714→          locateTarget={locateTarget}
+   715→   715→        />
+   716→   716→      ) : (
+   717→   717→        <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-zinc-950 text-center px-6">
+   718→   718→          <RouteIcon className="h-6 w-6 text-zinc-600" />
+   719→   719→          <p className="text-sm text-zinc-400 font-medium">La vista 3D necesita WebGL</p>
+   720→   720→          <p className="text-[11px] text-zinc-600">Actualiza Chrome/Sistema Web Android para ver la navegación.</p>
+   721→   721→        </div>
+   722→   722→      )}
+   723→   723→
+   724→   724→      {/* ===== Banner de maniobra (modo ruta), estilo Waze ===== */}
+   725→   725→      {onRoute && nextStep && (
+   726→   726→        <div className="absolute top-0 inset-x-0 z-[500] bg-zinc-950/95 border-b border-zinc-800 px-3 pt-1.5 pb-2 flex items-center gap-3 pointer-events-none">
+   727→   727→          <TurnArrow icon={nextStep.icon} className="h-14 w-14 shrink-0 text-zinc-50" />
+   728→   728→          <div className="min-w-0 flex-1">
+   729→   729→            <div className="font-mono text-[26px] font-bold text-zinc-50 leading-none tabular-nums">
+   730→   730→              {nextStep.icon === "end" ? "Llegaste" : fmtKmM(progress?.distToNextStepM ?? nextStep.distM)}
+   731→   731→            </div>
+   732→   732→            <div className="text-lg font-bold text-sky-400 leading-tight truncate mt-0.5">
+   733→   733→              {nextStep.icon === "end" ? dest?.name ?? "Destino" : streetOfStep(nextStep.text)}
+   734→   734→            </div>
+   735→   735→            {offRoute && <div className="text-[11px] text-amber-300 font-semibold mt-0.5">desviado, recalculando…</div>}
+   736→   736→          </div>
+   737→   737→          {laterStep && laterStep.icon !== "end" && <TurnArrow icon={laterStep.icon} className="h-7 w-7 shrink-0 mt-1 text-zinc-500" />}
+   738→   738→        </div>
+   739→   739→      )}
+   740→   740→
+   741→   741→      {/* Estado de cálculo de ruta */}
+   742→   742→      {nav.loading && (
+   743→   743→        <div className="absolute top-2 left-2 z-[520] rounded-full bg-zinc-950/90 border border-sky-700 px-2.5 py-1 text-[10px] font-semibold text-sky-300 flex items-center gap-1.5 pointer-events-none">
+   744→   744→          <span className="inline-block h-2 w-2 rounded-full bg-sky-400 animate-pulse" />
+   745→   745→          Calculando ruta…
+   746→   746→        </div>
+   747→   747→      )}
+   748→   748→
+   749→   749→      {/* Leyenda compacta de la ruta (solo modo ruta) */}
+   750→   750→      {onRoute && !nav.loading && (
+   751→   751→        <div className="absolute left-2 top-[92px] z-[500] rounded-md bg-zinc-950/90 border border-zinc-800 px-2 py-1 flex items-center gap-2 pointer-events-none">
+   752→   752→          <span className="inline-block h-[3px] w-4 rounded-full shrink-0" style={{ background: COLOR_CICLO }} />
+   753→   753→          <span className="text-[10px] text-zinc-300">Ciclovía {!!route?.cicloviaPct ? `${route.cicloviaPct}%` : ""}</span>
+   754→   754→          <span className="text-[10px] text-zinc-600">·</span>
+   755→   755→          <span className="inline-block h-[3px] w-4 rounded-full shrink-0" style={{ background: COLOR_VIA }} />
+   756→   756→          <span className="text-[10px] text-zinc-300">Compartida</span>
+   757→   757→        </div>
+   758→   758→      )}
+   759→   759→
+   760→   760→      {/* Píldora con la calle actual sobre el pin (modo ruta) */}
+   761→   761→      {onRoute && currentStreet && !offRoute && !(progress && progress.remainingM < ARRIVAL_M) && (
+   762→   762→        <div className="absolute bottom-[108px] inset-x-0 z-[500] flex justify-center pointer-events-none">
+   763→   763→          <span className="rounded-full bg-zinc-100 text-zinc-900 text-[11px] font-semibold px-3 py-1 shadow-lg max-w-[70%] truncate">
+   764→   764→            {currentStreet}
+   765→   765→          </span>
+   766→   766→        </div>
+   767→   767→      )}
+   768→   768→
+   769→   769→      {/* Controles flotantes */}
+   770→   770→      <div className="absolute top-2 right-2 z-[500] flex flex-col gap-1.5">
+   771→   771→        <button
+   772→   772→          onClick={locate}
+   773→   773→          aria-label="Localizarme"
+   774→   774→          title="Centrar en mi ubicación"
+   775→   775→          className="h-8 w-8 rounded-md bg-zinc-950/90 border border-zinc-700 text-zinc-100 flex items-center justify-center hover:border-emerald-500"
+   776→   776→        >
+   777→   777→          <Crosshair className="h-4 w-4" />
+   778→   778→        </button>
+   779→   779→        <button
+   780→   780→          onClick={() => setPickMode((v) => !v)}
+   781→   781→          aria-label="Elegir destino en el minimapa"
+   782→   782→          title="Toca el minimapa para fijar destino"
+   783→   783→          className={`h-8 w-8 rounded-md border flex items-center justify-center ${
+   784→   784→            pickMode ? "bg-sky-600 border-sky-300 text-white" : "bg-zinc-950/90 border-zinc-700 text-zinc-100 hover:border-sky-500"
+   785→   785→          }`}
+   786→   786→        >
+   787→   787→          <Flag className="h-4 w-4" />
+   788→   788→        </button>
+   789→   789→        {dest && (
+   790→   790→          <button
+   791→   791→            onClick={() => nav.setDestination(null)}
+   792→   792→            aria-label="Quitar destino"
+   793→   793→            title="Quitar la ruta"
+   794→   794→            className="h-8 w-8 rounded-md bg-zinc-950/90 border border-zinc-700 text-zinc-100 flex items-center justify-center hover:border-red-500"
+   795→   795→          >
+   796→   796→            <X className="h-4 w-4" />
+   797→   797→          </button>
+   798→   798→        )}
+   799→   799→      </div>
+   800→   800→
+   801→   801→      {/* ===== Barra inferior tipo Waze — SIN velocímetro ===== */}
+   802→   802→      <div className="absolute bottom-0 inset-x-0 z-[500] bg-zinc-950/95 border-t border-zinc-800 px-2.5 py-2 flex items-center gap-2.5">
+   803→   803→        {onRoute ? (
+   804→   804→          <div className="min-w-0 flex-1 text-center">
+   805→   805→            <div className="font-mono text-xl font-bold text-zinc-50 leading-none tabular-nums">{etaMin > 0 ? arrivalClock : "—"}</div>
+   806→   806→            <div className="text-[11px] text-zinc-400 leading-tight mt-0.5 truncate">
+   807→   807→              {etaMin > 0 ? `${etaMin} min · ${fmtKmM(remainingM)}` : "Ruta lista"}
+   808→   808→            </div>
+   809→   809→          </div>
+   810→   810→        ) : (
+   811→   811→          <div className="min-w-0 flex-1 flex items-center gap-1.5 rounded-lg border border-zinc-800 bg-zinc-900 px-2 py-1.5">
+   812→   812→            <RouteIcon className="h-3.5 w-3.5 text-sky-400 shrink-0" />
+   813→   813→            <select
+   814→   814→              aria-label="Ir a"
+   815→   815→              value={dest ? NAV_DESTINATIONS.find((d) => d.position === dest.position)?.id ?? "mapa" : ""}
+   816→   816→              onChange={(e) => {
+   817→   817→                const d = NAV_DESTINATIONS.find((x) => x.id === e.target.value);
+   818→   818→                if (d) nav.setDestination({ name: d.name, position: d.position });
+   819→   819→                else nav.setDestination(null);
+   820→   820→              }}
+   821→   821→              className="bg-transparent text-[11px] text-zinc-200 outline-none w-full min-w-0"
+   822→   822→            >
+   823→   823→              <option value="" className="bg-zinc-900">Ir a…</option>
+   824→   824→              {NAV_DESTINATIONS.map((d) => (
+   825→   825→                <option key={d.id} value={d.id} className="bg-zinc-900">{d.name}</option>
+   826→   826→              ))}
+   827→   827→              {dest && <option value="mapa" className="bg-zinc-900">Punto en el mapa</option>}
+   828→   828→            </select>
+   829→   829→          </div>
+   830→   830→        )}
+   831→   831→
+   832→   832→        {/* botón amarillo de reporte de incidencias */}
+   833→   833→        <button
+   834→   834→          onClick={() => setReportOpen((v) => !v)}
+   835→   835→          aria-label="Reportar incidencia en mi posición"
+   836→   836→          title="Reportar incidencia en mi posición"
+   837→   837→          className="relative h-11 w-11 rounded-xl bg-amber-400 hover:bg-amber-300 active:scale-95 transition text-zinc-950 flex items-center justify-center shrink-0"
+   838→   838→        >
+   839→   839→          <TriangleAlert className="h-6 w-6" strokeWidth={2.4} />
+   840→   840→          <Plus className="absolute bottom-0 right-0.5 h-3.5 w-3.5" strokeWidth={3.5} />
+   841→   841→        </button>
+   842→   842→      </div>
+   843→   843→
+   844→   844→      {/* Hoja de reporte rápido */}
+   845→   845→      {reportOpen && (
+   846→   846→        <div className="absolute bottom-[60px] inset-x-2 z-[650] rounded-xl bg-zinc-950/95 border border-zinc-700 shadow-2xl p-3">
+   847→   847→          <div className="flex items-center justify-between mb-2">
+   848→   848→            <span className="text-xs font-bold text-zinc-100">Reportar incidencia {position ? "en tu posición" : "(sin GPS aún)"}</span>
+   849→   849→            <button onClick={() => setReportOpen(false)} aria-label="Cerrar reporte" className="text-zinc-400 hover:text-zinc-100">
+   850→   850→              <X className="h-4 w-4" />
+   851→   851→            </button>
+   852→   852→          </div>
+   853→   853→          <div className="grid grid-cols-2 gap-1.5">
+   854→   854→            {INCIDENT_TYPES.map((t) => (
+   855→   855→              <button
+   856→   856→                key={t.id}
+   857→   857→                onClick={() => reportIncident(t.id)}
+   858→   858→                className="flex items-center gap-1.5 rounded-lg border border-zinc-800 bg-zinc-900 px-2 py-1.5 text-left text-[11px] text-zinc-200 hover:border-zinc-500"
+   859→   859→              >
+   860→   860→                <span aria-hidden>{t.emoji}</span>
+   861→   861→                <span className="truncate">{t.label}</span>
+   862→   862→              </button>
+   863→   863→            ))}
+   864→   864→          </div>
+   865→   865→          <p className="text-[10px] text-zinc-500 mt-2">Se registra con fecha y hora, y aparece en el mapa compartido.</p>
+   866→   866→        </div>
+   867→   867→      )}
+   868→   868→
+   869→   869→      {/* Confirmación / avisos */}
+   870→   870→      {status && (
+   871→   871→        <div className="absolute bottom-[60px] inset-x-3 z-[700] rounded-lg bg-zinc-900/95 border border-zinc-700 px-3 py-2 text-[11px] text-zinc-100 pointer-events-none shadow-xl">
+   872→   872→          {status}
+   873→   873→        </div>
+   874→   874→      )}
+   875→   875→
+   876→   876→      {/* Aviso de modo elección de destino */}
+   877→   877→      {pickMode && (
+   878→   878→        <div className={`absolute inset-x-2 z-[700] rounded-md bg-sky-950/95 border border-sky-600 px-2.5 py-1.5 text-[11px] text-sky-100 flex items-center justify-between ${onRoute ? "top-[86px]" : "top-2"}`}>
+   879→   879→          <span>Toca el minimapa para fijar tu destino</span>
+   880→   880→          <button onClick={() => setPickMode(false)} aria-label="Cancelar elección" className="text-sky-300 hover:text-white">
+   881→   881→            <X className="h-3.5 w-3.5" />
+   882→   882→          </button>
+   883→   883→        </div>
+   884→   884→      )}
+   885→   885→    </div>
+   886→   886→  );
+   887→   887→}
+   888→   888→

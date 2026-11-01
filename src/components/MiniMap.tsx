@@ -32,7 +32,7 @@ import { GATES, NAV_DESTINATIONS, PARK_POLYGON, RISK_ZONES, type LatLng } from "
 import { DEFAULT_PIN, PINS, type PinId } from "@/lib/pins";
 import { INCIDENT_BY_ID } from "@/lib/incidents";
 import { circlePolygon, navStyle } from "@/lib/navStyle";
-import { groupSegments, pointAhead, routeProgress, streetAt, streetOfStep } from "@/lib/routing";
+import { groupSegments, haversineM, routeProgress, streetAt, streetOfStep } from "@/lib/routing";
 import { INCIDENT_TYPES, type IncidentTypeId } from "@/lib/incidents";
 import { addIncident, loadLocalIncidents, saveLocalIncidents, useIncidentFeed, type IncidentItem } from "@/hooks/useIncidentFeed";
 import type { NavEngine } from "@/hooks/useNavEngine";
@@ -42,8 +42,6 @@ const PARK_CENTER: [number, number] = [-33.408, -70.636];
 const PARK_CENTER_OBJ: LatLng = { lat: PARK_CENTER[0], lon: PARK_CENTER[1] };
 
 /** Anticipación de la cámara: con el pin abajo, estilo Waze. */
-const LOOKAHEAD_NAV_M = 130;
-const LOOKAHEAD_FREE_M = 80;
 const ARRIVAL_M = 150;
 const NAV_ZOOM = 16.5;
 const ARRIVAL_ZOOM = 17.4;
@@ -76,23 +74,14 @@ function webglSupported(): boolean {
   }
 }
 
-/** Rumbo (0-360) entre dos puntos. */
+/**
+ * Rumbo (0-360) entre dos puntos.
+ */
 function bearingOf(a: LatLng, b: LatLng): number {
   const toR = Math.PI / 180;
   const y = Math.sin((b.lon - a.lon) * toR) * Math.cos(b.lat * toR);
   const x = Math.cos(a.lat * toR) * Math.sin(b.lat * toR) - Math.sin(a.lat * toR) * Math.cos(b.lat * toR) * Math.cos((b.lon - a.lon) * toR);
   return (Math.atan2(y, x) / toR + 360) % 360;
-}
-
-/** Desplaza un punto `distM` metros según un rumbo (modo libre). */
-function offsetAlong(p: LatLng, headingDeg: number, distM: number): LatLng {
-  const r = (headingDeg * Math.PI) / 180;
-  const mPerDegLat = 111_320;
-  const mPerDegLon = 111_320 * Math.cos((p.lat * Math.PI) / 180);
-  return {
-    lat: p.lat + (Math.cos(r) * distM) / mPerDegLat,
-    lon: p.lon + (Math.sin(r) * distM) / mPerDegLon,
-  };
 }
 
 /**
@@ -481,22 +470,35 @@ function NavCanvas(props: NavCanvasProps) {
     }
 
     const r = props.route;
-    const from = props.nearestIdx ?? 0;
-    const remainingGroups = groupSegments(r.coords, r.flags, from, r.coords.length - 2);
-    const traveledGroups = props.nearestIdx !== null ? groupSegments(r.coords, r.flags, 0, from - 1) : [];
+    const from = Math.min(props.nearestIdx ?? 0, r.coords.length - 1);
+    const pos = props.position;
+    // El tramo restante SIEMPRE parte de la ubicación ACTUAL: si el
+    // pin ya se movió del vértice más cercano, se antepone la
+    // posición viva como origen con un conector directo (así la ruta
+    // nace en tu punto, no en la ciclovía más próxima).
+    const startAtUser = !!pos && haversineM(pos, r.coords[from]) > 2.5;
+    const stubFlag = r.flags[Math.min(from, r.flags.length - 1)] ?? false;
+
+    const remCoords = startAtUser ? [pos!, ...r.coords.slice(from)] : r.coords.slice(from);
+    const remFlags = startAtUser ? [stubFlag, ...r.flags.slice(from)] : r.flags.slice(from);
+    const remainingGroups = groupSegments(remCoords, remFlags, 0, remCoords.length - 2);
+
+    const travCoords = startAtUser ? [...r.coords.slice(0, from + 1), pos!] : r.coords.slice(0, from + 1);
+    const travFlags = startAtUser ? [...r.flags.slice(0, from), stubFlag] : r.flags.slice(0, from);
+    const traveledGroups = props.nearestIdx !== null ? groupSegments(travCoords, travFlags, 0, travCoords.length - 2) : [];
 
     const remainingFeats: GeoFeature[] = [
-      // casing bajo la ruta completa restante
-      lineFeat(r.coords.slice(from), { kind: "casing", ciclo: false }),
+      // casing bajo la ruta completa restante (desde MI posición)
+      lineFeat(remCoords, { kind: "casing", ciclo: false }),
       ...remainingGroups.map((g) => lineFeat(g.coords, { kind: "seg", ciclo: g.ciclovia })),
     ];
     const traveledFeats = traveledGroups.map((g) => lineFeat(g.coords, { ciclo: g.ciclovia }));
 
     (map.getSource("route-remaining") as maplibregl.GeoJSONSource | undefined)?.setData(toFc(remainingFeats));
     (map.getSource("route-traveled") as maplibregl.GeoJSONSource | undefined)?.setData(toFc(traveledFeats));
-  }, [ready, props.onRoute, props.route, props.nearestIdx, props.track]);
+  }, [ready, props.onRoute, props.route, props.nearestIdx, props.position, props.track]);
 
-  // ---- cámara de navegación ----
+  // ---- cámara: pin FIJO abajo y al centro, estilo Waze ----
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !ready) return;
@@ -517,23 +519,23 @@ function NavCanvas(props: NavCanvasProps) {
       return;
     }
 
+    // El CENTRO de la cámara es la posición del ciclista y el relleno
+    // superior corre el punto de ancla al ~30% del alto: el pin queda
+    // clavado abajo y centrado mientras el mundo fluye bajo él.
     const h = boxRef.current?.clientHeight ?? 260;
-    const onRouteClean = props.onRoute && !props.offRoute && props.remainingM >= ARRIVAL_M && props.route && props.nearestIdx !== null;
-    let target: LatLng;
-    if (onRouteClean) {
-      target = pointAhead(props.route!.coords, props.nearestIdx!, LOOKAHEAD_NAV_M);
-    } else if (props.heading !== null) {
-      target = offsetAlong(props.position, props.heading, props.onRoute ? LOOKAHEAD_NAV_M : LOOKAHEAD_FREE_M);
-    } else if (props.route && props.nearestIdx !== null && props.nearestIdx < props.route.coords.length - 1) {
-      const br = bearingOf(props.route.coords[props.nearestIdx], props.route.coords[props.nearestIdx + 1]);
-      target = offsetAlong(props.position, br, LOOKAHEAD_NAV_M);
-    } else {
-      target = props.position;
-    }
+    const anchorBottom = Math.round(h * (props.onRoute ? 0.3 : 0.34));
+    const padding = { top: Math.max(0, Math.round(h) - anchorBottom * 2), bottom: 0, left: 0, right: 0 };
 
-    const wantedBearing = props.heading !== null ? props.heading : map.getBearing();
+    // rumbo: sensor de curso → dirección de la ruta → mantener actual
+    let b: number;
+    if (props.heading !== null) {
+      b = props.heading;
+    } else if (props.onRoute && props.route && props.nearestIdx !== null && props.nearestIdx < props.route.coords.length - 1) {
+      b = bearingOf(props.route.coords[props.nearestIdx], props.route.coords[props.nearestIdx + 1]);
+    } else {
+      b = map.getBearing();
+    }
     const cur = map.getBearing();
-    let b = wantedBearing;
     // giro por el camino corto (evita vueltas de 340°)
     while (b - cur > 180) b -= 360;
     while (b - cur < -180) b += 360;
@@ -543,25 +545,25 @@ function NavCanvas(props: NavCanvasProps) {
     if (!firstFixRef.current) {
       firstFixRef.current = true;
       map.jumpTo({
-        center: [target.lon, target.lat],
+        center: [props.position.lon, props.position.lat],
         bearing: b,
         pitch: NAV_PITCH,
         zoom: camZoom,
-        padding: { top: 0, bottom: Math.round(h * 0.3), left: 0, right: 0 },
+        padding,
       });
       return;
     }
 
     map.easeTo({
-      center: [target.lon, target.lat],
+      center: [props.position.lon, props.position.lat],
       bearing: b,
       pitch: NAV_PITCH,
       zoom: camZoom,
-      padding: { top: 0, bottom: Math.round(h * 0.3), left: 0, right: 0 },
+      padding,
       duration: 680,
       easing: (t) => t,
     });
-  }, [ready, props.position, props.heading, props.onRoute, props.offRoute, props.remainingM, props.nearestIdx, props.route]);
+  }, [ready, props.position, props.heading, props.onRoute, props.remainingM, props.nearestIdx, props.route]);
 
   // rotación del pin flecha respecto al mapa (queda alineado al rumbo)
   useEffect(() => {

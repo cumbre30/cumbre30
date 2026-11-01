@@ -304,6 +304,29 @@ export function findRoute(net: Network, from: LatLng, to: LatLng): NavRoute | nu
   };
 }
 
+/**
+ * Ancla el inicio de la ruta a la posición EXACTA del ciclista.
+ * Tanto el A* propio como OSRM ajustan el origen al nodo más
+ * cercano de la red de vías (por eso la ruta "partía" en la
+ * ciclovía y no donde estaba el usuario): aquí se antepone el
+ * punto real como vértice 0 con un conector directo a la red.
+ */
+export function attachOrigin(route: NavRoute, from: LatLng): NavRoute {
+  const d0 = haversineM(from, route.coords[0]);
+  if (d0 < 3) return route; // ya parte de la posición real
+  const coords = [from, ...route.coords];
+  // el conector hereda la clasificación del primer tramo real
+  // (si aparece en ciclovía, se dibuja ciclovía y sin cortes)
+  const firstFlag = route.flags[0] ?? false;
+  const flags = [firstFlag, ...route.flags];
+  const segNames = ["", ...route.segNames];
+  const steps = route.steps.map((st) => ({ ...st, idx: st.idx + 1 }));
+  if (steps.length > 1) {
+    steps[0] = { ...steps[0], point: from, idx: 0, distM: Math.max(1, steps[0].distM + Math.round(d0)) };
+  }
+  return { ...route, coords, flags, segNames, steps, distanceM: route.distanceM + Math.round(d0) };
+}
+
 export type RouteSegGroup = { ciclovia: boolean; coords: LatLng[] };
 
 /**

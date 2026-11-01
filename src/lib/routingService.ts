@@ -10,7 +10,7 @@
 //   OSM). Sin conexión: nota clara en la UI.
 // ============================================================
 
-import { findRoute, haversineM, loadNetwork, snapInfo, type LatLng, type NavRoute, type Network, type RouteStep } from "@/lib/routing";
+import { attachOrigin, findRoute, haversineM, loadNetwork, snapInfo, type LatLng, type NavRoute, type Network, type RouteStep } from "@/lib/routing";
 
 /** Distancia máx. al grafo local para usar el motor propio. */
 const GRAPH_COVER_M = 900;
@@ -272,13 +272,11 @@ export async function computeRoute(from: LatLng, to: LatLng): Promise<RouteResul
     if (a.distM <= GRAPH_COVER_M && b.distM <= GRAPH_COVER_M) {
       const r = findRoute(net, from, to);
       if (r) {
-        // flags del A* ya son confiables en el sector cubierto
-        const cicloM = r.flags.reduce((acc, f, i) => {
-          if (!f) return acc;
-          return acc + haversineM(r.coords[i], r.coords[i + 1]);
-        }, 0);
+        // flags del A* ya son confiables en el sector cubierto;
+        // el inicio se ancla a la ubicación real del ciclista
+        const route = attachOrigin(r, from);
         return {
-          route: { ...r, cicloviaPct: distancePct(cicloM, r.distanceM) },
+          route: { ...route, cicloviaPct: cicloPctOf(route) },
           source: "local",
           error: null,
         };
@@ -304,17 +302,21 @@ export async function computeRoute(from: LatLng, to: LatLng): Promise<RouteResul
   } else {
     flags = await overpassCycleFlags(r.coords);
   }
-  const cicloM = flags.reduce((acc, f, i) => {
-    if (!f) return acc;
-    return acc + haversineM(r.coords[i], r.coords[i + 1]);
-  }, 0);
+  // el inicio se ancla a la ubicación real del ciclista (OSRM
+  // también ajusta el origen a la red vial)
+  const route = attachOrigin({ ...r, flags }, from);
   return {
-    route: { ...r, flags, cicloviaPct: distancePct(cicloM, r.distanceM) },
+    route: { ...route, cicloviaPct: cicloPctOf(route) },
     source: "osrm",
     error: null,
   };
 }
 
-function distancePct(cicloM: number, totalM: number): number {
-  return totalM > 0 ? Math.round((cicloM / totalM) * 100) : 0;
+/** % de metros sobre ciclovía de la ruta ya anclada al origen. */
+function cicloPctOf(route: NavRoute): number {
+  let cicloM = 0;
+  for (let i = 0; i < route.flags.length; i++) {
+    if (route.flags[i]) cicloM += haversineM(route.coords[i], route.coords[i + 1]);
+  }
+  return route.distanceM > 0 ? Math.round((cicloM / route.distanceM) * 100) : 0;
 }
