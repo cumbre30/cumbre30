@@ -19,6 +19,7 @@ import {
   Award,
   Trash2,
   KeyRound,
+  Smartphone,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -308,6 +309,25 @@ export default function ProfileTab() {
           <Share2 className="h-4 w-4 mr-2" /> Generar y compartir resumen
         </Button>
         {shareMsg && <p className="mt-2 text-xs text-emerald-300">{shareMsg}</p>}
+      </Card>
+
+      {/* Descarga app Android */}
+      <Card className="bg-zinc-900/80 border-zinc-800 p-4">
+        <div className="flex items-start gap-3 mb-3">
+          <Smartphone className="h-5 w-5 text-emerald-400 mt-0.5" />
+          <div className="text-sm text-zinc-400">
+            <p className="font-medium text-zinc-200">App Android (APK)</p>
+            <p className="mt-1 leading-relaxed">
+              Lleva Cumbre30 al teléfono con mapas nativos, GPS en segundo plano y avisos de voz
+              aunque la pantalla esté apagada. Al instalar, acepta “fuentes desconocidas”.
+            </p>
+          </div>
+        </div>
+        <a href="/api/apk" download className="block">
+          <Button className="w-full h-11 bg-emerald-600 hover:bg-emerald-500 text-zinc-950 font-semibold">
+            <Download className="h-4 w-4 mr-2" /> Descargar Cumbre30 v1.2 (52 MB)
+          </Button>
+        </a>
       </Card>
 
       {/* Bicicleta */}
