@@ -1,16 +1,21 @@
 "use client";
 
 // ============================================================
-// Minimapa del velocímetro (estilo ciclócomputador):
-// · Con ruta: solo muestra el camino a seguir, con el punto del
-//   próximo giro, el destino y la distancia restante.
+// Minimapa del velocímetro, TIPO NAVEGACIÓN (Waze / GPS):
+// · Con ruta: cámara que gira con el rumbo (la dirección de
+//   avance siempre apunta hacia arriba), el pin queda en el
+//   tercio inferior y la ruta se ve venir; chip con la próxima
+//   maniobra y los metros restantes.
 // · Sin ruta: mapa seguido de la posición con parque, zonas de
 //   riesgo, incidencias y recorrido — como un ciclócomputador.
-// Integra controles: localizarme, fijar destino e «Ir a…».
+// El pin de posición es el elegido por el usuario en
+// Desafíos (o la flecha clásica por defecto).
 // ============================================================
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import "leaflet/dist/leaflet.css";
+import "@/lib/leaflet-rotate-setup"; // define window.L antes del plugin
+import "leaflet-rotate";
 import L from "leaflet";
 import {
   Circle,
@@ -20,7 +25,6 @@ import {
   Polygon,
   Polyline,
   TileLayer,
-  Tooltip,
   useMap,
   useMapEvents,
 } from "react-leaflet";
@@ -28,11 +32,19 @@ import { Crosshair, Flag, Route as RouteIcon, X } from "lucide-react";
 import { GATES, NAV_DESTINATIONS, PARK_POLYGON, RISK_ZONES, type LatLng } from "@/lib/park";
 import { DEFAULT_PIN } from "@/lib/pins";
 import { flagIcon, miniIncidentIcon, stepDotIcon, userPinIcon } from "@/lib/mapIcons";
-import { routeProgress } from "@/lib/routing";
+import { pointAhead, routeProgress, stepGlyph } from "@/lib/routing";
 import { useIncidentFeed } from "@/hooks/useIncidentFeed";
 import type { NavEngine } from "@/hooks/useNavEngine";
 
 const PARK_CENTER: [number, number] = [-33.408, -70.636];
+const PARK_CENTER_OBJ: LatLng = { lat: PARK_CENTER[0], lon: PARK_CENTER[1] };
+
+/** Metros que la cámara anticipa hacia adelante (pin abajo, camino arriba). */
+const LOOKAHEAD_M = 90;
+/** A partir de esta distancia al destino, zoom de llegada. */
+const ARRIVAL_M = 150;
+const NAV_ZOOM = 17;
+const ARRIVAL_ZOOM = 18;
 
 type Props = {
   position: LatLng | null;
@@ -43,12 +55,16 @@ type Props = {
   nav: NavEngine;
 };
 
-/** Centra y sigue la posición en modo libre (zoom tipo ciclócomputador). */
+/** Convierte cualquier ángulo a [0, 360). */
+const wrap360 = (deg: number) => ((deg % 360) + 360) % 360;
+
+/** Centra y sigue la posición en modo libre (norte arriba, zoom ciclócomputador). */
 function FollowFree({ position }: { position: LatLng | null }) {
   const map = useMap();
   const init = useRef(false);
   useEffect(() => {
     if (!position) return;
+    if (map.getBearing && map.getBearing() !== 0) map.setBearing(0);
     if (!init.current) {
       init.current = true;
       map.setView([position.lat, position.lon], 17, { animate: false });
@@ -59,27 +75,41 @@ function FollowFree({ position }: { position: LatLng | null }) {
   return null;
 }
 
-/** Ajusta la vista a la ruta completa cuando cambia. */
+/** Ajusta la vista a la ruta completa cuando aún no hay posición. */
 function FitRoute({ coords }: { coords: LatLng[] | null }) {
   const map = useMap();
   useEffect(() => {
     if (!coords || coords.length < 2) return;
+    if (map.getBearing && map.getBearing() !== 0) map.setBearing(0);
     const bounds = L.latLngBounds(coords.map((c) => [c.lat, c.lon] as [number, number]));
     map.fitBounds(bounds, { paddingTopLeft: [14, 44], paddingBottomRight: [14, 34] });
   }, [coords, map]);
   return null;
 }
 
-/** En modo ruta, mantiene la posición dentro del encuadre. */
-function PanAlong({ position }: { position: LatLng | null }) {
+/**
+ * Cámara de navegación: gira el mapa al rumbo (avance = arriba) y
+ * centra un punto de la ruta ~90 m adelante, dejando el pin abajo
+ * como en una app de navegación. Suaviza el bearing entre ticks.
+ */
+function NavCamera({ position, bearing, target, zoom }: { position: LatLng | null; bearing: number; target: LatLng; zoom: number }) {
   const map = useMap();
+  const init = useRef(false);
+  const lastBearing = useRef(0);
   useEffect(() => {
     if (!position) return;
-    const inner = map.getBounds().pad(-0.18);
-    if (!inner.contains([position.lat, position.lon])) {
-      map.panTo([position.lat, position.lon], { animate: true, duration: 0.6 });
+    // Histeresis de rumbo: si el GPS aún no da rumbo, mantener el último.
+    const b = wrap360(bearing);
+    lastBearing.current = b;
+    if (!init.current) {
+      init.current = true;
+      map.setBearing(b);
+      map.setView([target.lat, target.lon], zoom, { animate: false });
+      return;
     }
-  }, [position, map]);
+    map.setBearing(b, { animate: true, duration: 0.4 });
+    map.setView([target.lat, target.lon], zoom, { animate: true, duration: 0.6 });
+  }, [position, map]); // target/zoom/derivados del mismo tick de posición
   return null;
 }
 
@@ -152,13 +182,29 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
   const nextStep = progress?.nextStep ?? null;
   const offRoute = !!progress && progress.offRouteM > 140;
 
+  // ----- Cámara tipo navegación -----
+  // Bearing: mapa girado para que el rumbo apunte hacia arriba.
+  const navBearing = onRoute && heading !== null ? wrap360(-heading) : 0;
+  // Objetivo de cámara: ~LOOKAHEAD_M más adelante en la ruta; si hay
+  // desvío o llegada cercana, la propia posición.
+  const camTarget: LatLng = useMemo(() => {
+    if (!onRoute || !position) return position ?? PARK_CENTER_OBJ;
+    if (offRoute || progress!.remainingM < ARRIVAL_M) return position;
+    return pointAhead(route!.coords, progress!.nearestIdx, LOOKAHEAD_M);
+  }, [onRoute, position, offRoute, progress, route]);
+  const camZoom = onRoute && progress && progress.remainingM < ARRIVAL_M ? ARRIVAL_ZOOM : NAV_ZOOM;
+
   return (
-    <div className="relative rounded-xl overflow-hidden border border-zinc-800 h-52 sm:h-56 z-0">
+    <div className={`relative rounded-xl overflow-hidden border border-zinc-800 z-0 ${onRoute ? "h-64 sm:h-72" : "h-52 sm:h-56"}`}>
       <MapContainer
         center={position ? [position.lat, position.lon] : PARK_CENTER}
         zoom={position ? 17 : 13}
         zoomControl={false}
         attributionControl={false}
+        rotate
+        bearing={0}
+        rotateControl={false}
+        touchRotate={false}
         dragging={false}
         scrollWheelZoom={false}
         doubleClickZoom={false}
@@ -229,13 +275,22 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
                 interactive={false}
               />
             )}
-            <Marker position={[position.lat, position.lon]} icon={userPinIcon(userPin ?? DEFAULT_PIN, heading)} zIndexOffset={500} />
+            <Marker
+              position={[position.lat, position.lon]}
+              icon={userPinIcon(userPin ?? DEFAULT_PIN, heading, onRoute ? navBearing : 0)}
+              zIndexOffset={500}
+            />
           </>
         )}
 
         <ScaleHandler />
-        {!onRoute ? <FollowFree position={position} /> : <FitRoute coords={onRoute ? route!.coords : null} />}
-        {onRoute && <PanAlong position={position} />}
+        {!onRoute ? (
+          <FollowFree position={position} />
+        ) : position ? (
+          <NavCamera position={position} bearing={navBearing} target={camTarget} zoom={camZoom} />
+        ) : (
+          <FitRoute coords={onRoute ? route!.coords : null} />
+        )}
         {locateTarget && !position && <FollowOnce target={locateTarget} />}
         <ClickPick enabled={pickMode} onPick={pick} />
       </MapContainer>
@@ -272,11 +327,19 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
         )}
       </div>
 
-      {/* Chip restante / desvío (modo ruta) */}
-      {onRoute && progress && (
-        <div className="absolute top-2 left-2 z-[500] rounded-md bg-zinc-950/90 border border-sky-800/80 px-2 py-1 text-[11px] font-semibold text-sky-200 flex items-center gap-1.5 pointer-events-none">
-          🏁 {progress.remainingM >= 950 ? `${(progress.remainingM / 1000).toFixed(1)} km` : `${Math.max(10, Math.round(progress.remainingM / 10) * 10)} m`}
-          {offRoute && <span className="text-amber-300">· desviado</span>}
+      {/* Chip de navegación: próxima maniobra + restante (modo ruta) */}
+      {onRoute && nextStep && (
+        <div className="absolute top-2 left-2 z-[500] rounded-lg bg-zinc-950/90 border border-sky-800/80 pl-1.5 pr-2.5 py-1 flex items-center gap-2 pointer-events-none">
+          <span className="text-2xl leading-none text-sky-300" aria-hidden>{stepGlyph(nextStep.icon)}</span>
+          <span className="font-mono text-sm font-bold text-zinc-100 tabular-nums leading-none">
+            {nextStep.icon === "end" ? "Llegaste" : `${Math.max(10, Math.round((progress?.distToNextStepM ?? nextStep.distM) / 10) * 10)} m`}
+          </span>
+          {progress && (
+            <span className="text-[11px] font-semibold text-sky-300 border-l border-zinc-700 pl-2 leading-none">
+              {progress.remainingM >= 950 ? `${(progress.remainingM / 1000).toFixed(1)} km` : `${Math.max(10, Math.round(progress.remainingM / 10) * 10)} m`}
+            </span>
+          )}
+          {offRoute && <span className="text-[11px] text-amber-300 font-semibold">· desviado</span>}
         </div>
       )}
 

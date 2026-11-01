@@ -108,7 +108,11 @@ export function loadNetwork(): Promise<Network | null> {
   return netPromise;
 }
 
-function nearestNode(net: Network, p: LatLng, maxM = 450): number | null {
+/**
+ * Nodo más cercano del grafo. `maxM` generoso (800 m) para que fijar
+ * destino a mitad de un sendero del parque encuentre conexión igual.
+ */
+function nearestNode(net: Network, p: LatLng, maxM = 800): number | null {
   let best = -1;
   let bestD = Infinity;
   for (let i = 0; i < net.nodes.length; i++) {
@@ -175,11 +179,22 @@ export function findRoute(net: Network, from: LatLng, to: LatLng): NavRoute | nu
   g[s] = 0;
   heap.push({ f: haversineM({ lat: net.nodes[s][0], lon: net.nodes[s][1] }, target) * 0.65, i: s });
 
+  // Nodo asentado más cercano al destino pedido: si el destino cae en
+  // una componente aislada del grafo (ej. senderos de la Piscina
+  // Antilén), terminamos en el punto alcanzable más cercano.
+  let bestNode = -1;
+  let bestDist = Infinity;
+
   while (heap.size > 0) {
     const cur = heap.pop()!;
     const u = cur.i;
     if (done[u]) continue;
     done[u] = 1;
+    const du = haversineM({ lat: net.nodes[u][0], lon: net.nodes[u][1] }, to);
+    if (du < bestDist) {
+      bestDist = du;
+      bestNode = u;
+    }
     if (u === t) break;
     for (const e of net.adj[u]) {
       if (done[e.to]) continue;
@@ -193,11 +208,12 @@ export function findRoute(net: Network, from: LatLng, to: LatLng): NavRoute | nu
       }
     }
   }
-  if (!done[t]) return null;
+  const end = done[t] ? t : bestNode;
+  if (end < 0) return null;
 
   // reconstruir secuencia de aristas
   const seq: Array<{ edge: Network["adj"][number][number]; from: number }> = [];
-  let cur = t;
+  let cur = end;
   while (cur !== s && prevNode[cur] >= 0) {
     const u = prevNode[cur];
     const e = prevEdgeRef[cur]!;
@@ -271,6 +287,34 @@ export function findRoute(net: Network, from: LatLng, to: LatLng): NavRoute | nu
 
 export function formatStepRemaining(step: RouteStep): string {
   return step.distM >= 950 ? `${(step.distM / 1000).toFixed(1)} km` : `${Math.max(10, Math.round(step.distM / 10) * 10)} m`;
+}
+
+/** Glifo de maniobra para banners y chips de navegación. */
+export function stepGlyph(icon: RouteStep["icon"]): string {
+  return icon === "left" ? "↰" : icon === "right" ? "↱" : icon === "end" ? "🏁" : icon === "start" ? "🚩" : "↑";
+}
+
+/**
+ * Punto sobre la ruta a `aheadM` metros del vértice `fromIdx` (hacia adelante).
+ * Se usa para la cámara de navegación: centrar un punto más adelante deja el
+ * pin del ciclista en el tercio inferior, estilo Waze.
+ */
+export function pointAhead(coords: LatLng[], fromIdx: number, aheadM: number): LatLng {
+  const last = coords.length - 1;
+  if (fromIdx >= last) return coords[last];
+  let acc = 0;
+  for (let i = Math.max(0, fromIdx); i < last; i++) {
+    const seg = haversineM(coords[i], coords[i + 1]);
+    if (seg > 0 && acc + seg >= aheadM) {
+      const f = Math.min(1, (aheadM - acc) / seg);
+      return {
+        lat: coords[i].lat + (coords[i + 1].lat - coords[i].lat) * f,
+        lon: coords[i].lon + (coords[i + 1].lon - coords[i].lon) * f,
+      };
+    }
+    acc += seg;
+  }
+  return coords[last];
 }
 
 export type RouteProgress = {

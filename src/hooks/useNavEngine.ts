@@ -97,14 +97,19 @@ export function useNavEngine(position: LatLng | null, running: boolean): NavEngi
     if (o && d) compute(o, d);
   }, [compute]);
 
-  // Si la red llega tarde y ya hay destino, calcular en cuanto esté lista.
+  // Si la red llega tarde, o el destino se fijó antes de tener posición,
+  // calcular en cuanto haya datos (sin martillar: reintento máx cada 5 s).
+  // Diferido con timeout: evita setState síncrono dentro del effect.
   useEffect(() => {
-    if (net && destRef.current && !route) {
+    if (!net || !position || !destRef.current || route) return;
+    if (Date.now() - lastCalcRef.current < 5_000) return;
+    const t = setTimeout(() => {
       const o = posRef.current;
-      if (o) compute(o, destRef.current);
-    }
-     
-  }, [net, compute]);
+      const d = destRef.current;
+      if (o && d) compute(o, d);
+    }, 0);
+    return () => clearTimeout(t);
+  }, [net, position, route, compute]);
 
   // Recálculo periódico mientras hay ride activo.
   useEffect(() => {

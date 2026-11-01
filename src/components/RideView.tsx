@@ -13,7 +13,7 @@ import { Bike, Gauge, ListTree, Mountain, Navigation, Route, ShieldAlert, Timer,
 import { Card } from "@/components/ui/card";
 import { LIMIT_KMH } from "@/lib/park";
 import { formatClock } from "@/lib/geo";
-import { formatStepRemaining, routeProgress, type RouteStep } from "@/lib/routing";
+import { formatStepRemaining, routeProgress, stepGlyph } from "@/lib/routing";
 import type { LatLng } from "@/lib/park";
 import type { RideEvent, SpeedState } from "@/hooks/useRideEngine";
 import type { NavEngine } from "@/hooks/useNavEngine";
@@ -68,9 +68,7 @@ const EVENT_STYLE: Record<RideEvent["kind"], { dot: string; text: string }> = {
   danger: { dot: "bg-red-500", text: "text-red-300 font-medium" },
 };
 
-export function stepGlyph(icon: RouteStep["icon"]): string {
-  return icon === "left" ? "↰" : icon === "right" ? "↱" : icon === "end" ? "🏁" : icon === "start" ? "🚩" : "↑";
-}
+export { stepGlyph };
 
 function fmtMeters(m: number): string {
   return m >= 950 ? `${(m / 1000).toFixed(1)} km` : `${Math.max(10, Math.round(m / 10) * 10)} m`;
