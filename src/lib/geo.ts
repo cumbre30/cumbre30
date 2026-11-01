@@ -31,7 +31,11 @@ export function pointInPolygon(p: LatLng, poly: LatLng[]): boolean {
  * Filtro de Kalman escalar para suavizar la velocidad (m/s).
  * - Q: ruido de proceso (aceleración del ciclista)
  * - R: ruido de medición (GPS)
- * Incluye compuerta de outliers: ignora saltos imposibles (> 8 m/s²).
+ * Incluye compuerta de outliers en dos niveles:
+ *   - salto sospechoso (> 8 m/s²): se ignora salvo que el
+ *     acelerómetro confirme aceleración real (hardConfirm),
+ *   - salto imposible (> 25 m/s² ≈ 2.5 g sostenido): siempre
+ *     se ignora, venga o no confirmación sensorial.
  */
 export class SpeedKalman {
   private x: number | null = null; // estado: velocidad estimada
@@ -44,7 +48,7 @@ export class SpeedKalman {
     this.r = r;
   }
 
-  update(measured: number, dt: number): number {
+  update(measured: number, dt: number, hardConfirm = false): number {
     if (!isFinite(measured) || measured < 0) return this.x ?? 0;
     if (this.x === null) {
       this.x = measured;
@@ -54,7 +58,9 @@ export class SpeedKalman {
     this.p += this.q * dt;
     // compuerta de outliers: aceleración imposible
     const impliedA = Math.abs(measured - this.x) / Math.max(dt, 0.1);
-    const r = impliedA > 8 ? this.r * 25 : this.r;
+    let r = this.r;
+    if (impliedA > 25) r = this.r * 60;
+    else if (impliedA > 8 && !hardConfirm) r = this.r * 25;
     // corrección
     const k = this.p / (this.p + r);
     this.x += k * (measured - this.x);

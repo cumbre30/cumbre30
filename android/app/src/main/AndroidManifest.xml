@@ -33,6 +33,13 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths"></meta-data>
         </provider>
+
+        <!-- Servicio en primer plano: GPS a 1 Hz sigue activo con la
+             pantalla bloqueada o cambiando de app durante el ride -->
+        <service
+            android:name=".RideLocationService"
+            android:exported="false"
+            android:foregroundServiceType="location" />
     </application>
 
     <!-- Permissions -->
@@ -41,7 +48,12 @@
     <!-- GPS: límite 30 km/h, geofence del parque y registro de rutas -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-    <!-- Alertas hápticas (navigator.vibrate) -->
+    <!-- Servicio en primer plano de ubicación (obligatorio API 34+ con targetSdk 34+) -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+    <!-- Notificación persistente del servicio (API 33+) -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Alertas hápticas nativas (VibratorManager) -->
     <uses-permission android:name="android.permission.VIBRATE" />
     <!-- Pantalla siempre encendida durante el pedaleo (KeepAwake) -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />

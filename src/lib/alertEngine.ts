@@ -2,11 +2,18 @@
 // Motor de alertas: beeps WebAudio, voz (TTS es), vibración
 // y Wake Lock (pantalla siempre encendida).
 // Diseñado para operar sin mirar la pantalla.
-// En el APK nativo (Capacitor): TTS del sistema Android y
-// KeepAwake nativo; en el navegador: speechSynthesis / Wake Lock API.
+// En el APK nativo (Capacitor): TTS del sistema Android,
+// VibratorManager nativo y KeepAwake nativo; en el navegador:
+// speechSynthesis / navigator.vibrate / Wake Lock API.
+//
+// Hápticos progresivos (estrategia del documento técnico):
+//   25 km/h → pulso corto · 28 km/h → doble pulso ·
+//   30 km/h o más → vibración continua hasta reducir.
 // ============================================================
 
 import { Capacitor } from "@capacitor/core";
+import { LIMIT_KMH } from "./park";
+import { RideNative, isNativeApp } from "./rideNative";
 
 // Plugins nativos con import dinámico: sus implementaciones web tocan
 // window/document en el constructor y romperían el prerender SSR.
@@ -45,7 +52,8 @@ class AlertEngine {
   private alarmOsc: OscillatorNode | null = null;
   private alarmLfo: OscillatorNode | null = null;
   private beepTimer: ReturnType<typeof setInterval> | null = null;
-  private vibrateTimer: ReturnType<typeof setInterval> | null = null;
+  private hapticTimer: ReturnType<typeof setInterval> | null = null;
+  private hapticTier = 0;
   private lastSpeakAt: Record<string, number> = {};
   private wakeLock: WakeLockSentinel | null = null;
   private nativeKeepAwake = false;
@@ -84,31 +92,25 @@ class AlertEngine {
     osc.stop(ctx.currentTime + durationMs / 1000 + 0.02);
   }
 
-  // ---- Estados de alerta de velocidad ----
+  // ---- Estados de alerta de velocidad (audio; la vibración es progresiva) ----
 
-  /** Precaución: pitido intermitente + vibración corta (≥ 27 km/h en el parque). */
+  /** Precaución: pitido intermitente (≥ 27 km/h en el parque). */
   startCaution(): void {
     this.stopCautionOnly();
     if (this.prefs.soundEnabled) {
       this.beep(880, 130);
       this.beepTimer = setInterval(() => this.beep(880, 130), 1300);
     }
-    if (this.prefs.vibrationEnabled) {
-      navigator.vibrate?.(90);
-      this.vibrateTimer = setInterval(() => navigator.vibrate?.(90), 1300);
-    }
   }
 
   stopCautionOnly(): void {
     if (this.beepTimer) clearInterval(this.beepTimer);
-    if (this.vibrateTimer) clearInterval(this.vibrateTimer);
     this.beepTimer = null;
-    this.vibrateTimer = null;
   }
 
-  /** Exceso: alarma continua + vibración fuerte (> 30 km/h en el parque). */
+  /** Exceso: alarma continua (> 30 km/h en el parque). */
   startOver(): void {
-    this.stopAll();
+    this.stopCautionOnly();
     if (this.prefs.soundEnabled) {
       const ctx = this.ensureCtx();
       if (ctx) {
@@ -130,11 +132,72 @@ class AlertEngine {
         this.alarmLfo = lfo;
       }
     }
-    if (this.prefs.vibrationEnabled) {
-      const pattern = () => navigator.vibrate?.([220, 110, 220, 110, 220]);
-      pattern();
-      this.vibrateTimer = setInterval(pattern, 1100);
+  }
+
+  // ---- Hápticos progresivos (25 / 28 / 30 km/h) ----
+
+  private cancelHaptics(): void {
+    if (this.hapticTimer) {
+      clearInterval(this.hapticTimer);
+      this.hapticTimer = null;
     }
+    if (isNativeApp()) {
+      void RideNative.vibrateCancel().catch(() => { /* sin vibrador */ });
+    } else {
+      navigator.vibrate?.(0);
+    }
+  }
+
+  private applyHapticTier(tier: number): void {
+    this.cancelHaptics();
+    if (tier === 0 || !this.prefs.vibrationEnabled) return;
+    if (tier >= 3) {
+      // 30 km/h o más: vibración continua en bucle hasta reducir.
+      // Nativo: waveform con repeat=0 (loopea en el sistema, sin timers).
+      if (isNativeApp()) {
+        void RideNative.vibrate({ pattern: [0, 500, 300], repeat: 0 }).catch(() => navigator.vibrate?.([500, 300]));
+      } else {
+        navigator.vibrate?.([500, 300]);
+        this.hapticTimer = setInterval(() => navigator.vibrate?.([500, 300]), 800);
+      }
+    } else if (tier === 2) {
+      // 28 km/h: doble pulso
+      if (isNativeApp()) {
+        void RideNative.vibrate({ pattern: [0, 80, 110, 80, 600], repeat: 0 }).catch(() => navigator.vibrate?.([80, 110, 80]));
+      } else {
+        navigator.vibrate?.([80, 110, 80]);
+        this.hapticTimer = setInterval(() => navigator.vibrate?.([80, 110, 80]), 1800);
+      }
+    } else {
+      // 25 km/h: pulso corto
+      if (isNativeApp()) {
+        void RideNative.vibrate({ pattern: [0, 70, 900], repeat: 0 }).catch(() => navigator.vibrate?.(70));
+      } else {
+        navigator.vibrate?.(70);
+        this.hapticTimer = setInterval(() => navigator.vibrate?.(70), 2200);
+      }
+    }
+  }
+
+  /**
+   * Actualiza el tier háptico según la velocidad filtrada actual.
+   * Llamar en cada fix con la velocidad (o null fuera del parque/parado).
+   * Umbrales derivados del límite: LIMIT-5 (25), LIMIT-2 (28), LIMIT (30).
+   */
+  updateHaptics(kmh: number | null): void {
+    const tier =
+      kmh == null || !this.prefs.vibrationEnabled
+        ? 0
+        : kmh >= LIMIT_KMH
+          ? 3
+          : kmh >= LIMIT_KMH - 2
+            ? 2
+            : kmh >= LIMIT_KMH - 5
+              ? 1
+              : 0;
+    if (tier === this.hapticTier) return;
+    this.hapticTier = tier;
+    this.applyHapticTier(tier);
   }
 
   stopAll(): void {
@@ -144,6 +207,8 @@ class AlertEngine {
       this.alarmOsc = null;
       this.alarmLfo = null;
     }
+    this.hapticTier = 0;
+    this.cancelHaptics();
     navigator.vibrate?.(0);
   }
 

@@ -9,5 +9,7 @@ public class MainActivity extends BridgeActivity {
     super.onCreate(savedInstanceState);
     // Mapas nativos (MapLibre Native) bajo el WebView
     registerPlugin(NativeMapPlugin.class);
+    // GPS en primer plano (FGS tipo LOCATION) + hápticos nativos
+    registerPlugin(RideNativePlugin.class);
   }
 }

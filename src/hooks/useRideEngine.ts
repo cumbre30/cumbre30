@@ -11,6 +11,7 @@ import {
 } from "@/lib/park";
 import { Ema, SpeedKalman, haversineM, pointInPolygon } from "@/lib/geo";
 import { alerts } from "@/lib/alertEngine";
+import { RideNative, isNativeApp, type PluginListenerHandleLike } from "@/lib/rideNative";
 import { RideSimulator } from "@/lib/simulation";
 import { saveRide, type RideSummary } from "@/lib/history";
 import { syncRideAfterSave } from "@/lib/sync";
@@ -58,6 +59,7 @@ export function useRideEngine() {
     kalman: new SpeedKalman(),
     altEma: new Ema(0.3),
     slopeEma: new Ema(0.22),
+    motionAccel: new Ema(0.15), // |a| dinámica del acelerómetro (m/s²)
     lastFix: null as (LatLng & { speedKmh: number; alt: number; t: number; accuracyM: number }) | null,
     prevSpeed: null as number | null,
     prevAltS: null as number | null,
@@ -73,6 +75,7 @@ export function useRideEngine() {
     gateLastTrigger: {} as Record<string, number>,
     sim: null as RideSimulator | null,
     watchId: null as number | null,
+    nativeSub: null as PluginListenerHandleLike | null,
     tickTimer: null as ReturnType<typeof setInterval> | null,
     lastTick: 0,
     sensorSpeedKmh: null as number | null,
@@ -94,10 +97,14 @@ export function useRideEngine() {
       const dt = e.lastFix ? Math.min(10, Math.max(0.15, (fix.t - e.lastFix.t) / 1000)) : 1;
 
       // 1) Velocidad: sensor de rueda (sin lag) si está conectado,
-      //    si no GPS (Doppler) → filtro de Kalman + micro-predicción
+      //    si no GPS (Doppler) → filtro de Kalman + micro-predicción.
+      //    El acelerómetro confirma saltos dudosos: si |a| dinámica
+      //    > 1.2 m/s² el teléfono realmente está acelerando/frenando
+      //    y el filtro acepta el salto; si no, lo amortigua (anti falsas alarmas).
       const measuredKmh = e.sensorSpeedKmh ?? fix.speedKmh;
       const vMeasured = measuredKmh / 3.6; // m/s
-      const vKf = e.kalman.update(vMeasured, dt);
+      const hardConfirm = e.motionAccel.value > 1.2;
+      const vKf = e.kalman.update(vMeasured, dt, hardConfirm);
       let accel = 0;
       if (e.prevSpeed !== null && dt > 0) accel = (vKf - e.prevSpeed) / dt;
       accel = Math.max(-3, Math.min(3, accel));
@@ -156,6 +163,12 @@ export function useRideEngine() {
       for (const zone of RISK_ZONES) {
         const d = haversineM(fix, zone.position);
         const last = e.zoneLastTrigger[zone.id] ?? 0;
+        // Pre-aviso: 100 m antes de la zona (voz, sin detener el pedaleo)
+        if (d >= zone.radiusM && d < zone.radiusM + 100 && fix.t - last > 150_000) {
+          e.zoneLastTrigger[zone.id] = fix.t;
+          logEvent("zone", `${zone.name} a ~100 metros`);
+          alerts.speak(`zone-approach-${zone.id}`, `Zona de fiscalización a 100 metros: ${zone.name}.`, 30);
+        }
         if (d < zone.radiusM && fix.t - last > 150_000) {
           e.zoneLastTrigger[zone.id] = fix.t;
           logEvent("zone", `Zona de riesgo: ${zone.name}`);
@@ -183,6 +196,8 @@ export function useRideEngine() {
         }
       }
       if (e.inside && vKmh >= LIMIT_KMH) e.overSec += dt;
+      // Hápticos progresivos por velocidad (25 corto / 28 doble / 30+ continuo)
+      alerts.updateHaptics(e.inside ? vKmh : null);
 
       if (nextState !== e.state) {
         if (nextState === "caution") {
@@ -220,8 +235,8 @@ export function useRideEngine() {
     [logEvent]
   );
 
-  // --- Fuente GPS real ---
-  const startGps = useCallback(() => {
+  // --- Fuente GPS web (navigator.geolocation, fallback del WebView) ---
+  const startWebGps = useCallback(() => {
     if (!("geolocation" in navigator)) {
       setGpsStatus("error");
       logEvent("danger", "Este navegador no soporta geolocalización");
@@ -266,6 +281,47 @@ export function useRideEngine() {
     engine.current.watchId = id;
   }, [logEvent, processFix]);
 
+  // --- Fuente GPS nativa: FGS tipo LOCATION a 1 Hz vía plugin RideNative.
+  // Sigue entregando fixes con la pantalla bloqueada o cambiando de app.
+  const startNativeGps = useCallback(async () => {
+    try {
+      const sub = await RideNative.addListener("gpsfix", (f) => {
+        setGpsStatus("active");
+        const eng = engine.current;
+        // speed negativo o no finito = Doppler inválido → delta de posición
+        const speedKmh =
+          f.speed >= 0 && isFinite(f.speed)
+            ? f.speed * 3.6
+            : eng.lastFix
+              ? (haversineM(eng.lastFix, { lat: f.lat, lon: f.lng }) / Math.max(0.2, (f.t - eng.lastFix.t) / 1000)) * 3.6
+              : 0;
+        eng.lastTick = performance.now();
+        processFix({
+          lat: f.lat,
+          lon: f.lng,
+          speedKmh,
+          alt: f.alt,
+          accuracyM: f.accuracy,
+          t: f.t,
+        });
+      });
+      engine.current.nativeSub = sub;
+      await RideNative.startLocation();
+      logEvent("info", "GPS nativo a 1 Hz: sigue activo con la pantalla bloqueada");
+    } catch {
+      logEvent("warn", "GPS nativo no disponible: usando GPS del WebView");
+      startWebGps();
+    }
+  }, [logEvent, processFix, startWebGps]);
+
+  const startGps = useCallback(() => {
+    if (isNativeApp()) {
+      void startNativeGps();
+      return;
+    }
+    startWebGps();
+  }, [startNativeGps, startWebGps]);
+
   // --- Fuente simulación ---
   const startSim = useCallback(() => {
     engine.current.sim = new RideSimulator(12, true);
@@ -289,6 +345,7 @@ export function useRideEngine() {
       e.kalman.reset();
       e.altEma.reset();
       e.slopeEma.reset();
+      e.motionAccel.reset();
       e.lastFix = null;
       e.prevSpeed = null;
       e.distanceM = 0;
@@ -337,6 +394,11 @@ export function useRideEngine() {
       navigator.geolocation.clearWatch(e.watchId);
       e.watchId = null;
     }
+    if (e.nativeSub) {
+      void e.nativeSub.remove();
+      e.nativeSub = null;
+      void RideNative.stopLocation().catch(() => { /* ya detenido */ });
+    }
     if (e.tickTimer) {
       clearInterval(e.tickTimer);
       e.tickTimer = null;
@@ -374,11 +436,26 @@ export function useRideEngine() {
     return () => document.removeEventListener("visibilitychange", onVis);
   }, [status]);
 
+  // Acelerómetro (devicemotion del WebView): |a| dinámica para confirmar
+  // aceleraciones reales y descartar saltos de GPS. Solo con ride activo.
+  useEffect(() => {
+    if (status !== "running" || typeof window === "undefined" || !("DeviceMotionEvent" in window)) return;
+    const onMotion = (ev: DeviceMotionEvent) => {
+      const a = ev.acceleration;
+      if (!a || (a.x == null && a.y == null && a.z == null)) return;
+      const mag = Math.hypot(a.x ?? 0, a.y ?? 0, a.z ?? 0);
+      engine.current.motionAccel.update(mag);
+    };
+    window.addEventListener("devicemotion", onMotion);
+    return () => window.removeEventListener("devicemotion", onMotion);
+  }, [status]);
+
   // Limpieza al desmontar
   useEffect(() => () => {
     const e = engine.current;
     if (e.watchId !== null) navigator.geolocation.clearWatch(e.watchId);
     if (e.tickTimer) clearInterval(e.tickTimer);
+    if (e.nativeSub) void e.nativeSub.remove();
     alerts.stopAll();
   }, []);
 
