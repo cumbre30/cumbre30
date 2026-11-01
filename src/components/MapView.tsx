@@ -149,7 +149,9 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
   const last = track.length > 0 ? track[track.length - 1] : null;
   const center = position ?? last ?? { lat: -33.408, lon: -70.636 };
   // Mapa nativo (MapLibre Native) o Leaflet en la web
-  const nativeMap = useMemo(() => isNativeMapPlatform(), []);
+  const nativeDetected = useMemo(() => isNativeMapPlatform(), []);
+  const [nativeFail, setNativeFail] = useState(false);
+  const nativeMap = nativeDetected && !nativeFail;
   // Ciclovías del cerro para el lienzo nativo (misma regla ≥50%)
   const cicloFeature = useMemo(() => buildCicloFeature(net), [net]);
 
@@ -337,6 +339,7 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
             incidents={incidents}
             locateTarget={locateTarget}
             cicloFeature={cicloFeature}
+            onUnavailable={() => setNativeFail(true)}
           />
         </div>
 

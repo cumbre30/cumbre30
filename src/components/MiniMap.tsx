@@ -770,7 +770,9 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
   const route = nav.route;
   const dest = nav.dest;
   // Mapa nativo (MapLibre Native vía plugin) o lienzo web (MapLibre GL JS)
-  const native = useMemo(() => isNativeMapPlatform(), []);
+  const nativeDetected = useMemo(() => isNativeMapPlatform(), []);
+  const [nativeFail, setNativeFail] = useState(false);
+  const native = nativeDetected && !nativeFail;
 
   const webglOk = useMemo(() => {
     try {
@@ -894,6 +896,7 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
             userPin={userPin}
             incidents={incidents}
             locateTarget={locateTarget}
+            onUnavailable={() => setNativeFail(true)}
           />
         </div>
 

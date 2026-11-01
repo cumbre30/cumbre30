@@ -325,7 +325,7 @@ export default function ProfileTab() {
         </div>
         <a href="/api/apk" download className="block">
           <Button className="w-full h-11 bg-emerald-600 hover:bg-emerald-500 text-zinc-950 font-semibold">
-            <Download className="h-4 w-4 mr-2" /> Descargar Cumbre30 v1.2 (52 MB)
+            <Download className="h-4 w-4 mr-2" /> Descargar Cumbre30 v1.2.1 (52 MB)
           </Button>
         </a>
       </Card>

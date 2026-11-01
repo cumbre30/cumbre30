@@ -42,12 +42,17 @@ type Props = {
   locateTarget: LatLng | null;
   /** Ciclovías del cerro (solo modo flat). */
   cicloFeature?: FeatureCollection | null;
+  /** Aviso de que el mapa nativo no llegó a estar listo (fallback a web). */
+  onUnavailable?: () => void;
 };
 
 export default function NativeMapCanvas(props: Props) {
   const { id, mode } = props;
   const boxRef = useRef<HTMLDivElement>(null);
   const [ready, setReady] = useState(false);
+  const readyRef = useRef(false);
+  const unavailableRef = useRef(props.onUnavailable);
+  unavailableRef.current = props.onUnavailable;
   const rectRef = useRef<{ x: number; y: number; w: number; h: number } | null>(null);
   const firstFixRef = useRef(false);
   const lastBearingRef = useRef(0);
@@ -80,7 +85,10 @@ export default function NativeMapCanvas(props: Props) {
 
     handles.push(
       NativeMap.addListener("mapready", (d) => {
-        if (alive && d.id === id) setReady(true);
+        if (alive && d.id === id) {
+          readyRef.current = true;
+          setReady(true);
+        }
       })
     );
     handles.push(
@@ -94,9 +102,18 @@ export default function NativeMapCanvas(props: Props) {
       })
     );
 
+    // Red de seguridad: si el mapa nativo no reporta mapready en 7 s
+    // (estilo inaccesible, GL sin arrancar, etc.) avisamos para que el
+    // componente padre caiga al renderizador web de MapLibre GL JS.
+    const failTimer = window.setTimeout(() => {
+      if (alive && !readyRef.current) unavailableRef.current?.();
+    }, 7000);
+
     return () => {
       alive = false;
+      window.clearTimeout(failTimer);
       setReady(false);
+      readyRef.current = false;
       firstFixRef.current = false;
       userMovedRef.current = false;
       for (const h of handles)

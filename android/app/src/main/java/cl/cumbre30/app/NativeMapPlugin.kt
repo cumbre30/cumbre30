@@ -86,11 +86,13 @@ private fun Canvas.clipOutPathCompat(p: Path) {
     }
 }
 
+/** Estado del ciclo de vida adelantado: 0=created, 1=started, 2=resumed. */
 private class MapEntry(
     val mapView: MapView,
     var map: MapLibreMap? = null,
     var ready: Boolean = false,
-    var gestures: Boolean = true
+    var gestures: Boolean = true,
+    var stage: Int = 0
 )
 
 @CapacitorPlugin(name = "NativeMap")
@@ -184,11 +186,7 @@ class NativeMapPlugin : Plugin() {
                 MapLibre.getInstance(bridge.activity)
 
                 val old = maps.remove(id)
-                old?.mapView?.let {
-                    (it.parent as? ViewGroup)?.removeView(it)
-                    lifecycleTargets.remove(it)
-                    runCatching { it.onDestroy() }
-                }
+                old?.let { teardown(it) }
 
                 val mv = MapView(bridge.activity)
                 mv.layoutParams = ViewGroup.LayoutParams(MATCH_PARENT, MATCH_PARENT)
@@ -197,6 +195,16 @@ class NativeMapPlugin : Plugin() {
 
                 val entry = MapEntry(mv, gestures = gestures)
                 maps[id] = entry
+
+                // IMPORTANTE: la Activity ya está resumed cuando JS crea el
+                // mapa. Los handleOnStart/Resume del plugin solo corren en
+                // eventos de la Activity, así que hay que ADELANTAR el ciclo
+                // de vida manualmente o la superficie GL nunca arranca y el
+                // mapa queda en blanco (el bug de la v1.2 inicial).
+                runCatching { mv.onCreate(null) }
+                runCatching { mv.onStart() }
+                runCatching { mv.onResume() }
+                entry.stage = 2
 
                 mv.getMapAsync { map ->
                     map.setStyle(Style.Builder().fromJson(styleJson)) { style ->
@@ -232,8 +240,6 @@ class NativeMapPlugin : Plugin() {
                         notifyListeners("mapready", data)
                     }
                 }
-                // ciclo de vida del MapView (recién creado)
-                attachLifecycle(mv)
                 call.resolve()
             } catch (e: Exception) {
                 call.reject("create falló: ${e.message}")
@@ -325,14 +331,7 @@ class NativeMapPlugin : Plugin() {
     fun destroy(call: PluginCall) {
         val id = call.getString("id") ?: return call.reject("id requerido")
         bridge.activity.runOnUiThread {
-            maps.remove(id)?.mapView?.let { mv ->
-                (mv.parent as? ViewGroup)?.removeView(mv)
-                lifecycleTargets.remove(mv)
-                try {
-                    mv.onDestroy()
-                } catch (_: Exception) {
-                }
-            }
+            maps.remove(id)?.let { teardown(it) }
             backdrop?.refresh(id, null)
             call.resolve()
         }
@@ -340,31 +339,34 @@ class NativeMapPlugin : Plugin() {
 
     // ------------------------------------------------------------ ciclo de vida
 
-    private val lifecycleTargets = mutableListOf<MapView>()
-
-    private fun attachLifecycle(mv: MapView) {
-        lifecycleTargets.add(mv)
+    /** Detiene y libera un MapView con la secuencia completa. */
+    private fun teardown(e: MapEntry) {
+        runCatching { e.mapView.onPause() }
+        runCatching { e.mapView.onStop() }
+        runCatching { e.mapView.onDestroy() }
+        (e.mapView.parent as? ViewGroup)?.removeView(e.mapView)
+        e.stage = 0
+        e.ready = false
     }
 
     override fun handleOnStart() {
-        lifecycleTargets.forEach { runCatching { it.onStart() } }
+        maps.values.forEach { e -> if (e.stage < 1) { runCatching { e.mapView.onStart() }; e.stage = 1 } }
     }
 
     override fun handleOnResume() {
-        lifecycleTargets.forEach { runCatching { it.onResume() } }
+        maps.values.forEach { e -> if (e.stage < 2) { runCatching { e.mapView.onResume() }; e.stage = 2 } }
     }
 
     override fun handleOnPause() {
-        lifecycleTargets.forEach { runCatching { it.onPause() } }
+        maps.values.forEach { e -> if (e.stage == 2) { runCatching { e.mapView.onPause() }; e.stage = 1 } }
     }
 
     override fun handleOnStop() {
-        lifecycleTargets.forEach { runCatching { it.onStop() } }
+        maps.values.forEach { e -> if (e.stage >= 1) { runCatching { e.mapView.onStop() }; e.stage = 0 } }
     }
 
     override fun handleOnDestroy() {
-        lifecycleTargets.forEach { runCatching { it.onDestroy() } }
-        lifecycleTargets.clear()
+        maps.values.forEach { teardown(it) }
         maps.clear()
         backdrop = null
     }

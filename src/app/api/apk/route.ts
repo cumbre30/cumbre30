@@ -12,7 +12,7 @@ import path from "path";
 export const dynamic = "force-dynamic"; // nunca estático: binario grande desde disco
 export const runtime = "nodejs";
 
-const APK_NAME = "Cumbre30-v1.2-debug.apk";
+const APK_NAME = "Cumbre30-v1.2.1-debug.apk";
 
 // Rutas candidatas: download/ (carpeta de entregables) y apk-store/
 // (copia versionada en git que sobrevive a los reciclajes del sandbox).
@@ -22,6 +22,7 @@ const APK_CANDIDATES = [
 ];
 
 export async function GET() {
+  const errors: string[] = [];
   for (const p of APK_CANDIDATES) {
     try {
       const buf = await readFile(p);
@@ -33,11 +34,11 @@ export async function GET() {
           "Cache-Control": "no-store",
         },
       });
-    } catch {
-      // siguiente candidato
+    } catch (e) {
+      errors.push(`${p}: ${(e as Error)?.message ?? "error"}`);
     }
   }
-  return new Response(JSON.stringify({ error: "APK no disponible" }), {
+  return new Response(JSON.stringify({ error: "APK no disponible", errors }), {
     status: 404,
     headers: { "Content-Type": "application/json" },
   });
