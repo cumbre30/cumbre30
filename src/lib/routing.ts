@@ -24,6 +24,10 @@ export type NavRoute = {
   steps: RouteStep[];
   cicloviaPct: number;
   etaMin: number;
+  /** Por tramo i (coords[i]→coords[i+1]): ¿es ciclovía? */
+  flags: boolean[];
+  /** Nombre de la vía de cada tramo (para la píldora de calle actual). */
+  segNames: string[];
 };
 
 export type LatLng = { lat: number; lon: number };
@@ -223,12 +227,16 @@ export function findRoute(net: Network, from: LatLng, to: LatLng): NavRoute | nu
   if (!seq.length) return null;
 
   const coords: LatLng[] = [{ lat: net.nodes[s][0], lon: net.nodes[s][1] }];
+  const flags: boolean[] = [];
+  const segNames: string[] = [];
   let distanceM = 0;
   let cicloM = 0;
   for (const { edge, from: u } of seq) {
     const v = edge.to;
     distanceM += edge.dist;
     if (edge.ciclovia) cicloM += edge.dist;
+    flags.push(edge.ciclovia);
+    segNames.push(edge.name || CLASS_LABEL[edge.cls] || "");
     coords.push({ lat: net.nodes[v][0], lon: net.nodes[v][1] });
     void u;
   }
@@ -282,7 +290,41 @@ export function findRoute(net: Network, from: LatLng, to: LatLng): NavRoute | nu
     steps,
     cicloviaPct: distanceM > 0 ? Math.round((cicloM / distanceM) * 100) : 0,
     etaMin: Math.max(1, Math.round(distanceM / 1000 / 15 * 60)), // ~15 km/h
+    flags,
+    segNames,
   };
+}
+
+export type RouteSegGroup = { ciclovia: boolean; coords: LatLng[] };
+
+/**
+ * Agrupa tramos consecutivos con la misma condición (ciclovía / vía
+ * compartida) en polilíneas continuas. Los grupos comparten el vértice
+ * frontera, así la ruta se ve COMPLETA y sin cortes de inicio a fin.
+ */
+export function groupSegments(coords: LatLng[], flags: boolean[], fromSeg: number, toSeg: number): RouteSegGroup[] {
+  const out: RouteSegGroup[] = [];
+  const last = Math.min(toSeg, coords.length - 2);
+  for (let i = Math.max(0, fromSeg); i <= last; i++) {
+    const c = !!flags[i];
+    const g = out[out.length - 1];
+    if (g && g.ciclovia === c) g.coords.push(coords[i + 1]);
+    else out.push({ ciclovia: c, coords: [coords[i], coords[i + 1]] });
+  }
+  return out;
+}
+
+/** Nombre de la vía del tramo donde cae el vértice `idx` ("" si no hay dato). */
+export function streetAt(route: NavRoute, idx: number): string {
+  if (!route.segNames.length) return "";
+  return route.segNames[Math.min(Math.max(idx, 0), route.segNames.length - 1)] ?? "";
+}
+
+/** Extrae la calle de un texto de paso ("Gira a la derecha hacia X" → "X",
+ *  "Continúa por la ciclovía Y" → "Y"). */
+export function streetOfStep(text: string): string {
+  const m = text.match(/hacia\s+(.+)$/) ?? text.match(/por\s+(?:la\s+)?(?:ciclov[ií]a\s+|sendero\s+|vereda\s+)?(.+)$/);
+  return m ? m[1] : text;
 }
 
 export function formatStepRemaining(step: RouteStep): string {

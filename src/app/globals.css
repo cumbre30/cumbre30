@@ -139,3 +139,17 @@
   border: 1px solid #3f3f46;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
 }
+
+/* Minimapa tipo Waze: sube la escala métrica sobre la barra inferior */
+.c30-minimap .leaflet-bottom.leaflet-left {
+  bottom: 62px;
+}
+.c30-minimap .leaflet-control-scale-line {
+  background: rgba(9, 9, 11, 0.75) !important;
+  color: #d4d4d8 !important;
+  border-color: #52525b !important;
+}
+/* Los controles internos del mapa (escala) quedan bajo las capas de la app */
+.c30-minimap .leaflet-control-container {
+  z-index: 400;
+}

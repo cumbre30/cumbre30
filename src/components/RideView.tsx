@@ -17,7 +17,6 @@ import { formatStepRemaining, routeProgress, stepGlyph } from "@/lib/routing";
 import type { LatLng } from "@/lib/park";
 import type { RideEvent, SpeedState } from "@/hooks/useRideEngine";
 import type { NavEngine } from "@/hooks/useNavEngine";
-
 const MiniMap = dynamic(() => import("@/components/MiniMap"), {
   ssr: false,
   loading: () => <div className="h-52 sm:h-56 rounded-xl border border-zinc-800 bg-zinc-900 flex items-center justify-center text-sm text-zinc-500">Cargando minimapa…</div>,
@@ -70,10 +69,6 @@ const EVENT_STYLE: Record<RideEvent["kind"], { dot: string; text: string }> = {
 
 export { stepGlyph };
 
-function fmtMeters(m: number): string {
-  return m >= 950 ? `${(m / 1000).toFixed(1)} km` : `${Math.max(10, Math.round(m / 10) * 10)} m`;
-}
-
 export function RideView(p: Props) {
   const over = p.speedState === "over";
   const caution = p.speedState === "caution";
@@ -102,49 +97,25 @@ export function RideView(p: Props) {
         ? `MODO PARQUEMET · límite ${LIMIT_KMH} km/h`
         : "MODO LIBRE · fuera del parque";
 
-  // Navegación viva: próximo paso + restante
+  // Navegación viva: progreso para la lista de indicaciones
   const onRoute = !!p.nav.route && p.nav.route.coords.length > 1;
   const progress = useMemo(
     () => (onRoute && p.position ? routeProgress(p.nav.route!, p.position) : null),
     [onRoute, p.position, p.nav.route]
   );
-  const nextStep = progress?.nextStep ?? p.nav.route?.steps[0] ?? null;
-  const laterStep = onRoute && progress && p.nav.route ? p.nav.route.steps[progress.passedCount + 1] ?? null : null;
-  const remainingM = progress?.remainingM ?? p.nav.route?.distanceM ?? 0;
-  const etaMin = remainingM > 0 ? Math.max(1, Math.round((remainingM / 1000) / (p.avgKmh > 4 ? p.avgKmh : 15) * 60)) : 0;
-  const offRoute = !!progress && progress.offRouteM > 90;
 
   return (
     <div className="flex flex-col gap-3">
-      {/* Banner de navegación (solo con ruta elegida) */}
-      {onRoute && nextStep && (
-        <Card className="bg-zinc-900 border-sky-800/70 px-3 py-3 flex-row items-center gap-3">
-          <div className="h-12 w-12 rounded-lg bg-zinc-950 border border-sky-800 flex items-center justify-center text-3xl leading-none text-sky-300 shrink-0" aria-hidden>
-            {stepGlyph(nextStep.icon)}
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="flex items-baseline gap-2">
-              <span className="font-mono text-2xl font-bold text-zinc-100 tabular-nums leading-none whitespace-nowrap shrink-0">
-                {nextStep.icon === "end" ? "" : `En ${fmtMeters(progress?.distToNextStepM ?? nextStep.distM)}`}
-              </span>
-              {offRoute && <span className="text-[11px] text-amber-300 font-semibold">desviado, recalculando…</span>}
-            </div>
-            <div className="text-sm text-zinc-200 leading-snug mt-0.5 truncate">{nextStep.text}</div>
-            {laterStep && (
-              <div className="text-[11px] text-zinc-500 mt-0.5 truncate">
-                Luego: {stepGlyph(laterStep.icon)} {laterStep.text} · {formatStepRemaining(laterStep)}
-              </div>
-            )}
-          </div>
-          <div className="text-right shrink-0">
-            <div className="font-mono text-lg font-bold text-sky-300 tabular-nums leading-none">{fmtMeters(remainingM)}</div>
-            <div className="text-[10px] text-zinc-500 mt-0.5">restante · ~{etaMin} min</div>
-          </div>
-        </Card>
-      )}
-
-      {/* Minimapa con controles «Ir a…» */}
-      <MiniMap position={p.position} heading={p.heading} track={p.track} accuracyM={p.accuracyM} userPin={p.userPin} nav={p.nav} />
+      {/* Minimapa tipo Waze: banner de maniobra, ruta ciclovía/vía compartida, ETA y reporte */}
+      <MiniMap
+        position={p.position}
+        heading={p.heading}
+        track={p.track}
+        accuracyM={p.accuracyM}
+        userPin={p.userPin}
+        nav={p.nav}
+        speedKmh={p.speedKmh}
+      />
       {!p.nav.route && p.nav.note && <p className="text-xs text-amber-300/90 -mt-2">{p.nav.note}</p>}
 
       {/* Banner de zona */}

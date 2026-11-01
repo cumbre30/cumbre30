@@ -76,12 +76,25 @@ export function flagIcon(): L.DivIcon {
   });
 }
 
-/** Punto del próximo paso de navegación. */
-export function stepDotIcon(): L.DivIcon {
+/** Insignia blanca del próximo giro (estilo Waze) sobre la ruta. */
+export function stepBadgeIcon(icon: "start" | "left" | "right" | "straight" | "end"): L.DivIcon {
+  const stroke = `stroke="#09090b" stroke-width="15" fill="none" stroke-linecap="round" stroke-linejoin="round"`;
+  let inner: string;
+  if (icon === "left") {
+    inner = `<path d="M64 84 L64 58 Q64 38 44 38 L30 38" ${stroke}/><path d="M40 18 L12 38 L40 58 Z" fill="#09090b"/>`;
+  } else if (icon === "right") {
+    inner = `<path d="M32 84 L32 58 Q32 38 52 38 L66 38" ${stroke}/><path d="M56 18 L84 38 L56 58 Z" fill="#09090b"/>`;
+  } else if (icon === "end") {
+    inner = `<path d="M44 86 L44 20" ${stroke}/><path d="M44 16 L82 16 L82 46 L44 46 Z" fill="#09090b"/>`;
+  } else {
+    inner = `<path d="M48 84 L48 40" ${stroke}/><path d="M48 12 L70 44 L26 44 Z" fill="#09090b"/>`;
+  }
   return L.divIcon({
     className: "",
-    html: `<div style="width:14px;height:14px;border-radius:9999px;background:#ffffff;border:3px solid #0ea5e9;box-shadow:0 1px 4px rgba(0,0,0,.5);"></div>`,
-    iconSize: [14, 14],
-    iconAnchor: [7, 7],
+    html: `<div style="width:30px;height:30px;border-radius:8px;background:#fafafa;border:2px solid #09090b;box-shadow:0 2px 8px rgba(0,0,0,.65);display:flex;align-items:center;justify-content:center;">
+  <svg width="22" height="22" viewBox="0 0 96 96">${inner}</svg>
+</div>`,
+    iconSize: [30, 30],
+    iconAnchor: [15, 15],
   });
 }
