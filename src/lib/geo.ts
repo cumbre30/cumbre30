@@ -88,6 +88,28 @@ export class Ema {
   }
 }
 
+/** Rumbo (bearing) en grados 0-360 de a → b. */
+export function bearingDeg(a: LatLng, b: LatLng): number {
+  const y = Math.sin(toRad(b.lon - a.lon)) * Math.cos(toRad(b.lat));
+  const x =
+    Math.cos(toRad(a.lat)) * Math.sin(toRad(b.lat)) -
+    Math.sin(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.cos(toRad(b.lon - a.lon));
+  return (Math.atan2(y, x) / Math.PI * 180 + 360) % 360;
+}
+
+/**
+ * Curso (heading) del recorrido: rumbo del último tramo con avance
+ * suficiente (≥ 3 m). Devuelve null si está detenido o sin datos.
+ */
+export function courseHeading(track: LatLng[]): number | null {
+  for (let i = track.length - 1; i >= 1; i--) {
+    const a = track[i - 1];
+    const b = track[i];
+    if (haversineM(a, b) >= 3) return bearingDeg(a, b);
+  }
+  return null;
+}
+
 export function formatClock(totalSec: number): string {
   const s = Math.max(0, Math.floor(totalSec));
   const h = Math.floor(s / 3600);

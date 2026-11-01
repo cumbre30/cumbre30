@@ -2,14 +2,14 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth";
 import { isPinId, type PinId } from "@/lib/pins";
-import { ACHIEVEMENT_BY_CODE } from "@/lib/pins";
+import { ACHIEVEMENT_BY_CODE, normalizeCodes, statsFromRides } from "@/lib/pins";
 
 /** Pines desbloqueados: el clásico + las recompensas de logros obtenidos. */
 export async function unlockedPins(userId: string): Promise<PinId[]> {
   const rows = await db.achievement.findMany({ where: { userId }, select: { code: true } });
   const set = new Set<PinId>(["clasico"]);
-  for (const r of rows) {
-    const def = ACHIEVEMENT_BY_CODE[r.code];
+  for (const code of normalizeCodes(rows.map((r) => r.code))) {
+    const def = ACHIEVEMENT_BY_CODE[code];
     if (def) set.add(def.reward);
   }
   return [...set];
@@ -25,10 +25,18 @@ export async function GET() {
     db.friendship.findMany({ where: { userId: me.id }, include: { friend: true } }),
   ]);
 
-  const totalKm = rides.reduce((a, r) => a + r.distanceKm, 0);
-  const totalGainM = rides.reduce((a, r) => a + r.gainM, 0);
-  const maxKmh = rides.reduce((a, r) => Math.max(a, r.maxKmh), 0);
   const incidentCount = await db.incident.count({ where: { userId: me.id } });
+  const stats = statsFromRides(
+    rides.map((r) => ({
+      distanceKm: r.distanceKm,
+      maxKmh: r.maxKmh,
+      maxInParkKmh: r.maxInParkKmh,
+      gainM: r.gainM,
+      overLimitSec: r.overLimitSec,
+      dateISO: r.dateISO,
+    })),
+    incidentCount
+  );
 
   const friends = await Promise.all(
     friendships.map(async (f) => {
@@ -56,10 +64,14 @@ export async function GET() {
   return NextResponse.json({
     user: me,
     stats: {
-      totalKm: Number(totalKm.toFixed(1)),
-      rideCount: rides.length,
-      maxKmh: Number(maxKmh.toFixed(1)),
-      totalGainM: Math.round(totalGainM),
+      totalKm: Number(stats.totalKm.toFixed(1)),
+      rideCount: stats.rideCount,
+      maxKmh: Number(stats.maxKmh.toFixed(1)),
+      totalGainM: Math.round(stats.totalGainM),
+      parkRides: stats.parkRides,
+      cleanParkRides: stats.cleanParkRides,
+      nightRides: stats.nightRides,
+      dawnRides: stats.dawnRides,
       lastRideDate: rides[0]?.dateISO.toISOString() ?? null,
       incidentCount,
     },

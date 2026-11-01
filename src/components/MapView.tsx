@@ -1,12 +1,13 @@
 "use client";
 
 // ============================================================
-// Mapa v2: parque + ciclovías OSM + navegación tipo Waze
-// (A* con preferencia por ciclovías) + reporte de incidencias
-// + botón de localización + pin personal del usuario.
+// Mapa de referencia: parque + zonas de riesgo + ciclovías
+// (SOLO las del cerro, para no ensuciar la vista) + reporte de
+// incidencias + botón de localización + pin personal.
+// La navegación «Ir a…» vive ahora en el velocímetro (minimapa).
 // ============================================================
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import {
@@ -22,69 +23,30 @@ import {
   useMap,
   useMapEvents,
 } from "react-leaflet";
-import { Crosshair, Flag, AlertTriangle, RotateCcw, Trash2, Route as RouteIcon, X } from "lucide-react";
-import { GATES, NAV_DESTINATIONS, PARK_POLYGON, RISK_ZONES, type LatLng } from "@/lib/park";
-import { PINS, DEFAULT_PIN, type PinId } from "@/lib/pins";
+import { Crosshair, AlertTriangle, Trash2, X } from "lucide-react";
+import { GATES, PARK_POLYGON, RISK_ZONES, type LatLng } from "@/lib/park";
+import { PINS, DEFAULT_PIN } from "@/lib/pins";
 import { INCIDENT_BY_ID, INCIDENT_TYPES, type IncidentTypeId } from "@/lib/incidents";
-import { findRoute, formatStepRemaining, loadNetwork, type NavRoute, type Network } from "@/lib/routing";
-
-type IncidentItem = {
-  id: string;
-  type: string;
-  lat: number;
-  lon: number;
-  note: string | null;
-  createdAt: string;
-  username: string;
-  authorPin: string;
-  mine: boolean;
-  localOnly?: boolean;
-};
-
-const LOCAL_INCIDENTS_KEY = "cumbre30-incidents-local-v1";
-
-function loadLocalIncidents(): IncidentItem[] {
-  try {
-    const raw = localStorage.getItem(LOCAL_INCIDENTS_KEY);
-    return raw ? (JSON.parse(raw) as IncidentItem[]) : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveLocalIncidents(list: IncidentItem[]) {
-  try {
-    localStorage.setItem(LOCAL_INCIDENTS_KEY, JSON.stringify(list.slice(0, 100)));
-  } catch {
-    // almacenamiento lleno
-  }
-}
+import { pointInPolygon } from "@/lib/geo";
+import { incidentIcon, userPinIcon, flagIcon } from "@/lib/mapIcons";
+import { loadNetwork, type NavRoute, type Network } from "@/lib/routing";
+import { useIncidentFeed, addIncident, removeIncident, saveLocalIncidents, loadLocalIncidents, type IncidentItem } from "@/hooks/useIncidentFeed";
 
 function pinEmoji(pinId: string): string {
-  return (PINS[pinId as PinId] ?? PINS[DEFAULT_PIN]).emoji;
+  const p = PINS[pinId as keyof typeof PINS];
+  return p ? p.emoji : "📍";
 }
 
-function incidentIcon(type: string): L.DivIcon {
-  const t = INCIDENT_BY_ID[type] ?? INCIDENT_BY_ID.otro;
-  return L.divIcon({
-    className: "",
-    html: `<div style="display:flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:9999px;background:${t.color};border:2.5px solid #09090b;box-shadow:0 0 0 2px ${t.color}66;font-size:14px;line-height:1;">${t.emoji}</div>`,
-    iconSize: [30, 30],
-    iconAnchor: [15, 15],
-    popupAnchor: [0, -14],
-  });
-}
-
-function userPinIcon(pinId: string): L.DivIcon {
-  const p = PINS[pinId as PinId] ?? PINS[DEFAULT_PIN];
-  return L.divIcon({
-    className: "",
-    html: `<div style="display:flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:9999px 9999px 9999px 4px;background:${p.color};border:3px solid #fafafa;box-shadow:0 2px 8px rgba(0,0,0,.6);font-size:16px;line-height:1;transform:rotate(0deg);">${p.emoji}</div>`,
-    iconSize: [34, 34],
-    iconAnchor: [17, 32],
-    popupAnchor: [0, -30],
-  });
-}
+type Props = {
+  track: LatLng[];
+  position: LatLng | null;
+  accuracyM: number | null;
+  heading: number | null;
+  userPin?: string;
+  /** Ruta activa elegida en el velocímetro (solo lectura aquí). */
+  route: NavRoute | null;
+  dest: { name: string; position: LatLng } | null;
+};
 
 function Recenter({ position }: { position: LatLng | null }) {
   const map = useMap();
@@ -115,68 +77,20 @@ function ClickHandler({ onPick, enabled }: { onPick: (p: LatLng) => void; enable
   return null;
 }
 
-type Props = {
-  track: LatLng[];
-  position: LatLng | null;
-  accuracyM: number | null;
-  userPin?: string;
-};
-
-export default function MapView({ track, position, accuracyM, userPin }: Props) {
+export default function MapView({ track, position, accuracyM, heading, userPin, route, dest }: Props) {
   const [net, setNet] = useState<Network | null>(null);
-  const [incidents, setIncidents] = useState<IncidentItem[]>([]);
+  const incidents = useIncidentFeed();
   const [reportMode, setReportMode] = useState(false);
   const [pending, setPending] = useState<LatLng | null>(null);
-  const [destMode, setDestMode] = useState(false);
-  const [dest, setDest] = useState<{ name: string; position: LatLng } | null>(null);
-  const [route, setRoute] = useState<NavRoute | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [locateTarget, setLocateTarget] = useState<LatLng | null>(null);
   const last = track.length > 0 ? track[track.length - 1] : null;
   const center = position ?? last ?? { lat: -33.408, lon: -70.636 };
-  const routeStamp = useRef(0);
 
-  // Cargar red de navegación + incidencias
+  // Red de vías (solo para dibujar las ciclovías del cerro)
   useEffect(() => {
-    void loadNetwork().then((n) => {
-      setNet(n);
-      if (!n) setStatus("Red de vías no disponible (sin conexión).");
-    });
-    fetch("/api/incidents", { cache: "no-store" })
-      .then((r) => (r.ok ? r.json() : Promise.reject()))
-      .then((d: { incidents: IncidentItem[] }) => {
-        const locals = loadLocalIncidents().filter((l) => !d.incidents.some((i) => i.id === l.id));
-        setIncidents([...d.incidents, ...locals]);
-      })
-      .catch(() => setIncidents(loadLocalIncidents()));
+    void loadNetwork().then(setNet);
   }, []);
-
-  // Calcular ruta cuando cambia destino, red o posición relevante
-  const computeRoute = (origin: LatLng, d: { name: string; position: LatLng }) => {
-    if (!net) {
-      setStatus("Red de vías aún cargando…");
-      return;
-    }
-    const r = findRoute(net, origin, d.position);
-    if (!r) {
-      setRoute(null);
-      setStatus("No encontramos una ruta ciclable cercana a ese destino.");
-      return;
-    }
-    setRoute(r);
-    setStatus(null);
-  };
-
-  useEffect(() => {
-    if (!dest || !net) return;
-    // recalcular solo si no hay ruta o el usuario se alejó 150 m del inicio
-    const now = Date.now();
-    if (!route || now - routeStamp.current > 30000) {
-      routeStamp.current = now;
-      computeRoute(position ?? center, dest);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dest, net]);
 
   const reportIncident = async (type: IncidentTypeId) => {
     if (!pending) return;
@@ -191,7 +105,7 @@ export default function MapView({ track, position, accuracyM, userPin }: Props) 
       });
       const d = (await r.json()) as { incident?: IncidentItem; error?: string };
       if (!r.ok || !d.incident) throw new Error(d.error ?? "error");
-      setIncidents((prev) => [d.incident!, ...prev]);
+      addIncident(d.incident);
       setStatus("Incidencia registrada y visible para todos ✓");
     } catch {
       const local: IncidentItem = {
@@ -204,8 +118,9 @@ export default function MapView({ track, position, accuracyM, userPin }: Props) 
         mine: true,
         localOnly: true,
       };
+      addIncident(local);
+      // persistir en la lista local
       saveLocalIncidents([local, ...loadLocalIncidents()]);
-      setIncidents((prev) => [local, ...prev]);
       setStatus("Sin conexión: incidencia guardada solo en este dispositivo.");
     }
     setTimeout(() => setStatus(null), 5000);
@@ -213,26 +128,16 @@ export default function MapView({ track, position, accuracyM, userPin }: Props) 
 
   const deleteIncident = async (inc: IncidentItem) => {
     if (inc.localOnly) {
-      const rest = loadLocalIncidents().filter((i) => i.id !== inc.id);
-      saveLocalIncidents(rest);
-      setIncidents((prev) => prev.filter((i) => i.id !== inc.id));
+      removeIncident(inc.id);
       return;
     }
     try {
       await fetch(`/api/incidents?id=${encodeURIComponent(inc.id)}`, { method: "DELETE" });
-      setIncidents((prev) => prev.filter((i) => i.id !== inc.id));
+      removeIncident(inc.id);
     } catch {
       setStatus("No pudimos eliminar la incidencia (sin conexión).");
       setTimeout(() => setStatus(null), 4000);
     }
-  };
-
-  const setDestination = (d: { name: string; position: LatLng } | null) => {
-    setDest(d);
-    setRoute(null);
-    routeStamp.current = 0;
-    setDestMode(false);
-    if (d) computeRoute(position ?? center, d);
   };
 
   const locate = () => {
@@ -252,23 +157,30 @@ export default function MapView({ track, position, accuracyM, userPin }: Props) 
     }
   };
 
-  // Polilíneas de ciclovías (memo: se calculan una vez por red)
-  const cicloviaLines = useMemo(
-    () =>
-      net
-        ? net.cicloviaPolylines
-            .filter((ids) => ids.length > 1)
-            .map((ids, i) => (
-              <Polyline
-                key={`cv-${i}`}
-                positions={ids.map((id) => [net.nodes[id][0], net.nodes[id][1]] as [number, number])}
-                pathOptions={{ color: "#10b981", weight: 3.5, opacity: 0.85 }}
-                interactive={false}
-              />
-            ))
-        : null,
-    [net]
-  );
+  // Ciclovías: SOLO las que están dentro del cerro (≥50% de sus puntos
+  // dentro del polígono del parque) — el resto se omite por orden.
+  const cicloviaLines = useMemo(() => {
+    if (!net) return null;
+    const out: React.ReactNode[] = [];
+    for (let i = 0; i < net.cicloviaPolylines.length; i++) {
+      const ids = net.cicloviaPolylines[i];
+      if (ids.length < 2) continue;
+      let inside = 0;
+      for (const id of ids) {
+        if (pointInPolygon({ lat: net.nodes[id][0], lon: net.nodes[id][1] }, PARK_POLYGON)) inside++;
+      }
+      if (inside / ids.length < 0.5) continue;
+      out.push(
+        <Polyline
+          key={`cv-${i}`}
+          positions={ids.map((id) => [net.nodes[id][0], net.nodes[id][1]] as [number, number])}
+          pathOptions={{ color: "#10b981", weight: 3.5, opacity: 0.85 }}
+          interactive={false}
+        />
+      );
+    }
+    return out;
+  }, [net]);
 
   const incidentMarkers = useMemo(
     () =>
@@ -309,12 +221,9 @@ export default function MapView({ track, position, accuracyM, userPin }: Props) 
           </Marker>
         );
       }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
     [incidents, userPin]
   );
-
-  const stepIcon = (icon: string) =>
-    icon === "left" ? "↰" : icon === "right" ? "↱" : icon === "end" ? "🏁" : icon === "start" ? "🚩" : "↑";
 
   return (
     <div className="flex flex-col gap-3">
@@ -323,7 +232,7 @@ export default function MapView({ track, position, accuracyM, userPin }: Props) 
           center={[center.lat, center.lon]}
           zoom={14}
           scrollWheelZoom
-          className={`map-dark h-full w-full bg-zinc-950 ${reportMode || destMode ? "cursor-crosshair" : ""}`}
+          className={`map-dark h-full w-full bg-zinc-950 ${reportMode ? "cursor-crosshair" : ""}`}
           attributionControl
         >
           <TileLayer
@@ -366,14 +275,14 @@ export default function MapView({ track, position, accuracyM, userPin }: Props) 
             </CircleMarker>
           ))}
 
-          {/* Ciclovías OSM */}
+          {/* Ciclovías (solo interior del parque) */}
           {cicloviaLines}
 
-          {/* Ruta de navegación */}
+          {/* Ruta elegida (solo lectura, se gestiona en el velocímetro) */}
           {route && (
             <Polyline positions={route.coords.map((p) => [p.lat, p.lon])} pathOptions={{ color: "#38bdf8", weight: 6, opacity: 0.95 }} interactive={false} />
           )}
-          {dest && <Marker position={[dest.position.lat, dest.position.lon]} icon={incidentIcon("otro")} />}
+          {dest && <Marker position={[dest.position.lat, dest.position.lon]} icon={flagIcon()} interactive={false} />}
 
           {/* Recorrido del ride */}
           {track.length > 1 && (
@@ -383,7 +292,7 @@ export default function MapView({ track, position, accuracyM, userPin }: Props) 
           {/* Incidencias */}
           {incidentMarkers}
 
-          {/* Posición actual con pin personal */}
+          {/* Posición actual con pin personal (flecha si es el clásico) */}
           {position && (
             <>
               {accuracyM !== null && accuracyM < 100 && (
@@ -393,13 +302,13 @@ export default function MapView({ track, position, accuracyM, userPin }: Props) 
                   pathOptions={{ color: "#ffffff", weight: 1, fillColor: "#ffffff", fillOpacity: 0.08 }}
                 />
               )}
-              <Marker position={[position.lat, position.lon]} icon={userPinIcon(userPin ?? DEFAULT_PIN)} />
+              <Marker position={[position.lat, position.lon]} icon={userPinIcon(userPin ?? DEFAULT_PIN, heading)} zIndexOffset={500} />
             </>
           )}
 
           <Recenter position={position} />
           <LocateHandler target={locateTarget} />
-          <ClickHandler enabled={reportMode || destMode} onPick={(p) => (reportMode ? setPending(p) : setDestination({ name: "Punto en el mapa", position: p }))} />
+          <ClickHandler enabled={reportMode} onPick={setPending} />
         </MapContainer>
 
         {/* Controles flotantes */}
@@ -413,23 +322,7 @@ export default function MapView({ track, position, accuracyM, userPin }: Props) 
             <Crosshair className="h-5 w-5" />
           </button>
           <button
-            onClick={() => {
-              setDestMode((v) => !v);
-              setReportMode(false);
-            }}
-            aria-label="Elegir destino en el mapa"
-            title="Toca el mapa para fijar destino"
-            className={`h-10 w-10 rounded-lg border flex items-center justify-center ${
-              destMode ? "bg-sky-600 border-sky-400 text-white" : "bg-zinc-950/90 border-zinc-700 text-zinc-100 hover:border-sky-500"
-            }`}
-          >
-            <Flag className="h-5 w-5" />
-          </button>
-          <button
-            onClick={() => {
-              setReportMode((v) => !v);
-              setDestMode(false);
-            }}
+            onClick={() => setReportMode((v) => !v)}
             aria-label="Reportar incidencia en el mapa"
             title="Toca el mapa para reportar una incidencia"
             className={`h-10 w-10 rounded-lg border flex items-center justify-center ${
@@ -440,70 +333,14 @@ export default function MapView({ track, position, accuracyM, userPin }: Props) 
           </button>
         </div>
 
-        {/* Banner navegación estilo Waze */}
-        {route && route.steps.length > 0 && (
-          <div className="absolute top-2 inset-x-2 z-[550] rounded-xl bg-zinc-950/95 border border-sky-700/70 px-3 py-2.5 shadow-lg pointer-events-auto">
-            <div className="flex items-start gap-3">
-              <span className="text-2xl leading-none mt-0.5" aria-hidden>
-                {stepIcon(route.steps[0].icon)}
-              </span>
-              <div className="min-w-0 flex-1">
-                <div className="text-sm font-semibold text-zinc-100 leading-snug">{route.steps[0].text}</div>
-                <div className="text-[11px] text-sky-300 mt-0.5">
-                  en {formatStepRemaining(route.steps[0])} · {(route.distanceM / 1000).toFixed(1)} km totales · ~{route.etaMin} min ·{" "}
-                  {route.cicloviaPct}% ciclovía
-                </div>
-              </div>
-              <button
-                onClick={() => {
-                  routeStamp.current = 0;
-                  if (dest) computeRoute(position ?? center, dest);
-                }}
-                aria-label="Recalcular ruta"
-                title="Recalcular desde mi posición"
-                className="text-zinc-400 hover:text-sky-300"
-              >
-                <RotateCcw className="h-4 w-4" />
-              </button>
-              <button onClick={() => setDestination(null)} aria-label="Cerrar navegación" className="text-zinc-500 hover:text-red-400">
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-            {route.steps.length > 1 && (
-              <div className="mt-1.5 text-[11px] text-zinc-400 truncate">Luego: {route.steps[1].text}</div>
-            )}
-          </div>
-        )}
-
-        {/* Selector de destino */}
-        <div className="absolute bottom-14 left-2 z-[550] rounded-lg bg-zinc-950/95 border border-zinc-700 px-2 py-1.5 flex items-center gap-2 max-w-[75%]">
-          <RouteIcon className="h-4 w-4 text-sky-400 shrink-0" />
-          <select
-            aria-label="Destino de navegación"
-            value={dest ? NAV_DESTINATIONS.find((d) => d.position === dest.position)?.id ?? "mapa" : ""}
-            onChange={(e) => {
-              const d = NAV_DESTINATIONS.find((x) => x.id === e.target.value);
-              if (d) setDestination({ name: d.name, position: d.position });
-              else if (e.target.value === "") setDestination(null);
-            }}
-            className="bg-transparent text-xs text-zinc-200 outline-none max-w-[210px]"
-          >
-            <option value="" className="bg-zinc-900">Ir a…</option>
-            {NAV_DESTINATIONS.map((d) => (
-              <option key={d.id} value={d.id} className="bg-zinc-900">
-                {d.name}
-              </option>
-            ))}
-            {dest && <option value="mapa" className="bg-zinc-900">Punto en el mapa</option>}
-          </select>
-        </div>
-
         {/* Leyenda */}
         <div className="absolute bottom-3 left-2 z-[500] rounded-lg bg-zinc-950/90 border border-zinc-800 px-3 py-2 text-[11px] text-zinc-300 space-y-1 pointer-events-none">
           <div className="flex items-center gap-2"><span className="h-2 w-4 rounded-sm bg-emerald-500/50 border border-emerald-400" /> Parque · límite 30</div>
-          <div className="flex items-center gap-2"><span className="h-2 w-4 rounded-sm bg-emerald-500" /> Ciclovía</div>
-          <div className="flex items-center gap-2"><span className="h-2 w-4 rounded-sm bg-sky-400" /> Ruta sugerida</div>
+          <div className="flex items-center gap-2"><span className="h-2 w-4 rounded-sm bg-emerald-500" /> Ciclovía (interior del cerro)</div>
+          <div className="flex items-center gap-2"><span className="h-2 w-4 rounded-sm bg-sky-400" /> Ruta elegida en «Ir a…»</div>
           <div className="flex items-center gap-2"><span className="h-2 w-4 rounded-sm bg-lime-400" /> Tu recorrido</div>
+          <div className="flex items-center gap-2"><span className="h-2 w-4 rounded-sm bg-amber-500" /> Zonas de riesgo</div>
+          <div className="flex items-center gap-2"><span className="h-2 w-4 rounded-sm bg-zinc-600" /> ⚠ Emojis: incidencias reportadas</div>
         </div>
 
         {/* Estado / avisos */}
@@ -537,30 +374,13 @@ export default function MapView({ track, position, accuracyM, userPin }: Props) 
         )}
       </div>
 
-      {/* Próximos pasos */}
-      {route && route.steps.length > 2 && (
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900/70 p-3">
-          <div className="text-xs font-semibold text-zinc-400 mb-2 uppercase tracking-wide">Instrucciones</div>
-          <ol className="space-y-1.5 max-h-44 overflow-y-auto pr-1">
-            {route.steps.slice(0, 8).map((s, i) => (
-              <li key={i} className="flex items-center gap-2 text-sm text-zinc-200">
-                <span className="text-lg leading-none w-6 text-center" aria-hidden>
-                  {stepIcon(s.icon)}
-                </span>
-                <span className="min-w-0 flex-1">{s.text}</span>
-                <span className="text-[11px] text-zinc-500 shrink-0">{s.distM > 0 ? formatStepRemaining(s) : ""}</span>
-              </li>
-            ))}
-          </ol>
-        </div>
-      )}
-
       {reportMode && !pending && (
         <p className="text-xs text-amber-300/90 -mt-1">Toca el mapa donde está el problema y elige el tipo de incidencia.</p>
       )}
-      {destMode && (
-        <p className="text-xs text-sky-300/90 -mt-1">Toca el mapa para fijar tu destino, o elige un punto frecuente en «Ir a…».</p>
-      )}
+      <p className="text-xs text-zinc-500 leading-relaxed">
+        Mapa de referencia: tu ubicación, zonas de riesgo, simbología e incidencias con fecha y hora. Para navegación con
+        ruta y ciclovías, usa el velocímetro (pestaña Ride).
+      </p>
     </div>
   );
 }

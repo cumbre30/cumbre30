@@ -22,6 +22,10 @@ export type MeStats = {
   rideCount: number;
   maxKmh: number;
   totalGainM: number;
+  parkRides: number;
+  cleanParkRides: number;
+  nightRides: number;
+  dawnRides: number;
   lastRideDate: string | null;
   incidentCount: number;
 };

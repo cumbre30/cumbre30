@@ -23,6 +23,8 @@ import { SensorPanel } from "@/components/SensorPanel";
 import { HistoryTab } from "@/components/HistoryTab";
 import { useRideEngine, type Source } from "@/hooks/useRideEngine";
 import { useMe } from "@/hooks/useMe";
+import { useNavEngine } from "@/hooks/useNavEngine";
+import { courseHeading } from "@/lib/geo";
 import { alerts } from "@/lib/alertEngine";
 
 const Wallet = dynamic(() => import("@/components/Wallet"), {
@@ -94,6 +96,9 @@ export default function Home() {
   const [source, setSource] = useState<Source>("sim");
 
   const running = ride.status === "running";
+  // Navegación compartida: velocímetro (minimapa) + mapa grande
+  const nav = useNavEngine(ride.position, running);
+  const heading = useMemo(() => courseHeading(ride.track), [ride.track]);
 
   const toggleSound = () => {
     const v = !soundOn;
@@ -118,8 +123,16 @@ export default function Home() {
   };
 
   const mapProps = useMemo(
-    () => ({ track: ride.track, position: ride.position, accuracyM: ride.accuracyM, userPin: me?.user.selectedPin }),
-    [ride.track, ride.position, ride.accuracyM, me?.user.selectedPin]
+    () => ({
+      track: ride.track,
+      position: ride.position,
+      accuracyM: ride.accuracyM,
+      heading,
+      userPin: me?.user.selectedPin,
+      route: nav.route,
+      dest: nav.dest,
+    }),
+    [ride.track, ride.position, ride.accuracyM, heading, me?.user.selectedPin, nav.route, nav.dest]
   );
 
   return (
@@ -188,16 +201,17 @@ export default function Home() {
               accuracyM={ride.accuracyM}
               events={ride.events}
               running={running}
+              position={ride.position}
+              track={ride.track}
+              heading={heading}
+              userPin={me?.user.selectedPin}
+              nav={nav}
             />
             <SensorPanel onSensorSpeed={ride.setSensorSpeed} />
           </TabsContent>
 
           <TabsContent value="map" className="mt-4">
             <MapView {...mapProps} />
-            <p className="mt-3 text-xs text-zinc-500 leading-relaxed">
-              Navegación con preferencia por ciclovías (datos OSM). Activa 🚩 para fijar destino, ⚠️ para reportar
-              incidencias y 🎯 para centrarte. Las incidencias requieren sesión y quedan con fecha y hora.
-            </p>
           </TabsContent>
 
           <TabsContent value="wallet" className="mt-4">

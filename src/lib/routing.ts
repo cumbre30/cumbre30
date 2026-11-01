@@ -17,7 +17,7 @@ export type Network = {
   adj: Array<Array<{ to: number; w: number; dist: number; cls: string; name: string; ciclovia: boolean; bearing: number }>>;
 };
 
-export type RouteStep = { icon: "start" | "left" | "right" | "straight" | "end"; text: string; distM: number; point: LatLng };
+export type RouteStep = { icon: "start" | "left" | "right" | "straight" | "end"; text: string; distM: number; point: LatLng; idx: number };
 export type NavRoute = {
   coords: LatLng[];
   distanceM: number;
@@ -226,12 +226,12 @@ export function findRoute(net: Network, from: LatLng, to: LatLng): NavRoute | nu
   let inCiclo = false;
   let prevBearing: number | null = null;
 
-  const push = (icon: RouteStep["icon"], text: string, point: LatLng) => {
-    steps.push({ icon, text, distM: Math.round(acc), point });
+  const push = (icon: RouteStep["icon"], text: string, point: LatLng, idx: number) => {
+    steps.push({ icon, text, distM: Math.round(acc), point, idx });
     acc = 0;
   };
 
-  push("start", `Parte por ${seq[0].edge.name || CLASS_LABEL[seq[0].edge.cls] || "la vía"}`, coords[0]);
+  push("start", `Parte por ${seq[0].edge.name || CLASS_LABEL[seq[0].edge.cls] || "la vía"}`, coords[0], 0);
 
   for (let i = 0; i < seq.length; i++) {
     const e = seq[i].edge;
@@ -247,7 +247,7 @@ export function findRoute(net: Network, from: LatLng, to: LatLng): NavRoute | nu
       else if (isCiclo) text = `Continúa por la ciclovía ${label}`;
       else if (lastCls === "cycleway" && !isCiclo) text = `Sigue por ${label}`;
       else text = `Continúa por ${label}`;
-      push(dir, text, coords[i]);
+      push(dir, text, coords[i], i);
       prevBearing = e.bearing;
     } else if (i === 0) {
       prevBearing = e.bearing;
@@ -257,8 +257,8 @@ export function findRoute(net: Network, from: LatLng, to: LatLng): NavRoute | nu
     lastCls = e.cls;
     inCiclo = isCiclo;
   }
-  const lastPoint = coords[coords.length - 1];
-  push("end", `Has llegado a tu destino`, lastPoint);
+  const lastIdx = coords.length - 1;
+  push("end", `Has llegado a tu destino`, coords[lastIdx], lastIdx);
 
   return {
     coords,
@@ -271,4 +271,47 @@ export function findRoute(net: Network, from: LatLng, to: LatLng): NavRoute | nu
 
 export function formatStepRemaining(step: RouteStep): string {
   return step.distM >= 950 ? `${(step.distM / 1000).toFixed(1)} km` : `${Math.max(10, Math.round(step.distM / 10) * 10)} m`;
+}
+
+export type RouteProgress = {
+  nearestIdx: number;
+  /** Paso próximo (el que aún no se alcanza). */
+  nextStep: RouteStep;
+  /** Pasos ya superados (incluye el "start" cuando corresponde). */
+  passedCount: number;
+  /** Metros desde la posición hasta el punto del próximo paso. */
+  distToNextStepM: number;
+  /** Metros restantes hasta el destino. */
+  remainingM: number;
+  /** Distancia de la posición a la polilínea (m): > 0 ⇒ fuera de ruta. */
+  offRouteM: number;
+};
+
+/** Distancia viva sobre la ruta: próximo paso, metros y desvío. */
+export function routeProgress(route: NavRoute, pos: LatLng): RouteProgress {
+  const { coords, steps } = route;
+  // vértice más cercano
+  let best = 0;
+  let bestD = Infinity;
+  for (let i = 0; i < coords.length; i++) {
+    const d = haversineM(pos, coords[i]);
+    if (d < bestD) {
+      bestD = d;
+      best = i;
+      if (d < 8) break;
+    }
+  }
+  // distancias acumuladas desde best hacia cada vértice
+  const cum: number[] = new Array(coords.length).fill(0);
+  for (let i = best + 1; i < coords.length; i++) cum[i] = cum[i - 1] + haversineM(coords[i - 1], coords[i]);
+  for (let i = best - 1; i >= 0; i--) cum[i] = cum[i + 1] + haversineM(coords[i], coords[i + 1]);
+
+  const remainingM = cum[coords.length - 1] + bestD;
+  // primer paso cuyo índice de vértice está por delante (o el final)
+  let passed = 0;
+  while (passed < steps.length - 1 && steps[passed].idx <= best) passed++;
+  const nextStep = steps[Math.min(passed, steps.length - 1)];
+  const distToNextStepM = Math.max(0, cum[Math.min(nextStep.idx, coords.length - 1)] - 0) + (nextStep.idx >= best ? bestD : 0);
+
+  return { nearestIdx: best, nextStep, passedCount: passed, distToNextStepM, remainingM, offRouteM: bestD };
 }
