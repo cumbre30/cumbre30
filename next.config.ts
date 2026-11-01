@@ -9,6 +9,9 @@ const baseConfig = {
     ignoreBuildErrors: true,
   },
   reactStrictMode: false,
+  // Evita el warning "Cross origin request detected" del dev server
+  // cuando la vista previa accede desde el dominio del gateway.
+  allowedDevOrigins: ["*.space-z.ai"],
 };
 
 const nextConfig: NextConfig = isStaticExport

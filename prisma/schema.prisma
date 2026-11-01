@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -13,20 +7,90 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ============================================================
+// Cumbre30 — esquema de datos
+// ============================================================
+
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id           String   @id @default(cuid())
+  email        String   @unique
+  username     String   @unique
+  passwordHash String
+  selectedPin  String   @default("clasico")
+  // Datos de la bicicleta
+  bikeBrand    String?
+  bikeType     String?
+  bikeModel    String?
+  bikeSize     String?
+  bikeColor    String?
+  createdAt    DateTime @default(now())
+
+  sessions     Session[]
+  rides        Ride[]
+  incidents    Incident[]
+  achievements Achievement[]
+  initiated    Friendship[] @relation("friendInitiator")
+  received     Friendship[] @relation("friendReceiver")
 }
 
-model Post {
+model Session {
   id        String   @id @default(cuid())
-  title     String
-  content   String?
-  published Boolean  @default(false)
-  authorId  String
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+}
+
+model Ride {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dateISO      DateTime
+  source       String   // "gps" | "sim"
+  distanceKm   Float
+  maxKmh       Float
+  maxInParkKmh Float?
+  avgKmh       Float
+  elapsedSec   Float
+  gainM        Float
+  overLimitSec Float
+  createdAt    DateTime @default(now())
+
+  @@index([userId, dateISO])
+}
+
+model Incident {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String   // pozo | vidrio | perro | cierre | arbol | peaton | otro
+  lat       Float
+  lon       Float
+  note      String?
+  createdAt DateTime @default(now())
+  active    Boolean  @default(true)
+
+  @@index([lat, lon])
+}
+
+model Friendship {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation("friendInitiator", fields: [userId], references: [id], onDelete: Cascade)
+  friendId  String
+  friend    User     @relation("friendReceiver", fields: [friendId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, friendId])
+}
+
+model Achievement {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  code       String
+  unlockedAt DateTime @default(now())
+
+  @@unique([userId, code])
 }

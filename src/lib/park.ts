@@ -152,3 +152,14 @@ export const SIM_ROUTE: SimWaypoint[] = [
   { lat: -33.4118, lon: -70.6085, kmh: 16, alt: 738 }, // salida Acceso Pedro de Valdivia Norte
   { lat: -33.4113, lon: -70.6068, kmh: 12, alt: 730 }, // Av. Pedro de Valdivia (fuera)
 ];
+
+/** Destinos frecuentes para la navegación tipo Waze. */
+export const NAV_DESTINATIONS: { id: string; name: string; position: LatLng }[] = [
+  { id: "cumbre", name: "🏔️ Cumbre del Cerro", position: { lat: -33.404, lon: -70.617 } },
+  { id: "pio-nono", name: "🚪 Acceso Pío Nono", position: { lat: -33.430691, lon: -70.63592 } },
+  { id: "pv-norte", name: "🚪 Acceso Pedro de Valdivia Norte", position: { lat: -33.411769, lon: -70.607988 } },
+  { id: "antiluen", name: "🏊 Piscina Antilén", position: { lat: -33.409051, lon: -70.61374 } },
+  { id: "jardin-japones", name: "🏯 Jardín Japonés", position: { lat: -33.413345, lon: -70.614692 } },
+  { id: "zoologico", name: "🦁 Zoológico Nacional", position: { lat: -33.429636, lon: -70.633963 } },
+  { id: "anahuac", name: "🎭 Casa de la Cultura Anáhuac", position: { lat: -33.417135, lon: -70.623511 } },
+];

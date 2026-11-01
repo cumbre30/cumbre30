@@ -1,13 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Droplets as BloodType, IdCard, RefreshCw, QrCode, Trash2, UserRound, Phone } from "lucide-react";
+import { Droplets as BloodType, IdCard, RefreshCw, QrCode, Trash2, UserRound, Phone, Bike as BikeIcon } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import QRCode from "qrcode";
+import { BIKE_SIZES, BIKE_TYPES } from "@/lib/bike";
+import { refreshMe } from "@/hooks/useMe";
 
 type WalletData = {
   fullName: string;
@@ -16,6 +18,11 @@ type WalletData = {
   allergies: string;
   emergencyName: string;
   emergencyPhone: string;
+  bikeBrand: string;
+  bikeType: string;
+  bikeModel: string;
+  bikeSize: string;
+  bikeColor: string;
 };
 
 const KEY = "cumbre30-wallet-v1";
@@ -27,6 +34,11 @@ const EMPTY: WalletData = {
   allergies: "",
   emergencyName: "",
   emergencyPhone: "",
+  bikeBrand: "",
+  bikeType: "",
+  bikeModel: "",
+  bikeSize: "",
+  bikeColor: "",
 };
 
 type Stored = { data: WalletData; savedAt: string | null };
@@ -78,9 +90,20 @@ export default function Wallet() {
 
   const save = useCallback(() => {
     const savedAtISO = new Date().toISOString();
-    const payload = { ...data, savedAt: savedAtISO };
-    localStorage.setItem(KEY, JSON.stringify(payload));
+    localStorage.setItem(KEY, JSON.stringify({ ...data, savedAt: savedAtISO }));
     setStored({ data, savedAt: savedAtISO });
+    // Sincroniza la bici al perfil si hay sesión (silencioso)
+    void fetch("/api/me", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        bikeBrand: data.bikeBrand,
+        bikeType: data.bikeType,
+        bikeModel: data.bikeModel,
+        bikeSize: data.bikeSize,
+        bikeColor: data.bikeColor,
+      }),
+    }).then((r) => (r.ok ? refreshMe() : undefined)).catch(() => undefined);
   }, [data]);
 
   const clear = () => {
@@ -151,6 +174,63 @@ export default function Wallet() {
           </Button>
         )}
       </div>
+
+      {/* ---- Datos de la bicicleta ---- */}
+      <Card className="bg-zinc-900/80 border-zinc-800 p-4">
+        <div className="flex items-start gap-3 mb-3">
+          <BikeIcon className="h-5 w-5 text-emerald-400 mt-0.5 shrink-0" />
+          <div className="text-sm text-zinc-400">
+            <p className="font-medium text-zinc-200">Datos de tu bicicleta</p>
+            <p className="mt-1 leading-relaxed">
+              Registra tu bici para que aparezca en tu perfil y ayude a identificarla en caso de robo o accidente.
+            </p>
+          </div>
+        </div>
+        <div className="grid gap-3">
+          <div className="grid sm:grid-cols-2 gap-3">
+            <div className="grid gap-1.5">
+              <Label htmlFor="b-brand" className="text-zinc-300">Marca</Label>
+              <Input id="b-brand" className="bg-zinc-900 border-zinc-800" placeholder="Ej: Trek, Giant, Oxford" value={data.bikeBrand} onChange={(e) => set("bikeBrand")(e.target.value)} />
+            </div>
+            <div className="grid gap-1.5">
+              <Label className="text-zinc-300">Tipo</Label>
+              <Select value={data.bikeType} onValueChange={set("bikeType")}>
+                <SelectTrigger className="bg-zinc-900 border-zinc-800 w-full" aria-label="Tipo de bicicleta">
+                  <SelectValue placeholder="Ej: MTB" />
+                </SelectTrigger>
+                <SelectContent className="bg-zinc-900 border-zinc-800">
+                  {BIKE_TYPES.map((t) => (
+                    <SelectItem key={t} value={t}>{t}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="grid sm:grid-cols-2 gap-3">
+            <div className="grid gap-1.5">
+              <Label htmlFor="b-model" className="text-zinc-300">Modelo</Label>
+              <Input id="b-model" className="bg-zinc-900 border-zinc-800" placeholder="Ej: Marlin 7" value={data.bikeModel} onChange={(e) => set("bikeModel")(e.target.value)} />
+            </div>
+            <div className="grid gap-1.5">
+              <Label className="text-zinc-300">Talla</Label>
+              <Select value={data.bikeSize} onValueChange={set("bikeSize")}>
+                <SelectTrigger className="bg-zinc-900 border-zinc-800 w-full" aria-label="Talla del cuadro">
+                  <SelectValue placeholder="Talla del cuadro" />
+                </SelectTrigger>
+                <SelectContent className="bg-zinc-900 border-zinc-800">
+                  {BIKE_SIZES.map((t) => (
+                    <SelectItem key={t} value={t}>{t}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor="b-color" className="text-zinc-300">Color</Label>
+            <Input id="b-color" className="bg-zinc-900 border-zinc-800" placeholder="Ej: azul con negro" value={data.bikeColor} onChange={(e) => set("bikeColor")(e.target.value)} />
+          </div>
+        </div>
+      </Card>
 
       {showQr && (
         <Card className="bg-zinc-950 border-emerald-800/60 p-4">

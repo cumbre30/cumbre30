@@ -11,6 +11,8 @@ import {
   Play,
   QrCode,
   Square,
+  Trophy,
+  UserRound,
   Volume2,
   VolumeX,
 } from "lucide-react";
@@ -20,6 +22,7 @@ import { RideView } from "@/components/RideView";
 import { SensorPanel } from "@/components/SensorPanel";
 import { HistoryTab } from "@/components/HistoryTab";
 import { useRideEngine, type Source } from "@/hooks/useRideEngine";
+import { useMe } from "@/hooks/useMe";
 import { alerts } from "@/lib/alertEngine";
 
 const Wallet = dynamic(() => import("@/components/Wallet"), {
@@ -36,6 +39,24 @@ const MapView = dynamic(() => import("@/components/MapView"), {
   loading: () => (
     <div className="h-[62vh] min-h-[420px] rounded-xl border border-zinc-800 bg-zinc-900 flex items-center justify-center text-sm text-zinc-500">
       Cargando mapa…
+    </div>
+  ),
+});
+
+const ProfileTab = dynamic(() => import("@/components/ProfileTab"), {
+  ssr: false,
+  loading: () => (
+    <div className="h-40 rounded-xl border border-zinc-800 bg-zinc-900 flex items-center justify-center text-sm text-zinc-500">
+      Cargando perfil…
+    </div>
+  ),
+});
+
+const ChallengesTab = dynamic(() => import("@/components/ChallengesTab"), {
+  ssr: false,
+  loading: () => (
+    <div className="h-40 rounded-xl border border-zinc-800 bg-zinc-900 flex items-center justify-center text-sm text-zinc-500">
+      Cargando desafíos…
     </div>
   ),
 });
@@ -65,6 +86,7 @@ function GpsChip({ status, simRunning }: { status: string; simRunning: boolean }
 
 export default function Home() {
   const ride = useRideEngine();
+  const { me } = useMe();
   const [tab, setTab] = useState("ride");
   const [soundOn, setSoundOn] = useState(true);
   const [voiceOn, setVoiceOn] = useState(true);
@@ -96,8 +118,8 @@ export default function Home() {
   };
 
   const mapProps = useMemo(
-    () => ({ track: ride.track, position: ride.position, accuracyM: ride.accuracyM }),
-    [ride.track, ride.position, ride.accuracyM]
+    () => ({ track: ride.track, position: ride.position, accuracyM: ride.accuracyM, userPin: me?.user.selectedPin }),
+    [ride.track, ride.position, ride.accuracyM, me?.user.selectedPin]
   );
 
   return (
@@ -129,18 +151,24 @@ export default function Home() {
       {/* Contenido */}
       <main className="flex-1 w-full max-w-md mx-auto px-4 pt-4 pb-32">
         <Tabs value={tab} onValueChange={setTab}>
-          <TabsList className="w-full grid grid-cols-4 bg-zinc-900 border border-zinc-800 h-11">
+          <TabsList className="w-full grid grid-cols-6 bg-zinc-900 border border-zinc-800 h-11">
             <TabsTrigger value="ride" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-zinc-950 data-[state=active]:font-semibold">
-              <Bike className="h-4 w-4 sm:mr-1.5" /><span className="hidden sm:inline">Ride</span>
+              <Bike className="h-4 w-4 sm:mr-1.5" /><span className="hidden lg:inline">Ride</span>
             </TabsTrigger>
             <TabsTrigger value="map" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-zinc-950 data-[state=active]:font-semibold">
-              <MapIcon className="h-4 w-4 sm:mr-1.5" /><span className="hidden sm:inline">Mapa</span>
-            </TabsTrigger>
-            <TabsTrigger value="wallet" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-zinc-950 data-[state=active]:font-semibold">
-              <QrCode className="h-4 w-4 sm:mr-1.5" /><span className="hidden sm:inline">QR</span>
+              <MapIcon className="h-4 w-4 sm:mr-1.5" /><span className="hidden lg:inline">Mapa</span>
             </TabsTrigger>
             <TabsTrigger value="history" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-zinc-950 data-[state=active]:font-semibold">
-              <HistoryIcon className="h-4 w-4 sm:mr-1.5" /><span className="hidden sm:inline">Historial</span>
+              <HistoryIcon className="h-4 w-4 sm:mr-1.5" /><span className="hidden lg:inline">Historial</span>
+            </TabsTrigger>
+            <TabsTrigger value="wallet" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-zinc-950 data-[state=active]:font-semibold">
+              <QrCode className="h-4 w-4 sm:mr-1.5" /><span className="hidden lg:inline">QR</span>
+            </TabsTrigger>
+            <TabsTrigger value="challenges" className="data-[state=active]:bg-amber-500 data-[state=active]:text-zinc-950 data-[state=active]:font-semibold">
+              <Trophy className="h-4 w-4 sm:mr-1.5" /><span className="hidden lg:inline">Premios</span>
+            </TabsTrigger>
+            <TabsTrigger value="profile" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-zinc-950 data-[state=active]:font-semibold">
+              <UserRound className="h-4 w-4 sm:mr-1.5" /><span className="hidden lg:inline">Perfil</span>
             </TabsTrigger>
           </TabsList>
 
@@ -167,8 +195,8 @@ export default function Home() {
           <TabsContent value="map" className="mt-4">
             <MapView {...mapProps} />
             <p className="mt-3 text-xs text-zinc-500 leading-relaxed">
-              El polígono y las zonas de riesgo son aproximaciones del prototipo, calibradas con los accesos
-              Pío Nono y Pedro de Valdivia Norte. La versión final usaría el geocercado oficial de Parquemet.
+              Navegación con preferencia por ciclovías (datos OSM). Activa 🚩 para fijar destino, ⚠️ para reportar
+              incidencias y 🎯 para centrarte. Las incidencias requieren sesión y quedan con fecha y hora.
             </p>
           </TabsContent>
 
@@ -178,6 +206,14 @@ export default function Home() {
 
           <TabsContent value="history" className="mt-4">
             <HistoryTab refreshKey={historyKey} />
+          </TabsContent>
+
+          <TabsContent value="challenges" className="mt-4">
+            <ChallengesTab />
+          </TabsContent>
+
+          <TabsContent value="profile" className="mt-4">
+            <ProfileTab />
           </TabsContent>
         </Tabs>
       </main>

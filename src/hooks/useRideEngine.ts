@@ -13,6 +13,7 @@ import { Ema, SpeedKalman, haversineM, pointInPolygon } from "@/lib/geo";
 import { alerts } from "@/lib/alertEngine";
 import { RideSimulator } from "@/lib/simulation";
 import { saveRide, type RideSummary } from "@/lib/history";
+import { syncRideAfterSave } from "@/lib/sync";
 
 export type SpeedState = "ok" | "caution" | "over";
 export type RideStatus = "idle" | "running";
@@ -358,6 +359,7 @@ export function useRideEngine() {
       };
       saveRide(summary);
       logEvent("info", "Ride guardado en el historial");
+      void syncRideAfterSave(summary); // sube al servidor + logros si hay sesión
     }
     setStatus("idle");
     setGpsStatus("idle");

@@ -23,8 +23,8 @@ jobs:
       - name: Install deps
         run: npm install
 
-      - name: Build web estático
-        run: STATIC_EXPORT=1 npx next build
+      - name: Build web estático (excluye rutas API)
+        run: bash scripts/export-web.sh
 
       - name: Sync Capacitor
         run: npx cap sync android
