@@ -17,6 +17,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RideView } from "@/components/RideView";
+import { SensorPanel } from "@/components/SensorPanel";
 import { HistoryTab } from "@/components/HistoryTab";
 import { useRideEngine, type Source } from "@/hooks/useRideEngine";
 import { alerts } from "@/lib/alertEngine";
@@ -143,7 +144,7 @@ export default function Home() {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="ride" className="mt-4">
+          <TabsContent value="ride" className="mt-4 flex flex-col gap-4">
             <RideView
               speedKmh={ride.speedKmh}
               maxKmh={ride.maxKmh}
@@ -160,6 +161,7 @@ export default function Home() {
               events={ride.events}
               running={running}
             />
+            <SensorPanel onSensorSpeed={ride.setSensorSpeed} />
           </TabsContent>
 
           <TabsContent value="map" className="mt-4">

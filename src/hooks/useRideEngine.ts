@@ -74,10 +74,16 @@ export function useRideEngine() {
     watchId: null as number | null,
     tickTimer: null as ReturnType<typeof setInterval> | null,
     lastTick: 0,
+    sensorSpeedKmh: null as number | null,
   });
 
   const logEvent = useCallback((kind: RideEvent["kind"], text: string) => {
     setEvents((prev) => pushEvent(prev, { t: Date.now(), kind, text }));
+  }, []);
+
+  /** Recibe la velocidad del sensor de rueda Bluetooth (null al desconectar). */
+  const setSensorSpeed = useCallback((kmh: number | null) => {
+    engine.current.sensorSpeedKmh = kmh;
   }, []);
 
   /** Procesa un fix (GPS real o simulado) con el mismo pipeline. */
@@ -86,8 +92,10 @@ export function useRideEngine() {
       const e = engine.current;
       const dt = e.lastFix ? Math.min(10, Math.max(0.15, (fix.t - e.lastFix.t) / 1000)) : 1;
 
-      // 1) Velocidad: Kalman sobre medición + micro-predicción (reduce el lag)
-      const vMeasured = fix.speedKmh / 3.6; // m/s
+      // 1) Velocidad: sensor de rueda (sin lag) si está conectado,
+      //    si no GPS (Doppler) → filtro de Kalman + micro-predicción
+      const measuredKmh = e.sensorSpeedKmh ?? fix.speedKmh;
+      const vMeasured = measuredKmh / 3.6; // m/s
       const vKf = e.kalman.update(vMeasured, dt);
       let accel = 0;
       if (e.prevSpeed !== null && dt > 0) accel = (vKf - e.prevSpeed) / dt;
@@ -377,6 +385,6 @@ export function useRideEngine() {
     speedKmh, maxKmh, avgKmh, distanceKm, elapsedSec, gainM, slopePct,
     insidePark, speedState, overLimitSec, maxInParkKmh,
     events, track, position,
-    start, stop,
+    start, stop, setSensorSpeed,
   };
 }

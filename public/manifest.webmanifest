@@ -1,11 +1,19 @@
 {
+  "id": "cumbre30",
   "name": "Cumbre30 — Ciclocomputador Cerro San Cristóbal",
   "short_name": "Cumbre30",
-  "description": "Ciclocomputador con límite de velocidad 30 km/h del Parque Metropolitano, alertas de voz, zonas de riesgo y credencial de enrolamiento.",
+  "description": "Ciclocomputador con límite de velocidad 30 km/h del Parque Metropolitano, alertas de voz, zonas de riesgo, sensores Bluetooth y credencial de enrolamiento.",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#09090b",
   "theme_color": "#09090b",
-  "lang": "es-CL"
+  "lang": "es-CL",
+  "categories": ["fitness", "sports", "navigation"],
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
 }
