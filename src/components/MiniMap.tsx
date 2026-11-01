@@ -30,7 +30,7 @@ import { Crosshair, Flag, Plus, Route as RouteIcon, TriangleAlert, X } from "luc
 import { GATES, NAV_DESTINATIONS, PARK_POLYGON, RISK_ZONES, type LatLng } from "@/lib/park";
 import { DEFAULT_PIN, PINS, type PinId } from "@/lib/pins";
 import { INCIDENT_BY_ID } from "@/lib/incidents";
-import { circlePolygon, navStyle } from "@/lib/navStyle";
+import { circlePolygon, navStyle, CYCLOSM_TILES } from "@/lib/navStyle";
 import { routeProgress, streetAt, streetOfStep } from "@/lib/routing";
 import { bearingOf, buildRouteFeatures, lineFeat, polyFeat, toFc } from "@/lib/navCanvasLogic";
 import { INCIDENT_TYPES, type IncidentTypeId } from "@/lib/incidents";
@@ -42,7 +42,11 @@ import NativeMapCanvas from "@/components/NativeMapCanvas";
 import LeafletNav from "@/components/LeafletNav";
 import { isNativeApp } from "@/lib/rideNative";
 
-const PARK_CENTER: [number, number] = [-33.408, -70.636];
+// ⚠️ [lng, lat] — MapLibre espera longitud PRIMERO. Antes estaba
+// invertido (-33.408, -70.636) y la cámara arrancaba en el Atlántico
+// Sur: el minimapa 3D se veía como un fondo de color sin mapa
+// (v1.3.2, causa raíz de "el 3d no carga").
+const PARK_CENTER: [number, number] = [-70.636, -33.408];
 
 /** Anticipación de la cámara: con el pin abajo, estilo Waze. */
 const ARRIVAL_M = 150;
@@ -248,7 +252,8 @@ function NavCanvas(props: NavCanvasProps) {
       zoom: 13.5,
       pitch: 0,
       bearing: 0,
-      attributionControl: false,
+      // Atribución compacta (obligatoria para tiles OSM/CARTO).
+      attributionControl: { compact: true },
       dragRotate: false,
       dragPan: false,
       scrollZoom: false,
@@ -259,6 +264,27 @@ function NavCanvas(props: NavCanvasProps) {
       maxPitch: 70,
     });
     mapRef.current = map;
+
+    // --- fallback de base (v1.3.2): si OSM estándar falla repetidamente
+    // (rate-limit 429, caída), cambiamos a CyclOSM (OSM-France) —
+    // prioriza funcionamiento: peor es quedarse sin mapa.
+    let baseTileErr = 0;
+    map.on("error", (e) => {
+      if (baseTileErr < 0) return; // ya cambiamos; no insistir
+      const ev = e as unknown as { sourceId?: string; error?: { message?: string } };
+      if (ev.sourceId && ev.sourceId !== "base") return;
+      const msg = ev.error?.message ?? "";
+      if (!ev.sourceId && !/tile|base|fetch|status|ajax/i.test(msg)) return;
+      baseTileErr++;
+      if (baseTileErr >= 5) {
+        const src = map.getSource("base") as maplibregl.RasterTileSource | undefined;
+        if (src && typeof src.setTiles === "function") {
+          src.setTiles(CYCLOSM_TILES);
+          baseTileErr = -1; // un solo cambio por sesión
+        }
+      }
+    });
+
     map.on("load", () => {
       map.addImage("c30-chev", makeChevronImage());
 

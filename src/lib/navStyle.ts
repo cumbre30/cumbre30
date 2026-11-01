@@ -1,10 +1,20 @@
 // ============================================================
-// Estilo oscuro del minimapa de navegación (look Waze) sobre
-// tiles vectoriales de OpenFreeMap — gratuito, sin clave de API.
-// Esquema OpenMapTiles: capas de transporte, agua, parque,
-// edificios y rótulos. Los rótulos de lugares quedan SIEMPRE
-// derechos (alineación a la pantalla) mientras el mapa gira con
-// el rumbo, como en Waze/Google Maps.
+// Estilo del minimapa de navegación 3D (look Waze, cámara con
+// pitch 50° y rotación al rumbo).
+//
+// ⚠️ v1.3.2 — causa raíz del "3d no carga": la cámara arrancaba en
+// el Atlántico Sur porque PARK_CENTER pasaba [lat, lon] y MapLibre
+// espera [lng, lat]. El "océano" era real: estábamos mirando mar,
+// no tiles rotos (OpenFreeMap sirve Santiago sin problema).
+//
+// De paso, la base ahora es RÁSTER OSM estándar (antes vectorial):
+// menos pasos al primer pintado (sin TileJSON ni glifos), menos
+// dependencias externas y los mismos tiles ya validados en el
+// resto de la app. Fallback automático a CyclOSM (OSM-France,
+// orientado a bicicletas) si OSM estándar se cae. El "3D" no
+// depende de la fuente: lo da la cámara de MapLibre (pitch +
+// bearing), y todas las capas de la app (parque, riesgo, ruta,
+// pin) son GeoJSON propias y siguen intactas encima.
 // ============================================================
 
 import type { StyleSpecification } from "maplibre-gl";
@@ -24,6 +34,16 @@ export const NAV_COLORS = {
   labelDim: "#7d8a9c",
 };
 
+/** Base principal: ráster OSM estándar (misma fuente validada
+ *  en el resto de la app). */
+export const OSM_RASTER_TILES = ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"];
+
+/** Fallback: CyclOSM (OSM-France) — ráster orientado a bicicletas,
+ *  destaca ciclovías y sendas del cerro. */
+export const CYCLOSM_TILES = ["a", "b", "c"].map(
+  (s) => `https://${s}.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png`
+);
+
 /** Polígono circular (32 lados) alrededor de un punto — para zonas
  *  de riesgo y porteras, porque circle-layer usa píxeles, no metros. */
 export function circlePolygon(lat: number, lon: number, radiusM: number, segments = 32): [number, number][] {
@@ -40,146 +60,24 @@ export function circlePolygon(lat: number, lon: number, radiusM: number, segment
 export function navStyle(): StyleSpecification {
   return {
     version: 8,
-    glyphs: "https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf",
     sources: {
-      openmaptiles: {
-        type: "vector",
-        url: "https://tiles.openfreemap.org/planet",
+      base: {
+        type: "raster",
+        tiles: OSM_RASTER_TILES,
+        tileSize: 256,
+        maxzoom: 19,
+        attribution:
+          '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
       },
     },
     layers: [
-      { id: "bg", type: "background", paint: { "background-color": NAV_COLORS.bg } },
-
-      // --- verde del parque / áreas verdes ---
-      {
-        id: "park", type: "fill", source: "openmaptiles", "source-layer": "park",
-        filter: ["all", ["!=", ["get", "class"], "national_park"]] as never,
-        minzoom: 9,
-        paint: { "fill-color": NAV_COLORS.park, "fill-opacity": 0.55 },
-      },
-      {
-        id: "landuse-grass", type: "fill", source: "openmaptiles", "source-layer": "landuse",
-        filter: ["==", ["get", "class"], "grass"],
-        minzoom: 12,
-        paint: { "fill-color": NAV_COLORS.park, "fill-opacity": 0.3 },
-      },
-      {
-        id: "landcover-wood", type: "fill", source: "openmaptiles", "source-layer": "landcover",
-        filter: ["match", ["get", "class"], ["wood", "forest"], true, false] as never,
-        minzoom: 10,
-        paint: { "fill-color": NAV_COLORS.park, "fill-opacity": 0.45 },
-      },
-
-      // --- agua ---
-      { id: "water", type: "fill", source: "openmaptiles", "source-layer": "water", paint: { "fill-color": NAV_COLORS.water } },
-
-      // --- edificios (desde z15) ---
-      {
-        id: "building", type: "fill", source: "openmaptiles", "source-layer": "building",
-        minzoom: 15,
-        paint: { "fill-color": NAV_COLORS.building, "fill-opacity": 0.9 },
-      },
-
-      // --- sendas / veredas ---
-      {
-        id: "path", type: "line", source: "openmaptiles", "source-layer": "transportation",
-        filter: ["match", ["get", "class"], ["path", "footway", "pedestrian", "steps"], true, false] as never,
-        minzoom: 15,
-        layout: { "line-cap": "round", "line-join": "round" },
-        paint: { "line-color": NAV_COLORS.path, "line-width": ["interpolate", ["linear"], ["zoom"], 15, 0.6, 18, 2.2], "line-dasharray": [2, 2], "line-opacity": 0.8 },
-      },
-
-      // --- vías: casing + relleno por jerarquía ---
-      {
-        id: "road-case", type: "line", source: "openmaptiles", "source-layer": "transportation",
-        filter: ["match", ["get", "class"], ["path", "footway", "pedestrian", "steps", "track", "ferry", "rail", "transit"], false, true] as never,
-        minzoom: 8,
-        layout: { "line-cap": "round", "line-join": "round" },
-        paint: {
-          "line-color": NAV_COLORS.roadCase,
-          "line-width": ["interpolate", ["exponential", 1.6], ["zoom"], 10, 1.6, 13, 3.4, 16, 8, 18.5, 16],
-          "line-opacity": 0.9,
-        },
-      },
-      {
-        id: "road-minor", type: "line", source: "openmaptiles", "source-layer": "transportation",
-        filter: ["match", ["get", "class"], ["minor", "service", "track"], true, false] as never,
-        minzoom: 12,
-        layout: { "line-cap": "round", "line-join": "round" },
-        paint: { "line-color": NAV_COLORS.roadMinor, "line-width": ["interpolate", ["exponential", 1.6], ["zoom"], 13, 1, 16, 4.6, 18.5, 10] },
-      },
-      {
-        id: "road-mid", type: "line", source: "openmaptiles", "source-layer": "transportation",
-        filter: ["match", ["get", "class"], ["secondary", "tertiary"], true, false] as never,
-        minzoom: 8,
-        layout: { "line-cap": "round", "line-join": "round" },
-        paint: { "line-color": NAV_COLORS.roadMid, "line-width": ["interpolate", ["exponential", 1.6], ["zoom"], 10, 0.9, 13, 2.4, 16, 6.2, 18.5, 12] },
-      },
-      {
-        id: "road-major", type: "line", source: "openmaptiles", "source-layer": "transportation",
-        filter: ["match", ["get", "class"], ["motorway", "trunk", "primary"], true, false] as never,
-        minzoom: 6,
-        layout: { "line-cap": "round", "line-join": "round" },
-        paint: { "line-color": NAV_COLORS.roadMajor, "line-width": ["interpolate", ["exponential", 1.6], ["zoom"], 8, 1, 11, 1.8, 14, 4, 17, 9, 18.5, 14] },
-      },
-      // ciclovías OSM del mapa base: verde sutil (solo z16+, no estorba la ruta activa)
-      {
-        id: "cycleway-base", type: "line", source: "openmaptiles", "source-layer": "transportation",
-        filter: ["==", ["get", "class"], "cycleway"],
-        minzoom: 15,
-        layout: { "line-cap": "round", "line-join": "round" },
-        paint: { "line-color": "#2dd4bf", "line-width": ["interpolate", ["linear"], ["zoom"], 15, 0.8, 18.5, 2.6], "line-opacity": 0.85 },
-      },
-
-      // --- rótulos de vías: siguen la calle (rotan con el mapa, como Waze) ---
-      {
-        id: "road-labels", type: "symbol", source: "openmaptiles", "source-layer": "transportation_name",
-        minzoom: 14.5,
-        layout: {
-          "symbol-placement": "line",
-          "text-field": ["coalesce", ["get", "name:es"], ["get", "name"]],
-          "text-font": ["Noto Sans Regular"],
-          "text-size": 10.5,
-          "text-letter-spacing": 0.08,
-          "text-max-angle": 32,
-        },
-        paint: {
-          "text-color": NAV_COLORS.labelDim,
-          "text-halo-color": NAV_COLORS.bg,
-          "text-halo-width": 1.4,
-        },
-      },
-
-      // --- rótulos de lugares: SIEMPRE derechos (viewport) ---
-      {
-        id: "place-city", type: "symbol", source: "openmaptiles", "source-layer": "place",
-        filter: ["match", ["get", "class"], ["city", "town", "village"], true, false] as never,
-        maxzoom: 15,
-        layout: {
-          "text-field": ["coalesce", ["get", "name:es"], ["get", "name"]],
-          "text-font": ["Noto Sans Bold"],
-          "text-size": ["interpolate", ["linear"], ["zoom"], 9, 11, 14, 15],
-          "text-rotation-alignment": "viewport",
-          "text-pitch-alignment": "viewport",
-        },
-        paint: { "text-color": "#dbe3ee", "text-halo-color": NAV_COLORS.bg, "text-halo-width": 1.6 },
-      },
-      {
-        id: "place-suburb", type: "symbol", source: "openmaptiles", "source-layer": "place",
-        filter: ["match", ["get", "class"], ["suburb", "quarter", "neighbourhood"], true, false] as never,
-        minzoom: 11,
-        maxzoom: 17,
-        layout: {
-          "text-field": ["coalesce", ["get", "name:es"], ["get", "name"]],
-          "text-font": ["Noto Sans Regular"],
-          "text-size": 11.5,
-          "text-letter-spacing": 0.12,
-          "text-transform": "uppercase",
-          "text-rotation-alignment": "viewport",
-          "text-pitch-alignment": "viewport",
-        },
-        paint: { "text-color": NAV_COLORS.label, "text-halo-color": NAV_COLORS.bg, "text-halo-width": 1.4 },
-      },
+      // Fondo mientras cargan los tiles (claro, coherente con la
+      // pestaña Mapa que ya usa OSM estándar).
+      { id: "bg", type: "background", paint: { "background-color": "#dfe2e6" } },
+      // Base ráster OSM estándar; la inclinación 3D la aplica
+      // la cámara (pitch/bearing) sobre estos tiles, como un mapa
+      // de papel inclinado.
+      { id: "base", type: "raster", source: "base", paint: { "raster-fade-duration": 300 } },
     ],
   };
 }
