@@ -113,11 +113,11 @@ export function loadNetwork(): Promise<Network | null> {
 }
 
 /**
- * Nodo más cercano del grafo. `maxM` generoso (800 m) para que fijar
- * destino a mitad de un sendero del parque encuentre conexión igual.
+ * Nodo más cercano del grafo y su distancia. Sirve para decidir si el
+ * grafo local cubre un punto o hay que pedir ruta al servicio OSRM.
  */
-function nearestNode(net: Network, p: LatLng, maxM = 800): number | null {
-  let best = -1;
+export function snapInfo(net: Network, p: LatLng): { idx: number; distM: number } {
+  let best = 0;
   let bestD = Infinity;
   for (let i = 0; i < net.nodes.length; i++) {
     const d = haversineM(p, { lat: net.nodes[i][0], lon: net.nodes[i][1] });
@@ -127,7 +127,16 @@ function nearestNode(net: Network, p: LatLng, maxM = 800): number | null {
       if (d < 12) break;
     }
   }
-  return bestD <= maxM ? best : null;
+  return { idx: best, distM: bestD };
+}
+
+/**
+ * Nodo más cercano del grafo. `maxM` generoso (800 m) para que fijar
+ * destino a mitad de un sendero del parque encuentre conexión igual.
+ */
+function nearestNode(net: Network, p: LatLng, maxM = 800): number | null {
+  const s = snapInfo(net, p);
+  return s.distM <= maxM ? s.idx : null;
 }
 
 // --- min-heap simple ---

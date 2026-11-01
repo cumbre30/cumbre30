@@ -146,22 +146,38 @@
 }
 
 /* ============================================================
-   Minimapa tipo Waze: VISTA DE NAVEGACIÓN EN PERSPECTIVA 3D.
-   La clase c30-tilt inclina el plano del mapa (rotateX) para que
-   nunca se vea "desde arriba" — el horizonte aparece al fondo,
-   como en Waze/Google Maps. Se desactiva al elegir destino en el
-   mapa (pickMode) para que el toque caiga exacto.
+   Pin del ciclista en el minimapa MapLibre (navegación 3D):
+   halo pulsante estilo Waze alrededor de la posición.
    ============================================================ */
-.c30-tilt .leaflet-container {
-  transform: perspective(640px) rotateX(32deg);
-  transform-origin: 50% 100%;
+.c30-puck {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
 }
-/* Los pines contra-rota la inclinación para verse SIEMPRE de pie */
-.c30-tilt .leaflet-marker-icon .c30-billboard {
-  transform: rotateX(-32deg);
-  transform-origin: 50% 100%;
+.c30-puck > div {
+  position: relative;
+  z-index: 1;
 }
-/* El fondo del contenedor hace de "cielo" tras el horizonte */
-.c30-tilt {
-  background: linear-gradient(to bottom, #18181b 0%, #0a0a0b 55%, #09090b 100%);
+.c30-puck-arrow-wrap {
+  transition: transform 0.35s ease;
+  transform-origin: 50% 50%;
 }
+.c30-puck-pulse {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: 9999px;
+  background: rgba(56, 189, 248, 0.35);
+  animation: c30-pulse 2.2s ease-out infinite;
+  pointer-events: none;
+}
+@keyframes c30-pulse {
+  0% { transform: scale(0.55); opacity: 0.8; }
+  70% { transform: scale(1.5); opacity: 0; }
+  100% { transform: scale(1.5); opacity: 0; }
+}
+/* El marcador MapLibre no debe capturar gestos del minimapa */
+.c30-puck, .c30-puck * { pointer-events: none; }

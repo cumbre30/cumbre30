@@ -1,3 +1,8 @@
+// Exportación estática (APK): la API vive en el despliegue web;
+// en el bundle estático esta ruta queda pre-renderizada como stub.
+export const dynamic = "force-static";
+
+
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth";

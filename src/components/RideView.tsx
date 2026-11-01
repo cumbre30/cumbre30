@@ -116,7 +116,9 @@ export function RideView(p: Props) {
         nav={p.nav}
         speedKmh={p.speedKmh}
       />
-      {!p.nav.route && p.nav.note && <p className="text-xs text-amber-300/90 -mt-2">{p.nav.note}</p>}
+      {p.nav.note && (
+        <p className={`text-xs -mt-2 ${p.nav.provisional ? "text-sky-300/90" : "text-amber-300/90"}`}>{p.nav.note}</p>
+      )}
 
       {/* Banner de zona */}
       <div className={`rounded-xl border px-4 py-3 flex items-center gap-3 font-semibold tracking-wide text-sm ${banner}`} role="status" aria-live="polite">

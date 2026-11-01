@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 // Diagnóstico del grafo red-ciclista.json: conectividad y ruta Pío Nono → Cumbre
 const fs = require("fs");
 const raw = JSON.parse(fs.readFileSync("/home/z/my-project/public/red-ciclista.json", "utf8"));

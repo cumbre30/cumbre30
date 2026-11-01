@@ -1,46 +1,37 @@
 "use client";
 
 // ============================================================
-// Minimapa del velocímetro, DISEÑO TIPO WAZE (referencia foto):
-// · CÁMARA DE NAVEGACIÓN 3D: el mapa gira al rumbo (avance = arriba)
-//   y se inclina en perspectiva (tilt CSS) como Waze — nunca se ve
-//   "desde arriba". Los pines contra-rota para verse de pie.
-// · Banner negro superior: flecha de maniobra grande + metros +
-//   nombre de la calle en celeste (próximo giro), y la maniobra
-//   siguiente en pequeño al costado.
-// · Ruta trazada COMPLETA de inicio a fin, distinguiendo los
-//   tramos de CICLOVÍA (violeta) de las VÍAS COMPARTIDAS (blanco).
-// · Píldora con la calle actual sobre el pin, como Waze.
-// · Barra inferior: hora de llegada con minutos y kilómetros
-//   restantes (o selector "Ir a…") y botón AMARILLO para reportar
-//   incidencias. SIN velocímetro: el dato de velocidad vive en el
-//   velocímetro principal, fuera del mapa.
-// · El pin de posición es el elegido por el usuario en Premios
-//   (o la flecha clásica por defecto).
-// · Sin ruta: mismo look de navegación siguiendo la posición, con
-//   parque, zonas de riesgo, porteras, incidencias y recorrido.
+// Minimapa del velocímetro — NAVEGACIÓN REAL 3D (MapLibre GL).
+// Nada de trucos CSS: el motor WebGL de MapLibre (el mismo núcleo
+// que MapLibre Native en apps Android/iOS) dibuja con cámara de
+// perspectiva: inclinación (pitch), rotación al rumbo y el pin del
+// ciclista anclado abajo, como Waze.
+// · Banner superior: flecha de maniobra + metros + calle en celeste.
+// · Ruta COMPLETA inicio→fin: ciclovía violeta, vía compartida
+//   blanca, flechas de dirección sobre la ruta y tramo recorrido
+//   atenuado.
+// · Barra inferior: llegada estimada + botón amarillo de reporte.
+//   SIN velocímetro: la velocidad vive en el velocímetro principal.
+// · Pin de posición = elegido por el usuario (o flecha clásica).
+// · Si el WebView no soporta WebGL: aviso elegante sin romper la UI.
 // ============================================================
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import "leaflet/dist/leaflet.css";
-import "@/lib/leaflet-rotate-setup"; // define window.L antes del plugin
-import "leaflet-rotate";
-import L from "leaflet";
-import {
-  Circle,
-  CircleMarker,
-  MapContainer,
-  Marker,
-  Polygon,
-  Polyline,
-  TileLayer,
-  useMap,
-  useMapEvents,
-} from "react-leaflet";
+import * as maplibregl from "maplibre-gl";
+import { setWorkerUrl } from "maplibre-gl";
+import type { Map as MlMap } from "maplibre-gl";
+import "maplibre-gl/dist/maplibre-gl.css";
+
+// El bundler rompe la resolución automática del worker (import.meta.url),
+// así que lo servimos nosotros: public/maplibre-gl-worker.mjs — mismo
+// archivo incluido en el APK como asset.
+setWorkerUrl("/maplibre-gl-worker.mjs?v=6.16.0");
+import type { Feature as GeoFeature, FeatureCollection as GeoFeatureCollection } from "geojson";
 import { Crosshair, Flag, Plus, Route as RouteIcon, TriangleAlert, X } from "lucide-react";
 import { GATES, NAV_DESTINATIONS, PARK_POLYGON, RISK_ZONES, type LatLng } from "@/lib/park";
-import { DEFAULT_PIN } from "@/lib/pins";
-import { flagIcon, miniIncidentIcon, stepBadgeIcon, userPinIcon } from "@/lib/mapIcons";
+import { DEFAULT_PIN, PINS, type PinId } from "@/lib/pins";
+import { INCIDENT_BY_ID } from "@/lib/incidents";
+import { circlePolygon, navStyle } from "@/lib/navStyle";
 import { groupSegments, pointAhead, routeProgress, streetAt, streetOfStep } from "@/lib/routing";
 import { INCIDENT_TYPES, type IncidentTypeId } from "@/lib/incidents";
 import { addIncident, loadLocalIncidents, saveLocalIncidents, useIncidentFeed, type IncidentItem } from "@/hooks/useIncidentFeed";
@@ -50,21 +41,17 @@ import type { RouteStep } from "@/lib/routing";
 const PARK_CENTER: [number, number] = [-33.408, -70.636];
 const PARK_CENTER_OBJ: LatLng = { lat: PARK_CENTER[0], lon: PARK_CENTER[1] };
 
-/** El contenedor interno del mapa es más alto que la ventana visible
- *  (135%) para que Leaflet cargue teselas más allá del horizonte del
- *  tilt 3D. El centro del mapa queda a ~32% de la vista; con estos
- *  metros de anticipación el pin cae en el tercio inferior, como Waze. */
-const LOOKAHEAD_NAV_M = 100; // modo ruta
-const LOOKAHEAD_FREE_M = 45; // modo libre
-/** A partir de esta distancia al destino, zoom de llegada. */
+/** Anticipación de la cámara: con el pin abajo, estilo Waze. */
+const LOOKAHEAD_NAV_M = 130;
+const LOOKAHEAD_FREE_M = 80;
 const ARRIVAL_M = 150;
-const NAV_ZOOM = 17;
-const ARRIVAL_ZOOM = 18;
+const NAV_ZOOM = 16.5;
+const ARRIVAL_ZOOM = 17.4;
+const NAV_PITCH = 50;
 
-/** Colores de la ruta: ciclovía violeta (Waze) · vía compartida blanca. */
 const COLOR_CICLO = "#a855f7";
 const COLOR_VIA = "#f4f4f5";
-const COLOR_CASING = "#09090b";
+const COLOR_CASING = "#05070a";
 
 type Props = {
   position: LatLng | null;
@@ -76,10 +63,37 @@ type Props = {
   speedKmh?: number;
 };
 
-/** Convierte cualquier ángulo a [0, 360). */
 const wrap360 = (deg: number) => ((deg % 360) + 360) % 360;
-
 const fmtKmM = (m: number) => (m >= 950 ? `${(m / 1000).toFixed(1)} km` : `${Math.max(10, Math.round(m / 10) * 10)} m`);
+
+/** ¿Hay WebGL disponible? (maplibre v6 ya no exporta supported()) */
+function webglSupported(): boolean {
+  try {
+    const c = document.createElement("canvas");
+    return !!(c.getContext("webgl2") || c.getContext("webgl"));
+  } catch {
+    return false;
+  }
+}
+
+/** Rumbo (0-360) entre dos puntos. */
+function bearingOf(a: LatLng, b: LatLng): number {
+  const toR = Math.PI / 180;
+  const y = Math.sin((b.lon - a.lon) * toR) * Math.cos(b.lat * toR);
+  const x = Math.cos(a.lat * toR) * Math.sin(b.lat * toR) - Math.sin(a.lat * toR) * Math.cos(b.lat * toR) * Math.cos((b.lon - a.lon) * toR);
+  return (Math.atan2(y, x) / toR + 360) % 360;
+}
+
+/** Desplaza un punto `distM` metros según un rumbo (modo libre). */
+function offsetAlong(p: LatLng, headingDeg: number, distM: number): LatLng {
+  const r = (headingDeg * Math.PI) / 180;
+  const mPerDegLat = 111_320;
+  const mPerDegLon = 111_320 * Math.cos((p.lat * Math.PI) / 180);
+  return {
+    lat: p.lat + (Math.cos(r) * distM) / mPerDegLat,
+    lon: p.lon + (Math.sin(r) * distM) / mPerDegLon,
+  };
+}
 
 /**
  * Flecha de maniobra estilo Waze: trazos gruesos blancos con
@@ -118,7 +132,6 @@ function TurnArrow({ icon, className }: { icon: RouteStep["icon"]; className?: s
       </svg>
     );
   }
-  // straight / start
   return (
     <svg viewBox="0 0 96 96" className={className} aria-hidden>
       <path d="M48 90 L48 34" stroke="currentColor" strokeWidth="13" strokeLinecap="round" fill="none" />
@@ -127,85 +140,464 @@ function TurnArrow({ icon, className }: { icon: RouteStep["icon"]; className?: s
   );
 }
 
-/**
- * Cámara de navegación (ambos modos): gira el mapa al rumbo
- * (avance = arriba) y centra un punto más adelante, dejando el pin
- * abajo como en una app de navegación. Con tilt 3D (clase c30-tilt)
- * el resultado es la vista perspectiva tipo Waze.
- */
-function NavCamera({ position, bearing, target, zoom }: { position: LatLng | null; bearing: number; target: LatLng; zoom: number }) {
-  const map = useMap();
-  const init = useRef(false);
+/** Chevron blanco (borde oscuro) que va sobre la ruta indicando dirección. */
+function makeChevronImage(): ImageData {
+  const c = document.createElement("canvas");
+  c.width = 48;
+  c.height = 48;
+  const ctx = c.getContext("2d")!;
+  ctx.lineJoin = "round";
+  ctx.lineCap = "round";
+  ctx.strokeStyle = "rgba(4,7,11,0.95)";
+  ctx.lineWidth = 9;
+  ctx.beginPath();
+  ctx.moveTo(11, 32);
+  ctx.lineTo(24, 15);
+  ctx.lineTo(37, 32);
+  ctx.stroke();
+  ctx.strokeStyle = "#ffffff";
+  ctx.lineWidth = 4.5;
+  ctx.beginPath();
+  ctx.moveTo(14, 31);
+  ctx.lineTo(24, 19);
+  ctx.lineTo(34, 31);
+  ctx.stroke();
+  return ctx.getImageData(0, 0, 48, 48);
+}
+
+/** Elemento DOM del pin del usuario (flecha o burbuja del pin elegido). */
+function buildPuck(pinId: string | undefined): { el: HTMLElement; arrow: HTMLElement | null } {
+  const p = PINS[(pinId ?? DEFAULT_PIN) as PinId] ?? PINS[DEFAULT_PIN as PinId];
+  const wrap = document.createElement("div");
+  wrap.className = "c30-puck";
+  if (p.id === DEFAULT_PIN) {
+    wrap.innerHTML = `<div class="c30-puck-pulse"></div>
+      <div class="c30-puck-arrow-wrap" style="width:38px;height:38px;filter:drop-shadow(0 2px 6px rgba(0,0,0,.7));">
+        <svg width="38" height="38" viewBox="0 0 34 34">
+          <circle cx="17" cy="17" r="12.5" fill="${p.color}" stroke="#fafafa" stroke-width="3"/>
+          <path d="M17 9 L21.5 19.5 L17 17.2 L12.5 19.5 Z" fill="#09090b"/>
+        </svg>
+      </div>`;
+    const arrow = wrap.querySelector(".c30-puck-arrow-wrap") as HTMLElement;
+    return { el: wrap, arrow };
+  }
+  wrap.innerHTML = `<div class="c30-puck-pulse"></div>
+    <div style="display:flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:9999px 9999px 9999px 4px;background:${p.color};border:3px solid #fafafa;box-shadow:0 2px 8px rgba(0,0,0,.65);font-size:17px;line-height:1;">${p.emoji}</div>`;
+  return { el: wrap, arrow: null };
+}
+
+function buildFlagEl(): HTMLElement {
+  const d = document.createElement("div");
+  d.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:9999px;background:#0ea5e9;border:2.5px solid #fafafa;box-shadow:0 2px 10px rgba(0,0,0,.7);font-size:14px;line-height:1;">🏁</div>`;
+  return d.firstChild as HTMLElement;
+}
+
+function buildBadgeEl(icon: RouteStep["icon"]): HTMLElement {
+  const stroke = `stroke="#09090b" stroke-width="15" fill="none" stroke-linecap="round" stroke-linejoin="round"`;
+  let inner: string;
+  if (icon === "left") {
+    inner = `<path d="M64 84 L64 58 Q64 38 44 38 L30 38" ${stroke}/><path d="M40 18 L12 38 L40 58 Z" fill="#09090b"/>`;
+  } else if (icon === "right") {
+    inner = `<path d="M32 84 L32 58 Q32 38 52 38 L66 38" ${stroke}/><path d="M56 18 L84 38 L56 58 Z" fill="#09090b"/>`;
+  } else if (icon === "end") {
+    inner = `<path d="M44 86 L44 20" ${stroke}/><path d="M44 16 L82 16 L82 46 L44 46 Z" fill="#09090b"/>`;
+  } else {
+    inner = `<path d="M48 84 L48 40" ${stroke}/><path d="M48 12 L70 44 L26 44 Z" fill="#09090b"/>`;
+  }
+  const d = document.createElement("div");
+  d.innerHTML = `<div style="width:30px;height:30px;border-radius:8px;background:#fafafa;border:2px solid #09090b;box-shadow:0 2px 8px rgba(0,0,0,.65);display:flex;align-items:center;justify-content:center;">
+    <svg width="22" height="22" viewBox="0 0 96 96">${inner}</svg>
+  </div>`;
+  return d.firstChild as HTMLElement;
+}
+
+function buildIncidentEl(type: string): HTMLElement {
+  const t = INCIDENT_BY_ID[type] ?? INCIDENT_BY_ID.otro;
+  const d = document.createElement("div");
+  d.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:9999px;background:${t.color};border:2px solid #09090b;box-shadow:0 0 0 1.5px ${t.color}55;font-size:11px;line-height:1;">${t.emoji}</div>`;
+  return d.firstChild as HTMLElement;
+}
+
+const toFc = (features: GeoFeature[]): GeoFeatureCollection => ({ type: "FeatureCollection", features });
+const lineFeat = (coords: LatLng[], props: Record<string, unknown> = {}): GeoFeature => ({
+  type: "Feature",
+  properties: props,
+  geometry: { type: "LineString", coordinates: coords.map((c) => [c.lon, c.lat]) },
+});
+const polyFeat = (ring: [number, number][], props: Record<string, unknown> = {}): GeoFeature => ({
+  type: "Feature",
+  properties: props,
+  geometry: { type: "Polygon", coordinates: [ring] },
+});
+
+// ============================================================
+// Lienzo del mapa (MapLibre). Se monta una vez y reacciona a
+// posición/ruta/estado vía efectos.
+// ============================================================
+type NavCanvasProps = {
+  position: LatLng | null;
+  heading: number | null;
+  track: LatLng[];
+  onRoute: boolean;
+  route: NonNullable<NavEngine["route"]> | null;
+  nearestIdx: number | null;
+  offRoute: boolean;
+  remainingM: number;
+  nextStep: RouteStep | null;
+  dest: LatLng | null;
+  pickMode: boolean;
+  onPick: (p: LatLng) => void;
+  userPin?: string;
+  incidents: IncidentItem[];
+  locateTarget: LatLng | null;
+};
+
+function NavCanvas(props: NavCanvasProps) {
+  const boxRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<MlMap | null>(null);
+  const [ready, setReady] = useState(false);
+  const firstFixRef = useRef(false);
+
+  // refs vivas para handlers registrados una sola vez
+  const pickModeRef = useRef(props.pickMode);
+  const onPickRef = useRef(props.onPick);
   useEffect(() => {
-    if (!position) return;
-    map.invalidateSize();
-    const b = wrap360(bearing);
-    if (!init.current) {
-      init.current = true;
-      map.setBearing(b);
-      map.setView([target.lat, target.lon], zoom, { animate: false });
+    pickModeRef.current = props.pickMode;
+    onPickRef.current = props.onPick;
+  }, [props.pickMode, props.onPick]);
+
+  // ---- init ----
+  useEffect(() => {
+    if (!boxRef.current || mapRef.current) return;
+    const map = new maplibregl.Map({
+      container: boxRef.current,
+      style: navStyle(),
+      center: PARK_CENTER,
+      zoom: 13.5,
+      pitch: 0,
+      bearing: 0,
+      attributionControl: false,
+      dragRotate: false,
+      dragPan: false,
+      scrollZoom: false,
+      doubleClickZoom: false,
+      touchZoomRotate: false,
+      keyboard: false,
+      boxZoom: false,
+      maxPitch: 70,
+    });
+    mapRef.current = map;
+    map.on("load", () => {
+      map.addImage("c30-chev", makeChevronImage());
+
+      // asa de depuración/E2E (no interfiere en producción)
+      (window as unknown as Record<string, unknown>).__c30nav = map;
+
+      // --- fuentes ---
+      map.addSource("park", { type: "geojson", data: toFc([polyFeat(PARK_POLYGON.map((p) => [p.lon, p.lat] as [number, number]))]) });
+      map.addSource("risk", {
+        type: "geojson",
+        data: toFc(RISK_ZONES.map((z) => polyFeat(circlePolygon(z.position.lat, z.position.lon, z.radiusM), { id: z.id }))),
+      });
+      map.addSource("gates", {
+        type: "geojson",
+        data: toFc(GATES.map((g) => polyFeat(circlePolygon(g.position.lat, g.position.lon, 18), { id: g.id }))),
+      });
+      map.addSource("track", { type: "geojson", data: toFc([]) });
+      map.addSource("route-remaining", { type: "geojson", data: toFc([]) });
+      map.addSource("route-traveled", { type: "geojson", data: toFc([]) });
+
+      // --- capas ---
+      map.addLayer({ id: "park-fill", type: "fill", source: "park", paint: { "fill-color": "#10b981", "fill-opacity": 0.09 } });
+      map.addLayer({ id: "park-line", type: "line", source: "park", paint: { "line-color": "#34d399", "line-width": 1.4, "line-opacity": 0.8 } });
+      map.addLayer({ id: "risk-fill", type: "fill", source: "risk", paint: { "fill-color": "#f59e0b", "fill-opacity": 0.14 } });
+      map.addLayer({ id: "risk-line", type: "line", source: "risk", paint: { "line-color": "#f59e0b", "line-width": 1, "line-opacity": 0.7 } });
+      map.addLayer({ id: "gates-fill", type: "fill", source: "gates", paint: { "fill-color": "#0f766e", "fill-opacity": 0.9 } });
+      map.addLayer({
+        id: "track-line", type: "line", source: "track",
+        layout: { "line-cap": "round", "line-join": "round" },
+        paint: { "line-color": "#a3e635", "line-width": 3.5, "line-opacity": 0.9 },
+      });
+      map.addLayer({
+        id: "traveled-line", type: "line", source: "route-traveled",
+        filter: ["==", ["get", "ciclo"], true],
+        layout: { "line-cap": "round", "line-join": "round" },
+        paint: { "line-color": COLOR_CICLO, "line-width": 5, "line-opacity": 0.3 },
+      });
+      map.addLayer({
+        id: "traveled-line-via", type: "line", source: "route-traveled",
+        filter: ["==", ["get", "ciclo"], false],
+        layout: { "line-cap": "round", "line-join": "round" },
+        paint: { "line-color": COLOR_VIA, "line-width": 4, "line-opacity": 0.28 },
+      });
+      map.addLayer({
+        id: "route-casing", type: "line", source: "route-remaining",
+        filter: ["==", ["get", "kind"], "casing"],
+        layout: { "line-cap": "round", "line-join": "round" },
+        paint: { "line-color": COLOR_CASING, "line-width": ["interpolate", ["linear"], ["zoom"], 15, 9, 18, 14], "line-opacity": 0.9 },
+      });
+      map.addLayer({
+        id: "route-ciclo", type: "line", source: "route-remaining",
+        filter: ["==", ["get", "ciclo"], true],
+        layout: { "line-cap": "round", "line-join": "round" },
+        paint: { "line-color": COLOR_CICLO, "line-width": ["interpolate", ["linear"], ["zoom"], 15, 6.5, 18, 10], "line-opacity": 0.98 },
+      });
+      map.addLayer({
+        id: "route-via", type: "line", source: "route-remaining",
+        filter: ["all", ["==", ["get", "ciclo"], false], ["==", ["get", "kind"], "seg"]],
+        layout: { "line-cap": "round", "line-join": "round" },
+        paint: { "line-color": COLOR_VIA, "line-width": ["interpolate", ["linear"], ["zoom"], 15, 5, 18, 8], "line-opacity": 0.98 },
+      });
+      map.addLayer({
+        id: "route-arrows", type: "symbol", source: "route-remaining",
+        filter: ["==", ["get", "kind"], "seg"],
+        layout: {
+          "symbol-placement": "line",
+          "symbol-spacing": 130,
+          "icon-image": "c30-chev",
+          "icon-size": ["interpolate", ["linear"], ["zoom"], 15, 0.35, 18, 0.6],
+          "icon-rotation-alignment": "map",
+          "icon-allow-overlap": true,
+          "icon-ignore-placement": true,
+        },
+        paint: { "icon-opacity": 0.95 },
+      });
+
+      setReady(true);
+    });
+
+    map.on("click", (e) => {
+      if (pickModeRef.current) onPickRef.current({ lat: e.lngLat.lat, lon: e.lngLat.lng });
+    });
+
+    const ro = new ResizeObserver(() => map.resize());
+    ro.observe(boxRef.current);
+
+    return () => {
+      ro.disconnect();
+      map.remove();
+      mapRef.current = null;
+    };
+  }, []);
+
+  // ---- marcadores DOM ----
+  const puckRef = useRef<maplibregl.Marker | null>(null);
+  const arrowRef = useRef<HTMLElement | null>(null);
+  const puckPinRef = useRef<string | undefined>(undefined);
+  const flagRef = useRef<maplibregl.Marker | null>(null);
+  const badgeRef = useRef<maplibregl.Marker | null>(null);
+  const badgeIconRef = useRef<string | null>(null);
+  const incidentMarkersRef = useRef<maplibregl.Marker[]>([]);
+
+  // pin del usuario (recrear solo si cambia el pin elegido)
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !ready || !props.position) return;
+    if (!puckRef.current) {
+      const { el, arrow } = buildPuck(props.userPin);
+      puckPinRef.current = props.userPin;
+      arrowRef.current = arrow;
+      puckRef.current = new maplibregl.Marker({ element: el, rotationAlignment: "map" })
+        .setLngLat([props.position.lon, props.position.lat])
+        .addTo(map);
+    } else if (props.userPin !== puckPinRef.current) {
+      const { el, arrow } = buildPuck(props.userPin);
+      puckPinRef.current = props.userPin;
+      arrowRef.current = arrow;
+      puckRef.current.remove();
+      puckRef.current = new maplibregl.Marker({ element: el, rotationAlignment: "map" })
+        .setLngLat([props.position.lon, props.position.lat])
+        .addTo(map);
+    }
+  }, [ready, props.position, props.userPin]);
+
+  // posición viva del pin: sigue cada arreglo GPS
+  useEffect(() => {
+    if (puckRef.current && props.position) {
+      puckRef.current.setLngLat([props.position.lon, props.position.lat]);
+    }
+  }, [props.position]);
+
+  // bandera de destino + insignia del próximo giro
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !ready) return;
+    if (props.dest) {
+      if (!flagRef.current) {
+        flagRef.current = new maplibregl.Marker({ element: buildFlagEl() }).setLngLat([props.dest.lon, props.dest.lat]).addTo(map);
+      } else {
+        flagRef.current.setLngLat([props.dest.lon, props.dest.lat]);
+      }
+    } else if (flagRef.current) {
+      flagRef.current.remove();
+      flagRef.current = null;
+    }
+
+    const badge = props.nextStep && props.nextStep.icon !== "end" ? props.nextStep : null;
+    if (badge) {
+      if (!badgeRef.current) {
+        badgeRef.current = new maplibregl.Marker({ element: buildBadgeEl(badge.icon) }).setLngLat([badge.point.lon, badge.point.lat]).addTo(map);
+        badgeIconRef.current = badge.icon;
+      } else {
+        badgeRef.current.setLngLat([badge.point.lon, badge.point.lat]);
+        if (badgeIconRef.current !== badge.icon) {
+          // reemplazo del elemento: el DOM interno cambia de glifo
+          const oldEl = badgeRef.current.getElement();
+          const newEl = buildBadgeEl(badge.icon);
+          if (oldEl.parentNode) oldEl.parentNode.replaceChild(newEl, oldEl);
+          badgeIconRef.current = badge.icon;
+        }
+      }
+    } else if (badgeRef.current) {
+      badgeRef.current.remove();
+      badgeRef.current = null;
+      badgeIconRef.current = null;
+    }
+  }, [ready, props.dest, props.nextStep]);
+
+  // incidencias de la comunidad
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !ready) return;
+    for (const m of incidentMarkersRef.current) m.remove();
+    incidentMarkersRef.current = props.incidents.map((inc) =>
+      new maplibregl.Marker({ element: buildIncidentEl(inc.type) }).setLngLat([inc.lon, inc.lat]).addTo(map)
+    );
+  }, [ready, props.incidents]);
+
+  // ---- datos GeoJSON ----
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !ready) return;
+
+    // recorrido del ride
+    const trackSrc = map.getSource("track") as maplibregl.GeoJSONSource | undefined;
+    trackSrc?.setData(props.track.length > 1 ? toFc([lineFeat(props.track)]) : toFc([]));
+
+    if (!props.onRoute || !props.route) {
+      (map.getSource("route-remaining") as maplibregl.GeoJSONSource | undefined)?.setData(toFc([]));
+      (map.getSource("route-traveled") as maplibregl.GeoJSONSource | undefined)?.setData(toFc([]));
       return;
     }
-    map.setBearing(b, { animate: true, duration: 0.4 });
-    map.setView([target.lat, target.lon], zoom, { animate: true, duration: 0.6 });
-  }, [position, map]); // target/zoom/derivados del mismo tick de posición
-  return null;
-}
 
-/** Mantiente el tamaño interno de Leaflet sincronizado con el DOM:
- *  el minimapa cambia de alto al activarse la ruta (h-52 → h-80) y su
- *  contenedor interno es 135% más alto (por el tilt 3D). Sin esto, la
- *  cámara calcula con un tamaño viejo y la ruta/cámara se ven mal. */
-function AutoInvalidate() {
-  const map = useMap();
+    const r = props.route;
+    const from = props.nearestIdx ?? 0;
+    const remainingGroups = groupSegments(r.coords, r.flags, from, r.coords.length - 2);
+    const traveledGroups = props.nearestIdx !== null ? groupSegments(r.coords, r.flags, 0, from - 1) : [];
+
+    const remainingFeats: GeoFeature[] = [
+      // casing bajo la ruta completa restante
+      lineFeat(r.coords.slice(from), { kind: "casing", ciclo: false }),
+      ...remainingGroups.map((g) => lineFeat(g.coords, { kind: "seg", ciclo: g.ciclovia })),
+    ];
+    const traveledFeats = traveledGroups.map((g) => lineFeat(g.coords, { ciclo: g.ciclovia }));
+
+    (map.getSource("route-remaining") as maplibregl.GeoJSONSource | undefined)?.setData(toFc(remainingFeats));
+    (map.getSource("route-traveled") as maplibregl.GeoJSONSource | undefined)?.setData(toFc(traveledFeats));
+  }, [ready, props.onRoute, props.route, props.nearestIdx, props.track]);
+
+  // ---- cámara de navegación ----
   useEffect(() => {
-    const el = map.getContainer();
-    const ro = new ResizeObserver(() => map.invalidateSize());
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, [map]);
-  return null;
-}
+    const map = mapRef.current;
+    if (!map || !ready) return;
 
-/** Ajusta la vista a la ruta completa cuando aún no hay posición.
- *  El contenedor interno es 135% más alto que la ventana visible (por el
- *  tilt 3D), así que compensa la franja superior recortada para que la
- *  ruta completa —del inicio al fin— quede dentro de la zona visible. */
-function FitRoute({ coords }: { coords: LatLng[] | null }) {
-  const map = useMap();
+    // Sin posición: encuadra la ruta completa (vista previa plana)
+    if (!props.position) {
+      if (props.onRoute && props.route) {
+        const lons = props.route.coords.map((c) => c.lon);
+        const lats = props.route.coords.map((c) => c.lat);
+        map.easeTo({
+          center: [(Math.min(...lons) + Math.max(...lons)) / 2, (Math.min(...lats) + Math.max(...lats)) / 2],
+          zoom: 13.8,
+          pitch: 0,
+          bearing: 0,
+          duration: 700,
+        });
+      }
+      return;
+    }
+
+    const h = boxRef.current?.clientHeight ?? 260;
+    const onRouteClean = props.onRoute && !props.offRoute && props.remainingM >= ARRIVAL_M && props.route && props.nearestIdx !== null;
+    let target: LatLng;
+    if (onRouteClean) {
+      target = pointAhead(props.route!.coords, props.nearestIdx!, LOOKAHEAD_NAV_M);
+    } else if (props.heading !== null) {
+      target = offsetAlong(props.position, props.heading, props.onRoute ? LOOKAHEAD_NAV_M : LOOKAHEAD_FREE_M);
+    } else if (props.route && props.nearestIdx !== null && props.nearestIdx < props.route.coords.length - 1) {
+      const br = bearingOf(props.route.coords[props.nearestIdx], props.route.coords[props.nearestIdx + 1]);
+      target = offsetAlong(props.position, br, LOOKAHEAD_NAV_M);
+    } else {
+      target = props.position;
+    }
+
+    const wantedBearing = props.heading !== null ? props.heading : map.getBearing();
+    const cur = map.getBearing();
+    let b = wantedBearing;
+    // giro por el camino corto (evita vueltas de 340°)
+    while (b - cur > 180) b -= 360;
+    while (b - cur < -180) b += 360;
+
+    const camZoom = props.onRoute && props.remainingM < ARRIVAL_M ? ARRIVAL_ZOOM : NAV_ZOOM;
+
+    if (!firstFixRef.current) {
+      firstFixRef.current = true;
+      map.jumpTo({
+        center: [target.lon, target.lat],
+        bearing: b,
+        pitch: NAV_PITCH,
+        zoom: camZoom,
+        padding: { top: 0, bottom: Math.round(h * 0.3), left: 0, right: 0 },
+      });
+      return;
+    }
+
+    map.easeTo({
+      center: [target.lon, target.lat],
+      bearing: b,
+      pitch: NAV_PITCH,
+      zoom: camZoom,
+      padding: { top: 0, bottom: Math.round(h * 0.3), left: 0, right: 0 },
+      duration: 680,
+      easing: (t) => t,
+    });
+  }, [ready, props.position, props.heading, props.onRoute, props.offRoute, props.remainingM, props.nearestIdx, props.route]);
+
+  // rotación del pin flecha respecto al mapa (queda alineado al rumbo)
   useEffect(() => {
-    if (!coords || coords.length < 2) return;
-    map.invalidateSize();
-    if (map.getBearing && map.getBearing() !== 0) map.setBearing(0);
-    const tall = map.getContainer().clientHeight || 432;
-    const hiddenTop = Math.round(tall - tall / 1.35); // franja bajo el banner que no se ve
-    const bounds = L.latLngBounds(coords.map((c) => [c.lat, c.lon] as [number, number]));
-    map.fitBounds(bounds, { paddingTopLeft: [24, hiddenTop + 8], paddingBottomRight: [24, 112] });
-  }, [coords, map]);
-  return null;
+    const map = mapRef.current;
+    if (!map || !ready) return;
+    const apply = () => {
+      const m = puckRef.current;
+      const arrow = arrowRef.current;
+      if (!m || !arrow) return;
+      const hdg = props.heading ?? 0;
+      arrow.style.transform = `rotate(${hdg - map.getBearing()}deg)`;
+    };
+    apply();
+    map.on("rotate", apply);
+    return () => {
+      map.off("rotate", apply);
+    };
+  }, [ready, props.heading, props.position]);
+
+  // vista a un punto (localización sin ride)
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !ready || !props.locateTarget) return;
+    map.flyTo({ center: [props.locateTarget.lon, props.locateTarget.lat], zoom: Math.max(map.getZoom(), 16), duration: 800 });
+  }, [ready, props.locateTarget]);
+
+  return (
+    // position absolute por estilo inline: el CSS de maplibre usa
+    // .maplibregl-map{position:relative} y pisa la utilidad `absolute`
+    <div ref={boxRef} style={{ position: "absolute", inset: 0 }} />
+  );
 }
 
-/** Desplaza un punto `distM` metros según un rumbo (para adelantar la
- *  cámara en modo libre y dejar el pin abajo, estilo navegación). */
-function offsetAlong(p: LatLng, headingDeg: number, distM: number): LatLng {
-  const r = (headingDeg * Math.PI) / 180;
-  const mPerDegLat = 111_320;
-  const mPerDegLon = 111_320 * Math.cos((p.lat * Math.PI) / 180);
-  return {
-    lat: p.lat + (Math.cos(r) * distM) / mPerDegLat,
-    lon: p.lon + (Math.sin(r) * distM) / mPerDegLon,
-  };
-}
-
-function ClickPick({ enabled, onPick }: { enabled: boolean; onPick: (p: LatLng) => void }) {
-  useMapEvents({
-    click(e) {
-      if (enabled) onPick({ lat: e.latlng.lat, lon: e.latlng.lng });
-    },
-  });
-  return null;
-}
-
+// ============================================================
+// Componente principal: lienzo + capa Waze (banner, barra, etc.)
+// ============================================================
 export default function MiniMap({ position, heading, track, accuracyM, userPin, nav, speedKmh = 0 }: Props) {
   const incidents = useIncidentFeed();
   const [pickMode, setPickMode] = useState(false);
@@ -214,6 +606,14 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
   const [status, setStatus] = useState<string | null>(null);
   const route = nav.route;
   const dest = nav.dest;
+
+  const webglOk = useMemo(() => {
+    try {
+      return webglSupported();
+    } catch {
+      return false;
+    }
+  }, []);
 
   const pick = (p: LatLng) => {
     nav.setDestination({ name: "Punto en el mapa", position: p });
@@ -236,7 +636,6 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
 
   const onRoute = !!route && route.coords.length > 1;
 
-  // Progreso vivo sobre la ruta (restante + desvío)
   const progress = useMemo(
     () => (onRoute && position ? routeProgress(route!, position) : null),
     [onRoute, route, position]
@@ -247,26 +646,10 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
   const offRoute = !!progress && progress.offRouteM > 140;
   const remainingM = progress?.remainingM ?? route?.distanceM ?? 0;
 
-  // Ruta COMPLETA (inicio → fin) partida por condición: recorrida (tenue) + restante (plena)
-  const traveledGroups = useMemo(
-    () => (onRoute && progress ? groupSegments(route!.coords, route!.flags, 0, progress.nearestIdx - 1) : []),
-    [onRoute, progress, route]
-  );
-  const remainingGroups = useMemo(
-    () => (onRoute ? groupSegments(route!.coords, route!.flags, progress ? progress.nearestIdx : 0, route!.coords.length - 2) : []),
-    [onRoute, progress, route]
-  );
-  const remainingLine = useMemo(
-    () => (onRoute ? route!.coords.slice(progress ? progress.nearestIdx : 0).map((c) => [c.lat, c.lon] as [number, number]) : []),
-    [onRoute, progress, route]
-  );
-
-  // Calle actual (píldora sobre el pin)
   const currentStreet = onRoute && progress ? streetAt(route!, progress.nearestIdx) : "";
 
-  // ETA vivo: con la velocidad actual (toma 15 km/h como referencia base)
   const spd = speedKmh > 4 ? speedKmh : 15;
-  const etaMin = remainingM > 0 ? Math.max(1, Math.round((remainingM / 1000) / spd * 60)) : 0;
+  const etaMin = remainingM > 0 ? Math.max(1, Math.round((remainingM / 1000 / spd) * 60)) : 0;
   const arrivalClock = useMemo(
     () => new Date(Date.now() + etaMin * 60000).toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit", hourCycle: "h23" }),
     [etaMin]
@@ -310,139 +693,33 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
     setTimeout(() => setStatus(null), 5000);
   };
 
-  // ----- Cámara de navegación 3D (rumbo = arriba, pin abajo) -----
-  const bearing = heading !== null ? wrap360(-heading) : 0;
-  const camTarget: LatLng = useMemo(() => {
-    if (!position) return PARK_CENTER_OBJ;
-    if (onRoute && !offRoute && progress && progress.remainingM >= ARRIVAL_M) {
-      return pointAhead(route!.coords, progress.nearestIdx, LOOKAHEAD_NAV_M);
-    }
-    // Sin ruta (o llegada/desvío): adelanta la cámara hacia el rumbo
-    if (heading !== null) return offsetAlong(position, heading, onRoute ? LOOKAHEAD_NAV_M : LOOKAHEAD_FREE_M);
-    return position;
-  }, [onRoute, position, offRoute, progress, route, heading]);
-  const camZoom = onRoute && progress && progress.remainingM < ARRIVAL_M ? ARRIVAL_ZOOM : NAV_ZOOM;
-
   return (
-    <div className={`relative rounded-xl overflow-hidden border border-zinc-800 z-0 c30-minimap ${onRoute ? "h-80" : "h-52 sm:h-56"} ${pickMode ? "" : "c30-tilt"}`}>
-      {/* Contenedor interno más alto (135%): Leaflet carga teselas más
-          allá del horizonte que genera la perspectiva 3D */}
-      <div className="absolute inset-x-0 bottom-0 h-[135%]">
-      <MapContainer
-        center={position ? [position.lat, position.lon] : PARK_CENTER}
-        zoom={position ? 17 : 13}
-        zoomControl={false}
-        attributionControl={false}
-        rotate
-        bearing={0}
-        rotateControl={false}
-        touchRotate={false}
-        dragging={false}
-        scrollWheelZoom={false}
-        doubleClickZoom={false}
-        touchZoom={false}
-        boxZoom={false}
-        keyboard={false}
-        className={`map-dark h-full w-full bg-zinc-950 ${pickMode ? "cursor-crosshair" : ""}`}
-      >
-        <TileLayer url="https://tile.openstreetmap.org/{z}/{x}/{y}.png" maxZoom={19} keepBuffer={4} />
-
-        {!onRoute && (
-          <>
-            <Polygon
-              positions={PARK_POLYGON.map((p) => [p.lat, p.lon])}
-              pathOptions={{ color: "#34d399", weight: 1.5, fillColor: "#10b981", fillOpacity: 0.07 }}
-              interactive={false}
-            />
-            {RISK_ZONES.map((z) => (
-              <Circle
-                key={z.id}
-                center={[z.position.lat, z.position.lon]}
-                radius={z.radiusM}
-                pathOptions={{ color: "#f59e0b", weight: 1, fillColor: "#f59e0b", fillOpacity: 0.13 }}
-                interactive={false}
-              />
-            ))}
-            {GATES.map((g) => (
-              <CircleMarker
-                key={g.id}
-                center={[g.position.lat, g.position.lon]}
-                radius={5}
-                pathOptions={{ color: "#2dd4bf", weight: 1.5, fillColor: "#0f766e", fillOpacity: 0.9 }}
-                interactive={false}
-              />
-            ))}
-            {track.length > 1 && (
-              <Polyline positions={track.map((p) => [p.lat, p.lon])} pathOptions={{ color: "#a3e635", weight: 3.5, opacity: 0.9 }} interactive={false} />
-            )}
-          </>
-        )}
-
-        {/* Incidencias de la comunidad: visibles en ambos modos */}
-        {incidents.map((inc) => (
-          <Marker key={inc.id} position={[inc.lat, inc.lon]} icon={miniIncidentIcon(inc.type)} interactive={false} />
-        ))}
-
-        {onRoute && (
-          <>
-            {/* base oscura bajo la ruta activa para que destaque */}
-            {remainingLine.length > 1 && (
-              <Polyline positions={remainingLine} pathOptions={{ color: COLOR_CASING, weight: 10, opacity: 0.85 }} interactive={false} />
-            )}
-            {/* recorrido ya hecho: mismos colores, tenue (ruta completa a la vista) */}
-            {traveledGroups.map((g, i) => (
-              <Polyline
-                key={`t${i}`}
-                positions={g.coords.map((c) => [c.lat, c.lon] as [number, number])}
-                pathOptions={{ color: g.ciclovia ? COLOR_CICLO : COLOR_VIA, weight: g.ciclovia ? 5 : 4, opacity: 0.32 }}
-                interactive={false}
-              />
-            ))}
-            {/* tramo restante: violeta = ciclovía · blanco = vía compartida */}
-            {remainingGroups.map((g, i) => (
-              <Polyline
-                key={`r${i}`}
-                positions={g.coords.map((c) => [c.lat, c.lon] as [number, number])}
-                pathOptions={{ color: g.ciclovia ? COLOR_CICLO : COLOR_VIA, weight: g.ciclovia ? 7 : 5.5, opacity: 0.98, lineCap: "round", lineJoin: "round" }}
-                interactive={false}
-              />
-            ))}
-            {nextStep && nextStep.icon !== "end" && (
-              <Marker position={[nextStep.point.lat, nextStep.point.lon]} icon={stepBadgeIcon(nextStep.icon)} interactive={false} />
-            )}
-            {dest && <Marker position={[dest.position.lat, dest.position.lon]} icon={flagIcon()} interactive={false} />}
-          </>
-        )}
-
-        {/* Posición actual: pin elegido por el usuario o flecha por defecto */}
-        {position && (
-          <>
-            {!onRoute && accuracyM !== null && accuracyM < 100 && (
-              <Circle
-                center={[position.lat, position.lon]}
-                radius={accuracyM}
-                pathOptions={{ color: "#ffffff", weight: 1, fillColor: "#ffffff", fillOpacity: 0.08 }}
-                interactive={false}
-              />
-            )}
-            <Marker
-              position={[position.lat, position.lon]}
-              icon={userPinIcon(userPin ?? DEFAULT_PIN, heading, bearing)}
-              zIndexOffset={500}
-            />
-          </>
-        )}
-
-        {position ? (
-          <NavCamera position={position} bearing={bearing} target={camTarget} zoom={camZoom} />
-        ) : onRoute ? (
-          <FitRoute coords={route!.coords} />
-        ) : null}
-        <AutoInvalidate />
-        {locateTarget && !position && <FollowOnce target={locateTarget} />}
-        <ClickPick enabled={pickMode} onPick={pick} />
-      </MapContainer>
-      </div>
+    <div className={`relative rounded-xl overflow-hidden border border-zinc-800 z-0 c30-minimap ${onRoute ? "h-80" : "h-52 sm:h-56"}`}>
+      {webglOk ? (
+        <NavCanvas
+          position={position}
+          heading={heading}
+          track={track}
+          onRoute={onRoute}
+          route={onRoute ? route : null}
+          nearestIdx={progress ? progress.nearestIdx : null}
+          offRoute={offRoute}
+          remainingM={remainingM}
+          nextStep={nextStep}
+          dest={dest ? dest.position : null}
+          pickMode={pickMode}
+          onPick={pick}
+          userPin={userPin}
+          incidents={incidents}
+          locateTarget={locateTarget}
+        />
+      ) : (
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-zinc-950 text-center px-6">
+          <RouteIcon className="h-6 w-6 text-zinc-600" />
+          <p className="text-sm text-zinc-400 font-medium">La vista 3D necesita WebGL</p>
+          <p className="text-[11px] text-zinc-600">Actualiza Chrome/Sistema Web Android para ver la navegación.</p>
+        </div>
+      )}
 
       {/* ===== Banner de maniobra (modo ruta), estilo Waze ===== */}
       {onRoute && nextStep && (
@@ -461,8 +738,16 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
         </div>
       )}
 
+      {/* Estado de cálculo de ruta */}
+      {nav.loading && (
+        <div className="absolute top-2 left-2 z-[520] rounded-full bg-zinc-950/90 border border-sky-700 px-2.5 py-1 text-[10px] font-semibold text-sky-300 flex items-center gap-1.5 pointer-events-none">
+          <span className="inline-block h-2 w-2 rounded-full bg-sky-400 animate-pulse" />
+          Calculando ruta…
+        </div>
+      )}
+
       {/* Leyenda compacta de la ruta (solo modo ruta) */}
-      {onRoute && (
+      {onRoute && !nav.loading && (
         <div className="absolute left-2 top-[92px] z-[500] rounded-md bg-zinc-950/90 border border-zinc-800 px-2 py-1 flex items-center gap-2 pointer-events-none">
           <span className="inline-block h-[3px] w-4 rounded-full shrink-0" style={{ background: COLOR_CICLO }} />
           <span className="text-[10px] text-zinc-300">Ciclovía {!!route?.cicloviaPct ? `${route.cicloviaPct}%` : ""}</span>
@@ -472,8 +757,7 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
         </div>
       )}
 
-      {/* Píldora con la calle actual sobre el pin (modo ruta; se oculta
-          si vas desviado o en llegada, cuando el pin vuelve al centro) */}
+      {/* Píldora con la calle actual sobre el pin (modo ruta) */}
       {onRoute && currentStreet && !offRoute && !(progress && progress.remainingM < ARRIVAL_M) && (
         <div className="absolute bottom-[108px] inset-x-0 z-[500] flex justify-center pointer-events-none">
           <span className="rounded-full bg-zinc-100 text-zinc-900 text-[11px] font-semibold px-3 py-1 shadow-lg max-w-[70%] truncate">
@@ -514,8 +798,7 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
         )}
       </div>
 
-      {/* ===== Barra inferior tipo Waze — SIN velocímetro: la velocidad
-          vive en el velocímetro principal, no sobre el mapa ===== */}
+      {/* ===== Barra inferior tipo Waze — SIN velocímetro ===== */}
       <div className="absolute bottom-0 inset-x-0 z-[500] bg-zinc-950/95 border-t border-zinc-800 px-2.5 py-2 flex items-center gap-2.5">
         {onRoute ? (
           <div className="min-w-0 flex-1 text-center">
@@ -601,13 +884,4 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
       )}
     </div>
   );
-}
-
-/** Vuela a un punto una sola vez (localización sin ride activo). */
-function FollowOnce({ target }: { target: LatLng }) {
-  const map = useMap();
-  useEffect(() => {
-    map.flyTo([target.lat, target.lon], Math.max(map.getZoom(), 16), { duration: 0.8 });
-  }, [target, map]);
-  return null;
 }

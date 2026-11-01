@@ -29,7 +29,7 @@ import { PINS, DEFAULT_PIN } from "@/lib/pins";
 import { INCIDENT_BY_ID, INCIDENT_TYPES, type IncidentTypeId } from "@/lib/incidents";
 import { pointInPolygon } from "@/lib/geo";
 import { incidentIcon, userPinIcon, flagIcon } from "@/lib/mapIcons";
-import { loadNetwork, type NavRoute, type Network } from "@/lib/routing";
+import { groupSegments, loadNetwork, type NavRoute, type Network } from "@/lib/routing";
 import { useIncidentFeed, addIncident, removeIncident, saveLocalIncidents, loadLocalIncidents, type IncidentItem } from "@/hooks/useIncidentFeed";
 
 function pinEmoji(pinId: string): string {
@@ -278,9 +278,37 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
           {/* Ciclovías (solo interior del parque) */}
           {cicloviaLines}
 
-          {/* Ruta elegida (solo lectura, se gestiona en el velocímetro) */}
-          {route && (
-            <Polyline positions={route.coords.map((p) => [p.lat, p.lon])} pathOptions={{ color: "#38bdf8", weight: 6, opacity: 0.95 }} interactive={false} />
+          {/* Ruta elegida: completa, partida por condición — violeta =
+              ciclovía · blanco = vía compartida — con casing oscuro */}
+          {route && route.coords.length > 1 && (
+            <>
+              <Polyline
+                positions={route.coords.map((p) => [p.lat, p.lon] as [number, number])}
+                pathOptions={{ color: "#05070a", weight: 10, opacity: 0.8 }}
+                interactive={false}
+              />
+              {groupSegments(route.coords, route.flags, 0, route.coords.length - 2).map((g, i) => (
+                <Polyline
+                  key={`seg-${i}`}
+                  positions={g.coords.map((p) => [p.lat, p.lon] as [number, number])}
+                  pathOptions={{
+                    color: g.ciclovia ? "#a855f7" : "#f4f4f5",
+                    weight: g.ciclovia ? 6.5 : 5.5,
+                    opacity: 0.98,
+                    lineCap: "round",
+                    lineJoin: "round",
+                  }}
+                  interactive={false}
+                />
+              ))}
+              {/* inicio de la ruta (mi ubicación al trazar) */}
+              <CircleMarker
+                center={[route.coords[0].lat, route.coords[0].lon]}
+                radius={6}
+                pathOptions={{ color: "#fafafa", weight: 2.5, fillColor: "#22c55e", fillOpacity: 1 }}
+                interactive={false}
+              />
+            </>
           )}
           {dest && <Marker position={[dest.position.lat, dest.position.lon]} icon={flagIcon()} interactive={false} />}
 
@@ -337,7 +365,8 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
         <div className="absolute bottom-3 left-2 z-[500] rounded-lg bg-zinc-950/90 border border-zinc-800 px-3 py-2 text-[11px] text-zinc-300 space-y-1 pointer-events-none">
           <div className="flex items-center gap-2"><span className="h-2 w-4 rounded-sm bg-emerald-500/50 border border-emerald-400" /> Parque · límite 30</div>
           <div className="flex items-center gap-2"><span className="h-2 w-4 rounded-sm bg-emerald-500" /> Ciclovía (interior del cerro)</div>
-          <div className="flex items-center gap-2"><span className="h-2 w-4 rounded-sm bg-sky-400" /> Ruta elegida en «Ir a…»</div>
+          <div className="flex items-center gap-2"><span className="h-2 w-4 rounded-sm" style={{ background: "#a855f7" }} /> Ruta: ciclovía</div>
+          <div className="flex items-center gap-2"><span className="h-2 w-4 rounded-sm" style={{ background: "#f4f4f5" }} /> Ruta: vía compartida</div>
           <div className="flex items-center gap-2"><span className="h-2 w-4 rounded-sm bg-lime-400" /> Tu recorrido</div>
           <div className="flex items-center gap-2"><span className="h-2 w-4 rounded-sm bg-amber-500" /> Zonas de riesgo</div>
           <div className="flex items-center gap-2"><span className="h-2 w-4 rounded-sm bg-zinc-600" /> ⚠ Emojis: incidencias reportadas</div>
