@@ -149,9 +149,13 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
   const last = track.length > 0 ? track[track.length - 1] : null;
   const center = position ?? last ?? { lat: -33.408, lon: -70.636 };
   // Mapa nativo (MapLibre Native) o Leaflet en la web
+  // ⚠️ NATIVE_MAPS_ENABLED=false (v1.3.1): el WebView del dispositivo no
+  // renderiza el mapa nativo (ni el GL JS web). Prioriza funcionamiento:
+  // siempre Leaflet con tiles ráster. Código nativo dormido tras el flag.
+  const NATIVE_MAPS_ENABLED = false;
   const nativeDetected = useMemo(() => isNativeMapPlatform(), []);
   const [nativeFail, setNativeFail] = useState(false);
-  const nativeMap = nativeDetected && !nativeFail;
+  const nativeMap = NATIVE_MAPS_ENABLED && nativeDetected && !nativeFail;
   // Ciclovías del cerro para el lienzo nativo (misma regla ≥50%)
   const cicloFeature = useMemo(() => buildCicloFeature(net), [net]);
 

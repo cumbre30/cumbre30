@@ -39,6 +39,8 @@ import type { NavEngine } from "@/hooks/useNavEngine";
 import type { RouteStep } from "@/lib/routing";
 import { isNativeMapPlatform } from "@/lib/nativeMapBridge";
 import NativeMapCanvas from "@/components/NativeMapCanvas";
+import LeafletNav from "@/components/LeafletNav";
+import { isNativeApp } from "@/lib/rideNative";
 
 const PARK_CENTER: [number, number] = [-33.408, -70.636];
 
@@ -770,9 +772,15 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
   const route = nav.route;
   const dest = nav.dest;
   // Mapa nativo (MapLibre Native vía plugin) o lienzo web (MapLibre GL JS)
+  // ⚠️ NATIVE_MAPS_ENABLED=false (v1.3.1): el WebView del dispositivo no
+  // renderiza ni el nativo ni MapLibre GL JS (WebGL caído) — se muestra un
+  // fondo de color sin mapa. Prioriza funcionamiento: en la app nativa
+  // corre Leaflet con tiles ráster (LeafletNav); el código nativo queda
+  // dormido detrás de este flag para depurarlo más adelante.
+  const NATIVE_MAPS_ENABLED = false;
   const nativeDetected = useMemo(() => isNativeMapPlatform(), []);
   const [nativeFail, setNativeFail] = useState(false);
-  const native = nativeDetected && !nativeFail;
+  const native = NATIVE_MAPS_ENABLED && nativeDetected && !nativeFail;
 
   const webglOk = useMemo(() => {
     try {
@@ -939,7 +947,7 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
 
   return (
     <div className={`relative rounded-xl overflow-hidden border border-zinc-800 z-0 c30-minimap ${onRoute ? "h-80" : "h-52 sm:h-56"}`}>
-      {webglOk ? (
+      {webglOk && !isNativeApp() ? (
         <NavCanvas
           position={position}
           heading={heading}
@@ -958,11 +966,20 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
           locateTarget={locateTarget}
         />
       ) : (
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-zinc-950 text-center px-6">
-          <RouteIcon className="h-6 w-6 text-zinc-600" />
-          <p className="text-sm text-zinc-400 font-medium">La vista 3D necesita WebGL</p>
-          <p className="text-[11px] text-zinc-600">Actualiza Chrome/Sistema Web Android para ver la navegación.</p>
-        </div>
+        /* WebView del APK (o navegador sin WebGL): Leaflet ráster, sin WebGL */
+        <LeafletNav
+          position={position}
+          heading={heading}
+          track={track}
+          accuracyM={accuracyM}
+          onRoute={onRoute}
+          route={onRoute ? route : null}
+          dest={dest ? { name: dest.name, position: dest.position } : null}
+          pickMode={pickMode}
+          onPick={pick}
+          userPin={userPin}
+          locateTarget={locateTarget}
+        />
       )}
 
       {/* ===== Banner de maniobra (modo ruta), estilo Waze ===== */}
