@@ -12,24 +12,33 @@ import path from "path";
 export const dynamic = "force-dynamic"; // nunca estático: binario grande desde disco
 export const runtime = "nodejs";
 
-const APK_PATH = path.join(process.cwd(), "download", "Cumbre30-v1.2-debug.apk");
 const APK_NAME = "Cumbre30-v1.2-debug.apk";
 
+// Rutas candidatas: download/ (carpeta de entregables) y apk-store/
+// (copia versionada en git que sobrevive a los reciclajes del sandbox).
+const APK_CANDIDATES = [
+  path.join(process.cwd(), "download", APK_NAME),
+  path.join(process.cwd(), "apk-store", APK_NAME),
+];
+
 export async function GET() {
-  try {
-    const buf = await readFile(APK_PATH);
-    return new Response(new Uint8Array(buf), {
-      headers: {
-        "Content-Type": "application/vnd.android.package-archive",
-        "Content-Disposition": `attachment; filename="${APK_NAME}"`,
-        "Content-Length": String(buf.length),
-        "Cache-Control": "no-store",
-      },
-    });
-  } catch {
-    return new Response(JSON.stringify({ error: "APK no disponible" }), {
-      status: 404,
-      headers: { "Content-Type": "application/json" },
-    });
+  for (const p of APK_CANDIDATES) {
+    try {
+      const buf = await readFile(p);
+      return new Response(new Uint8Array(buf), {
+        headers: {
+          "Content-Type": "application/vnd.android.package-archive",
+          "Content-Disposition": `attachment; filename="${APK_NAME}"`,
+          "Content-Length": String(buf.length),
+          "Cache-Control": "no-store",
+        },
+      });
+    } catch {
+      // siguiente candidato
+    }
   }
+  return new Response(JSON.stringify({ error: "APK no disponible" }), {
+    status: 404,
+    headers: { "Content-Type": "application/json" },
+  });
 }
