@@ -31,6 +31,9 @@ import { pointInPolygon } from "@/lib/geo";
 import { incidentIcon, userPinIcon, flagIcon } from "@/lib/mapIcons";
 import { groupSegments, loadNetwork, type NavRoute, type Network } from "@/lib/routing";
 import { useIncidentFeed, addIncident, removeIncident, saveLocalIncidents, loadLocalIncidents, type IncidentItem } from "@/hooks/useIncidentFeed";
+import { isNativeMapPlatform } from "@/lib/nativeMapBridge";
+import NativeMapCanvas from "@/components/NativeMapCanvas";
+import { buildCicloFeature } from "@/lib/navCanvasLogic";
 
 function pinEmoji(pinId: string): string {
   const p = PINS[pinId as keyof typeof PINS];
@@ -77,6 +80,65 @@ function ClickHandler({ onPick, enabled }: { onPick: (p: LatLng) => void; enable
   return null;
 }
 
+// ---- Piezas compartidas web/nativo del mapa grande ----
+
+function MapLegend({ className }: { className: string }) {
+  return (
+    <div className={className}>
+      <div className="flex items-center gap-2"><span className="h-2 w-4 rounded-sm bg-emerald-500/50 border border-emerald-400" /> Parque · límite 30</div>
+      <div className="flex items-center gap-2"><span className="h-2 w-4 rounded-sm bg-emerald-500" /> Ciclovía (interior del cerro)</div>
+      <div className="flex items-center gap-2"><span className="h-2 w-4 rounded-sm" style={{ background: "#a855f7" }} /> Ruta: ciclovía</div>
+      <div className="flex items-center gap-2"><span className="h-2 w-4 rounded-sm" style={{ background: "#f4f4f5" }} /> Ruta: vía compartida</div>
+      <div className="flex items-center gap-2"><span className="h-2 w-4 rounded-sm bg-lime-400" /> Tu recorrido</div>
+      <div className="flex items-center gap-2"><span className="h-2 w-4 rounded-sm bg-amber-500" /> Zonas de riesgo</div>
+      <div className="flex items-center gap-2"><span className="h-2 w-4 rounded-sm bg-zinc-600" /> ⚠ Emojis: incidencias reportadas</div>
+    </div>
+  );
+}
+
+function IncidentSheet({
+  className,
+  pending,
+  status,
+  onType,
+  onCancel,
+}: {
+  className: string;
+  pending: LatLng | null;
+  status: string | null;
+  onType: (t: IncidentTypeId) => void;
+  onCancel: () => void;
+}) {
+  return (
+    <div className={className}>
+      {pending ? (
+        <div>
+          <div className="font-semibold mb-1.5">¿Qué encontraste aquí?</div>
+          <div className="flex flex-wrap gap-1.5">
+            {INCIDENT_TYPES.map((t) => (
+              <button
+                key={t.id}
+                onClick={() => onType(t.id)}
+                className="px-2 py-1 rounded-md border border-zinc-700 bg-zinc-900 hover:border-amber-400 text-[11px] text-zinc-200"
+              >
+                {t.emoji} {t.label}
+              </button>
+            ))}
+            <button
+              onClick={onCancel}
+              className="px-2 py-1 rounded-md border border-zinc-700 bg-zinc-900 hover:border-red-400 text-[11px] text-zinc-400"
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
+      ) : (
+        status
+      )}
+    </div>
+  );
+}
+
 export default function MapView({ track, position, accuracyM, heading, userPin, route, dest }: Props) {
   const [net, setNet] = useState<Network | null>(null);
   const incidents = useIncidentFeed();
@@ -86,6 +148,10 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
   const [locateTarget, setLocateTarget] = useState<LatLng | null>(null);
   const last = track.length > 0 ? track[track.length - 1] : null;
   const center = position ?? last ?? { lat: -33.408, lon: -70.636 };
+  // Mapa nativo (MapLibre Native) o Leaflet en la web
+  const nativeMap = useMemo(() => isNativeMapPlatform(), []);
+  // Ciclovías del cerro para el lienzo nativo (misma regla ≥50%)
+  const cicloFeature = useMemo(() => buildCicloFeature(net), [net]);
 
   // Red de vías (solo para dibujar las ciclovías del cerro)
   useEffect(() => {
@@ -224,6 +290,77 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
      
     [incidents, userPin]
   );
+
+  // ---- Mapa NATIVO (MapLibre Native): UI HTML alrededor del lienzo ----
+  if (nativeMap) {
+    return (
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center justify-end gap-1.5">
+          <button
+            onClick={locate}
+            aria-label="Localizarme"
+            title="Centrar en mi ubicación"
+            className="h-10 w-10 rounded-lg bg-zinc-950 border border-zinc-700 text-zinc-100 flex items-center justify-center"
+          >
+            <Crosshair className="h-5 w-5" />
+          </button>
+          <button
+            onClick={() => setReportMode((v) => !v)}
+            aria-label="Reportar incidencia en el mapa"
+            title="Toca el mapa para reportar una incidencia"
+            className={`h-10 w-10 rounded-lg border flex items-center justify-center ${
+              reportMode ? "bg-amber-500 border-amber-300 text-zinc-950" : "bg-zinc-950 border-zinc-700 text-zinc-100"
+            }`}
+          >
+            <AlertTriangle className="h-5 w-5" />
+          </button>
+        </div>
+
+        {/* SOLO el lienzo nativo dentro del contenedor */}
+        <div className="rounded-xl overflow-hidden border border-zinc-800 h-[56vh] min-h-[420px] relative z-0">
+          <NativeMapCanvas
+            id="bigmap"
+            mode="flat"
+            position={position}
+            heading={heading}
+            track={track}
+            accuracyM={accuracyM}
+            onRoute={!!route && route.coords.length > 1}
+            route={route}
+            nearestIdx={null}
+            remainingM={route?.distanceM ?? 0}
+            nextStep={null}
+            dest={dest ? dest.position : null}
+            pickMode={reportMode}
+            onPick={setPending}
+            userPin={userPin}
+            incidents={incidents}
+            locateTarget={locateTarget}
+            cicloFeature={cicloFeature}
+          />
+        </div>
+
+        {(status || pending) && (
+          <IncidentSheet
+            className="rounded-lg bg-zinc-950 border border-amber-600/70 px-3 py-2 text-xs text-amber-200"
+            pending={pending}
+            status={status}
+            onType={reportIncident}
+            onCancel={() => setPending(null)}
+          />
+        )}
+
+        {reportMode && !pending && <p className="text-xs text-amber-300/90">Toca el mapa donde está el problema y elige el tipo de incidencia.</p>}
+
+        <MapLegend className="rounded-lg bg-zinc-950 border border-zinc-800 px-3 py-2 text-[11px] text-zinc-300 space-y-1" />
+
+        <p className="text-xs text-zinc-500 leading-relaxed">
+          Mapa nativo: tu ubicación, zonas de riesgo, simbología e incidencias con fecha y hora. Para navegación con ruta y
+          ciclovías, usa el velocímetro (pestaña Ride).
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-3">

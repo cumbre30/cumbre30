@@ -26,20 +26,21 @@ import "maplibre-gl/dist/maplibre-gl.css";
 // así que lo servimos nosotros: public/maplibre-gl-worker.mjs — mismo
 // archivo incluido en el APK como asset.
 setWorkerUrl("/maplibre-gl-worker.mjs?v=6.16.0");
-import type { Feature as GeoFeature, FeatureCollection as GeoFeatureCollection } from "geojson";
 import { Crosshair, Flag, Plus, Route as RouteIcon, TriangleAlert, X } from "lucide-react";
 import { GATES, NAV_DESTINATIONS, PARK_POLYGON, RISK_ZONES, type LatLng } from "@/lib/park";
 import { DEFAULT_PIN, PINS, type PinId } from "@/lib/pins";
 import { INCIDENT_BY_ID } from "@/lib/incidents";
 import { circlePolygon, navStyle } from "@/lib/navStyle";
-import { groupSegments, haversineM, routeProgress, streetAt, streetOfStep } from "@/lib/routing";
+import { routeProgress, streetAt, streetOfStep } from "@/lib/routing";
+import { bearingOf, buildRouteFeatures, lineFeat, polyFeat, toFc } from "@/lib/navCanvasLogic";
 import { INCIDENT_TYPES, type IncidentTypeId } from "@/lib/incidents";
 import { addIncident, loadLocalIncidents, saveLocalIncidents, useIncidentFeed, type IncidentItem } from "@/hooks/useIncidentFeed";
 import type { NavEngine } from "@/hooks/useNavEngine";
 import type { RouteStep } from "@/lib/routing";
+import { isNativeMapPlatform } from "@/lib/nativeMapBridge";
+import NativeMapCanvas from "@/components/NativeMapCanvas";
 
 const PARK_CENTER: [number, number] = [-33.408, -70.636];
-const PARK_CENTER_OBJ: LatLng = { lat: PARK_CENTER[0], lon: PARK_CENTER[1] };
 
 /** Anticipación de la cámara: con el pin abajo, estilo Waze. */
 const ARRIVAL_M = 150;
@@ -74,15 +75,7 @@ function webglSupported(): boolean {
   }
 }
 
-/**
- * Rumbo (0-360) entre dos puntos.
- */
-function bearingOf(a: LatLng, b: LatLng): number {
-  const toR = Math.PI / 180;
-  const y = Math.sin((b.lon - a.lon) * toR) * Math.cos(b.lat * toR);
-  const x = Math.cos(a.lat * toR) * Math.sin(b.lat * toR) - Math.sin(a.lat * toR) * Math.cos(b.lat * toR) * Math.cos((b.lon - a.lon) * toR);
-  return (Math.atan2(y, x) / toR + 360) % 360;
-}
+/** Rumbo (0-360) entre dos puntos (definido en navCanvasLogic). */
 
 /**
  * Flecha de maniobra estilo Waze: trazos gruesos blancos con
@@ -206,18 +199,6 @@ function buildIncidentEl(type: string): HTMLElement {
   d.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:9999px;background:${t.color};border:2px solid #09090b;box-shadow:0 0 0 1.5px ${t.color}55;font-size:11px;line-height:1;">${t.emoji}</div>`;
   return d.firstChild as HTMLElement;
 }
-
-const toFc = (features: GeoFeature[]): GeoFeatureCollection => ({ type: "FeatureCollection", features });
-const lineFeat = (coords: LatLng[], props: Record<string, unknown> = {}): GeoFeature => ({
-  type: "Feature",
-  properties: props,
-  geometry: { type: "LineString", coordinates: coords.map((c) => [c.lon, c.lat]) },
-});
-const polyFeat = (ring: [number, number][], props: Record<string, unknown> = {}): GeoFeature => ({
-  type: "Feature",
-  properties: props,
-  geometry: { type: "Polygon", coordinates: [ring] },
-});
 
 // ============================================================
 // Lienzo del mapa (MapLibre). Se monta una vez y reacciona a
@@ -470,32 +451,14 @@ function NavCanvas(props: NavCanvasProps) {
     }
 
     const r = props.route;
-    const from = Math.min(props.nearestIdx ?? 0, r.coords.length - 1);
-    const pos = props.position;
     // El tramo restante SIEMPRE parte de la ubicación ACTUAL: si el
     // pin ya se movió del vértice más cercano, se antepone la
     // posición viva como origen con un conector directo (así la ruta
     // nace en tu punto, no en la ciclovía más próxima).
-    const startAtUser = !!pos && haversineM(pos, r.coords[from]) > 2.5;
-    const stubFlag = r.flags[Math.min(from, r.flags.length - 1)] ?? false;
+    const feats = buildRouteFeatures(r, props.nearestIdx, props.position);
 
-    const remCoords = startAtUser ? [pos!, ...r.coords.slice(from)] : r.coords.slice(from);
-    const remFlags = startAtUser ? [stubFlag, ...r.flags.slice(from)] : r.flags.slice(from);
-    const remainingGroups = groupSegments(remCoords, remFlags, 0, remCoords.length - 2);
-
-    const travCoords = startAtUser ? [...r.coords.slice(0, from + 1), pos!] : r.coords.slice(0, from + 1);
-    const travFlags = startAtUser ? [...r.flags.slice(0, from), stubFlag] : r.flags.slice(0, from);
-    const traveledGroups = props.nearestIdx !== null ? groupSegments(travCoords, travFlags, 0, travCoords.length - 2) : [];
-
-    const remainingFeats: GeoFeature[] = [
-      // casing bajo la ruta completa restante (desde MI posición)
-      lineFeat(remCoords, { kind: "casing", ciclo: false }),
-      ...remainingGroups.map((g) => lineFeat(g.coords, { kind: "seg", ciclo: g.ciclovia })),
-    ];
-    const traveledFeats = traveledGroups.map((g) => lineFeat(g.coords, { ciclo: g.ciclovia }));
-
-    (map.getSource("route-remaining") as maplibregl.GeoJSONSource | undefined)?.setData(toFc(remainingFeats));
-    (map.getSource("route-traveled") as maplibregl.GeoJSONSource | undefined)?.setData(toFc(traveledFeats));
+    (map.getSource("route-remaining") as maplibregl.GeoJSONSource | undefined)?.setData(feats.remaining);
+    (map.getSource("route-traveled") as maplibregl.GeoJSONSource | undefined)?.setData(feats.traveled);
   }, [ready, props.onRoute, props.route, props.nearestIdx, props.position, props.track]);
 
   // ---- cámara: pin FIJO abajo y al centro, estilo Waze ----
@@ -598,6 +561,204 @@ function NavCanvas(props: NavCanvasProps) {
 }
 
 // ============================================================
+// Piezas de la capa Waze: compartidas por el lienzo web (UI
+// absoluta sobre el mapa) y el lienzo nativo (UI HTML fuera de
+// la ventana del mapa nativo, porque la vista nativa cubre el
+// interior del contenedor).
+// ============================================================
+
+type ManeuverBannerProps = {
+  className: string;
+  nextStep: RouteStep;
+  distM: number;
+  destName: string;
+  offRoute: boolean;
+  laterStep: RouteStep | null;
+};
+
+function ManeuverBanner({ className, nextStep, distM, destName, offRoute, laterStep }: ManeuverBannerProps) {
+  return (
+    <div className={className}>
+      <TurnArrow icon={nextStep.icon} className="h-14 w-14 shrink-0 text-zinc-50" />
+      <div className="min-w-0 flex-1">
+        <div className="font-mono text-[26px] font-bold text-zinc-50 leading-none tabular-nums">
+          {nextStep.icon === "end" ? "Llegaste" : fmtKmM(distM)}
+        </div>
+        <div className="text-lg font-bold text-sky-400 leading-tight truncate mt-0.5">
+          {nextStep.icon === "end" ? destName : streetOfStep(nextStep.text)}
+        </div>
+        {offRoute && <div className="text-[11px] text-amber-300 font-semibold mt-0.5">desviado, recalculando…</div>}
+      </div>
+      {laterStep && laterStep.icon !== "end" && <TurnArrow icon={laterStep.icon} className="h-7 w-7 shrink-0 mt-1 text-zinc-500" />}
+    </div>
+  );
+}
+
+function LegendChip({ className, route }: { className: string; route: NavEngine["route"] }) {
+  return (
+    <div className={className}>
+      <span className="inline-block h-[3px] w-4 rounded-full shrink-0" style={{ background: COLOR_CICLO }} />
+      <span className="text-[10px] text-zinc-300">Ciclovía {!!route?.cicloviaPct ? `${route.cicloviaPct}%` : ""}</span>
+      <span className="text-[10px] text-zinc-600">·</span>
+      <span className="inline-block h-[3px] w-4 rounded-full shrink-0" style={{ background: COLOR_VIA }} />
+      <span className="text-[10px] text-zinc-300">Compartida</span>
+    </div>
+  );
+}
+
+type ControlsProps = {
+  className: string;
+  onLocate: () => void;
+  pickMode: boolean;
+  onTogglePick: () => void;
+  hasDest: boolean;
+  onClear: () => void;
+};
+
+function Controls({ className, onLocate, pickMode, onTogglePick, hasDest, onClear }: ControlsProps) {
+  return (
+    <div className={className}>
+      <button
+        onClick={onLocate}
+        aria-label="Localizarme"
+        title="Centrar en mi ubicación"
+        className="h-8 w-8 rounded-md bg-zinc-950/90 border border-zinc-700 text-zinc-100 flex items-center justify-center hover:border-emerald-500"
+      >
+        <Crosshair className="h-4 w-4" />
+      </button>
+      <button
+        onClick={onTogglePick}
+        aria-label="Elegir destino en el minimapa"
+        title="Toca el minimapa para fijar destino"
+        className={`h-8 w-8 rounded-md border flex items-center justify-center ${
+          pickMode ? "bg-sky-600 border-sky-300 text-white" : "bg-zinc-950/90 border-zinc-700 text-zinc-100 hover:border-sky-500"
+        }`}
+      >
+        <Flag className="h-4 w-4" />
+      </button>
+      {hasDest && (
+        <button
+          onClick={onClear}
+          aria-label="Quitar destino"
+          title="Quitar la ruta"
+          className="h-8 w-8 rounded-md bg-zinc-950/90 border border-zinc-700 text-zinc-100 flex items-center justify-center hover:border-red-500"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      )}
+    </div>
+  );
+}
+
+type BottomBarProps = {
+  className: string;
+  onRoute: boolean;
+  etaMin: number;
+  arrivalClock: string;
+  remainingM: number;
+  dest: NavEngine["dest"];
+  onSetDest: NavEngine["setDestination"];
+  onReport: () => void;
+};
+
+function BottomBar({ className, onRoute, etaMin, arrivalClock, remainingM, dest, onSetDest, onReport }: BottomBarProps) {
+  return (
+    <div className={className}>
+      {onRoute ? (
+        <div className="min-w-0 flex-1 text-center">
+          <div className="font-mono text-xl font-bold text-zinc-50 leading-none tabular-nums">{etaMin > 0 ? arrivalClock : "—"}</div>
+          <div className="text-[11px] text-zinc-400 leading-tight mt-0.5 truncate">
+            {etaMin > 0 ? `${etaMin} min · ${fmtKmM(remainingM)}` : "Ruta lista"}
+          </div>
+        </div>
+      ) : (
+        <div className="min-w-0 flex-1 flex items-center gap-1.5 rounded-lg border border-zinc-800 bg-zinc-900 px-2 py-1.5">
+          <RouteIcon className="h-3.5 w-3.5 text-sky-400 shrink-0" />
+          <select
+            aria-label="Ir a"
+            value={dest ? NAV_DESTINATIONS.find((d) => d.position === dest.position)?.id ?? "mapa" : ""}
+            onChange={(e) => {
+              const d = NAV_DESTINATIONS.find((x) => x.id === e.target.value);
+              if (d) onSetDest({ name: d.name, position: d.position });
+              else onSetDest(null);
+            }}
+            className="bg-transparent text-[11px] text-zinc-200 outline-none w-full min-w-0"
+          >
+            <option value="" className="bg-zinc-900">Ir a…</option>
+            {NAV_DESTINATIONS.map((d) => (
+              <option key={d.id} value={d.id} className="bg-zinc-900">{d.name}</option>
+            ))}
+            {dest && <option value="mapa" className="bg-zinc-900">Punto en el mapa</option>}
+          </select>
+        </div>
+      )}
+
+      {/* botón amarillo de reporte de incidencias */}
+      <button
+        onClick={onReport}
+        aria-label="Reportar incidencia en mi posición"
+        title="Reportar incidencia en mi posición"
+        className="relative h-11 w-11 rounded-xl bg-amber-400 hover:bg-amber-300 active:scale-95 transition text-zinc-950 flex items-center justify-center shrink-0"
+      >
+        <TriangleAlert className="h-6 w-6" strokeWidth={2.4} />
+        <Plus className="absolute bottom-0 right-0.5 h-3.5 w-3.5" strokeWidth={3.5} />
+      </button>
+    </div>
+  );
+}
+
+function ReportSheet({
+  className,
+  hasPosition,
+  onType,
+  onClose,
+}: {
+  className: string;
+  hasPosition: boolean;
+  onType: (t: IncidentTypeId) => void;
+  onClose: () => void;
+}) {
+  return (
+    <div className={className}>
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-xs font-bold text-zinc-100">Reportar incidencia {hasPosition ? "en tu posición" : "(sin GPS aún)"}</span>
+        <button onClick={onClose} aria-label="Cerrar reporte" className="text-zinc-400 hover:text-zinc-100">
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+      <div className="grid grid-cols-2 gap-1.5">
+        {INCIDENT_TYPES.map((t) => (
+          <button
+            key={t.id}
+            onClick={() => onType(t.id)}
+            className="flex items-center gap-1.5 rounded-lg border border-zinc-800 bg-zinc-900 px-2 py-1.5 text-left text-[11px] text-zinc-200 hover:border-zinc-500"
+          >
+            <span aria-hidden>{t.emoji}</span>
+            <span className="truncate">{t.label}</span>
+          </button>
+        ))}
+      </div>
+      <p className="text-[10px] text-zinc-500 mt-2">Se registra con fecha y hora, y aparece en el mapa compartido.</p>
+    </div>
+  );
+}
+
+function StatusNote({ className, text }: { className: string; text: string }) {
+  return <div className={`${className} pointer-events-none shadow-xl`}>{text}</div>;
+}
+
+function PickBanner({ className, onClose }: { className: string; onClose: () => void }) {
+  return (
+    <div className={className}>
+      <span>Toca el minimapa para fijar tu destino</span>
+      <button onClick={onClose} aria-label="Cancelar elección" className="text-sky-300 hover:text-white">
+        <X className="h-3.5 w-3.5" />
+      </button>
+    </div>
+  );
+}
+
+// ============================================================
 // Componente principal: lienzo + capa Waze (banner, barra, etc.)
 // ============================================================
 export default function MiniMap({ position, heading, track, accuracyM, userPin, nav, speedKmh = 0 }: Props) {
@@ -608,6 +769,8 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
   const [status, setStatus] = useState<string | null>(null);
   const route = nav.route;
   const dest = nav.dest;
+  // Mapa nativo (MapLibre Native vía plugin) o lienzo web (MapLibre GL JS)
+  const native = useMemo(() => isNativeMapPlatform(), []);
 
   const webglOk = useMemo(() => {
     try {
@@ -695,6 +858,82 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
     setTimeout(() => setStatus(null), 5000);
   };
 
+  // ---- ramas de render: NATIVO (MapLibre Native) o WEB (MapLibre GL JS) ----
+  if (native) {
+    return (
+      <div className="flex flex-col gap-1.5">
+        {/* Banner de maniobra ENCIMA del lienzo nativo */}
+        {onRoute && nextStep && (
+          <ManeuverBanner
+            className="rounded-xl border border-zinc-800 bg-zinc-950/95 px-3 py-2 flex items-center gap-3"
+            nextStep={nextStep}
+            distM={progress?.distToNextStepM ?? nextStep.distM}
+            destName={dest?.name ?? "Destino"}
+            offRoute={offRoute}
+            laterStep={laterStep}
+          />
+        )}
+
+        {/* SOLO el lienzo nativo dentro de la ventana: sin HTML encima */}
+        <div className={`relative rounded-xl overflow-hidden border border-zinc-800 shrink-0 ${onRoute ? "h-72" : "h-56"}`}>
+          <NativeMapCanvas
+            id="minimap"
+            mode="nav"
+            position={position}
+            heading={heading}
+            track={track}
+            accuracyM={accuracyM}
+            onRoute={onRoute}
+            route={onRoute ? route : null}
+            nearestIdx={progress ? progress.nearestIdx : null}
+            remainingM={remainingM}
+            nextStep={nextStep}
+            dest={dest ? dest.position : null}
+            pickMode={pickMode}
+            onPick={pick}
+            userPin={userPin}
+            incidents={incidents}
+            locateTarget={locateTarget}
+          />
+        </div>
+
+        {/* Estado + leyenda + controles (debajo del lienzo) */}
+        <div className="flex items-center gap-2 flex-wrap">
+          {nav.loading && (
+            <span className="rounded-full bg-zinc-950/90 border border-sky-700 px-2.5 py-1 text-[10px] font-semibold text-sky-300 flex items-center gap-1.5">
+              <span className="inline-block h-2 w-2 rounded-full bg-sky-400 animate-pulse" />
+              Calculando ruta…
+            </span>
+          )}
+          {onRoute && !nav.loading && <LegendChip className="rounded-md bg-zinc-950/90 border border-zinc-800 px-2 py-1 flex items-center gap-2" route={route} />}
+          <Controls
+            className="ml-auto flex gap-1.5"
+            onLocate={locate}
+            pickMode={pickMode}
+            onTogglePick={() => setPickMode((v) => !v)}
+            hasDest={!!dest}
+            onClear={() => nav.setDestination(null)}
+          />
+        </div>
+
+        {pickMode && <PickBanner className="rounded-md bg-sky-950/95 border border-sky-600 px-2.5 py-1.5 text-[11px] text-sky-100 flex items-center justify-between" onClose={() => setPickMode(false)} />}
+        {reportOpen && <ReportSheet className="rounded-xl bg-zinc-950/95 border border-zinc-700 shadow-2xl p-3" hasPosition={!!position} onType={reportIncident} onClose={() => setReportOpen(false)} />}
+        {status && <StatusNote className="rounded-lg bg-zinc-900/95 border border-zinc-700 px-3 py-2 text-[11px] text-zinc-100" text={status} />}
+
+        <BottomBar
+          className="rounded-xl border border-zinc-800 bg-zinc-950/95 px-2.5 py-2 flex items-center gap-2.5"
+          onRoute={onRoute}
+          etaMin={etaMin}
+          arrivalClock={arrivalClock}
+          remainingM={remainingM}
+          dest={dest}
+          onSetDest={nav.setDestination}
+          onReport={() => setReportOpen((v) => !v)}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className={`relative rounded-xl overflow-hidden border border-zinc-800 z-0 c30-minimap ${onRoute ? "h-80" : "h-52 sm:h-56"}`}>
       {webglOk ? (
@@ -725,19 +964,14 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
 
       {/* ===== Banner de maniobra (modo ruta), estilo Waze ===== */}
       {onRoute && nextStep && (
-        <div className="absolute top-0 inset-x-0 z-[500] bg-zinc-950/95 border-b border-zinc-800 px-3 pt-1.5 pb-2 flex items-center gap-3 pointer-events-none">
-          <TurnArrow icon={nextStep.icon} className="h-14 w-14 shrink-0 text-zinc-50" />
-          <div className="min-w-0 flex-1">
-            <div className="font-mono text-[26px] font-bold text-zinc-50 leading-none tabular-nums">
-              {nextStep.icon === "end" ? "Llegaste" : fmtKmM(progress?.distToNextStepM ?? nextStep.distM)}
-            </div>
-            <div className="text-lg font-bold text-sky-400 leading-tight truncate mt-0.5">
-              {nextStep.icon === "end" ? dest?.name ?? "Destino" : streetOfStep(nextStep.text)}
-            </div>
-            {offRoute && <div className="text-[11px] text-amber-300 font-semibold mt-0.5">desviado, recalculando…</div>}
-          </div>
-          {laterStep && laterStep.icon !== "end" && <TurnArrow icon={laterStep.icon} className="h-7 w-7 shrink-0 mt-1 text-zinc-500" />}
-        </div>
+        <ManeuverBanner
+          className="absolute top-0 inset-x-0 z-[500] bg-zinc-950/95 border-b border-zinc-800 px-3 pt-1.5 pb-2 flex items-center gap-3 pointer-events-none"
+          nextStep={nextStep}
+          distM={progress?.distToNextStepM ?? nextStep.distM}
+          destName={dest?.name ?? "Destino"}
+          offRoute={offRoute}
+          laterStep={laterStep}
+        />
       )}
 
       {/* Estado de cálculo de ruta */}
@@ -750,13 +984,10 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
 
       {/* Leyenda compacta de la ruta (solo modo ruta) */}
       {onRoute && !nav.loading && (
-        <div className="absolute left-2 top-[92px] z-[500] rounded-md bg-zinc-950/90 border border-zinc-800 px-2 py-1 flex items-center gap-2 pointer-events-none">
-          <span className="inline-block h-[3px] w-4 rounded-full shrink-0" style={{ background: COLOR_CICLO }} />
-          <span className="text-[10px] text-zinc-300">Ciclovía {!!route?.cicloviaPct ? `${route.cicloviaPct}%` : ""}</span>
-          <span className="text-[10px] text-zinc-600">·</span>
-          <span className="inline-block h-[3px] w-4 rounded-full shrink-0" style={{ background: COLOR_VIA }} />
-          <span className="text-[10px] text-zinc-300">Compartida</span>
-        </div>
+        <LegendChip
+          className="absolute left-2 top-[92px] z-[500] rounded-md bg-zinc-950/90 border border-zinc-800 px-2 py-1 flex items-center gap-2 pointer-events-none"
+          route={route}
+        />
       )}
 
       {/* Píldora con la calle actual sobre el pin (modo ruta) */}
@@ -769,120 +1000,46 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
       )}
 
       {/* Controles flotantes */}
-      <div className="absolute top-2 right-2 z-[500] flex flex-col gap-1.5">
-        <button
-          onClick={locate}
-          aria-label="Localizarme"
-          title="Centrar en mi ubicación"
-          className="h-8 w-8 rounded-md bg-zinc-950/90 border border-zinc-700 text-zinc-100 flex items-center justify-center hover:border-emerald-500"
-        >
-          <Crosshair className="h-4 w-4" />
-        </button>
-        <button
-          onClick={() => setPickMode((v) => !v)}
-          aria-label="Elegir destino en el minimapa"
-          title="Toca el minimapa para fijar destino"
-          className={`h-8 w-8 rounded-md border flex items-center justify-center ${
-            pickMode ? "bg-sky-600 border-sky-300 text-white" : "bg-zinc-950/90 border-zinc-700 text-zinc-100 hover:border-sky-500"
-          }`}
-        >
-          <Flag className="h-4 w-4" />
-        </button>
-        {dest && (
-          <button
-            onClick={() => nav.setDestination(null)}
-            aria-label="Quitar destino"
-            title="Quitar la ruta"
-            className="h-8 w-8 rounded-md bg-zinc-950/90 border border-zinc-700 text-zinc-100 flex items-center justify-center hover:border-red-500"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        )}
-      </div>
+      <Controls
+        className="absolute top-2 right-2 z-[500] flex flex-col gap-1.5"
+        onLocate={locate}
+        pickMode={pickMode}
+        onTogglePick={() => setPickMode((v) => !v)}
+        hasDest={!!dest}
+        onClear={() => nav.setDestination(null)}
+      />
 
       {/* ===== Barra inferior tipo Waze — SIN velocímetro ===== */}
-      <div className="absolute bottom-0 inset-x-0 z-[500] bg-zinc-950/95 border-t border-zinc-800 px-2.5 py-2 flex items-center gap-2.5">
-        {onRoute ? (
-          <div className="min-w-0 flex-1 text-center">
-            <div className="font-mono text-xl font-bold text-zinc-50 leading-none tabular-nums">{etaMin > 0 ? arrivalClock : "—"}</div>
-            <div className="text-[11px] text-zinc-400 leading-tight mt-0.5 truncate">
-              {etaMin > 0 ? `${etaMin} min · ${fmtKmM(remainingM)}` : "Ruta lista"}
-            </div>
-          </div>
-        ) : (
-          <div className="min-w-0 flex-1 flex items-center gap-1.5 rounded-lg border border-zinc-800 bg-zinc-900 px-2 py-1.5">
-            <RouteIcon className="h-3.5 w-3.5 text-sky-400 shrink-0" />
-            <select
-              aria-label="Ir a"
-              value={dest ? NAV_DESTINATIONS.find((d) => d.position === dest.position)?.id ?? "mapa" : ""}
-              onChange={(e) => {
-                const d = NAV_DESTINATIONS.find((x) => x.id === e.target.value);
-                if (d) nav.setDestination({ name: d.name, position: d.position });
-                else nav.setDestination(null);
-              }}
-              className="bg-transparent text-[11px] text-zinc-200 outline-none w-full min-w-0"
-            >
-              <option value="" className="bg-zinc-900">Ir a…</option>
-              {NAV_DESTINATIONS.map((d) => (
-                <option key={d.id} value={d.id} className="bg-zinc-900">{d.name}</option>
-              ))}
-              {dest && <option value="mapa" className="bg-zinc-900">Punto en el mapa</option>}
-            </select>
-          </div>
-        )}
-
-        {/* botón amarillo de reporte de incidencias */}
-        <button
-          onClick={() => setReportOpen((v) => !v)}
-          aria-label="Reportar incidencia en mi posición"
-          title="Reportar incidencia en mi posición"
-          className="relative h-11 w-11 rounded-xl bg-amber-400 hover:bg-amber-300 active:scale-95 transition text-zinc-950 flex items-center justify-center shrink-0"
-        >
-          <TriangleAlert className="h-6 w-6" strokeWidth={2.4} />
-          <Plus className="absolute bottom-0 right-0.5 h-3.5 w-3.5" strokeWidth={3.5} />
-        </button>
-      </div>
+      <BottomBar
+        className="absolute bottom-0 inset-x-0 z-[500] bg-zinc-950/95 border-t border-zinc-800 px-2.5 py-2 flex items-center gap-2.5"
+        onRoute={onRoute}
+        etaMin={etaMin}
+        arrivalClock={arrivalClock}
+        remainingM={remainingM}
+        dest={dest}
+        onSetDest={nav.setDestination}
+        onReport={() => setReportOpen((v) => !v)}
+      />
 
       {/* Hoja de reporte rápido */}
       {reportOpen && (
-        <div className="absolute bottom-[60px] inset-x-2 z-[650] rounded-xl bg-zinc-950/95 border border-zinc-700 shadow-2xl p-3">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-bold text-zinc-100">Reportar incidencia {position ? "en tu posición" : "(sin GPS aún)"}</span>
-            <button onClick={() => setReportOpen(false)} aria-label="Cerrar reporte" className="text-zinc-400 hover:text-zinc-100">
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-          <div className="grid grid-cols-2 gap-1.5">
-            {INCIDENT_TYPES.map((t) => (
-              <button
-                key={t.id}
-                onClick={() => reportIncident(t.id)}
-                className="flex items-center gap-1.5 rounded-lg border border-zinc-800 bg-zinc-900 px-2 py-1.5 text-left text-[11px] text-zinc-200 hover:border-zinc-500"
-              >
-                <span aria-hidden>{t.emoji}</span>
-                <span className="truncate">{t.label}</span>
-              </button>
-            ))}
-          </div>
-          <p className="text-[10px] text-zinc-500 mt-2">Se registra con fecha y hora, y aparece en el mapa compartido.</p>
-        </div>
+        <ReportSheet
+          className="absolute bottom-[60px] inset-x-2 z-[650] rounded-xl bg-zinc-950/95 border border-zinc-700 shadow-2xl p-3"
+          hasPosition={!!position}
+          onType={reportIncident}
+          onClose={() => setReportOpen(false)}
+        />
       )}
 
       {/* Confirmación / avisos */}
-      {status && (
-        <div className="absolute bottom-[60px] inset-x-3 z-[700] rounded-lg bg-zinc-900/95 border border-zinc-700 px-3 py-2 text-[11px] text-zinc-100 pointer-events-none shadow-xl">
-          {status}
-        </div>
-      )}
+      {status && <StatusNote className="absolute bottom-[60px] inset-x-3 z-[700] rounded-lg bg-zinc-900/95 border border-zinc-700 px-3 py-2 text-[11px] text-zinc-100" text={status} />}
 
       {/* Aviso de modo elección de destino */}
       {pickMode && (
-        <div className={`absolute inset-x-2 z-[700] rounded-md bg-sky-950/95 border border-sky-600 px-2.5 py-1.5 text-[11px] text-sky-100 flex items-center justify-between ${onRoute ? "top-[86px]" : "top-2"}`}>
-          <span>Toca el minimapa para fijar tu destino</span>
-          <button onClick={() => setPickMode(false)} aria-label="Cancelar elección" className="text-sky-300 hover:text-white">
-            <X className="h-3.5 w-3.5" />
-          </button>
-        </div>
+        <PickBanner
+          className={`absolute inset-x-2 z-[700] rounded-md bg-sky-950/95 border border-sky-600 px-2.5 py-1.5 text-[11px] text-sky-100 flex items-center justify-between ${onRoute ? "top-[86px]" : "top-2"}`}
+          onClose={() => setPickMode(false)}
+        />
       )}
     </div>
   );

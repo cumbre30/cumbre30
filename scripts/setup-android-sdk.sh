@@ -20,7 +20,7 @@ yes | "$SDK/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$SDK" --licenses > 
 
 echo "[4/4] Instalando platform-tools, platforms y build-tools..."
 "$SDK/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$SDK" \
-  "platform-tools" "platforms;android-35" "platforms;android-34" \
-  "build-tools;35.0.0" "build-tools;34.0.0" > /tmp/sdk-install.log 2>&1
+  "platform-tools" "platforms;android-36" "platforms;android-35" \
+  "build-tools;36.0.0" "build-tools;35.0.0" > /tmp/sdk-install.log 2>&1
 
 echo "SDK_LISTO"
