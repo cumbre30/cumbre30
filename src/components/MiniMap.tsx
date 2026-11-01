@@ -2,19 +2,23 @@
 
 // ============================================================
 // Minimapa del velocímetro, DISEÑO TIPO WAZE (referencia foto):
+// · CÁMARA DE NAVEGACIÓN 3D: el mapa gira al rumbo (avance = arriba)
+//   y se inclina en perspectiva (tilt CSS) como Waze — nunca se ve
+//   "desde arriba". Los pines contra-rota para verse de pie.
 // · Banner negro superior: flecha de maniobra grande + metros +
 //   nombre de la calle en celeste (próximo giro), y la maniobra
 //   siguiente en pequeño al costado.
 // · Ruta trazada COMPLETA de inicio a fin, distinguiendo los
 //   tramos de CICLOVÍA (violeta) de las VÍAS COMPARTIDAS (blanco).
 // · Píldora con la calle actual sobre el pin, como Waze.
-// · Barra inferior: velocímetro circular, hora de llegada con
-//   minutos y kilómetros restantes, y botón AMARILLO para
-//   reportar incidencias en la posición actual (con fecha/hora).
+// · Barra inferior: hora de llegada con minutos y kilómetros
+//   restantes (o selector "Ir a…") y botón AMARILLO para reportar
+//   incidencias. SIN velocímetro: el dato de velocidad vive en el
+//   velocímetro principal, fuera del mapa.
 // · El pin de posición es el elegido por el usuario en Premios
 //   (o la flecha clásica por defecto).
-// · Sin ruta: mapa seguido de la posición con parque, zonas de
-//   riesgo, porteras, incidencias y recorrido — ciclócomputador.
+// · Sin ruta: mismo look de navegación siguiendo la posición, con
+//   parque, zonas de riesgo, porteras, incidencias y recorrido.
 // ============================================================
 
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -46,10 +50,12 @@ import type { RouteStep } from "@/lib/routing";
 const PARK_CENTER: [number, number] = [-33.408, -70.636];
 const PARK_CENTER_OBJ: LatLng = { lat: PARK_CENTER[0], lon: PARK_CENTER[1] };
 
-/** Metros que la cámara anticipa hacia adelante. Deja el pin en el tercio
- * inferior visible: a zoom 17 ≈ 1 m/px, el pin cae ~48 px bajo el centro,
- * por encima de la barra inferior (estilo Waze). */
-const LOOKAHEAD_M = 48;
+/** El contenedor interno del mapa es más alto que la ventana visible
+ *  (135%) para que Leaflet cargue teselas más allá del horizonte del
+ *  tilt 3D. El centro del mapa queda a ~32% de la vista; con estos
+ *  metros de anticipación el pin cae en el tercio inferior, como Waze. */
+const LOOKAHEAD_NAV_M = 100; // modo ruta
+const LOOKAHEAD_FREE_M = 45; // modo libre
 /** A partir de esta distancia al destino, zoom de llegada. */
 const ARRIVAL_M = 150;
 const NAV_ZOOM = 17;
@@ -121,45 +127,18 @@ function TurnArrow({ icon, className }: { icon: RouteStep["icon"]; className?: s
   );
 }
 
-/** Centra y sigue la posición en modo libre (norte arriba, zoom ciclócomputador). */
-function FollowFree({ position }: { position: LatLng | null }) {
-  const map = useMap();
-  const init = useRef(false);
-  useEffect(() => {
-    if (!position) return;
-    if (map.getBearing && map.getBearing() !== 0) map.setBearing(0);
-    if (!init.current) {
-      init.current = true;
-      map.setView([position.lat, position.lon], 17, { animate: false });
-      return;
-    }
-    map.setView([position.lat, position.lon], map.getZoom(), { animate: true, duration: 0.6 });
-  }, [position, map]);
-  return null;
-}
-
-/** Ajusta la vista a la ruta completa cuando aún no hay posición. */
-function FitRoute({ coords }: { coords: LatLng[] | null }) {
-  const map = useMap();
-  useEffect(() => {
-    if (!coords || coords.length < 2) return;
-    if (map.getBearing && map.getBearing() !== 0) map.setBearing(0);
-    const bounds = L.latLngBounds(coords.map((c) => [c.lat, c.lon] as [number, number]));
-    map.fitBounds(bounds, { paddingTopLeft: [16, 92], paddingBottomRight: [16, 84] });
-  }, [coords, map]);
-  return null;
-}
-
 /**
- * Cámara de navegación: gira el mapa al rumbo (avance = arriba) y
- * centra un punto de la ruta ~110 m adelante, dejando el pin abajo
- * como en una app de navegación.
+ * Cámara de navegación (ambos modos): gira el mapa al rumbo
+ * (avance = arriba) y centra un punto más adelante, dejando el pin
+ * abajo como en una app de navegación. Con tilt 3D (clase c30-tilt)
+ * el resultado es la vista perspectiva tipo Waze.
  */
 function NavCamera({ position, bearing, target, zoom }: { position: LatLng | null; bearing: number; target: LatLng; zoom: number }) {
   const map = useMap();
   const init = useRef(false);
   useEffect(() => {
     if (!position) return;
+    map.invalidateSize();
     const b = wrap360(bearing);
     if (!init.current) {
       init.current = true;
@@ -173,17 +152,49 @@ function NavCamera({ position, bearing, target, zoom }: { position: LatLng | nul
   return null;
 }
 
-/** Escala métrica (referencia tipo 200 m), elevada sobre la barra inferior. */
-function ScaleHandler() {
+/** Mantiente el tamaño interno de Leaflet sincronizado con el DOM:
+ *  el minimapa cambia de alto al activarse la ruta (h-52 → h-80) y su
+ *  contenedor interno es 135% más alto (por el tilt 3D). Sin esto, la
+ *  cámara calcula con un tamaño viejo y la ruta/cámara se ven mal. */
+function AutoInvalidate() {
   const map = useMap();
   useEffect(() => {
-    const c = L.control.scale({ imperial: false, position: "bottomleft" });
-    c.addTo(map);
-    return () => {
-      c.remove();
-    };
+    const el = map.getContainer();
+    const ro = new ResizeObserver(() => map.invalidateSize());
+    ro.observe(el);
+    return () => ro.disconnect();
   }, [map]);
   return null;
+}
+
+/** Ajusta la vista a la ruta completa cuando aún no hay posición.
+ *  El contenedor interno es 135% más alto que la ventana visible (por el
+ *  tilt 3D), así que compensa la franja superior recortada para que la
+ *  ruta completa —del inicio al fin— quede dentro de la zona visible. */
+function FitRoute({ coords }: { coords: LatLng[] | null }) {
+  const map = useMap();
+  useEffect(() => {
+    if (!coords || coords.length < 2) return;
+    map.invalidateSize();
+    if (map.getBearing && map.getBearing() !== 0) map.setBearing(0);
+    const tall = map.getContainer().clientHeight || 432;
+    const hiddenTop = Math.round(tall - tall / 1.35); // franja bajo el banner que no se ve
+    const bounds = L.latLngBounds(coords.map((c) => [c.lat, c.lon] as [number, number]));
+    map.fitBounds(bounds, { paddingTopLeft: [24, hiddenTop + 8], paddingBottomRight: [24, 112] });
+  }, [coords, map]);
+  return null;
+}
+
+/** Desplaza un punto `distM` metros según un rumbo (para adelantar la
+ *  cámara en modo libre y dejar el pin abajo, estilo navegación). */
+function offsetAlong(p: LatLng, headingDeg: number, distM: number): LatLng {
+  const r = (headingDeg * Math.PI) / 180;
+  const mPerDegLat = 111_320;
+  const mPerDegLon = 111_320 * Math.cos((p.lat * Math.PI) / 180);
+  return {
+    lat: p.lat + (Math.cos(r) * distM) / mPerDegLat,
+    lon: p.lon + (Math.sin(r) * distM) / mPerDegLon,
+  };
 }
 
 function ClickPick({ enabled, onPick }: { enabled: boolean; onPick: (p: LatLng) => void }) {
@@ -299,17 +310,24 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
     setTimeout(() => setStatus(null), 5000);
   };
 
-  // ----- Cámara tipo navegación -----
-  const navBearing = onRoute && heading !== null ? wrap360(-heading) : 0;
+  // ----- Cámara de navegación 3D (rumbo = arriba, pin abajo) -----
+  const bearing = heading !== null ? wrap360(-heading) : 0;
   const camTarget: LatLng = useMemo(() => {
-    if (!onRoute || !position) return position ?? PARK_CENTER_OBJ;
-    if (offRoute || progress!.remainingM < ARRIVAL_M) return position;
-    return pointAhead(route!.coords, progress!.nearestIdx, LOOKAHEAD_M);
-  }, [onRoute, position, offRoute, progress, route]);
+    if (!position) return PARK_CENTER_OBJ;
+    if (onRoute && !offRoute && progress && progress.remainingM >= ARRIVAL_M) {
+      return pointAhead(route!.coords, progress.nearestIdx, LOOKAHEAD_NAV_M);
+    }
+    // Sin ruta (o llegada/desvío): adelanta la cámara hacia el rumbo
+    if (heading !== null) return offsetAlong(position, heading, onRoute ? LOOKAHEAD_NAV_M : LOOKAHEAD_FREE_M);
+    return position;
+  }, [onRoute, position, offRoute, progress, route, heading]);
   const camZoom = onRoute && progress && progress.remainingM < ARRIVAL_M ? ARRIVAL_ZOOM : NAV_ZOOM;
 
   return (
-    <div className={`relative rounded-xl overflow-hidden border border-zinc-800 z-0 c30-minimap ${onRoute ? "h-72" : "h-52 sm:h-56"}`}>
+    <div className={`relative rounded-xl overflow-hidden border border-zinc-800 z-0 c30-minimap ${onRoute ? "h-80" : "h-52 sm:h-56"} ${pickMode ? "" : "c30-tilt"}`}>
+      {/* Contenedor interno más alto (135%): Leaflet carga teselas más
+          allá del horizonte que genera la perspectiva 3D */}
+      <div className="absolute inset-x-0 bottom-0 h-[135%]">
       <MapContainer
         center={position ? [position.lat, position.lon] : PARK_CENTER}
         zoom={position ? 17 : 13}
@@ -327,7 +345,7 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
         keyboard={false}
         className={`map-dark h-full w-full bg-zinc-950 ${pickMode ? "cursor-crosshair" : ""}`}
       >
-        <TileLayer url="https://tile.openstreetmap.org/{z}/{x}/{y}.png" maxZoom={19} />
+        <TileLayer url="https://tile.openstreetmap.org/{z}/{x}/{y}.png" maxZoom={19} keepBuffer={4} />
 
         {!onRoute && (
           <>
@@ -409,23 +427,22 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
             )}
             <Marker
               position={[position.lat, position.lon]}
-              icon={userPinIcon(userPin ?? DEFAULT_PIN, heading, onRoute ? navBearing : 0)}
+              icon={userPinIcon(userPin ?? DEFAULT_PIN, heading, bearing)}
               zIndexOffset={500}
             />
           </>
         )}
 
-        <ScaleHandler />
-        {!onRoute ? (
-          <FollowFree position={position} />
-        ) : position ? (
-          <NavCamera position={position} bearing={navBearing} target={camTarget} zoom={camZoom} />
-        ) : (
-          <FitRoute coords={onRoute ? route!.coords : null} />
-        )}
+        {position ? (
+          <NavCamera position={position} bearing={bearing} target={camTarget} zoom={camZoom} />
+        ) : onRoute ? (
+          <FitRoute coords={route!.coords} />
+        ) : null}
+        <AutoInvalidate />
         {locateTarget && !position && <FollowOnce target={locateTarget} />}
         <ClickPick enabled={pickMode} onPick={pick} />
       </MapContainer>
+      </div>
 
       {/* ===== Banner de maniobra (modo ruta), estilo Waze ===== */}
       {onRoute && nextStep && (
@@ -497,19 +514,9 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
         )}
       </div>
 
-      {/* ===== Barra inferior tipo Waze ===== */}
+      {/* ===== Barra inferior tipo Waze — SIN velocímetro: la velocidad
+          vive en el velocímetro principal, no sobre el mapa ===== */}
       <div className="absolute bottom-0 inset-x-0 z-[500] bg-zinc-950/95 border-t border-zinc-800 px-2.5 py-2 flex items-center gap-2.5">
-        {/* velocímetro circular */}
-        <div
-          className="h-11 w-11 rounded-full bg-zinc-900 border-2 border-zinc-700 flex flex-col items-center justify-center shrink-0"
-          title="Velocidad actual"
-        >
-          <span className={`font-mono text-base font-bold leading-none tabular-nums ${speedKmh > 30 ? "text-red-400" : "text-zinc-50"}`}>
-            {Math.round(speedKmh) || "—"}
-          </span>
-          <span className="text-[8px] text-zinc-500 leading-none mt-0.5">km/h</span>
-        </div>
-
         {onRoute ? (
           <div className="min-w-0 flex-1 text-center">
             <div className="font-mono text-xl font-bold text-zinc-50 leading-none tabular-nums">{etaMin > 0 ? arrivalClock : "—"}</div>

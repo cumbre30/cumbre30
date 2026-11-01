@@ -13,6 +13,8 @@ import { INCIDENT_BY_ID } from "@/lib/incidents";
  * pin elegido se contra-rota para verse SIEMPRE derecha en pantalla; la flecha clásica
  * ya rota con el rumbo, así que en modo navegación (mapa girado al rumbo) apunta
  * exactamente hacia arriba, como en Waze/Google Maps.
+ * Todo va dentro de un wrapper `c30-billboard`: en el minimapa 3D (clase c30-tilt)
+ * ese wrapper contra-rota la inclinación de la cámara para que el pin se vea de pie.
  */
 export function userPinIcon(pinId: string | undefined, heading: number | null = null, mapBearing = 0): L.DivIcon {
   const p = PINS[(pinId ?? DEFAULT_PIN) as PinId] ?? PINS[DEFAULT_PIN];
@@ -20,12 +22,12 @@ export function userPinIcon(pinId: string | undefined, heading: number | null = 
     const deg = Math.round(heading ?? 0);
     return L.divIcon({
       className: "",
-      html: `<div style="width:34px;height:34px;filter:drop-shadow(0 2px 5px rgba(0,0,0,.65));">
+      html: `<div class="c30-billboard"><div style="width:34px;height:34px;filter:drop-shadow(0 2px 5px rgba(0,0,0,.65));">
   <svg width="34" height="34" viewBox="0 0 34 34" style="transform:rotate(${deg}deg);transition:transform .4s ease;">
     <circle cx="17" cy="17" r="12.5" fill="${p.color}" stroke="#fafafa" stroke-width="3"/>
     <path d="M17 9 L21.5 19.5 L17 17.2 L12.5 19.5 Z" fill="#09090b"/>
   </svg>
-</div>`,
+</div></div>`,
       iconSize: [34, 34],
       iconAnchor: [17, 17],
       popupAnchor: [0, -18],
@@ -34,9 +36,9 @@ export function userPinIcon(pinId: string | undefined, heading: number | null = 
   const upright = Math.round(-mapBearing);
   return L.divIcon({
     className: "",
-    html: `<div style="width:34px;height:38px;transform:rotate(${upright}deg);">
+    html: `<div class="c30-billboard"><div style="width:34px;height:38px;transform:rotate(${upright}deg);">
   <div style="display:flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:9999px 9999px 9999px 4px;background:${p.color};border:3px solid #fafafa;box-shadow:0 2px 8px rgba(0,0,0,.6);font-size:16px;line-height:1;">${p.emoji}</div>
-</div>`,
+</div></div>`,
     iconSize: [34, 38],
     iconAnchor: [17, 34],
     popupAnchor: [0, -32],
@@ -48,7 +50,7 @@ export function incidentIcon(type: string): L.DivIcon {
   const t = INCIDENT_BY_ID[type] ?? INCIDENT_BY_ID.otro;
   return L.divIcon({
     className: "",
-    html: `<div style="display:flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:9999px;background:${t.color};border:2.5px solid #09090b;box-shadow:0 0 0 2px ${t.color}66;font-size:14px;line-height:1;">${t.emoji}</div>`,
+    html: `<div class="c30-billboard"><div style="display:flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:9999px;background:${t.color};border:2.5px solid #09090b;box-shadow:0 0 0 2px ${t.color}66;font-size:14px;line-height:1;">${t.emoji}</div></div>`,
     iconSize: [30, 30],
     iconAnchor: [15, 15],
     popupAnchor: [0, -14],
@@ -60,7 +62,7 @@ export function miniIncidentIcon(type: string): L.DivIcon {
   const t = INCIDENT_BY_ID[type] ?? INCIDENT_BY_ID.otro;
   return L.divIcon({
     className: "",
-    html: `<div style="display:flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:9999px;background:${t.color};border:2px solid #09090b;box-shadow:0 0 0 1.5px ${t.color}55;font-size:10px;line-height:1;">${t.emoji}</div>`,
+    html: `<div class="c30-billboard"><div style="display:flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:9999px;background:${t.color};border:2px solid #09090b;box-shadow:0 0 0 1.5px ${t.color}55;font-size:10px;line-height:1;">${t.emoji}</div></div>`,
     iconSize: [20, 20],
     iconAnchor: [10, 10],
   });
@@ -70,7 +72,7 @@ export function miniIncidentIcon(type: string): L.DivIcon {
 export function flagIcon(): L.DivIcon {
   return L.divIcon({
     className: "",
-    html: `<div style="display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:9999px;background:#0ea5e9;border:2.5px solid #fafafa;box-shadow:0 2px 8px rgba(0,0,0,.6);font-size:13px;line-height:1;">🏁</div>`,
+    html: `<div class="c30-billboard"><div style="display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:9999px;background:#0ea5e9;border:2.5px solid #fafafa;box-shadow:0 2px 8px rgba(0,0,0,.6);font-size:13px;line-height:1;">🏁</div></div>`,
     iconSize: [28, 28],
     iconAnchor: [14, 14],
   });
@@ -91,9 +93,9 @@ export function stepBadgeIcon(icon: "start" | "left" | "right" | "straight" | "e
   }
   return L.divIcon({
     className: "",
-    html: `<div style="width:30px;height:30px;border-radius:8px;background:#fafafa;border:2px solid #09090b;box-shadow:0 2px 8px rgba(0,0,0,.65);display:flex;align-items:center;justify-content:center;">
+    html: `<div class="c30-billboard"><div style="width:30px;height:30px;border-radius:8px;background:#fafafa;border:2px solid #09090b;box-shadow:0 2px 8px rgba(0,0,0,.65);display:flex;align-items:center;justify-content:center;">
   <svg width="22" height="22" viewBox="0 0 96 96">${inner}</svg>
-</div>`,
+</div></div>`,
     iconSize: [30, 30],
     iconAnchor: [15, 15],
   });

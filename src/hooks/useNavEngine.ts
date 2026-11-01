@@ -10,7 +10,12 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { findRoute, loadNetwork, routeProgress, type NavRoute, type Network } from "@/lib/routing";
-import type { LatLng } from "@/lib/park";
+import { GATES, type LatLng } from "@/lib/park";
+
+/** Origen provisional mientras no hay GPS: acceso Pío Nono (entrada
+ *  clásica al cerro). Así la ruta SE VE de inmediato al marcar "ir a",
+ *  aunque todavía no se haya activado el GPS o el demo. */
+export const DEFAULT_ORIGIN: LatLng = GATES[0].position;
 
 export type NavDest = { name: string; position: LatLng };
 
@@ -40,6 +45,8 @@ export function useNavEngine(position: LatLng | null, running: boolean): NavEngi
   const lastCalcRef = useRef(0);
   const lastRerouteRef = useRef(0);
   const netRef = useRef(net);
+  /** ¿La ruta vigente partió del origen provisional (sin GPS)? */
+  const fallbackRef = useRef(false);
   // Espejo de valores actuales para callbacks/timers (sin tocar refs en render).
   useEffect(() => {
     posRef.current = position;
@@ -58,7 +65,7 @@ export function useNavEngine(position: LatLng | null, running: boolean): NavEngi
     });
   }, []);
 
-  const compute = useCallback((origin: LatLng, d: NavDest) => {
+  const compute = useCallback((origin: LatLng, d: NavDest, kind: "gps" | "fallback") => {
     const n = netRef.current;
     if (!n) {
       setNote("Red de vías aún cargando…");
@@ -67,10 +74,12 @@ export function useNavEngine(position: LatLng | null, running: boolean): NavEngi
     const r = findRoute(n, origin, d.position);
     lastCalcRef.current = Date.now();
     if (!r) {
+      fallbackRef.current = false;
       setRoute(null);
       setNote("No encontramos una ruta ciclable cercana a ese destino.");
       return;
     }
+    fallbackRef.current = kind === "fallback";
     setRoute(r);
     setNote(null);
   }, []);
@@ -81,12 +90,16 @@ export function useNavEngine(position: LatLng | null, running: boolean): NavEngi
       setRoute(null);
       lastRerouteRef.current = 0;
       if (!d) {
+        fallbackRef.current = false;
         setNote(null);
         return;
       }
       const o = posRef.current;
-      if (o) compute(o, d);
-      else setNote("Esperando tu ubicación para trazar la ruta…");
+      if (o) compute(o, d, "gps");
+      else {
+        compute(DEFAULT_ORIGIN, d, "fallback");
+        setNote("Partida provisional desde el Acceso Pío Nono hasta que active tu GPS o el demo.");
+      }
     },
     [compute]
   );
@@ -94,19 +107,27 @@ export function useNavEngine(position: LatLng | null, running: boolean): NavEngi
   const reroute = useCallback(() => {
     const o = posRef.current;
     const d = destRef.current;
-    if (o && d) compute(o, d);
+    if (o && d) compute(o, d, "gps");
   }, [compute]);
 
-  // Si la red llega tarde, o el destino se fijó antes de tener posición,
-  // calcular en cuanto haya datos (sin martillar: reintento máx cada 5 s).
+  // Recálculo pendiente cuando la red llega tarde, cuando aparece la
+  // posición real (reemplaza la ruta provisional) o si algo quedó sin
+  // calcular. Throttle de 5 s para no martillar.
   // Diferido con timeout: evita setState síncrono dentro del effect.
   useEffect(() => {
-    if (!net || !position || !destRef.current || route) return;
+    if (!net || !destRef.current) return;
+    if (route && !fallbackRef.current) return; // ruta real vigente
     if (Date.now() - lastCalcRef.current < 5_000) return;
     const t = setTimeout(() => {
-      const o = posRef.current;
       const d = destRef.current;
-      if (o && d) compute(o, d);
+      if (!d) return;
+      const o = posRef.current;
+      if (o) {
+        compute(o, d, "gps");
+      } else if (!route) {
+        compute(DEFAULT_ORIGIN, d, "fallback");
+        setNote("Partida provisional desde el Acceso Pío Nono hasta que active tu GPS o el demo.");
+      }
     }, 0);
     return () => clearTimeout(t);
   }, [net, position, route, compute]);
@@ -116,7 +137,7 @@ export function useNavEngine(position: LatLng | null, running: boolean): NavEngi
     if (!running || !dest) return;
     const iv = setInterval(() => {
       const o = posRef.current;
-      if (o) compute(o, destRef.current!);
+      if (o) compute(o, destRef.current!, "gps");
     }, REROUTE_INTERVAL_MS);
     return () => clearInterval(iv);
   }, [running, dest, compute]);
@@ -133,7 +154,7 @@ export function useNavEngine(position: LatLng | null, running: boolean): NavEngi
       lastRerouteRef.current = Date.now();
       const o = posRef.current;
       const d = destRef.current;
-      if (o && d) compute(o, d);
+      if (o && d) compute(o, d, "gps");
     }, 800);
     return () => clearTimeout(t);
   }, [position, route, running, dest, compute]);

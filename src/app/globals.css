@@ -140,16 +140,28 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
 }
 
-/* Minimapa tipo Waze: sube la escala métrica sobre la barra inferior */
-.c30-minimap .leaflet-bottom.leaflet-left {
-  bottom: 62px;
-}
-.c30-minimap .leaflet-control-scale-line {
-  background: rgba(9, 9, 11, 0.75) !important;
-  color: #d4d4d8 !important;
-  border-color: #52525b !important;
-}
 /* Los controles internos del mapa (escala) quedan bajo las capas de la app */
 .c30-minimap .leaflet-control-container {
   z-index: 400;
+}
+
+/* ============================================================
+   Minimapa tipo Waze: VISTA DE NAVEGACIÓN EN PERSPECTIVA 3D.
+   La clase c30-tilt inclina el plano del mapa (rotateX) para que
+   nunca se vea "desde arriba" — el horizonte aparece al fondo,
+   como en Waze/Google Maps. Se desactiva al elegir destino en el
+   mapa (pickMode) para que el toque caiga exacto.
+   ============================================================ */
+.c30-tilt .leaflet-container {
+  transform: perspective(640px) rotateX(32deg);
+  transform-origin: 50% 100%;
+}
+/* Los pines contra-rota la inclinación para verse SIEMPRE de pie */
+.c30-tilt .leaflet-marker-icon .c30-billboard {
+  transform: rotateX(-32deg);
+  transform-origin: 50% 100%;
+}
+/* El fondo del contenedor hace de "cielo" tras el horizonte */
+.c30-tilt {
+  background: linear-gradient(to bottom, #18181b 0%, #0a0a0b 55%, #09090b 100%);
 }
