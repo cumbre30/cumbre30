@@ -409,7 +409,7 @@ export default function ProfileTab() {
                 <span className="text-zinc-500">Color</span><span className="text-zinc-200">{me.user.bikeColor ?? "—"}</span>
               </div>
             ) : (
-              <p className="mt-1 text-zinc-500">Edita los datos de tu bici en la pestaña QR (Billetera).</p>
+              <p className="mt-1 text-zinc-500">Edita los datos de tu bici en la pestaña QR.</p>
             )}
           </div>
         </div>
