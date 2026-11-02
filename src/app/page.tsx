@@ -218,7 +218,10 @@ export default function Home() {
           </TabsContent>
 
           <TabsContent value="history" className="mt-4">
-            <HistoryTab refreshKey={historyKey} />
+            <HistoryTab
+              refreshKey={historyKey}
+              user={me ? { email: me.user.email, username: me.user.username } : undefined}
+            />
           </TabsContent>
 
           <TabsContent value="challenges" className="mt-4">

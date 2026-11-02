@@ -28,6 +28,8 @@ import { Label } from "@/components/ui/label";
 import { authAction, googleAuthAction, logout, useMe } from "@/hooks/useMe";
 import { isOfflineMode } from "@/lib/offlineAuth";
 import { nativeGoogleSignIn, nativeGoogleSignOut } from "@/lib/googleAuth";
+import { Capacitor } from "@capacitor/core";
+import { shareOrDownloadFile } from "@/lib/shareFile";
 import { PINS, DEFAULT_PIN, type PinId } from "@/lib/pins";
 import { APP_VERSION, APP_VERSION_CODE, APK_SIZE_MB } from "@/lib/appVersion";
 
@@ -151,7 +153,6 @@ export default function ProfileTab() {
   const [friendName, setFriendName] = useState("");
   const [friendError, setFriendError] = useState<string | null>(null);
   const [shareMsg, setShareMsg] = useState<string | null>(null);
-  const shareUrl = useRef<string | null>(null);
 
   const submit = async () => {
     setBusy(true);
@@ -215,18 +216,26 @@ export default function ProfileTab() {
       const pin = PINS[(me.user.selectedPin as PinId) ?? DEFAULT_PIN] ?? PINS[DEFAULT_PIN];
       const blob = await buildShareImage(me.user.username, pin.emoji, me.stats);
       const file = new File([blob], "cumbre30-resumen.png", { type: "image/png" });
+      let native = false;
+      try { native = Capacitor.isNativePlatform(); } catch { native = false; }
       const nav2 = navigator as Navigator & { canShare?: (d: ShareData) => boolean };
-      if (nav2.canShare?.({ files: [file] })) {
+      if (!native && nav2.canShare?.({ files: [file] })) {
         await navigator.share({ files: [file], title: "Cumbre30", text: "Mi resumen de pedaleo con Cumbre30 🚴" });
         setShareMsg("¡Compartido! Elige Instagram Stories o Feed en el menú.");
       } else {
-        if (shareUrl.current) URL.revokeObjectURL(shareUrl.current);
-        shareUrl.current = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = shareUrl.current;
-        a.download = "cumbre30-resumen.png";
-        a.click();
-        setShareMsg("Imagen descargada. Compártela en Instagram como historia o post.");
+        // APK: el WebView no soporta <a download> ni navigator.share →
+        // el archivo se entrega por el panel nativo de Android.
+        const res = await shareOrDownloadFile({
+          blob,
+          fileName: "cumbre30-resumen.png",
+          title: "Cumbre30",
+          text: "Mi resumen de pedaleo con Cumbre30 🚴",
+        });
+        setShareMsg(
+          res === "shared"
+            ? "¡Listo! Elige Instagram (Historia o Feed) en el panel de Android."
+            : "Imagen descargada. Compártela en Instagram como historia o post."
+        );
       }
     } catch (e) {
       if ((e as Error)?.name === "AbortError") return;

@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect, useSyncExternalStore } from "react";
-import { CalendarClock, Gauge, ShieldAlert, Timer, Trash2, Route } from "lucide-react";
+import { useEffect, useState, useSyncExternalStore } from "react";
+import { CalendarClock, FileDown, Gauge, ShieldAlert, Timer, Trash2, Route } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { formatClock } from "@/lib/geo";
-import { clearHistory, historyStore } from "@/lib/history";
+import { clearHistory, historyStore, type RideSummary } from "@/lib/history";
+import { buildRidePdf, type RideIdentity } from "@/lib/ridePdf";
+import { shareOrDownloadFile } from "@/lib/shareFile";
 
 function fmtDate(iso: string): string {
   return new Date(iso).toLocaleString("es-CL", {
@@ -14,20 +16,58 @@ function fmtDate(iso: string): string {
   });
 }
 
-export function HistoryTab({ refreshKey }: { refreshKey: number }) {
+export function HistoryTab({
+  refreshKey,
+  user,
+}: {
+  refreshKey: number;
+  user?: { email?: string; username?: string };
+}) {
   const rides = useSyncExternalStore(historyStore.subscribe, historyStore.get, historyStore.getServer);
+  const [pdfBusyId, setPdfBusyId] = useState<string | null>(null);
+  const [pdfMsg, setPdfMsg] = useState<string | null>(null);
 
   // Relee el historial cuando se guarda un ride nuevo
   useEffect(() => {
     historyStore.refresh();
   }, [refreshKey]);
 
+  const exportPdf = async (r: RideSummary) => {
+    setPdfBusyId(r.id);
+    setPdfMsg(null);
+    try {
+      const identity: RideIdentity = { email: user?.email, username: user?.username };
+      const doc = await buildRidePdf(r, identity);
+      const blob = doc.output("blob") as Blob;
+      const day = r.dateISO.slice(0, 10);
+      const fileName = `constancia-cumbre30-${day}-${r.id.slice(0, 8)}.pdf`;
+      const res = await shareOrDownloadFile({
+        blob,
+        fileName,
+        title: "Constancia de trayecto — Cumbre30",
+        text: "Constancia de registro de trayecto en bicicleta, generada por la aplicación Cumbre30.",
+      });
+      setPdfMsg(
+        res === "shared"
+          ? "Constancia lista: envíala por correo o guárdala en tu teléfono desde el panel de Android."
+          : "Constancia PDF descargada. Revísala en tu carpeta de descargas."
+      );
+    } catch {
+      setPdfMsg("No pudimos generar la constancia en este dispositivo.");
+    } finally {
+      setPdfBusyId(null);
+      setTimeout(() => setPdfMsg(null), 9000);
+    }
+  };
+
   return (
     <div className="flex flex-col gap-4">
       <Card className="bg-zinc-900/80 border-zinc-800 p-4 text-sm text-zinc-400 leading-relaxed">
         Registro local de tus viajes por el cerro. Si recibes un parte por exceso de velocidad,
         esta bitácora (velocidad máxima dentro del parque y tiempo sobre el límite) sirve como
-        respaldo de tu comportamiento real.
+        respaldo de tu comportamiento real: cada viaje se puede descargar como{" "}
+        <span className="text-zinc-200">constancia PDF con redacción formal y código de verificación</span>{" "}
+        para presentarla ante Parquemet o la autoridad.
       </Card>
 
       {rides.length === 0 ? (
@@ -44,9 +84,22 @@ export function HistoryTab({ refreshKey }: { refreshKey: number }) {
                     <span className="flex items-center gap-2 text-sm font-medium text-zinc-200">
                       <CalendarClock className="h-4 w-4 text-emerald-400" /> {fmtDate(r.dateISO)}
                     </span>
-                    <Badge variant="outline" className="border-zinc-700 text-zinc-400 text-[10px] uppercase">
-                      {r.source === "sim" ? "demo" : "gps"}
-                    </Badge>
+                    <span className="flex items-center gap-2">
+                      <Badge variant="outline" className="border-zinc-700 text-zinc-400 text-[10px] uppercase">
+                        {r.source === "sim" ? "demo" : "gps"}
+                      </Badge>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={pdfBusyId === r.id}
+                        onClick={() => void exportPdf(r)}
+                        className="h-7 border-emerald-800/60 px-2 text-xs text-emerald-400 hover:bg-emerald-950 hover:text-emerald-300"
+                        aria-label={`Descargar constancia PDF del viaje del ${fmtDate(r.dateISO)}`}
+                      >
+                        <FileDown className="h-3.5 w-3.5 mr-1" />
+                        {pdfBusyId === r.id ? "Generando…" : "Constancia PDF"}
+                      </Button>
+                    </span>
                   </div>
                   <div className="mt-3 grid grid-cols-4 gap-2 text-center">
                     <div>
@@ -75,6 +128,9 @@ export function HistoryTab({ refreshKey }: { refreshKey: number }) {
               </li>
             ))}
           </ul>
+          {pdfMsg && (
+            <p className="text-sm text-emerald-400" role="status">{pdfMsg}</p>
+          )}
           <Button
             variant="outline"
             className="border-zinc-800 text-zinc-500 hover:bg-zinc-900 hover:text-red-400"
