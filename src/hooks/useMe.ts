@@ -5,7 +5,7 @@
 // En el APK (export estático) todo va por offlineAuth (localStorage).
 
 import { useSyncExternalStore } from "react";
-import { isOfflineMode, offlineLogin, offlineLogout, offlineMe, offlineRegister } from "@/lib/offlineAuth";
+import { isOfflineMode, offlineGoogleSignIn, offlineLogin, offlineLogout, offlineMe, offlineRegister } from "@/lib/offlineAuth";
 
 export type MeUser = {
   id: string;
@@ -112,6 +112,21 @@ export async function authAction(kind: "login" | "register", payload: Record<str
     return null;
   } catch {
     return "Sin conexión con el servidor.";
+  }
+}
+
+/** Inicio de sesión con Google (solo APK): enlaza/crea la cuenta local y refresca el estado. */
+export async function googleAuthAction(acct: { sub: string; email: string; name?: string }): Promise<string | null> {
+  try {
+    if (!isOfflineMode()) {
+      return "El inicio con Google está disponible en la app Android.";
+    }
+    const err = await offlineGoogleSignIn(acct);
+    if (err) return err;
+    await refreshMe();
+    return null;
+  } catch {
+    return "No pudimos completar el inicio con Google.";
   }
 }
 

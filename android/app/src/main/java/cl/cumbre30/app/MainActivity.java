@@ -11,5 +11,7 @@ public class MainActivity extends BridgeActivity {
     registerPlugin(NativeMapPlugin.class);
     // GPS en primer plano (FGS tipo LOCATION) + hápticos nativos
     registerPlugin(RideNativePlugin.class);
+    // Inicio de sesión con Google (selector de cuentas nativo)
+    registerPlugin(GoogleAuthPlugin.class);
   }
 }

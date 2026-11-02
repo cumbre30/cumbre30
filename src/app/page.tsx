@@ -19,7 +19,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RideView } from "@/components/RideView";
-import { SensorPanel } from "@/components/SensorPanel";
 import { HistoryTab } from "@/components/HistoryTab";
 import { useRideEngine, type Source } from "@/hooks/useRideEngine";
 import { useMe } from "@/hooks/useMe";
@@ -208,7 +207,6 @@ export default function Home() {
               userPin={me?.user.selectedPin}
               nav={nav}
             />
-            <SensorPanel onSensorSpeed={ride.setSensorSpeed} />
           </TabsContent>
 
           <TabsContent value="map" className="mt-4">

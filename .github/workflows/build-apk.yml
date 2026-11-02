@@ -23,6 +23,11 @@ jobs:
       - name: Install deps
         run: npm install
 
+      - name: Restore debug keystore (SHA-1 estable para Google Sign-In)
+        run: |
+          mkdir -p ~/.android
+          cp android/debug.keystore ~/.android/debug.keystore
+
       - name: Build web estático (excluye rutas API)
         run: bash scripts/export-web.sh
 

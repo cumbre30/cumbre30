@@ -8,7 +8,7 @@ App Android nativa (APK) + vista web, construida con Next.js y Capacitor. Traza 
 
 - **Rutas por calle**: arranque siempre en tu ubicación GPS (sin líneas que crucen cuadras), preferencia por ciclovías, instrucciones voz + turnos, funcionando offline con mapa vectorial propio (grafo OSM de ~58k aristas del sector).
 - **Límite 30 km/h**: geocercas del parque, alertas sonoras/voz, resumen de excesos por ride.
-- **Sensores Bluetooth**: sensor de velocidad de rueda y pulso cardíaco (HRM) en Android.
+- **Inicio de sesión con Google** (APK): selector de cuentas nativo, sin Firebase ni servidor; si ya tienes cuenta con el mismo correo se enlaza y conservas km y logros. Requiere configurar el Client ID (ver `GUIA-GOOGLE-SIGNIN.md`).
 - **Cuenta local sin servidor**: registro/login guardado en el teléfono (PBKDF2 100k), perfil de bici, QR de emergencia, logros y pines evaluados localmente.
 - **Reportes de incidencias** en el mapa (baches, perros, obstáculos) con modo local si no hay conexión.
 - **Descarga de la app** desde su propio botón de Perfil (endpoint `/api/apk`, versión única en `src/lib/appVersion.ts`).
@@ -60,6 +60,8 @@ cd android && ./gradlew assembleDebug
 ```
 
 Versión y nombre de archivo se controlan en **`src/lib/appVersion.ts`** (fuente única) junto con `android/app/build.gradle` (`versionCode`/`versionName`).
+
+> La APK se firma siempre con el mismo keystore debug (`android/debug.keystore`), así el SHA-1 no cambia entre builds y el inicio con Google sigue funcionando (ver `GUIA-GOOGLE-SIGNIN.md`).
 
 ## 🔐 Privacidad
 

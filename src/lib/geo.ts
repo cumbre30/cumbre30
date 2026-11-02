@@ -32,10 +32,11 @@ export function pointInPolygon(p: LatLng, poly: LatLng[]): boolean {
  * - Q: ruido de proceso (aceleración del ciclista)
  * - R: ruido de medición (GPS)
  * Incluye compuerta de outliers en dos niveles:
- *   - salto sospechoso (> 8 m/s²): se ignora salvo que el
- *     acelerómetro confirme aceleración real (hardConfirm),
+ *   - salto sospechoso (> 8 m/s²): se amortigua fuerte (r ×25),
  *   - salto imposible (> 25 m/s² ≈ 2.5 g sostenido): siempre
- *     se ignora, venga o no confirmación sensorial.
+ *     se ignora (r ×60). hardConfirm queda como escape para una
+ *     futura fuente de confirmación (el acelerómetro se retiró:
+ *     el WebView no entrega devicemotion de forma fiable).
  */
 export class SpeedKalman {
   private x: number | null = null; // estado: velocidad estimada

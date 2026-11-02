@@ -33,14 +33,14 @@ Cuando termine, refresca https://github.com/TU-USUARIO/cumbre30 y verás el proy
 
 ---
 
-## Paso 3 — Subir el APK v1.3.8 a "Releases" (opcional pero recomendado)
+## Paso 3 — Subir el APK v1.3.9 a "Releases" (opcional pero recomendado)
 
 GitHub da gratis hasta 2 GB por release para binarios — es el lugar correcto para los APKs (mejor que dentro del código):
 
 1. En tu repo: **Releases → Create a new release** (o https://github.com/TU-USUARIO/cumbre30/releases/new).
-2. **Tag**: escribe `v1.3.8` y elige "Create new tag on publish".
-3. **Title**: `Cumbre30 v1.3.8 (build 13)`.
-4. Arrastra el archivo `cumbre30-v1.3.8-code13.apk` a la zona de adjuntos.
+2. **Tag**: escribe `v1.3.9` y elige "Create new tag on publish".
+3. **Title**: `Cumbre30 v1.3.9 (build 14)`.
+4. Arrastra el archivo `cumbre30-v1.3.9-code14.apk` a la zona de adjuntos.
 5. **Publish release** ✅
 
 Así cada versión futura del APK queda descargable y ordenada.

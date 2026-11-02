@@ -59,7 +59,6 @@ export function useRideEngine() {
     kalman: new SpeedKalman(),
     altEma: new Ema(0.3),
     slopeEma: new Ema(0.22),
-    motionAccel: new Ema(0.15), // |a| dinámica del acelerómetro (m/s²)
     lastFix: null as (LatLng & { speedKmh: number; alt: number; t: number; accuracyM: number }) | null,
     prevSpeed: null as number | null,
     prevAltS: null as number | null,
@@ -78,16 +77,10 @@ export function useRideEngine() {
     nativeSub: null as PluginListenerHandleLike | null,
     tickTimer: null as ReturnType<typeof setInterval> | null,
     lastTick: 0,
-    sensorSpeedKmh: null as number | null,
   });
 
   const logEvent = useCallback((kind: RideEvent["kind"], text: string) => {
     setEvents((prev) => pushEvent(prev, { t: Date.now(), kind, text }));
-  }, []);
-
-  /** Recibe la velocidad del sensor de rueda Bluetooth (null al desconectar). */
-  const setSensorSpeed = useCallback((kmh: number | null) => {
-    engine.current.sensorSpeedKmh = kmh;
   }, []);
 
   /** Procesa un fix (GPS real o simulado) con el mismo pipeline. */
@@ -96,15 +89,13 @@ export function useRideEngine() {
       const e = engine.current;
       const dt = e.lastFix ? Math.min(10, Math.max(0.15, (fix.t - e.lastFix.t) / 1000)) : 1;
 
-      // 1) Velocidad: sensor de rueda (sin lag) si está conectado,
-      //    si no GPS (Doppler) → filtro de Kalman + micro-predicción.
-      //    El acelerómetro confirma saltos dudosos: si |a| dinámica
-      //    > 1.2 m/s² el teléfono realmente está acelerando/frenando
-      //    y el filtro acepta el salto; si no, lo amortigua (anti falsas alarmas).
-      const measuredKmh = e.sensorSpeedKmh ?? fix.speedKmh;
+      // 1) Velocidad: GPS (Doppler) → filtro de Kalman + micro-predicción.
+      //    Los sensores (Bluetooth y acelerómetro) se retiraron: el WebView
+      //    de Capacitor no entrega datos fiables de ellos; el GPS nativo a
+      //    1 Hz es la única fuente y basta para fiscalizar los 30 km/h.
+      const measuredKmh = fix.speedKmh;
       const vMeasured = measuredKmh / 3.6; // m/s
-      const hardConfirm = e.motionAccel.value > 1.2;
-      const vKf = e.kalman.update(vMeasured, dt, hardConfirm);
+      const vKf = e.kalman.update(vMeasured, dt);
       let accel = 0;
       if (e.prevSpeed !== null && dt > 0) accel = (vKf - e.prevSpeed) / dt;
       accel = Math.max(-3, Math.min(3, accel));
@@ -345,7 +336,6 @@ export function useRideEngine() {
       e.kalman.reset();
       e.altEma.reset();
       e.slopeEma.reset();
-      e.motionAccel.reset();
       e.lastFix = null;
       e.prevSpeed = null;
       e.distanceM = 0;
@@ -436,20 +426,6 @@ export function useRideEngine() {
     return () => document.removeEventListener("visibilitychange", onVis);
   }, [status]);
 
-  // Acelerómetro (devicemotion del WebView): |a| dinámica para confirmar
-  // aceleraciones reales y descartar saltos de GPS. Solo con ride activo.
-  useEffect(() => {
-    if (status !== "running" || typeof window === "undefined" || !("DeviceMotionEvent" in window)) return;
-    const onMotion = (ev: DeviceMotionEvent) => {
-      const a = ev.acceleration;
-      if (!a || (a.x == null && a.y == null && a.z == null)) return;
-      const mag = Math.hypot(a.x ?? 0, a.y ?? 0, a.z ?? 0);
-      engine.current.motionAccel.update(mag);
-    };
-    window.addEventListener("devicemotion", onMotion);
-    return () => window.removeEventListener("devicemotion", onMotion);
-  }, [status]);
-
   // --- GPS ambiental (app cargada, sin ride activo): publica la
   // posición del usuario apenas abre la app para que el mapa y la
   // navegación partan en TU ubicación y no en el centro del parque.
@@ -490,6 +466,6 @@ export function useRideEngine() {
     speedKmh, maxKmh, avgKmh, distanceKm, elapsedSec, gainM, slopePct,
     insidePark, speedState, overLimitSec, maxInParkKmh,
     events, track, position,
-    start, stop, setSensorSpeed,
+    start, stop,
   };
 }

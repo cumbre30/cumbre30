@@ -33,6 +33,10 @@ type OfflineUser = {
   bikeSize: string | null;
   bikeColor: string | null;
   createdAt: string;
+  /** ID estable de la cuenta Google (claim "sub") si la cuenta está vinculada. */
+  googleSub?: string;
+  /** Origen de la cuenta: contraseña local o inicio con Google. */
+  provider?: "local" | "google";
 };
 
 type OfflineSession = { email: string; expiresAt: number };
@@ -191,6 +195,69 @@ export async function offlineLogin(payload: { email?: string; password?: string 
   if (!ok) return "Correo o contraseña incorrectos.";
   setSession(email);
   return null;
+}
+
+// ---------- inicio de sesión con Google (offline) ----------
+
+/**
+ * Enlaza o crea la cuenta local a partir de la cuenta Google devuelta
+ * por el plugin nativo. No hay servidor: el idToken llegó directo del
+ * SDK de Google Play Services y solo guardamos sub/email/nombre.
+ *   1. Ya vinculada (googleSub) → entra directo.
+ *   2. Mismo correo registrado → se vincula a esa cuenta (mantiene km y logros).
+ *   3. Cuenta nueva → username derivado del correo, contraseña aleatoria no utilizable.
+ */
+export async function offlineGoogleSignIn(acct: { sub: string; email: string; name?: string }): Promise<string | null> {
+  const email = (acct.email ?? "").trim().toLowerCase();
+  const sub = (acct.sub ?? "").trim();
+  if (!sub) return "Google no devolvió el identificador de la cuenta.";
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return "Google no devolvió un correo válido.";
+
+  const users = readUsers();
+  let user = Object.values(users).find((u) => u.googleSub === sub) ?? null;
+  if (!user) {
+    const byEmail = users[email] ?? null;
+    if (byEmail) {
+      if (byEmail.googleSub && byEmail.googleSub !== sub) {
+        return "Ese correo ya está vinculado a otra cuenta de Google.";
+      }
+      byEmail.googleSub = sub;
+      byEmail.provider = "google";
+      user = byEmail;
+    } else {
+      user = {
+        id: `off-${randomHex(8)}`,
+        email,
+        username: uniqueUsernameFrom(email, users),
+        passwordHash: await hashPassword(randomHex(24)), // inutilizable a propósito
+        selectedPin: "clasico",
+        bikeBrand: null,
+        bikeType: null,
+        bikeModel: null,
+        bikeSize: null,
+        bikeColor: null,
+        createdAt: new Date().toISOString(),
+        googleSub: sub,
+        provider: "google",
+      };
+    }
+    users[user.email] = user;
+    writeJSON(USERS_KEY, users);
+  }
+  setSession(user.email);
+  return null;
+}
+
+/** Username único a partir del correo, respetando la regla [a-z0-9_.-]{3,20}. */
+function uniqueUsernameFrom(email: string, users: Record<string, OfflineUser>): string {
+  const taken = new Set(Object.values(users).map((u) => u.username));
+  let base = email.split("@")[0].toLowerCase().replace(/[^a-z0-9_.-]/g, "").slice(0, 14);
+  if (base.length < 3) base = `${base}0${randomHex(2)}`; // garantiza ≥ 3 caracteres
+  base = base.replace(/^[-.]+/, "") || "rider";
+  if (!taken.has(base)) return base;
+  let n = 2;
+  while (taken.has(`${base}${n}`) && n < 999) n++;
+  return `${base}${n}`.slice(0, 20);
 }
 
 export function offlineLogout(): void {

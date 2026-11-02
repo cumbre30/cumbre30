@@ -517,7 +517,7 @@ function NavCanvas(props: NavCanvasProps) {
     const anchorBottom = Math.round(h * (props.onRoute ? 0.3 : 0.34));
     const padding = { top: Math.max(0, Math.round(h) - anchorBottom * 2), bottom: 0, left: 0, right: 0 };
 
-    // rumbo: sensor de curso → dirección de la ruta → mantener actual
+    // rumbo: curso del GPS → dirección de la ruta → mantener actual
     let b: number;
     if (props.heading !== null) {
       b = props.heading;
