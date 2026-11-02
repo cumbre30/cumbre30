@@ -33,6 +33,9 @@ export function HistoryTab({
   }, [refreshKey]);
 
   const exportPdf = async (r: RideSummary) => {
+    // Los viajes demo (simulación) no emiten constancia: el registro
+    // debe corresponder a un trayecto real hecho con GPS.
+    if (r.source === "sim") return;
     setPdfBusyId(r.id);
     setPdfMsg(null);
     try {
@@ -65,9 +68,9 @@ export function HistoryTab({
       <Card className="bg-card/80 border-border p-4 text-sm text-muted-foreground leading-relaxed">
         Registro local de tus viajes por el cerro. Si recibes un parte por exceso de velocidad,
         esta bitácora (velocidad máxima dentro del parque y tiempo sobre el límite) sirve como
-        respaldo de tu comportamiento real: cada viaje se puede descargar como{" "}
+        respaldo de tu comportamiento real: cada viaje hecho con GPS se puede descargar como{" "}
         <span className="text-foreground">constancia PDF con redacción formal y código de verificación</span>{" "}
-        para presentarla ante Parquemet o la autoridad.
+        para presentarla ante Parquemet o la autoridad. Los viajes de demostración no emiten constancia.
       </Card>
 
       {rides.length === 0 ? (
@@ -91,13 +94,18 @@ export function HistoryTab({
                       <Button
                         variant="outline"
                         size="sm"
-                        disabled={pdfBusyId === r.id}
+                        disabled={pdfBusyId === r.id || r.source === "sim"}
                         onClick={() => void exportPdf(r)}
-                        className="h-7 border-emerald-800/60 px-2 text-xs text-emerald-600 dark:text-emerald-400 hover:bg-emerald-950 hover:text-emerald-300"
-                        aria-label={`Descargar constancia PDF del viaje del ${fmtDate(r.dateISO)}`}
+                        title={r.source === "sim" ? "Los viajes de demostración no emiten constancia" : "Descargar constancia PDF del viaje"}
+                        className="h-7 border-emerald-800/60 px-2 text-xs text-emerald-600 dark:text-emerald-400 hover:bg-emerald-950 hover:text-emerald-300 disabled:opacity-40"
+                        aria-label={
+                          r.source === "sim"
+                            ? "Viaje de demostración: no emite constancia"
+                            : `Descargar constancia PDF del viaje del ${fmtDate(r.dateISO)}`
+                        }
                       >
                         <FileDown className="h-3.5 w-3.5 mr-1" />
-                        {pdfBusyId === r.id ? "Generando…" : "Constancia PDF"}
+                        {r.source === "sim" ? "Sin constancia" : pdfBusyId === r.id ? "Generando…" : "Constancia PDF"}
                       </Button>
                     </span>
                   </div>
@@ -123,6 +131,7 @@ export function HistoryTab({
                   </div>
                   <div className="mt-2 text-[11px] text-muted-foreground">
                     Máx en parque: {r.maxInParkKmh !== null ? `${r.maxInParkKmh.toFixed(1)} km/h` : "no ingresó"} · Promedio: {r.avgKmh.toFixed(1)} km/h · Desnivel: +{Math.round(r.gainM)} m
+                    {r.source === "sim" && " · Viaje de demostración: no emite constancia"}
                   </div>
                 </Card>
               </li>

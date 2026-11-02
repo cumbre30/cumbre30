@@ -20,17 +20,18 @@ import {
   Trash2,
   KeyRound,
   Smartphone,
+  PenLine,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { authAction, googleAuthAction, logout, useMe } from "@/hooks/useMe";
+import { authAction, googleAuthAction, changeUsername, logout, useMe } from "@/hooks/useMe";
 import { isOfflineMode } from "@/lib/offlineAuth";
 import { nativeGoogleSignIn, nativeGoogleSignOut } from "@/lib/googleAuth";
 import { Capacitor } from "@capacitor/core";
 import { shareOrDownloadFile } from "@/lib/shareFile";
-import { ThemeSetting } from "@/components/ThemeToggle";
+import { usernameLocked } from "@/lib/username";
 import { PINS, DEFAULT_PIN, type PinId } from "@/lib/pins";
 import { APP_VERSION, APP_VERSION_CODE, APK_SIZE_MB } from "@/lib/appVersion";
 
@@ -154,6 +155,9 @@ export default function ProfileTab() {
   const [friendName, setFriendName] = useState("");
   const [friendError, setFriendError] = useState<string | null>(null);
   const [shareMsg, setShareMsg] = useState<string | null>(null);
+  const [newUsername, setNewUsername] = useState("");
+  const [userBusy, setUserBusy] = useState(false);
+  const [userMsg, setUserMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
   const submit = async () => {
     setBusy(true);
@@ -208,6 +212,20 @@ export default function ProfileTab() {
     } catch {
       // sin conexión
     }
+  };
+
+  const submitUsername = async () => {
+    setUserBusy(true);
+    setUserMsg(null);
+    const err = await changeUsername(newUsername);
+    setUserBusy(false);
+    if (err) {
+      setUserMsg({ ok: false, text: err });
+    } else {
+      setUserMsg({ ok: true, text: `¡Listo! Ahora eres @${newUsername.trim().toLowerCase()}.` });
+      setNewUsername("");
+    }
+    setTimeout(() => setUserMsg(null), 8000);
   };
 
   const share = useCallback(async () => {
@@ -318,9 +336,6 @@ export default function ProfileTab() {
             con el mismo correo, se enlaza y conservas tus km, logros y pines.
           </p>
         </div>
-
-        {/* Apariencia: modo oscuro / claro (también sin sesión) */}
-        <ThemeSetting />
       </div>
     );
   }
@@ -331,6 +346,7 @@ export default function ProfileTab() {
   }
 
   const pin = PINS[(me.user.selectedPin as PinId) ?? DEFAULT_PIN] ?? PINS[DEFAULT_PIN];
+  const uLock = usernameLocked(me.user.usernameChangedAt);
 
   return (
     <div className="flex flex-col gap-4">
@@ -366,8 +382,57 @@ export default function ProfileTab() {
         </div>
       </Card>
 
-      {/* Apariencia: modo oscuro / claro */}
-      <ThemeSetting />
+      {/* Cambiar nombre de usuario (1 vez cada 30 días) */}
+      <Card className="bg-card/80 border-border p-4">
+        <div className="flex items-start gap-3 mb-3">
+          <PenLine className="h-5 w-5 text-emerald-600 dark:text-emerald-400 mt-0.5 shrink-0" />
+          <div className="text-sm text-muted-foreground">
+            <p className="font-medium text-foreground">Cambiar nombre de usuario</p>
+            <p className="mt-1 leading-relaxed">
+              Hoy eres <span className="font-semibold text-foreground">@{me.user.username}</span>. Puedes cambiarlo
+              una vez cada 30 días. Tus kilómetros, logros y pines están asociados a tu correo
+              ({me.user.email}), así que no pierdes nada al cambiarlo.
+            </p>
+          </div>
+        </div>
+        {uLock.locked && uLock.nextAt ? (
+          <p className="rounded-lg border border-border bg-background/60 px-3 py-2 text-xs text-muted-foreground">
+            Ya cambiaste tu usuario recientemente. Podrás cambiarlo de nuevo el{" "}
+            <span className="font-medium text-foreground/90">{uLock.nextAt.toLocaleDateString("es-CL", { day: "numeric", month: "long", year: "numeric" })}</span>.
+          </p>
+        ) : (
+          <div className="flex flex-col gap-2">
+            <div className="flex gap-2">
+              <Input
+                value={newUsername}
+                onChange={(e) => setNewUsername(e.target.value.toLowerCase())}
+                placeholder={`nuevo nombre (hoy: ${me.user.username})`}
+                aria-label="Nuevo nombre de usuario"
+                className="bg-card border-border flex-1"
+                maxLength={20}
+              />
+              <Button
+                onClick={submitUsername}
+                disabled={userBusy || !newUsername.trim() || newUsername.trim() === me.user.username}
+                className="bg-emerald-600 hover:bg-emerald-500 text-zinc-950 font-semibold shrink-0"
+              >
+                {userBusy ? "Cambiando…" : "Cambiar"}
+              </Button>
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              3-20 caracteres: letras, números, punto, guion o guion bajo. Así te verán tus amigos.
+            </p>
+          </div>
+        )}
+        {userMsg && (
+          <p
+            className={`mt-2 text-xs ${userMsg.ok ? "text-emerald-700 dark:text-emerald-300" : "text-red-600 dark:text-red-400"}`}
+            role="status"
+          >
+            {userMsg.text}
+          </p>
+        )}
+      </Card>
 
       {/* Compartir para Instagram */}
       <Card className="bg-card/80 border-border p-4">

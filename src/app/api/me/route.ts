@@ -8,6 +8,7 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth";
+import { validateUsername, usernameLocked } from "@/lib/username";
 import { isPinId, type PinId } from "@/lib/pins";
 import { ACHIEVEMENT_BY_CODE, normalizeCodes, statsFromRides } from "@/lib/pins";
 
@@ -93,13 +94,37 @@ export async function PUT(req: Request) {
   if (!me) return NextResponse.json({ error: "Sin sesión" }, { status: 401 });
 
   const body = (await req.json()) as Record<string, unknown>;
-  const data: Record<string, string | null> = {};
+  const data: Record<string, string | Date | null> = {};
 
   // Datos de la bicicleta (campo presente → actualizar; "" → limpiar)
   for (const k of ["bikeBrand", "bikeType", "bikeModel", "bikeSize", "bikeColor"] as const) {
     if (k in body) {
       const s = typeof body[k] === "string" ? (body[k] as string).trim().slice(0, 40) : "";
       data[k] = s.length ? s : null;
+    }
+  }
+
+  // Nombre de usuario: se puede cambiar solo 1 vez cada 30 días. Las
+  // estadísticas, logros y pines quedan asociados al correo (la clave de
+  // la cuenta es el id), así que el cambio no afecta ningún dato.
+  if (typeof body.username === "string") {
+    const username = body.username.trim().toLowerCase();
+    const formatErr = validateUsername(username);
+    if (formatErr) return NextResponse.json({ error: formatErr }, { status: 400 });
+    if (username !== me.username) {
+      const { locked, nextAt } = usernameLocked(me.usernameChangedAt);
+      if (locked && nextAt) {
+        return NextResponse.json(
+          { error: `Ya cambiaste tu usuario recientemente. Podrás cambiarlo de nuevo el ${nextAt.toLocaleDateString("es-CL")}.` },
+          { status: 400 }
+        );
+      }
+      const dup = await db.user.findUnique({ where: { username }, select: { id: true } });
+      if (dup && dup.id !== me.id) {
+        return NextResponse.json({ error: "Ese usuario ya está en uso por otra cuenta." }, { status: 409 });
+      }
+      data.username = username;
+      data.usernameChangedAt = new Date();
     }
   }
 

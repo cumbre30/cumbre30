@@ -33,21 +33,35 @@ Cuando termine, refresca https://github.com/TU-USUARIO/cumbre30 y verás el proy
 
 ---
 
-## Paso 3 — Subir el APK v1.4.3 a "Releases" (opcional pero recomendado)
+## Paso 3 — Subir el APK v1.4.4 a "Releases" (opcional pero recomendado)
 
 GitHub da gratis hasta 2 GB por release para binarios — es el lugar correcto para los APKs (mejor que dentro del código):
 
 1. En tu repo: **Releases → Create a new release** (o https://github.com/TU-USUARIO/cumbre30/releases/new).
-2. **Tag**: escribe `v1.4.3` y elige "Create new tag on publish".
-3. **Title**: `Cumbre30 v1.4.3 (build 18)`.
-4. Arrastra el archivo `cumbre30-v1.4.3-code18.apk` a la zona de adjuntos.
+2. **Tag**: escribe `v1.4.4` y elige "Create new tag on publish".
+3. **Title**: `Cumbre30 v1.4.4 (build 19)`.
+4. Arrastra el archivo `cumbre30-v1.4.4-code19.apk` a la zona de adjuntos.
 5. **Publish release** ✅
+
+### Novedades v1.4.4 (build 19)
+
+- 📄 **Constancia PDF** de cada viaje con GPS (Historial → "Constancia PDF"): redacción formal
+  para respaldo ante una infracción, con SHA-256 de verificación. 100% offline.
+  Los viajes **demo** no emiten constancia (botón deshabilitado).
+- 📱 **"Generar y compartir resumen"** funciona en Android: abre el panel nativo de compartir
+  (Instagram, WhatsApp, correo…) o guarda la imagen en descargas.
+- 🌗 **Modo oscuro / claro**: botón sol/luna en el encabezado, la preferencia queda guardada.
+  Texto blanco en oscuro / negro en claro en toda la app (ficha médica y datos de bici incluidos).
+- ✏️ **Cambiar nombre de usuario** (Perfil): permitido 1 vez cada 30 días. Los km, logros y
+  pines quedan asociados al correo, así que no se pierde nada al cambiarlo.
+- 🔐 Firma estable del APK (SHA-1 `D6:D0:BB:2A:…`): instala encima de la v1.4.3 sin borrar datos
+  y el inicio con Google sigue funcionando.
 
 Así cada versión futura del APK queda descargable y ordenada.
 
 ---
 
-## Paso 4 — Futuras actualizaciones (cuando saques v1.4.4, etc.)
+## Paso 4 — Futuras actualizaciones (cuando saques v1.4.5, etc.)
 
 En la carpeta del proyecto:
 

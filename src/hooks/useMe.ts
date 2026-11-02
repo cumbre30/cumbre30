@@ -5,12 +5,14 @@
 // En el APK (export estático) todo va por offlineAuth (localStorage).
 
 import { useSyncExternalStore } from "react";
-import { isOfflineMode, offlineGoogleSignIn, offlineLogin, offlineLogout, offlineMe, offlineRegister } from "@/lib/offlineAuth";
+import { isOfflineMode, offlineChangeUsername, offlineGoogleSignIn, offlineLogin, offlineLogout, offlineMe, offlineRegister } from "@/lib/offlineAuth";
 
 export type MeUser = {
   id: string;
   email: string;
   username: string;
+  /** Última vez que cambió su nombre de usuario (regla: 1 vez cada 30 días). */
+  usernameChangedAt?: string | null;
   selectedPin: string;
   bikeBrand: string | null;
   bikeType: string | null;
@@ -127,6 +129,29 @@ export async function googleAuthAction(acct: { sub: string; email: string; name?
     return null;
   } catch {
     return "No pudimos completar el inicio con Google.";
+  }
+}
+
+/** Cambia el nombre de usuario (1 vez cada 30 días). Devuelve error o null. */
+export async function changeUsername(newUsername: string): Promise<string | null> {
+  try {
+    if (isOfflineMode()) {
+      const err = await offlineChangeUsername(newUsername);
+      if (err) return err;
+      await refreshMe();
+      return null;
+    }
+    const r = await fetch("/api/me", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username: newUsername }),
+    });
+    const d = (await r.json().catch(() => ({}))) as { error?: string };
+    if (!r.ok) return d.error ?? "No pudimos cambiar el nombre de usuario.";
+    await refreshMe();
+    return null;
+  } catch {
+    return "Sin conexión. Intenta de nuevo.";
   }
 }
 

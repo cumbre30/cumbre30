@@ -10,6 +10,7 @@
 
 import { historyStore, type RideSummary } from "@/lib/history";
 import { ACHIEVEMENT_BY_CODE, evaluateAchievements, isPinId, normalizeCodes, statsFromRides, type PinId } from "@/lib/pins";
+import { validateUsername, usernameLocked } from "@/lib/username";
 import type { MeData, MeUser } from "@/hooks/useMe";
 
 const USERS_KEY = "cumbre30-offline-users-v1";
@@ -33,6 +34,8 @@ type OfflineUser = {
   bikeSize: string | null;
   bikeColor: string | null;
   createdAt: string;
+  /** Última vez que el usuario cambió su nombre de usuario (regla 30 días). */
+  usernameChangedAt?: string;
   /** ID estable de la cuenta Google (claim "sub") si la cuenta está vinculada. */
   googleSub?: string;
   /** Origen de la cuenta: contraseña local o inicio con Google. */
@@ -265,6 +268,39 @@ export function offlineLogout(): void {
   localStorage.removeItem(SESSION_KEY);
 }
 
+// ---------- cambio de nombre de usuario (1 vez cada 30 días) ----------
+
+/**
+ * Cambia el nombre de usuario de la cuenta actual. Los kilómetros,
+ * logros y pines quedan asociados al correo (clave de la cuenta),
+ * así que el cambio no mueve ninguna estadística.
+ * Devuelve el mensaje de error o null si salió bien.
+ */
+export async function offlineChangeUsername(newUsername: string): Promise<string | null> {
+  const user = currentUser();
+  if (!user) return "Inicia sesión para cambiar tu nombre de usuario.";
+  const username = newUsername.trim().toLowerCase();
+  const formatErr = validateUsername(username);
+  if (formatErr) return formatErr;
+  if (username === user.username) return "Ese ya es tu nombre de usuario actual.";
+
+  const { locked, nextAt } = usernameLocked(user.usernameChangedAt);
+  if (locked && nextAt) {
+    return `Ya cambiaste tu usuario recientemente. Podrás cambiarlo de nuevo el ${nextAt.toLocaleDateString("es-CL")}.`;
+  }
+
+  const users = readUsers();
+  if (Object.values(users).some((u) => u.email !== user.email && u.username === username)) {
+    return "Ese usuario ya está en uso por otra cuenta.";
+  }
+
+  user.username = username;
+  user.usernameChangedAt = new Date().toISOString();
+  users[user.email] = user;
+  writeJSON(USERS_KEY, users);
+  return null;
+}
+
 // ---------- perfil (PUT /api/me offline) ----------
 
 export function offlineUpdateProfile(patch: Record<string, unknown>): { ok: boolean } {
@@ -311,6 +347,7 @@ function toMeUser(u: OfflineUser): MeUser {
     id: u.id,
     email: u.email,
     username: u.username,
+    usernameChangedAt: u.usernameChangedAt ?? null,
     selectedPin: u.selectedPin,
     bikeBrand: u.bikeBrand,
     bikeType: u.bikeType,

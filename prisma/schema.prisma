@@ -15,6 +15,9 @@ model User {
   id           String   @id @default(cuid())
   email        String   @unique
   username     String   @unique
+  // Regla: el nombre de usuario se puede cambiar solo 1 vez cada 30 días.
+  // Las estadísticas quedan asociadas al correo/id, no al nombre.
+  usernameChangedAt DateTime?
   passwordHash String
   selectedPin  String   @default("clasico")
   // Datos de la bicicleta

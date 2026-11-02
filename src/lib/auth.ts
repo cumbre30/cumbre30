@@ -36,6 +36,7 @@ export type SessionUser = {
   id: string;
   email: string;
   username: string;
+  usernameChangedAt: Date | null;
   selectedPin: string;
   bikeBrand: string | null;
   bikeType: string | null;
@@ -64,6 +65,7 @@ export async function getSessionUser(): Promise<SessionUser | null> {
       id: u.id,
       email: u.email,
       username: u.username,
+      usernameChangedAt: u.usernameChangedAt,
       selectedPin: u.selectedPin,
       bikeBrand: u.bikeBrand,
       bikeType: u.bikeType,
