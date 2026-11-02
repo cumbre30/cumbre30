@@ -1,65 +1,69 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+# ============================================
+# Cumbre30 — .gitignore
+# Lo que NO se sube: dependencias, builds,
+# bases de datos locales, APKs y archivos del
+# entorno de trabajo.
+# ============================================
 
-# dependencies
-node_modules
+# --- Dependencias ---
+node_modules/
 /.pnp
 .pnp.*
-.yarn/*
-!.yarn/patches
-!.yarn/plugins
-!.yarn/releases
-!.yarn/versions
 
-# testing
-/coverage
-
-# next.js
+# --- Next.js ---
 /.next/
+/build-static/
 /out/
+next-env.d.ts
 
-# production
-/build
+# --- Entorno y secretos ---
+.env
+.env.*
+!.env.example
 
-# misc
-.DS_Store
-*.pem
+# --- Bases de datos locales (se crean solas) ---
+db/*.db
+db/*.db-journal
+*.sqlite
 
-# debug
+# --- APKs y empaquetado nativo ---
+*.apk
+/android/app/build/
+/android/app/src/main/assets/public/
+/android/.gradle/
+/android/build/
+/android/local.properties
+/android/.idea/
+/android/captures/
+
+# --- Herramientas del entorno de trabajo (no son del proyecto) ---
+/tools/
+/skills/
+/examples/
+/mini-services/
+/tool-results/
+/upload/
+/download/
+/.claude/
+/.z-ai-config
+
+# --- Capturas y archivos de trabajo del asistente ---
+/scripts/shot*.png
+/scripts/*.log
+
+# --- Logs y basura ---
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
-.env*
+# --- Sistema operativo ---
+.DS_Store
+Thumbs.db
 
-# vercel
-.vercel
-
-
-# typescript
+# --- Otros ---
+/coverage/
 *.tsbuildinfo
-next-env.d.ts
-local-*
-.claude
-.z-ai-config
-*.log
-dev.log
-dev.out.log
-test
-prompt
-
-server.log
-# Skills directory
-/skills/
-# ---- Empaquetado nativo (Capacitor/APK) ----
-/build-static/
-/android/app/build/
-/android/.gradle/
-/android/build/
-/android/local.properties
-/android/app/src/main/assets/public/
-/tools/
-*.apk
-!apk-store/
-!apk-store/*.apk
+.vercel
+*.pem

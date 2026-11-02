@@ -1,0 +1,72 @@
+# 🚴 Cumbre30
+
+**Ciclocomputador con límite de 30 km/h para el Cerro San Cristóbal (Parquemet, Santiago de Chile).**
+
+App Android nativa (APK) + vista web, construida con Next.js y Capacitor. Traza rutas reales por calle y ciclovía hasta los destinos del parque (Cumbre, Zoológico, Piscina Antilén, accesos…), mide velocidad/desnivel/tiempo, avisa por voz y pitidos cuando te pasas de 30 km/h dentro del parque, y guarda tu historial, retos y pines **sin necesidad de servidor** (todo queda en el teléfono).
+
+## ✨ Funciones
+
+- **Rutas por calle**: arranque siempre en tu ubicación GPS (sin líneas que crucen cuadras), preferencia por ciclovías, instrucciones voz + turnos, funcionando offline con mapa vectorial propio (grafo OSM de ~58k aristas del sector).
+- **Límite 30 km/h**: geocercas del parque, alertas sonoras/voz, resumen de excesos por ride.
+- **Sensores Bluetooth**: sensor de velocidad de rueda y pulso cardíaco (HRM) en Android.
+- **Cuenta local sin servidor**: registro/login guardado en el teléfono (PBKDF2 100k), perfil de bici, QR de emergencia, logros y pines evaluados localmente.
+- **Reportes de incidencias** en el mapa (baches, perros, obstáculos) con modo local si no hay conexión.
+- **Descarga de la app** desde su propio botón de Perfil (endpoint `/api/apk`, versión única en `src/lib/appVersion.ts`).
+
+## 🗂️ Estructura
+
+```
+src/
+  app/            Páginas y rutas API (Next.js App Router)
+  components/     UI (mapa, navegar, historial, retos, perfil, wallet…)
+  hooks/          useMe (sesión), useIncidentFeed
+  lib/            routing (grafo+A*), routingService (OSRM/Overpass),
+                  offlineAuth (login sin servidor), appVersion, pins, db
+android/          Proyecto Capacitor/Android (appId cl.cumbre30.app)
+public/           Mapa vectorial (red-ciclista.json), iconos, manifest
+scripts/          export-web.sh (APK), tests del enrutador, utilidades
+prisma/           Esquema de base de datos (solo se usa en modo web/servidor)
+```
+
+## 🛠️ Requisitos
+
+| Herramienta | Versión |
+|---|---|
+| Node.js | 20+ (o Bun) |
+| JDK | 21 (Temurin recomendado) |
+| Android SDK | platform 35/36, build-tools 35/36 |
+| Capacitor CLI | `npm i -g @capacitor/cli` |
+
+## 💻 Desarrollo web
+
+```bash
+npm install
+npx prisma generate && npx prisma db push   # crea db/custom.db local
+npm run dev                                  # http://localhost:3000
+```
+
+## 📦 Compilar el APK
+
+```bash
+# 1) Export estático con login offline (excluye las rutas API)
+bash scripts/export-web.sh
+
+# 2) Copiar la web al proyecto Android
+npx cap sync android
+
+# 3) Compilar
+cd android && ./gradlew assembleDebug
+# APK → android/app/build/outputs/apk/debug/app-debug.apk
+```
+
+Versión y nombre de archivo se controlan en **`src/lib/appVersion.ts`** (fuente única) junto con `android/app/build.gradle` (`versionCode`/`versionName`).
+
+## 🔐 Privacidad
+
+- Sin analytics, sin trackers, sin cuentas en la nube: los datos del ciclista viven en el dispositivo.
+- La base de datos del modo web (`db/custom.db`) es local y **no se sube al repo**.
+- El modo servidor (login con BD) es opcional y solo se usa si despliegas la web.
+
+## 📄 Licencia
+
+Uso personal del autor. Los datos de mapa provienen de © OpenStreetMap contributors.
