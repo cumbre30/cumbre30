@@ -33,15 +33,22 @@ Cuando termine, refresca https://github.com/TU-USUARIO/cumbre30 y verás el proy
 
 ---
 
-## Paso 3 — Subir el APK v1.4.4 a "Releases" (opcional pero recomendado)
+## Paso 3 — Subir el APK v1.4.5 a "Releases" (opcional pero recomendado)
 
 GitHub da gratis hasta 2 GB por release para binarios — es el lugar correcto para los APKs (mejor que dentro del código):
 
 1. En tu repo: **Releases → Create a new release** (o https://github.com/TU-USUARIO/cumbre30/releases/new).
-2. **Tag**: escribe `v1.4.4` y elige "Create new tag on publish".
-3. **Title**: `Cumbre30 v1.4.4 (build 19)`.
-4. Arrastra el archivo `cumbre30-v1.4.4-code19.apk` a la zona de adjuntos.
+2. **Tag**: escribe `v1.4.5` y elige "Create new tag on publish".
+3. **Title**: `Cumbre30 v1.4.5 (build 20)`.
+4. Arrastra el archivo `cumbre30-v1.4.5-code20.apk` a la zona de adjuntos.
 5. **Publish release** ✅
+
+### Novedades v1.4.5 (build 20)
+
+- 📲 **Pantalla completa (modo inmersivo)**: la barra de notificaciones ya no tapa
+  las opciones del banner superior. Se oculta sola al abrir la app; si necesitas
+  ver la hora o una notificación, desliza desde el borde superior y reaparece
+  un momento, luego se esconde otra vez.
 
 ### Novedades v1.4.4 (build 19)
 

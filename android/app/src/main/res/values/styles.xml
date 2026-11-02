@@ -13,10 +13,14 @@
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
         <item name="android:background">@null</item>
+        <!-- Pantalla completa: sin barra de notificaciones desde el arranque
+             (en Android 15+ lo refuerza MainActivity con WindowInsetsController). -->
+        <item name="android:windowFullscreen">true</item>
     </style>
 
 
     <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
         <item name="android:background">@drawable/splash</item>
+        <item name="android:windowFullscreen">true</item>
     </style>
 </resources>
