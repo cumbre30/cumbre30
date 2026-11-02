@@ -21,6 +21,10 @@ import {
   KeyRound,
   Smartphone,
   PenLine,
+  Crown,
+  HeartHandshake,
+  Mountain,
+  Check,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -34,6 +38,18 @@ import { shareOrDownloadFile } from "@/lib/shareFile";
 import { usernameLocked } from "@/lib/username";
 import { PINS, DEFAULT_PIN, type PinId } from "@/lib/pins";
 import { APP_VERSION, APP_VERSION_CODE, APK_SIZE_MB } from "@/lib/appVersion";
+import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
+import { useProLicense } from "@/lib/proLicense";
+import {
+  PRO_BENEFITS,
+  PRO_PAY_URL,
+  PRO_PRICE_LABEL,
+  DONATE_OPTIONS,
+  CONTACT_WHATSAPP,
+  CONTACT_EMAIL,
+  openExternal,
+} from "@/lib/proConfig";
 
 function StatBox({ label, value, unit }: { label: string; value: string | number; unit?: string }) {
   return (
@@ -159,6 +175,23 @@ export default function ProfileTab() {
   const [userBusy, setUserBusy] = useState(false);
   const [userMsg, setUserMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
+  // Cumbre30 Pro
+  const { pro, activate, deactivate } = useProLicense();
+  const [showActivate, setShowActivate] = useState(false);
+  const [proEmail, setProEmail] = useState("");
+  const [proCode, setProCode] = useState("");
+  const [proBusy, setProBusy] = useState(false);
+  const [proMsg, setProMsg] = useState<{ ok: boolean; text: string } | null>(null);
+
+  // Contacto parques (prototipo white-label)
+  const [showContact, setShowContact] = useState(false);
+  const [cName, setCName] = useState("");
+  const [cPark, setCPark] = useState("");
+  const [cMail, setCMail] = useState("");
+  const [cPhone, setCPhone] = useState("");
+  const [cText, setCText] = useState("");
+  const [cMsg, setCMsg] = useState<{ ok: boolean; text: string } | null>(null);
+
   const submit = async () => {
     setBusy(true);
     setError(null);
@@ -226,6 +259,55 @@ export default function ProfileTab() {
       setNewUsername("");
     }
     setTimeout(() => setUserMsg(null), 8000);
+  };
+
+  // ----- Cumbre30 Pro: activación por código (offline) -----
+  const activatePro = async () => {
+    setProBusy(true);
+    setProMsg(null);
+    const res = await activate(proEmail, proCode);
+    setProBusy(false);
+    setProMsg(
+      res.ok
+        ? { ok: true, text: "¡Cumbre30 Pro activado! Gracias por apoyar el proyecto." }
+        : { ok: false, text: res.error ?? "No pudimos validar el código." }
+    );
+    if (res.ok) {
+      setProCode("");
+      setShowActivate(false);
+    }
+    setTimeout(() => setProMsg(null), 9000);
+  };
+
+  // ----- Contacto parques: arma el mensaje y lo entrega por WhatsApp/correo -----
+  const contactOk = Boolean(cName.trim() && cPark.trim() && /.+@.+\..+/.test(cMail));
+  const buildContactMsg = (): string => {
+    const lines = [
+      "Hola Cumbre30, me interesa un prototipo para otro parque.",
+      "",
+      `Nombre: ${cName.trim()}`,
+      `Parque / institución: ${cPark.trim()}`,
+      `Correo: ${cMail.trim()}`,
+    ];
+    if (cPhone.trim()) lines.push(`Teléfono: ${cPhone.trim()}`);
+    if (cText.trim()) lines.push("", `Mensaje: ${cText.trim()}`);
+    return lines.join("\n");
+  };
+
+  const sendWhatsApp = (): void => {
+    if (!CONTACT_WHATSAPP) return;
+    void openExternal(`https://wa.me/${CONTACT_WHATSAPP}?text=${encodeURIComponent(buildContactMsg())}`);
+    setCMsg({ ok: true, text: "Abrimos WhatsApp con el mensaje listo — solo envíalo." });
+    setTimeout(() => setCMsg(null), 9000);
+  };
+
+  const sendMail = (): void => {
+    if (!CONTACT_EMAIL) return;
+    window.location.href = `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(
+      "Prototipo Cumbre30 para otro parque",
+    )}&body=${encodeURIComponent(buildContactMsg())}`;
+    setCMsg({ ok: true, text: "Abrimos tu correo con el mensaje listo — solo envíalo." });
+    setTimeout(() => setCMsg(null), 9000);
   };
 
   const share = useCallback(async () => {
@@ -434,6 +516,150 @@ export default function ProfileTab() {
         )}
       </Card>
 
+      {/* Cumbre30 Pro */}
+      <Card className="bg-card/80 border-border p-4">
+        <div className="flex items-start gap-3">
+          <Crown className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+          <div className="text-sm flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <p className="font-medium text-foreground">Cumbre30 Pro</p>
+              {pro.active && (
+                <Badge className="border border-amber-500/40 bg-amber-500/15 text-amber-700 dark:text-amber-300">
+                  PRO ACTIVO
+                </Badge>
+              )}
+            </div>
+            {pro.active ? (
+              <>
+                <p className="mt-1.5 leading-relaxed text-muted-foreground">
+                  Activo con <span className="font-medium text-foreground">{pro.email}</span>. ¡Gracias por apoyar
+                  el proyecto! Tienes constancias PDF ilimitadas y export GPX en cada viaje con GPS.
+                </p>
+                <button
+                  onClick={() => {
+                    deactivate();
+                    setProMsg({ ok: true, text: "Licencia quitada de este teléfono." });
+                    setTimeout(() => setProMsg(null), 6000);
+                  }}
+                  className="mt-2 text-[11px] text-muted-foreground underline hover:text-foreground"
+                >
+                  Quitar licencia de este teléfono
+                </button>
+              </>
+            ) : (
+              <>
+                <p className="mt-1 leading-relaxed text-muted-foreground">Todo lo de siempre, más herramientas de ciclista:</p>
+                <ul className="mt-2 space-y-1.5">
+                  {PRO_BENEFITS.map((b) => (
+                    <li key={b} className="flex items-start gap-2 text-muted-foreground">
+                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+                      <span>{b}</span>
+                    </li>
+                  ))}
+                </ul>
+                <p className="mt-3 text-xs text-muted-foreground">
+                  Pago único de <span className="font-semibold text-foreground">{PRO_PRICE_LABEL}</span>. Sin suscripciones: se activa con un código que te llega después de pagar.
+                </p>
+                <div className="mt-3 flex gap-2">
+                  <Button
+                    disabled={!PRO_PAY_URL}
+                    onClick={() => void openExternal(PRO_PAY_URL)}
+                    className="h-10 flex-1 bg-amber-500 font-bold text-zinc-950 hover:bg-amber-400"
+                  >
+                    <Crown className="mr-2 h-4 w-4" /> Comprar Pro
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setShowActivate((v) => !v);
+                      if (!proEmail && me) setProEmail(me.user.email);
+                    }}
+                    className="h-10 border-border text-muted-foreground"
+                  >
+                    Ya pagué
+                  </Button>
+                </div>
+                {!PRO_PAY_URL && (
+                  <p className="mt-1.5 text-[11px] text-muted-foreground">
+                    El enlace de pago se está configurando. Mientras tanto escríbenos con el formulario de más abajo.
+                  </p>
+                )}
+                {showActivate && (
+                  <div className="mt-3 grid gap-2">
+                    <Input
+                      type="email"
+                      placeholder="correo con el que pagaste"
+                      aria-label="Correo con el que pagaste"
+                      value={proEmail}
+                      onChange={(e) => setProEmail(e.target.value)}
+                      className="border-border bg-card"
+                    />
+                    <Input
+                      placeholder="código C30P-XXXX-XXXX-XXXX-XXXX"
+                      aria-label="Código de licencia"
+                      value={proCode}
+                      onChange={(e) => setProCode(e.target.value.toUpperCase())}
+                      className="border-border bg-card font-mono"
+                    />
+                    <Button
+                      onClick={activatePro}
+                      disabled={proBusy || !proEmail || !proCode}
+                      className="h-10 bg-emerald-600 font-semibold text-zinc-950 hover:bg-emerald-500"
+                    >
+                      {proBusy ? "Validando…" : "Activar Pro"}
+                    </Button>
+                    <p className="text-[11px] text-muted-foreground">
+                      Se valida sin internet y queda guardado en este teléfono.
+                    </p>
+                  </div>
+                )}
+              </>
+            )}
+            {proMsg && (
+              <p
+                className={`mt-2 text-xs ${proMsg.ok ? "text-emerald-700 dark:text-emerald-300" : "text-red-600 dark:text-red-400"}`}
+                role="status"
+              >
+                {proMsg.text}
+              </p>
+            )}
+          </div>
+        </div>
+      </Card>
+
+      {/* Aportes voluntarios (Mercado Pago) */}
+      <Card className="bg-card/80 border-border p-4">
+        <div className="flex items-start gap-3">
+          <HeartHandshake className="mt-0.5 h-5 w-5 shrink-0 text-pink-600 dark:text-pink-400" />
+          <div className="text-sm flex-1">
+            <p className="font-medium text-foreground">Apoya el proyecto</p>
+            <p className="mt-1 leading-relaxed text-muted-foreground">
+              Cumbre30 es gratis, sin publicidad y hecha en Chile. Tu aporte financia los mapas, los avisos
+              de voz y las próximas funciones. ¡Cualquier monto ayuda!
+            </p>
+            <div className="mt-3 flex gap-2">
+              {DONATE_OPTIONS.map((o) => (
+                <Button
+                  key={o.label}
+                  variant="outline"
+                  disabled={!o.url}
+                  onClick={() => void openExternal(o.url)}
+                  className="h-10 flex-1 border-border text-foreground"
+                >
+                  {o.label}
+                </Button>
+              ))}
+            </div>
+            {DONATE_OPTIONS.every((o) => !o.url) && (
+              <p className="mt-1.5 text-[11px] text-muted-foreground">
+                El link de Mercado Pago se está configurando — estará disponible en breve.
+              </p>
+            )}
+            <p className="mt-1.5 text-[11px] text-muted-foreground">Pago seguro vía Mercado Pago.</p>
+          </div>
+        </div>
+      </Card>
+
       {/* Compartir para Instagram */}
       <Card className="bg-card/80 border-border p-4">
         <div className="flex items-start gap-3 mb-3">
@@ -559,6 +785,70 @@ export default function ProfileTab() {
         <p className="mt-2 text-xs text-muted-foreground flex items-center gap-1">
           <KeyRound className="h-3.5 w-3.5" /> Tus rides del dispositivo se sincronizan automáticamente al tener sesión.
         </p>
+      </Card>
+
+      {/* Prototipo para otro parque (contacto) */}
+      <Card className="bg-card/80 border-border p-4">
+        <div className="flex items-start gap-3">
+          <Mountain className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600 dark:text-emerald-400" />
+          <div className="text-sm flex-1">
+            <p className="font-medium text-foreground">¿Gestionas un parque o ciclovía?</p>
+            <p className="mt-1 leading-relaxed text-muted-foreground">
+              Cumbre30 nació para el Cerro San Cristóbal, pero el motor es reutilizable: geocercas, límite
+              de velocidad con avisos, constancias y una app propia para tu parque. Cuéntanos tu caso y
+              armamos un prototipo.
+            </p>
+            {!showContact ? (
+              <Button variant="outline" onClick={() => setShowContact(true)} className="mt-3 h-10 border-border text-foreground">
+                Me interesa un prototipo
+              </Button>
+            ) : (
+              <div className="mt-3 grid gap-2">
+                <Input placeholder="Tu nombre" aria-label="Tu nombre" value={cName} onChange={(e) => setCName(e.target.value)} className="border-border bg-card" />
+                <Input placeholder="Parque o institución" aria-label="Parque o institución" value={cPark} onChange={(e) => setCPark(e.target.value)} className="border-border bg-card" />
+                <Input type="email" placeholder="Tu correo" aria-label="Tu correo" value={cMail} onChange={(e) => setCMail(e.target.value)} className="border-border bg-card" />
+                <Input placeholder="Teléfono (opcional)" aria-label="Teléfono opcional" value={cPhone} onChange={(e) => setCPhone(e.target.value)} className="border-border bg-card" />
+                <Textarea
+                  placeholder="Cuéntanos del parque: ubicación, límite de velocidad, qué necesitas…"
+                  aria-label="Mensaje"
+                  value={cText}
+                  onChange={(e) => setCText(e.target.value)}
+                  className="min-h-20 border-border bg-card"
+                />
+                <div className="flex gap-2">
+                  <Button
+                    disabled={!CONTACT_WHATSAPP || !contactOk}
+                    onClick={sendWhatsApp}
+                    className="h-10 flex-1 bg-emerald-600 font-semibold text-zinc-950 hover:bg-emerald-500"
+                  >
+                    Enviar por WhatsApp
+                  </Button>
+                  <Button
+                    variant="outline"
+                    disabled={!CONTACT_EMAIL || !contactOk}
+                    onClick={sendMail}
+                    className="h-10 flex-1 border-border text-foreground"
+                  >
+                    Por correo
+                  </Button>
+                </div>
+                {(!CONTACT_WHATSAPP || !CONTACT_EMAIL) && (
+                  <p className="text-[11px] text-muted-foreground">
+                    El contacto se está configurando — podrás enviarlo en breve.
+                  </p>
+                )}
+                {cMsg && (
+                  <p
+                    className={`text-xs ${cMsg.ok ? "text-emerald-700 dark:text-emerald-300" : "text-red-600 dark:text-red-400"}`}
+                    role="status"
+                  >
+                    {cMsg.text}
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
       </Card>
 
       {/* Descarga directa (fallback sin Web Share) */}

@@ -77,6 +77,9 @@ export function useRideEngine() {
     nativeSub: null as PluginListenerHandleLike | null,
     tickTimer: null as ReturnType<typeof setInterval> | null,
     lastTick: 0,
+    // Pista muestreada para export GPX: [lat, lon, eleM, tsSec]
+    trackPts: [] as number[][],
+    trackEveryMs: 5000,
   });
 
   const logEvent = useCallback((kind: RideEvent["kind"], text: string) => {
@@ -221,6 +224,15 @@ export function useRideEngine() {
       setAccuracyM(fix.accuracyM);
       setPosition(fix);
       setTrack((tr) => (tr.length && haversineM(tr[tr.length - 1], fix) < 2 ? tr : [...tr.slice(-6000), fix]));
+      // Pista para GPX: ~1 punto cada 5 s, máx 600 (si se llena, se
+      // adelgaza a la mitad y se duplica el intervalo — ~21 KB por ride).
+      if (!e.trackPts.length || fix.t - e.trackPts[e.trackPts.length - 1][3] * 1000 >= e.trackEveryMs) {
+        if (e.trackPts.length >= 600) {
+          e.trackPts = e.trackPts.filter((_, i) => i % 2 === 0);
+          e.trackEveryMs *= 2;
+        }
+        e.trackPts.push([fix.lat, fix.lon, fix.alt, Math.round(fix.t / 1000)]);
+      }
       e.lastFix = { ...fix };
     },
     [logEvent]
@@ -347,6 +359,8 @@ export function useRideEngine() {
       e.state = "ok";
       e.zoneLastTrigger = {};
       e.gateLastTrigger = {};
+      e.trackPts = [];
+      e.trackEveryMs = 5000;
       setSource(src);
       setEvents([]);
       setTrack([]);
@@ -408,6 +422,8 @@ export function useRideEngine() {
         elapsedSec: e.elapsed,
         gainM: e.gain,
         overLimitSec: e.overSec,
+        // Solo los viajes GPS guardan pista (los demo no exportan GPX).
+        track: source === "gps" && e.trackPts.length > 1 ? e.trackPts : undefined,
       };
       saveRide(summary);
       logEvent("info", "Ride guardado en el historial");

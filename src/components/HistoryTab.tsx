@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useSyncExternalStore } from "react";
-import { CalendarClock, FileDown, Gauge, ShieldAlert, Timer, Trash2, Route } from "lucide-react";
+import { CalendarClock, Download, FileDown, Gauge, ShieldAlert, Timer, Trash2, Route } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -9,6 +9,13 @@ import { formatClock } from "@/lib/geo";
 import { clearHistory, historyStore, type RideSummary } from "@/lib/history";
 import { buildRidePdf, type RideIdentity } from "@/lib/ridePdf";
 import { shareOrDownloadFile } from "@/lib/shareFile";
+import { buildRideGpxBlob } from "@/lib/gpx";
+import {
+  constanciaCount,
+  FREE_CONSTANCIA_LIMIT,
+  incrConstancia,
+  useProLicense,
+} from "@/lib/proLicense";
 
 function fmtDate(iso: string): string {
   return new Date(iso).toLocaleString("es-CL", {
@@ -24,18 +31,32 @@ export function HistoryTab({
   user?: { email?: string; username?: string };
 }) {
   const rides = useSyncExternalStore(historyStore.subscribe, historyStore.get, historyStore.getServer);
+  const { pro } = useProLicense();
   const [pdfBusyId, setPdfBusyId] = useState<string | null>(null);
   const [pdfMsg, setPdfMsg] = useState<string | null>(null);
+  const [gpxBusyId, setGpxBusyId] = useState<string | null>(null);
+  const [gpxMsg, setGpxMsg] = useState<string | null>(null);
+  const [constCount, setConstCount] = useState(0);
 
   // Relee el historial cuando se guarda un ride nuevo
   useEffect(() => {
     historyStore.refresh();
+    setConstCount(constanciaCount());
   }, [refreshKey]);
 
   const exportPdf = async (r: RideSummary) => {
     // Los viajes demo (simulación) no emiten constancia: el registro
     // debe corresponder a un trayecto real hecho con GPS.
     if (r.source === "sim") return;
+    // Nivel gratis: cuota mensual de constancias. Pro: ilimitadas.
+    if (!pro.active && constanciaCount() >= FREE_CONSTANCIA_LIMIT) {
+      setPdfMsg(
+        `Este mes ya usaste tus ${FREE_CONSTANCIA_LIMIT} constancias gratis. ` +
+          "Con Cumbre30 Pro (pestaña Perfil) son ilimitadas.",
+      );
+      setTimeout(() => setPdfMsg(null), 9000);
+      return;
+    }
     setPdfBusyId(r.id);
     setPdfMsg(null);
     try {
@@ -50,6 +71,8 @@ export function HistoryTab({
         title: "Constancia de trayecto — Cumbre30",
         text: "Constancia de registro de trayecto en bicicleta, generada por la aplicación Cumbre30.",
       });
+      incrConstancia();
+      setConstCount(constanciaCount());
       setPdfMsg(
         res === "shared"
           ? "Constancia lista: envíala por correo o guárdala en tu teléfono desde el panel de Android."
@@ -63,6 +86,37 @@ export function HistoryTab({
     }
   };
 
+  const exportGpx = async (r: RideSummary) => {
+    if (r.source === "sim") return;
+    setGpxBusyId(r.id);
+    setGpxMsg(null);
+    try {
+      if (!pro.active) {
+        setGpxMsg("El export GPX es parte de Cumbre30 Pro — actívalo en la pestaña Perfil.");
+        return;
+      }
+      if (!r.track || r.track.length < 2) {
+        setGpxMsg("Este viaje no guarda pista GPS (se grabó antes de la v1.5.0).");
+        return;
+      }
+      const blob = buildRideGpxBlob(r);
+      if (!blob) return;
+      const day = r.dateISO.slice(0, 10);
+      await shareOrDownloadFile({
+        blob,
+        fileName: `cumbre30-${day}-${r.id.slice(0, 8)}.gpx`,
+        title: "Viaje GPX — Cumbre30",
+        text: "Pista GPX de tu viaje en el cerro, generada por Cumbre30.",
+      });
+      setGpxMsg("GPX listo: impórtalo en Strava, Garmin o Komoot.");
+    } catch {
+      setGpxMsg("No pudimos generar el GPX en este dispositivo.");
+    } finally {
+      setGpxBusyId(null);
+      setTimeout(() => setGpxMsg(null), 9000);
+    }
+  };
+
   return (
     <div className="flex flex-col gap-4">
       <Card className="bg-card/80 border-border p-4 text-sm text-muted-foreground leading-relaxed">
@@ -71,6 +125,17 @@ export function HistoryTab({
         respaldo de tu comportamiento real: cada viaje hecho con GPS se puede descargar como{" "}
         <span className="text-foreground">constancia PDF con redacción formal y código de verificación</span>{" "}
         para presentarla ante Parquemet o la autoridad. Los viajes de demostración no emiten constancia.
+        {pro.active ? (
+          <span className="mt-2 block text-emerald-700 dark:text-emerald-300">
+            Cumbre30 Pro activo: constancias ilimitadas y export GPX en cada viaje con GPS.
+          </span>
+        ) : (
+          <span className="mt-2 block">
+            Este mes llevas <span className="text-foreground">{constCount}/{FREE_CONSTANCIA_LIMIT}</span> constancias
+            gratis. Con <span className="text-foreground">Cumbre30 Pro</span> (Perfil) son ilimitadas y cada viaje
+            con GPS se exporta en GPX para Strava o Garmin.
+          </span>
+        )}
       </Card>
 
       {rides.length === 0 ? (
@@ -91,6 +156,26 @@ export function HistoryTab({
                       <Badge variant="outline" className="border-border text-muted-foreground text-[10px] uppercase">
                         {r.source === "sim" ? "demo" : "gps"}
                       </Badge>
+                      {r.source !== "sim" && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={gpxBusyId === r.id}
+                          onClick={() => void exportGpx(r)}
+                          title={
+                            pro.active
+                              ? r.track && r.track.length >= 2
+                                ? "Exportar pista GPX del viaje (Strava, Garmin, Komoot)"
+                                : "Este viaje no guarda pista GPS (se grabó antes de la v1.5.0)"
+                              : "El export GPX es parte de Cumbre30 Pro"
+                          }
+                          className="h-7 border-border px-2 text-xs text-muted-foreground hover:bg-card hover:text-foreground disabled:opacity-40"
+                          aria-label={`Exportar GPX del viaje del ${fmtDate(r.dateISO)}`}
+                        >
+                          <Download className="h-3.5 w-3.5 mr-1" />
+                          {gpxBusyId === r.id ? "…" : "GPX"}
+                        </Button>
+                      )}
                       <Button
                         variant="outline"
                         size="sm"
@@ -139,6 +224,9 @@ export function HistoryTab({
           </ul>
           {pdfMsg && (
             <p className="text-sm text-emerald-600 dark:text-emerald-400" role="status">{pdfMsg}</p>
+          )}
+          {gpxMsg && (
+            <p className="text-sm text-emerald-600 dark:text-emerald-400" role="status">{gpxMsg}</p>
           )}
           <Button
             variant="outline"

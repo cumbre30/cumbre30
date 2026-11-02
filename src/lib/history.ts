@@ -1,3 +1,10 @@
+/**
+ * Un punto de la pista GPS: [lat, lon, eleM, tsSegundos].
+ * Se guarda muestreada (~1 punto cada 5 s, máx 600) para que el
+ * historial completo siga cabiendo en localStorage.
+ */
+export type TrackPt = [lat: number, lon: number, eleM: number, tsSec: number];
+
 export type RideSummary = {
   id: string;
   dateISO: string;
@@ -9,6 +16,8 @@ export type RideSummary = {
   elapsedSec: number;
   gainM: number;
   overLimitSec: number;
+  /** Pista GPS para export GPX — solo viajes grabados desde v1.5.0. */
+  track?: TrackPt[];
 };
 
 const KEY = "cumbre30-history-v1";
