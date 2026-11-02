@@ -73,3 +73,6 @@ Thumbs.db
 
 # --- Descarga temporal via preview (no es parte del proyecto) ---
 /public/descargas/
+
+# zip temporal servido por el preview (no entra al repo)
+public/cumbre30-github.zip
