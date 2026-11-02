@@ -21,7 +21,8 @@ export type IncidentItem = {
   localOnly?: boolean;
 };
 
-const LOCAL_KEY = "cumbre30-incidents-local-v1";
+// v2: descarta reportes locales del test (el bache de prueba queda fuera)
+const LOCAL_KEY = "cumbre30-incidents-local-v2";
 const EMPTY: IncidentItem[] = [];
 
 let cache: IncidentItem[] | null = null;

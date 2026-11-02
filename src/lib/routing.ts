@@ -176,21 +176,101 @@ class MinHeap {
   }
 }
 
-/** Ruta óptima (A*) con preferencia por ciclovías. */
-export function findRoute(net: Network, from: LatLng, to: LatLng): NavRoute | null {
-  const s = nearestNode(net, from);
-  const t = nearestNode(net, to);
-  if (s === null || t === null) return null;
+/**
+ * Arista (calle) más cercana a `p`: proyección equirectangular sobre cada
+ * segmento del grafo (~58k aristas, se ejecuta UNA vez por cálculo de ruta —
+ * coste trivial frente al A*). Devuelve también la clase/nombre de la vía.
+ */
+function nearestEdge(
+  net: Network,
+  p: LatLng,
+  maxM: number
+): { u: number; v: number; cls: string; name: string; ciclovia: boolean; point: LatLng; distM: number } | null {
+  const kx = Math.cos((p.lat * Math.PI) / 180);
+  let best: { u: number; v: number; cls: string; name: string; ciclovia: boolean; point: LatLng; distM: number } | null = null;
+  let bestD = Infinity;
+  for (let i = 0; i < net.edges.length; i++) {
+    const [a, b, clsIdx, nameIdx, ciclo] = net.edges[i];
+    const na = net.nodes[a];
+    const nb = net.nodes[b];
+    const ax = na[1] * kx, ay = na[0];
+    const bx = nb[1] * kx, by = nb[0];
+    const px = p.lon * kx, py = p.lat;
+    const dx = bx - ax, dy = by - ay;
+    const len2 = dx * dx + dy * dy;
+    let t = len2 > 0 ? ((px - ax) * dx + (py - ay) * dy) / len2 : 0;
+    t = Math.max(0, Math.min(1, t));
+    const qx = ax + dx * t, qy = ay + dy * t;
+    const dM = Math.hypot(px - qx, py - qy) * 111_320;
+    if (dM < bestD) {
+      bestD = dM;
+      best = {
+        u: a,
+        v: b,
+        cls: net.classes[clsIdx] ?? "residential",
+        name: net.names[nameIdx] ?? "",
+        ciclovia: ciclo === 1,
+        point: { lat: na[0] + (nb[0] - na[0]) * t, lon: na[1] + (nb[1] - na[1]) * t },
+        distM: dM,
+      };
+    }
+  }
+  return best && best.distM <= maxM ? best : null;
+}
 
-  const n = net.nodes.length;
+/** Ruta óptima (A*) con preferencia por ciclovías.
+ *  El origen se ancla a la ARISTA (calle) más cercana al ciclista mediante
+ *  un nodo virtual en la proyección: la ruta nace en la calle donde estás,
+ *  no salta al nodo más próximo (que puede quedar arriba, en la ciclovía).
+ *  attachOrigin() agrega después el chaflán final hasta el pin GPS. */
+export function findRoute(net: Network, from: LatLng, to: LatLng): NavRoute | null {
+  const t = nearestNode(net, to);
+  if (t === null) return null;
+
+  // --- origen: la ruta nace en la CALLE más cercana al ciclista ---
+  // Antes se arrancaba en el NODO más próximo del grafo, que puede quedar
+  // lejos del punto real (típico: el nodo está arriba, en la ciclovía, y el
+  // ciclista abajo en la entrada del parque). Se crea un nodo virtual en la
+  // proyección sobre la arista más cercana, heredando su clase/nombre.
+  const edge = nearestEdge(net, from, 800);
+  let runNet: Network = net;
+  let s: number;
+  if (edge) {
+    const virt = net.nodes.length;
+    const nodes2 = net.nodes.slice();
+    nodes2.push([edge.point.lat, edge.point.lon]);
+    const pu = { lat: net.nodes[edge.u][0], lon: net.nodes[edge.u][1] };
+    const pv = { lat: net.nodes[edge.v][0], lon: net.nodes[edge.v][1] };
+    const dU = Math.max(0.1, haversineM(edge.point, pu));
+    const dV = Math.max(0.1, haversineM(edge.point, pv));
+    const pen = PENALTY[edge.cls] ?? 1;
+    const brU = bearing(edge.point, pu);
+    const brV = bearing(edge.point, pv);
+    const adj2 = net.adj.slice();
+    adj2[virt] = [
+      { to: edge.u, w: dU * pen, dist: dU, cls: edge.cls, name: edge.name, ciclovia: edge.ciclovia, bearing: brU },
+      { to: edge.v, w: dV * pen, dist: dV, cls: edge.cls, name: edge.name, ciclovia: edge.ciclovia, bearing: brV },
+    ];
+    // aristas de vuelta u→virt / v→virt sin mutar la red compartida
+    adj2[edge.u] = [...net.adj[edge.u], { to: virt, w: dU * pen, dist: dU, cls: edge.cls, name: edge.name, ciclovia: edge.ciclovia, bearing: (brU + 180) % 360 }];
+    adj2[edge.v] = [...net.adj[edge.v], { to: virt, w: dV * pen, dist: dV, cls: edge.cls, name: edge.name, ciclovia: edge.ciclovia, bearing: (brV + 180) % 360 }];
+    runNet = { ...net, nodes: nodes2, adj: adj2 };
+    s = virt;
+  } else {
+    const s0 = nearestNode(net, from);
+    if (s0 === null) return null;
+    s = s0;
+  }
+
+  const n = runNet.nodes.length;
   const g = new Float64Array(n).fill(Infinity);
   const prevEdgeRef: Array<Network["adj"][number][number] | null> = new Array(n).fill(null);
   const prevNode = new Int32Array(n).fill(-1);
   const done = new Uint8Array(n);
-  const target = { lat: net.nodes[t][0], lon: net.nodes[t][1] };
+  const target = { lat: runNet.nodes[t][0], lon: runNet.nodes[t][1] };
   const heap = new MinHeap();
   g[s] = 0;
-  heap.push({ f: haversineM({ lat: net.nodes[s][0], lon: net.nodes[s][1] }, target) * 0.65, i: s });
+  heap.push({ f: haversineM({ lat: runNet.nodes[s][0], lon: runNet.nodes[s][1] }, target) * 0.65, i: s });
 
   // Nodo asentado más cercano al destino pedido: si el destino cae en
   // una componente aislada del grafo (ej. senderos de la Piscina
@@ -203,20 +283,20 @@ export function findRoute(net: Network, from: LatLng, to: LatLng): NavRoute | nu
     const u = cur.i;
     if (done[u]) continue;
     done[u] = 1;
-    const du = haversineM({ lat: net.nodes[u][0], lon: net.nodes[u][1] }, to);
+    const du = haversineM({ lat: runNet.nodes[u][0], lon: runNet.nodes[u][1] }, to);
     if (du < bestDist) {
       bestDist = du;
       bestNode = u;
     }
     if (u === t) break;
-    for (const e of net.adj[u]) {
+    for (const e of runNet.adj[u]) {
       if (done[e.to]) continue;
       const ng = g[u] + e.w;
       if (ng < g[e.to]) {
         g[e.to] = ng;
         prevEdgeRef[e.to] = e;
         prevNode[e.to] = u;
-        const h = haversineM({ lat: net.nodes[e.to][0], lon: net.nodes[e.to][1] }, target) * 0.65;
+        const h = haversineM({ lat: runNet.nodes[e.to][0], lon: runNet.nodes[e.to][1] }, target) * 0.65;
         heap.push({ f: ng + h, i: e.to });
       }
     }
@@ -235,7 +315,7 @@ export function findRoute(net: Network, from: LatLng, to: LatLng): NavRoute | nu
   }
   if (!seq.length) return null;
 
-  const coords: LatLng[] = [{ lat: net.nodes[s][0], lon: net.nodes[s][1] }];
+  const coords: LatLng[] = [{ lat: runNet.nodes[s][0], lon: runNet.nodes[s][1] }];
   const flags: boolean[] = [];
   const segNames: string[] = [];
   let distanceM = 0;
@@ -246,7 +326,7 @@ export function findRoute(net: Network, from: LatLng, to: LatLng): NavRoute | nu
     if (edge.ciclovia) cicloM += edge.dist;
     flags.push(edge.ciclovia);
     segNames.push(edge.name || CLASS_LABEL[edge.cls] || "");
-    coords.push({ lat: net.nodes[v][0], lon: net.nodes[v][1] });
+    coords.push({ lat: runNet.nodes[v][0], lon: runNet.nodes[v][1] });
     void u;
   }
 

@@ -1,6 +1,7 @@
 // Conteo de incidencias guardadas localmente (sin conexión).
 
-const KEY = "cumbre30-incidents-local-v1";
+// v2: descarta reportes locales del test (misma clave que useIncidentFeed)
+const KEY = "cumbre30-incidents-local-v2";
 
 export function loadLocalIncidentCount(): number {
   try {
