@@ -14,9 +14,9 @@
 // ============================================================
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { routeProgress, type NavRoute } from "@/lib/routing";
+import { haversineM, routeProgress, type NavRoute, type LatLng } from "@/lib/routing";
 import { computeRoute } from "@/lib/routingService";
-import { GATES, type LatLng } from "@/lib/park";
+import { GATES } from "@/lib/park";
 
 /** Origen provisional mientras no hay GPS (acceso Pío Nono). */
 export const DEFAULT_ORIGIN: LatLng = GATES[0].position;
@@ -41,6 +41,8 @@ export type NavEngine = {
 const REROUTE_INTERVAL_MS = 30_000; // recálculo periódico en marcha
 const REROUTE_MIN_GAP_MS = 15_000; // mínimo entre recálculos por desvío
 const OFF_ROUTE_M = 140; // desvío que dispara recálculo
+const REANCHOR_M = 75; // la ruta debe partir donde estás TÚ: si el origen
+// del cálculo quedó a más de esto de tu posición fresca, se re-ancla
 
 /** Arreglo GPS de una sola vez (para rutear desde tu ubicación real). */
 function oneShotFix(timeoutMs = 6000): Promise<LatLng | null> {
@@ -56,7 +58,7 @@ function oneShotFix(timeoutMs = 6000): Promise<LatLng | null> {
     navigator.geolocation.getCurrentPosition(
       (pos) => finish({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
       () => finish(null),
-      { enableHighAccuracy: true, timeout: timeoutMs, maximumAge: 30_000 }
+      { enableHighAccuracy: true, timeout: timeoutMs, maximumAge: 5_000 }
     );
     setTimeout(() => finish(null), timeoutMs + 1500);
   });
@@ -74,6 +76,8 @@ export function useNavEngine(position: LatLng | null, running: boolean): NavEngi
   const lastCalcRef = useRef(0);
   const lastRerouteRef = useRef(0);
   const calcSeqRef = useRef(0);
+  /** Origen REAL usado en el último cálculo exitoso (para detectar rutas ancladas a fixes viejos). */
+  const originUsedRef = useRef<LatLng | null>(null);
 
   useEffect(() => {
     posRef.current = position;
@@ -97,6 +101,7 @@ export function useNavEngine(position: LatLng | null, running: boolean): NavEngi
       return;
     }
     setRoute(res.route);
+    originUsedRef.current = origin;
     setProvisional(kind === "fallback");
     setNote(
       kind === "fallback"
@@ -153,6 +158,25 @@ export function useNavEngine(position: LatLng | null, running: boolean): NavEngi
     }, 0);
     return () => clearTimeout(t);
   }, [position, provisional, loading, compute]);
+
+  // Re-anclaje del origen en planificación: si la ruta vigente se calculó
+  // desde un punto LEJOS de donde estás AHORA (primer fix malo del GPS
+  // ambiental —a veces cae a ~200 m, p.ej. sobre la ciclovía— o caminaste
+  // después de trazar), recalcula desde tu posición fresca. Así la ruta
+  // SIEMPRE nace en tu pin. Solo sin ride: en marcha los desvíos los
+  // maneja el recálculo por desvío (>140 m) y el intervalo de 30 s.
+  useEffect(() => {
+    if (!position || running || loading) return;
+    const d = destRef.current;
+    const origin = originUsedRef.current;
+    if (!d || !route || !origin) return;
+    if (Date.now() - lastCalcRef.current < 5000) return;
+    if (haversineM(position, origin) <= REANCHOR_M) return;
+    const t = setTimeout(() => {
+      void compute(position, d, "gps");
+    }, 0);
+    return () => clearTimeout(t);
+  }, [position, route, running, loading, compute]);
 
   // Recálculo periódico mientras hay ride activo.
   useEffect(() => {
