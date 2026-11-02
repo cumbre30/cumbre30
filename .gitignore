@@ -70,3 +70,6 @@ Thumbs.db
 
 # --- Scripts del entorno de trabajo (no del proyecto) ---
 /.zscripts/
+
+# --- Descarga temporal via preview (no es parte del proyecto) ---
+/public/descargas/
