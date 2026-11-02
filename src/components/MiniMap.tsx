@@ -607,17 +607,17 @@ type ManeuverBannerProps = {
 function ManeuverBanner({ className, nextStep, distM, destName, offRoute, laterStep }: ManeuverBannerProps) {
   return (
     <div className={className}>
-      <TurnArrow icon={nextStep.icon} className="h-14 w-14 shrink-0 text-zinc-50" />
+      <TurnArrow icon={nextStep.icon} className="h-14 w-14 shrink-0 text-foreground" />
       <div className="min-w-0 flex-1">
-        <div className="font-mono text-[26px] font-bold text-zinc-50 leading-none tabular-nums">
+        <div className="font-mono text-[26px] font-bold text-foreground leading-none tabular-nums">
           {nextStep.icon === "end" ? "Llegaste" : fmtKmM(distM)}
         </div>
-        <div className="text-lg font-bold text-sky-400 leading-tight truncate mt-0.5">
+        <div className="text-lg font-bold text-sky-600 dark:text-sky-400 leading-tight truncate mt-0.5">
           {nextStep.icon === "end" ? destName : streetOfStep(nextStep.text)}
         </div>
-        {offRoute && <div className="text-[11px] text-amber-300 font-semibold mt-0.5">desviado, recalculando…</div>}
+        {offRoute && <div className="text-[11px] text-amber-700 dark:text-amber-300 font-semibold mt-0.5">desviado, recalculando…</div>}
       </div>
-      {laterStep && laterStep.icon !== "end" && <TurnArrow icon={laterStep.icon} className="h-7 w-7 shrink-0 mt-1 text-zinc-500" />}
+      {laterStep && laterStep.icon !== "end" && <TurnArrow icon={laterStep.icon} className="h-7 w-7 shrink-0 mt-1 text-muted-foreground" />}
     </div>
   );
 }
@@ -626,10 +626,10 @@ function LegendChip({ className, route }: { className: string; route: NavEngine[
   return (
     <div className={className}>
       <span className="inline-block h-[3px] w-4 rounded-full shrink-0" style={{ background: COLOR_CICLO }} />
-      <span className="text-[10px] text-zinc-300">Ciclovía {!!route?.cicloviaPct ? `${route.cicloviaPct}%` : ""}</span>
-      <span className="text-[10px] text-zinc-600">·</span>
+      <span className="text-[10px] text-foreground/90">Ciclovía {!!route?.cicloviaPct ? `${route.cicloviaPct}%` : ""}</span>
+      <span className="text-[10px] text-muted-foreground/80">·</span>
       <span className="inline-block h-[3px] w-4 rounded-full shrink-0" style={{ background: COLOR_VIA }} />
-      <span className="text-[10px] text-zinc-300">Compartida</span>
+      <span className="text-[10px] text-foreground/90">Compartida</span>
     </div>
   );
 }
@@ -650,7 +650,7 @@ function Controls({ className, onLocate, pickMode, onTogglePick, hasDest, onClea
         onClick={onLocate}
         aria-label="Localizarme"
         title="Centrar en mi ubicación"
-        className="h-8 w-8 rounded-md bg-zinc-950/90 border border-zinc-700 text-zinc-100 flex items-center justify-center hover:border-emerald-500"
+        className="h-8 w-8 rounded-md bg-background/90 border border-border text-foreground flex items-center justify-center hover:border-emerald-500"
       >
         <Crosshair className="h-4 w-4" />
       </button>
@@ -659,7 +659,7 @@ function Controls({ className, onLocate, pickMode, onTogglePick, hasDest, onClea
         aria-label="Elegir destino en el minimapa"
         title="Toca el minimapa para fijar destino"
         className={`h-8 w-8 rounded-md border flex items-center justify-center ${
-          pickMode ? "bg-sky-600 border-sky-300 text-white" : "bg-zinc-950/90 border-zinc-700 text-zinc-100 hover:border-sky-500"
+          pickMode ? "bg-sky-600 border-sky-300 text-white" : "bg-background/90 border-border text-foreground hover:border-sky-500"
         }`}
       >
         <Flag className="h-4 w-4" />
@@ -669,7 +669,7 @@ function Controls({ className, onLocate, pickMode, onTogglePick, hasDest, onClea
           onClick={onClear}
           aria-label="Quitar destino"
           title="Quitar la ruta"
-          className="h-8 w-8 rounded-md bg-zinc-950/90 border border-zinc-700 text-zinc-100 flex items-center justify-center hover:border-red-500"
+          className="h-8 w-8 rounded-md bg-background/90 border border-border text-foreground flex items-center justify-center hover:border-red-500"
         >
           <X className="h-4 w-4" />
         </button>
@@ -694,14 +694,14 @@ function BottomBar({ className, onRoute, etaMin, arrivalClock, remainingM, dest,
     <div className={className}>
       {onRoute ? (
         <div className="min-w-0 flex-1 text-center">
-          <div className="font-mono text-xl font-bold text-zinc-50 leading-none tabular-nums">{etaMin > 0 ? arrivalClock : "—"}</div>
-          <div className="text-[11px] text-zinc-400 leading-tight mt-0.5 truncate">
+          <div className="font-mono text-xl font-bold text-foreground leading-none tabular-nums">{etaMin > 0 ? arrivalClock : "—"}</div>
+          <div className="text-[11px] text-muted-foreground leading-tight mt-0.5 truncate">
             {etaMin > 0 ? `${etaMin} min · ${fmtKmM(remainingM)}` : "Ruta lista"}
           </div>
         </div>
       ) : (
-        <div className="min-w-0 flex-1 flex items-center gap-1.5 rounded-lg border border-zinc-800 bg-zinc-900 px-2 py-1.5">
-          <RouteIcon className="h-3.5 w-3.5 text-sky-400 shrink-0" />
+        <div className="min-w-0 flex-1 flex items-center gap-1.5 rounded-lg border border-border bg-card px-2 py-1.5">
+          <RouteIcon className="h-3.5 w-3.5 text-sky-600 dark:text-sky-400 shrink-0" />
           <select
             aria-label="Ir a"
             value={dest ? NAV_DESTINATIONS.find((d) => d.position === dest.position)?.id ?? "mapa" : ""}
@@ -710,13 +710,13 @@ function BottomBar({ className, onRoute, etaMin, arrivalClock, remainingM, dest,
               if (d) onSetDest({ name: d.name, position: d.position });
               else onSetDest(null);
             }}
-            className="bg-transparent text-[11px] text-zinc-200 outline-none w-full min-w-0"
+            className="bg-transparent text-[11px] text-foreground outline-none w-full min-w-0"
           >
-            <option value="" className="bg-zinc-900">Ir a…</option>
+            <option value="" className="bg-card">Ir a…</option>
             {NAV_DESTINATIONS.map((d) => (
-              <option key={d.id} value={d.id} className="bg-zinc-900">{d.name}</option>
+              <option key={d.id} value={d.id} className="bg-card">{d.name}</option>
             ))}
-            {dest && <option value="mapa" className="bg-zinc-900">Punto en el mapa</option>}
+            {dest && <option value="mapa" className="bg-card">Punto en el mapa</option>}
           </select>
         </div>
       )}
@@ -749,8 +749,8 @@ function ReportSheet({
   return (
     <div className={className}>
       <div className="flex items-center justify-between mb-2">
-        <span className="text-xs font-bold text-zinc-100">Reportar incidencia {hasPosition ? "en tu posición" : "(sin GPS aún)"}</span>
-        <button onClick={onClose} aria-label="Cerrar reporte" className="text-zinc-400 hover:text-zinc-100">
+        <span className="text-xs font-bold text-foreground">Reportar incidencia {hasPosition ? "en tu posición" : "(sin GPS aún)"}</span>
+        <button onClick={onClose} aria-label="Cerrar reporte" className="text-muted-foreground hover:text-foreground">
           <X className="h-4 w-4" />
         </button>
       </div>
@@ -759,14 +759,14 @@ function ReportSheet({
           <button
             key={t.id}
             onClick={() => onType(t.id)}
-            className="flex items-center gap-1.5 rounded-lg border border-zinc-800 bg-zinc-900 px-2 py-1.5 text-left text-[11px] text-zinc-200 hover:border-zinc-500"
+            className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-2 py-1.5 text-left text-[11px] text-foreground hover:border-zinc-500"
           >
             <span aria-hidden>{t.emoji}</span>
             <span className="truncate">{t.label}</span>
           </button>
         ))}
       </div>
-      <p className="text-[10px] text-zinc-500 mt-2">Se registra con fecha y hora, y aparece en el mapa compartido.</p>
+      <p className="text-[10px] text-muted-foreground mt-2">Se registra con fecha y hora, y aparece en el mapa compartido.</p>
     </div>
   );
 }
@@ -779,7 +779,7 @@ function PickBanner({ className, onClose }: { className: string; onClose: () => 
   return (
     <div className={className}>
       <span>Toca el minimapa para fijar tu destino</span>
-      <button onClick={onClose} aria-label="Cancelar elección" className="text-sky-300 hover:text-white">
+      <button onClick={onClose} aria-label="Cancelar elección" className="text-sky-700 dark:text-sky-300 hover:text-white">
         <X className="h-3.5 w-3.5" />
       </button>
     </div>
@@ -901,7 +901,7 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
         {/* Banner de maniobra ENCIMA del lienzo nativo */}
         {onRoute && nextStep && (
           <ManeuverBanner
-            className="rounded-xl border border-zinc-800 bg-zinc-950/95 px-3 py-2 flex items-center gap-3"
+            className="rounded-xl border border-border bg-background/95 px-3 py-2 flex items-center gap-3"
             nextStep={nextStep}
             distM={progress?.distToNextStepM ?? nextStep.distM}
             destName={dest?.name ?? "Destino"}
@@ -911,7 +911,7 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
         )}
 
         {/* SOLO el lienzo nativo dentro de la ventana: sin HTML encima */}
-        <div className={`relative rounded-xl overflow-hidden border border-zinc-800 shrink-0 ${onRoute ? "h-72" : "h-56"}`}>
+        <div className={`relative rounded-xl overflow-hidden border border-border shrink-0 ${onRoute ? "h-72" : "h-56"}`}>
           <NativeMapCanvas
             id="minimap"
             mode="nav"
@@ -937,12 +937,12 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
         {/* Estado + leyenda + controles (debajo del lienzo) */}
         <div className="flex items-center gap-2 flex-wrap">
           {nav.loading && (
-            <span className="rounded-full bg-zinc-950/90 border border-sky-700 px-2.5 py-1 text-[10px] font-semibold text-sky-300 flex items-center gap-1.5">
+            <span className="rounded-full bg-background/90 border border-sky-700 px-2.5 py-1 text-[10px] font-semibold text-sky-700 dark:text-sky-300 flex items-center gap-1.5">
               <span className="inline-block h-2 w-2 rounded-full bg-sky-400 animate-pulse" />
               Calculando ruta…
             </span>
           )}
-          {onRoute && !nav.loading && <LegendChip className="rounded-md bg-zinc-950/90 border border-zinc-800 px-2 py-1 flex items-center gap-2" route={route} />}
+          {onRoute && !nav.loading && <LegendChip className="rounded-md bg-background/90 border border-border px-2 py-1 flex items-center gap-2" route={route} />}
           <Controls
             className="ml-auto flex gap-1.5"
             onLocate={locate}
@@ -954,11 +954,11 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
         </div>
 
         {pickMode && <PickBanner className="rounded-md bg-sky-950/95 border border-sky-600 px-2.5 py-1.5 text-[11px] text-sky-100 flex items-center justify-between" onClose={() => setPickMode(false)} />}
-        {reportOpen && <ReportSheet className="rounded-xl bg-zinc-950/95 border border-zinc-700 shadow-2xl p-3" hasPosition={!!position} onType={reportIncident} onClose={() => setReportOpen(false)} />}
-        {status && <StatusNote className="rounded-lg bg-zinc-900/95 border border-zinc-700 px-3 py-2 text-[11px] text-zinc-100" text={status} />}
+        {reportOpen && <ReportSheet className="rounded-xl bg-background/95 border border-border shadow-2xl p-3" hasPosition={!!position} onType={reportIncident} onClose={() => setReportOpen(false)} />}
+        {status && <StatusNote className="rounded-lg bg-card/95 border border-border px-3 py-2 text-[11px] text-foreground" text={status} />}
 
         <BottomBar
-          className="rounded-xl border border-zinc-800 bg-zinc-950/95 px-2.5 py-2 flex items-center gap-2.5"
+          className="rounded-xl border border-border bg-background/95 px-2.5 py-2 flex items-center gap-2.5"
           onRoute={onRoute}
           etaMin={etaMin}
           arrivalClock={arrivalClock}
@@ -972,7 +972,7 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
   }
 
   return (
-    <div className={`relative rounded-xl overflow-hidden border border-zinc-800 z-0 c30-minimap ${onRoute ? "h-80" : "h-52 sm:h-56"}`}>
+    <div className={`relative rounded-xl overflow-hidden border border-border z-0 c30-minimap ${onRoute ? "h-80" : "h-52 sm:h-56"}`}>
       {webglOk && !isNativeApp() ? (
         <NavCanvas
           position={position}
@@ -1011,7 +1011,7 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
       {/* ===== Banner de maniobra (modo ruta), estilo Waze ===== */}
       {onRoute && nextStep && (
         <ManeuverBanner
-          className="absolute top-0 inset-x-0 z-[500] bg-zinc-950/95 border-b border-zinc-800 px-3 pt-1.5 pb-2 flex items-center gap-3 pointer-events-none"
+          className="absolute top-0 inset-x-0 z-[500] bg-background/95 border-b border-border px-3 pt-1.5 pb-2 flex items-center gap-3 pointer-events-none"
           nextStep={nextStep}
           distM={progress?.distToNextStepM ?? nextStep.distM}
           destName={dest?.name ?? "Destino"}
@@ -1022,7 +1022,7 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
 
       {/* Estado de cálculo de ruta */}
       {nav.loading && (
-        <div className="absolute top-2 left-2 z-[520] rounded-full bg-zinc-950/90 border border-sky-700 px-2.5 py-1 text-[10px] font-semibold text-sky-300 flex items-center gap-1.5 pointer-events-none">
+        <div className="absolute top-2 left-2 z-[520] rounded-full bg-background/90 border border-sky-700 px-2.5 py-1 text-[10px] font-semibold text-sky-700 dark:text-sky-300 flex items-center gap-1.5 pointer-events-none">
           <span className="inline-block h-2 w-2 rounded-full bg-sky-400 animate-pulse" />
           Calculando ruta…
         </div>
@@ -1031,7 +1031,7 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
       {/* Leyenda compacta de la ruta (solo modo ruta) */}
       {onRoute && !nav.loading && (
         <LegendChip
-          className="absolute left-2 top-[92px] z-[500] rounded-md bg-zinc-950/90 border border-zinc-800 px-2 py-1 flex items-center gap-2 pointer-events-none"
+          className="absolute left-2 top-[92px] z-[500] rounded-md bg-background/90 border border-border px-2 py-1 flex items-center gap-2 pointer-events-none"
           route={route}
         />
       )}
@@ -1057,7 +1057,7 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
 
       {/* ===== Barra inferior tipo Waze — SIN velocímetro ===== */}
       <BottomBar
-        className="absolute bottom-0 inset-x-0 z-[500] bg-zinc-950/95 border-t border-zinc-800 px-2.5 py-2 flex items-center gap-2.5"
+        className="absolute bottom-0 inset-x-0 z-[500] bg-background/95 border-t border-border px-2.5 py-2 flex items-center gap-2.5"
         onRoute={onRoute}
         etaMin={etaMin}
         arrivalClock={arrivalClock}
@@ -1070,7 +1070,7 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
       {/* Hoja de reporte rápido */}
       {reportOpen && (
         <ReportSheet
-          className="absolute bottom-[60px] inset-x-2 z-[650] rounded-xl bg-zinc-950/95 border border-zinc-700 shadow-2xl p-3"
+          className="absolute bottom-[60px] inset-x-2 z-[650] rounded-xl bg-background/95 border border-border shadow-2xl p-3"
           hasPosition={!!position}
           onType={reportIncident}
           onClose={() => setReportOpen(false)}
@@ -1078,7 +1078,7 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
       )}
 
       {/* Confirmación / avisos */}
-      {status && <StatusNote className="absolute bottom-[60px] inset-x-3 z-[700] rounded-lg bg-zinc-900/95 border border-zinc-700 px-3 py-2 text-[11px] text-zinc-100" text={status} />}
+      {status && <StatusNote className="absolute bottom-[60px] inset-x-3 z-[700] rounded-lg bg-card/95 border border-border px-3 py-2 text-[11px] text-foreground" text={status} />}
 
       {/* Aviso de modo elección de destino */}
       {pickMode && (

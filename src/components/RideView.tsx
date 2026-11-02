@@ -19,7 +19,7 @@ import type { RideEvent, SpeedState } from "@/hooks/useRideEngine";
 import type { NavEngine } from "@/hooks/useNavEngine";
 const MiniMap = dynamic(() => import("@/components/MiniMap"), {
   ssr: false,
-  loading: () => <div className="h-52 sm:h-56 rounded-xl border border-zinc-800 bg-zinc-900 flex items-center justify-center text-sm text-zinc-500">Cargando minimapa…</div>,
+  loading: () => <div className="h-52 sm:h-56 rounded-xl border border-border bg-card flex items-center justify-center text-sm text-muted-foreground">Cargando minimapa…</div>,
 });
 
 type Props = {
@@ -46,25 +46,25 @@ type Props = {
 
 function StatTile({ icon, label, value, unit }: { icon: React.ReactNode; label: string; value: string; unit?: string }) {
   return (
-    <Card className="bg-zinc-900/80 border-zinc-800 p-3 flex flex-col gap-1">
-      <div className="flex items-center gap-1.5 text-zinc-400">
+    <Card className="bg-card/80 border-border p-3 flex flex-col gap-1">
+      <div className="flex items-center gap-1.5 text-muted-foreground">
         {icon}
         <span className="text-[11px] uppercase tracking-wide">{label}</span>
       </div>
-      <div className="font-mono text-xl font-semibold text-zinc-100 tabular-nums leading-none">
+      <div className="font-mono text-xl font-semibold text-foreground tabular-nums leading-none">
         {value}
-        {unit && <span className="text-xs text-zinc-500 font-sans font-normal ml-1">{unit}</span>}
+        {unit && <span className="text-xs text-muted-foreground font-sans font-normal ml-1">{unit}</span>}
       </div>
     </Card>
   );
 }
 
 const EVENT_STYLE: Record<RideEvent["kind"], { dot: string; text: string }> = {
-  info: { dot: "bg-emerald-400", text: "text-zinc-300" },
-  gate: { dot: "bg-teal-400", text: "text-zinc-300" },
-  zone: { dot: "bg-amber-400", text: "text-amber-200" },
-  warn: { dot: "bg-amber-500", text: "text-amber-200" },
-  danger: { dot: "bg-red-500", text: "text-red-300 font-medium" },
+  info: { dot: "bg-emerald-400", text: "text-foreground/90" },
+  gate: { dot: "bg-teal-400", text: "text-foreground/90" },
+  zone: { dot: "bg-amber-400", text: "text-amber-800 dark:text-amber-200" },
+  warn: { dot: "bg-amber-500", text: "text-amber-800 dark:text-amber-200" },
+  danger: { dot: "bg-red-500", text: "text-red-700 dark:text-red-300 font-medium" },
 };
 
 export { stepGlyph };
@@ -74,12 +74,12 @@ export function RideView(p: Props) {
   const caution = p.speedState === "caution";
 
   const speedColor = over
-    ? "text-red-500"
+    ? "text-red-600 dark:text-red-500"
     : caution
-      ? "text-amber-400"
+      ? "text-amber-600 dark:text-amber-400"
       : p.insidePark
-        ? "text-emerald-400"
-        : "text-zinc-100";
+        ? "text-emerald-600 dark:text-emerald-400"
+        : "text-foreground";
 
   const banner = over
     ? "bg-red-950/90 border-red-600 text-red-200 animate-pulse"
@@ -87,7 +87,7 @@ export function RideView(p: Props) {
       ? "bg-amber-950/90 border-amber-500 text-amber-200"
       : p.insidePark
         ? "bg-emerald-950/70 border-emerald-700 text-emerald-200"
-        : "bg-zinc-900/80 border-zinc-800 text-zinc-400";
+        : "bg-card/80 border-border text-muted-foreground";
 
   const bannerText = over
     ? `¡EXCESO DE VELOCIDAD! · LÍMITE ${LIMIT_KMH} km/h`
@@ -117,7 +117,7 @@ export function RideView(p: Props) {
         speedKmh={p.speedKmh}
       />
       {p.nav.note && (
-        <p className={`text-xs -mt-2 ${p.nav.provisional ? "text-sky-300/90" : "text-amber-300/90"}`}>{p.nav.note}</p>
+        <p className={`text-xs -mt-2 ${p.nav.provisional ? "text-sky-700/90 dark:text-sky-300/90" : "text-amber-700/90 dark:text-amber-300/90"}`}>{p.nav.note}</p>
       )}
 
       {/* Banner de zona */}
@@ -127,29 +127,29 @@ export function RideView(p: Props) {
       </div>
 
       {/* Velocidad y distancia — estilo foto de referencia */}
-      <Card className="bg-zinc-900/80 border-zinc-800 p-4 grid grid-cols-2 divide-x divide-zinc-800">
+      <Card className="bg-card/80 border-border p-4 grid grid-cols-2 divide-x divide-border">
         <div className="pr-3">
-          <div className="flex items-center gap-1.5 text-zinc-400 text-[11px] uppercase tracking-wide">
+          <div className="flex items-center gap-1.5 text-muted-foreground text-[11px] uppercase tracking-wide">
             <Gauge className="h-3.5 w-3.5" /> Velocidad
             {p.insidePark && <span className={`ml-auto rounded-full px-2 py-0.5 text-[10px] font-bold border ${over ? "border-red-500 bg-red-950 text-red-300" : "border-emerald-700 bg-emerald-950 text-emerald-300"}`}>LÍMITE {LIMIT_KMH}</span>}
           </div>
           <div className={`font-mono font-bold tabular-nums leading-none mt-1.5 text-5xl ${speedColor}`} aria-label={`Velocidad actual ${Math.round(p.speedKmh)} kilómetros por hora`}>
             {Math.round(p.speedKmh)}
-            <span className="text-sm text-zinc-500 font-sans font-normal ml-1.5">km/h</span>
+            <span className="text-sm text-muted-foreground font-sans font-normal ml-1.5">km/h</span>
           </div>
         </div>
         <div className="pl-4">
-          <div className="flex items-center gap-1.5 text-zinc-400 text-[11px] uppercase tracking-wide">
+          <div className="flex items-center gap-1.5 text-muted-foreground text-[11px] uppercase tracking-wide">
             <Route className="h-3.5 w-3.5" /> Distancia
           </div>
-          <div className="font-mono font-bold tabular-nums leading-none mt-1.5 text-5xl text-zinc-100">
+          <div className="font-mono font-bold tabular-nums leading-none mt-1.5 text-5xl text-foreground">
             {p.distanceKm.toFixed(2)}
-            <span className="text-sm text-zinc-500 font-sans font-normal ml-1.5">km</span>
+            <span className="text-sm text-muted-foreground font-sans font-normal ml-1.5">km</span>
           </div>
         </div>
       </Card>
 
-      <div className="text-xs text-zinc-500 -mt-1">
+      <div className="text-xs text-muted-foreground -mt-1">
         {p.accuracyM !== null
           ? `Precisión GPS: ±${Math.round(p.accuracyM)} m`
           : p.running
@@ -184,30 +184,30 @@ export function RideView(p: Props) {
       </div>
 
       {p.maxInParkKmh !== null && (
-        <div className="text-xs text-zinc-500 text-center">
-          Velocidad máxima registrada dentro del parque: <span className="font-mono text-zinc-300">{p.maxInParkKmh.toFixed(1)} km/h</span>
+        <div className="text-xs text-muted-foreground text-center">
+          Velocidad máxima registrada dentro del parque: <span className="font-mono text-foreground/90">{p.maxInParkKmh.toFixed(1)} km/h</span>
         </div>
       )}
 
       {/* Indicaciones completas (colapsables) */}
       {onRoute && p.nav.route && p.nav.route.steps.length > 1 && (
-        <details className="rounded-xl border border-zinc-800 bg-zinc-900/70 p-3 group">
-          <summary className="flex items-center gap-2 text-sm font-semibold text-zinc-300 cursor-pointer select-none list-none">
-            <ListTree className="h-4 w-4 text-sky-400" />
+        <details className="rounded-xl border border-border bg-card/70 p-3 group">
+          <summary className="flex items-center gap-2 text-sm font-semibold text-foreground/90 cursor-pointer select-none list-none">
+            <ListTree className="h-4 w-4 text-sky-600 dark:text-sky-400" />
             Indicaciones de la ruta ({p.nav.route.steps.length})
-            <span className="ml-auto text-[11px] text-zinc-500 font-normal group-open:hidden">ver todas</span>
-            <span className="ml-auto text-[11px] text-zinc-500 font-normal hidden group-open:inline">ocultar</span>
+            <span className="ml-auto text-[11px] text-muted-foreground font-normal group-open:hidden">ver todas</span>
+            <span className="ml-auto text-[11px] text-muted-foreground font-normal hidden group-open:inline">ocultar</span>
           </summary>
           <ol className="mt-3 space-y-1.5 max-h-52 overflow-y-auto pr-1">
             {p.nav.route.steps.map((s, i) => {
               const passed = progress ? i < progress.passedCount : false;
               return (
-                <li key={i} className={`flex items-start gap-2 text-sm ${passed ? "text-zinc-600 line-through" : "text-zinc-200"}`}>
+                <li key={i} className={`flex items-start gap-2 text-sm ${passed ? "text-muted-foreground/80 line-through" : "text-foreground"}`}>
                   <span className="text-lg leading-none w-6 text-center shrink-0" aria-hidden>
                     {stepGlyph(s.icon)}
                   </span>
                   <span className="min-w-0 flex-1">{s.text}</span>
-                  <span className="text-[11px] text-zinc-500 shrink-0">{s.distM > 0 ? formatStepRemaining(s) : ""}</span>
+                  <span className="text-[11px] text-muted-foreground shrink-0">{s.distM > 0 ? formatStepRemaining(s) : ""}</span>
                 </li>
               );
             })}
@@ -217,17 +217,17 @@ export function RideView(p: Props) {
 
       {/* Bitácora de eventos */}
       <div>
-        <div className="text-[11px] uppercase tracking-wide text-zinc-500 mb-2">Bitácora del viaje</div>
-        <Card className="bg-zinc-900/80 border-zinc-800 p-0 overflow-hidden">
-          <ul className="max-h-56 overflow-y-auto divide-y divide-zinc-800/70" aria-label="Eventos del viaje">
+        <div className="text-[11px] uppercase tracking-wide text-muted-foreground mb-2">Bitácora del viaje</div>
+        <Card className="bg-card/80 border-border p-0 overflow-hidden">
+          <ul className="max-h-56 overflow-y-auto divide-y divide-border/70" aria-label="Eventos del viaje">
             {p.events.length === 0 && (
-              <li className="px-4 py-6 text-center text-sm text-zinc-600">Sin eventos aún — los avisos de zona, geocercas y excesos aparecerán aquí.</li>
+              <li className="px-4 py-6 text-center text-sm text-muted-foreground/80">Sin eventos aún — los avisos de zona, geocercas y excesos aparecerán aquí.</li>
             )}
             {[...p.events].reverse().map((ev, i) => (
               <li key={`${ev.t}-${i}`} className="px-4 py-2.5 flex items-start gap-2.5 text-sm">
                 <span className={`mt-1.5 h-2 w-2 rounded-full shrink-0 ${EVENT_STYLE[ev.kind].dot}`} />
                 <span className={EVENT_STYLE[ev.kind].text}>{ev.text}</span>
-                <span className="ml-auto font-mono text-[11px] text-zinc-600 shrink-0 mt-0.5">
+                <span className="ml-auto font-mono text-[11px] text-muted-foreground/80 shrink-0 mt-0.5">
                   {new Date(ev.t).toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
                 </span>
               </li>

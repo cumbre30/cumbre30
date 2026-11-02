@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RideView } from "@/components/RideView";
 import { HistoryTab } from "@/components/HistoryTab";
+import { ThemeIconButton } from "@/components/ThemeToggle";
 import { useRideEngine, type Source } from "@/hooks/useRideEngine";
 import { useMe } from "@/hooks/useMe";
 import { useNavEngine } from "@/hooks/useNavEngine";
@@ -29,7 +30,7 @@ import { alerts } from "@/lib/alertEngine";
 const Wallet = dynamic(() => import("@/components/Wallet"), {
   ssr: false,
   loading: () => (
-    <div className="h-40 rounded-xl border border-zinc-800 bg-zinc-900 flex items-center justify-center text-sm text-zinc-500">
+    <div className="h-40 rounded-xl border border-border bg-card flex items-center justify-center text-sm text-muted-foreground">
       Cargando billetera…
     </div>
   ),
@@ -38,7 +39,7 @@ const Wallet = dynamic(() => import("@/components/Wallet"), {
 const MapView = dynamic(() => import("@/components/MapView"), {
   ssr: false,
   loading: () => (
-    <div className="h-[62vh] min-h-[420px] rounded-xl border border-zinc-800 bg-zinc-900 flex items-center justify-center text-sm text-zinc-500">
+    <div className="h-[62vh] min-h-[420px] rounded-xl border border-border bg-card flex items-center justify-center text-sm text-muted-foreground">
       Cargando mapa…
     </div>
   ),
@@ -47,7 +48,7 @@ const MapView = dynamic(() => import("@/components/MapView"), {
 const ProfileTab = dynamic(() => import("@/components/ProfileTab"), {
   ssr: false,
   loading: () => (
-    <div className="h-40 rounded-xl border border-zinc-800 bg-zinc-900 flex items-center justify-center text-sm text-zinc-500">
+    <div className="h-40 rounded-xl border border-border bg-card flex items-center justify-center text-sm text-muted-foreground">
       Cargando perfil…
     </div>
   ),
@@ -56,7 +57,7 @@ const ProfileTab = dynamic(() => import("@/components/ProfileTab"), {
 const ChallengesTab = dynamic(() => import("@/components/ChallengesTab"), {
   ssr: false,
   loading: () => (
-    <div className="h-40 rounded-xl border border-zinc-800 bg-zinc-900 flex items-center justify-center text-sm text-zinc-500">
+    <div className="h-40 rounded-xl border border-border bg-card flex items-center justify-center text-sm text-muted-foreground">
       Cargando desafíos…
     </div>
   ),
@@ -65,17 +66,17 @@ const ChallengesTab = dynamic(() => import("@/components/ChallengesTab"), {
 function GpsChip({ status, simRunning }: { status: string; simRunning: boolean }) {
   if (simRunning) {
     return (
-      <span className="rounded-full border border-emerald-700 text-emerald-300 px-2.5 py-1 text-[11px] font-medium" role="status">
+      <span className="rounded-full border border-emerald-700 text-emerald-700 dark:text-emerald-300 px-2.5 py-1 text-[11px] font-medium" role="status">
         Demo activo
       </span>
     );
   }
   const map: Record<string, { text: string; cls: string }> = {
-    idle: { text: "GPS en espera", cls: "border-zinc-700 text-zinc-400" },
-    requesting: { text: "Buscando GPS…", cls: "border-amber-700 text-amber-300 animate-pulse" },
-    active: { text: "GPS activo", cls: "border-emerald-700 text-emerald-300" },
-    denied: { text: "GPS denegado", cls: "border-red-700 text-red-300" },
-    error: { text: "GPS sin señal", cls: "border-red-700 text-red-300" },
+    idle: { text: "GPS en espera", cls: "border-border text-muted-foreground" },
+    requesting: { text: "Buscando GPS…", cls: "border-amber-700 text-amber-700 dark:text-amber-300 animate-pulse" },
+    active: { text: "GPS activo", cls: "border-emerald-700 text-emerald-700 dark:text-emerald-300" },
+    denied: { text: "GPS denegado", cls: "border-red-700 text-red-700 dark:text-red-300" },
+    error: { text: "GPS sin señal", cls: "border-red-700 text-red-700 dark:text-red-300" },
   };
   const s = map[status] ?? map.idle;
   return (
@@ -135,25 +136,26 @@ export default function Home() {
   );
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col">
+    <div className="min-h-screen bg-background text-foreground flex flex-col">
       {/* Header */}
-      <header className="sticky top-0 z-40 bg-zinc-950/95 backdrop-blur border-b border-zinc-800">
+      <header className="sticky top-0 z-40 bg-background/95 backdrop-blur border-b border-border">
         <div className="max-w-md mx-auto px-4 py-3 flex items-center gap-3">
           <div className="h-9 w-9 rounded-lg bg-emerald-600 flex items-center justify-center shrink-0">
             <Bike className="h-5 w-5 text-zinc-950" aria-hidden />
           </div>
           <div className="min-w-0">
             <h1 className="font-bold leading-tight tracking-tight">
-              Cumbre<span className="text-emerald-400">30</span>
+              Cumbre<span className="text-emerald-600 dark:text-emerald-400">30</span>
             </h1>
-            <p className="text-[11px] text-zinc-500 leading-tight">Ciclocomputador · Cerro San Cristóbal</p>
+            <p className="text-[11px] text-muted-foreground leading-tight">Ciclocomputador · Cerro San Cristóbal</p>
           </div>
           <div className="ml-auto flex items-center gap-1.5">
-            <Button variant="ghost" size="icon" onClick={toggleSound} aria-label={soundOn ? "Silenciar pitidos" : "Activar pitidos"} className="h-8 w-8 text-zinc-400">
-              {soundOn ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4 text-red-400" />}
+            <ThemeIconButton />
+            <Button variant="ghost" size="icon" onClick={toggleSound} aria-label={soundOn ? "Silenciar pitidos" : "Activar pitidos"} className="h-8 w-8 text-muted-foreground">
+              {soundOn ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4 text-red-600 dark:text-red-400" />}
             </Button>
-            <Button variant="ghost" size="icon" onClick={toggleVoice} aria-label={voiceOn ? "Desactivar avisos de voz" : "Activar avisos de voz"} className="h-8 w-8 text-zinc-400">
-              {voiceOn ? <Mic className="h-4 w-4" /> : <MicOff className="h-4 w-4 text-red-400" />}
+            <Button variant="ghost" size="icon" onClick={toggleVoice} aria-label={voiceOn ? "Desactivar avisos de voz" : "Activar avisos de voz"} className="h-8 w-8 text-muted-foreground">
+              {voiceOn ? <Mic className="h-4 w-4" /> : <MicOff className="h-4 w-4 text-red-600 dark:text-red-400" />}
             </Button>
             {/* Estado GPS real: con el GPS ambiental también refleja el estado sin ride */}
             <GpsChip status={ride.gpsStatus} simRunning={running && ride.source === "sim"} />
@@ -164,7 +166,7 @@ export default function Home() {
       {/* Contenido */}
       <main className="flex-1 w-full max-w-md mx-auto px-4 pt-4 pb-32">
         <Tabs value={tab} onValueChange={setTab}>
-          <TabsList className="w-full grid grid-cols-6 bg-zinc-900 border border-zinc-800 h-11">
+          <TabsList className="w-full grid grid-cols-6 bg-card border border-border h-11">
             <TabsTrigger value="ride" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-zinc-950 data-[state=active]:font-semibold">
               <Bike className="h-4 w-4 sm:mr-1.5" /><span className="hidden lg:inline">Ride</span>
             </TabsTrigger>
@@ -235,9 +237,9 @@ export default function Home() {
       </main>
 
       {/* Barra de control inferior */}
-      <div className="fixed bottom-0 inset-x-0 z-40 bg-zinc-950/95 backdrop-blur border-t border-zinc-800 pb-[env(safe-area-inset-bottom)]">
+      <div className="fixed bottom-0 inset-x-0 z-40 bg-background/95 backdrop-blur border-t border-border pb-[env(safe-area-inset-bottom)]">
         <div className="max-w-md mx-auto px-4 py-3 flex items-center gap-3">
-          <div className="flex rounded-lg border border-zinc-800 overflow-hidden" role="radiogroup" aria-label="Fuente de datos">
+          <div className="flex rounded-lg border border-border overflow-hidden" role="radiogroup" aria-label="Fuente de datos">
             {(["sim", "gps"] as Source[]).map((s) => (
               <button
                 key={s}
@@ -246,7 +248,7 @@ export default function Home() {
                 disabled={running}
                 onClick={() => setSource(s)}
                 className={`px-3 py-2.5 text-xs font-semibold transition-colors disabled:opacity-60 ${
-                  source === s ? "bg-zinc-800 text-emerald-300" : "text-zinc-500 hover:text-zinc-300"
+                  source === s ? "bg-muted text-emerald-700 dark:text-emerald-300" : "text-muted-foreground hover:text-foreground/90"
                 }`}
               >
                 {s === "sim" ? "Demo" : "GPS real"}
@@ -271,10 +273,10 @@ export default function Home() {
 
           {running && (
             <div className="text-right shrink-0 hidden xs:block sm:block" aria-hidden>
-              <div className={`font-mono text-xl font-bold tabular-nums leading-none ${ride.speedState === "over" ? "text-red-400" : ride.speedState === "caution" ? "text-amber-300" : "text-zinc-100"}`}>
+              <div className={`font-mono text-xl font-bold tabular-nums leading-none ${ride.speedState === "over" ? "text-red-600 dark:text-red-400" : ride.speedState === "caution" ? "text-amber-700 dark:text-amber-300" : "text-foreground"}`}>
                 {Math.round(ride.speedKmh)}
               </div>
-              <div className="text-[10px] text-zinc-500">km/h</div>
+              <div className="text-[10px] text-muted-foreground">km/h</div>
             </div>
           )}
         </div>

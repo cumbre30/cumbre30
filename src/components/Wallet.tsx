@@ -156,8 +156,10 @@ export default function Wallet() {
     window.addEventListener("keydown", onKey);
     return () => {
       window.removeEventListener("keydown", onKey);
+      // El nombre correcto del plugin es allowSleep()
+      // (allowSleepAgain no existe y fallaba en silencio).
       try {
-        void KeepAwake.allowSleepAgain();
+        void KeepAwake.allowSleep();
       } catch {
         // web: sin plugin
       }
@@ -238,11 +240,11 @@ export default function Wallet() {
   return (
     <div className="flex flex-col gap-4">
       {/* ---- QR de entrada Parquemet ---- */}
-      <Card className="bg-zinc-900/80 border-zinc-800 p-4">
+      <Card className="bg-card/80 border-border p-4">
         <div className="flex items-start gap-3">
-          <IdCard className="h-5 w-5 text-emerald-400 mt-0.5 shrink-0" />
-          <div className="text-sm text-zinc-400">
-            <p className="font-medium text-zinc-200">QR de entrada (Parquemet)</p>
+          <IdCard className="h-5 w-5 text-emerald-600 dark:text-emerald-400 mt-0.5 shrink-0" />
+          <div className="text-sm text-muted-foreground">
+            <p className="font-medium text-foreground">QR de entrada (Parquemet)</p>
             <p className="mt-1 leading-relaxed">
               El QR oficial de ingreso lo emite Parquemet con tu ClaveÚnica en parquemet.cl — esta app no puede
               generarlo. Cárgalo aquí para presentarlo en los accesos (Pío Nono, Pedro de Valdivia Norte) sin
@@ -265,13 +267,13 @@ export default function Wallet() {
       />
 
       {!entryQr ? (
-        <Card className="border-dashed border-zinc-800 bg-zinc-900/60 p-6">
+        <Card className="border-dashed border-border bg-card/60 p-6">
           <div className="flex flex-col items-center gap-3 text-center">
-            <div className="rounded-full bg-zinc-800 p-3">
-              <QrCode className="h-6 w-6 text-emerald-400" />
+            <div className="rounded-full bg-muted p-3">
+              <QrCode className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
             </div>
-            <p className="font-medium text-zinc-200">Aún no cargas tu QR de entrada</p>
-            <p className="text-sm text-zinc-500 max-w-sm">
+            <p className="font-medium text-foreground">Aún no cargas tu QR de entrada</p>
+            <p className="text-sm text-muted-foreground max-w-sm">
               Genera tu QR en la web de Parquemet y guárdalo como foto o captura. Después tócalo aquí para llevarlo
               siempre a mano.
             </p>
@@ -282,11 +284,11 @@ export default function Wallet() {
             >
               <Upload className="h-4 w-4 mr-2" /> {qrBusy ? "Procesando…" : "Cargar mi QR"}
             </Button>
-            {qrError && <p className="text-sm text-red-400">{qrError}</p>}
+            {qrError && <p className="text-sm text-red-600 dark:text-red-400">{qrError}</p>}
           </div>
         </Card>
       ) : (
-        <Card className="bg-zinc-950 border-emerald-800/60 p-4">
+        <Card className="bg-background border-emerald-800/60 p-4">
           <div className="flex flex-col items-center gap-3">
             <button
               type="button"
@@ -308,7 +310,7 @@ export default function Wallet() {
                 variant="outline"
                 onClick={() => fileRef.current?.click()}
                 disabled={qrBusy}
-                className="border-zinc-800 text-zinc-300 hover:bg-zinc-900"
+                className="border-border text-foreground/90 hover:bg-card"
               >
                 <RefreshCw className="h-4 w-4 mr-1" /> Cambiar
               </Button>
@@ -316,14 +318,14 @@ export default function Wallet() {
                 variant="outline"
                 onClick={removeQr}
                 aria-label="Eliminar QR cargado"
-                className="border-zinc-800 text-zinc-400 hover:bg-zinc-900"
+                className="border-border text-muted-foreground hover:bg-card"
               >
                 <Trash2 className="h-4 w-4" />
               </Button>
             </div>
-            {qrError && <p className="text-sm text-red-400">{qrError}</p>}
+            {qrError && <p className="text-sm text-red-600 dark:text-red-400">{qrError}</p>}
             {entryQr.savedAt && (
-              <p className="text-[11px] text-zinc-600">
+              <p className="text-[11px] text-muted-foreground/80">
                 Cargado el {new Date(entryQr.savedAt).toLocaleString("es-CL")}
               </p>
             )}
@@ -332,11 +334,11 @@ export default function Wallet() {
       )}
 
       {/* ---- Ficha médica de emergencia ---- */}
-      <Card className="bg-zinc-900/80 border-zinc-800 p-4">
+      <Card className="bg-card/80 border-border p-4">
         <div className="flex items-start gap-3 mb-3">
-          <UserRound className="h-5 w-5 text-emerald-400 mt-0.5 shrink-0" />
-          <div className="text-sm text-zinc-400">
-            <p className="font-medium text-zinc-200">Ficha médica de emergencia</p>
+          <UserRound className="h-5 w-5 text-emerald-600 dark:text-emerald-400 mt-0.5 shrink-0" />
+          <div className="text-sm text-muted-foreground">
+            <p className="font-medium text-foreground">Ficha médica de emergencia</p>
             <p className="mt-1 leading-relaxed">
               Guarda tu información básica en el teléfono: si tienes un accidente, quienes te ayuden pueden verla
               aquí. No se comparte ni sale del dispositivo.
@@ -345,16 +347,16 @@ export default function Wallet() {
         </div>
         <div className="grid gap-3">
           <div className="grid gap-1.5">
-            <Label htmlFor="w-name" className="text-zinc-300">Nombre completo</Label>
-            <Input id="w-name" className="bg-zinc-900 border-zinc-800" placeholder="Ej: Camila Rojas Fuentes" value={data.fullName} onChange={(e) => set("fullName")(e.target.value)} />
+            <Label htmlFor="w-name" className="text-foreground/90">Nombre completo</Label>
+            <Input id="w-name" className="bg-card border-border" placeholder="Ej: Camila Rojas Fuentes" value={data.fullName} onChange={(e) => set("fullName")(e.target.value)} />
           </div>
           <div className="grid gap-1.5">
-            <Label className="text-zinc-300">Tipo de sangre</Label>
+            <Label className="text-foreground/90">Tipo de sangre</Label>
             <Select value={data.bloodType} onValueChange={set("bloodType")}>
-              <SelectTrigger className="bg-zinc-900 border-zinc-800 w-full" aria-label="Tipo de sangre">
+              <SelectTrigger className="bg-card border-border w-full" aria-label="Tipo de sangre">
                 <SelectValue placeholder="Selecciona tu grupo sanguíneo" />
               </SelectTrigger>
-              <SelectContent className="bg-zinc-900 border-zinc-800">
+              <SelectContent className="bg-card border-border">
                 {["A+", "A−", "B+", "B−", "AB+", "AB−", "O+", "O−", "No lo sé"].map((t) => (
                   <SelectItem key={t} value={t}>{t}</SelectItem>
                 ))}
@@ -362,17 +364,17 @@ export default function Wallet() {
             </Select>
           </div>
           <div className="grid gap-1.5">
-            <Label htmlFor="w-allergies" className="text-zinc-300">Alergias o condición médica</Label>
-            <Input id="w-allergies" className="bg-zinc-900 border-zinc-800" placeholder="Ej: alergia a penicilina, asmático" value={data.allergies} onChange={(e) => set("allergies")(e.target.value)} />
+            <Label htmlFor="w-allergies" className="text-foreground/90">Alergias o condición médica</Label>
+            <Input id="w-allergies" className="bg-card border-border" placeholder="Ej: alergia a penicilina, asmático" value={data.allergies} onChange={(e) => set("allergies")(e.target.value)} />
           </div>
           <div className="grid sm:grid-cols-2 gap-3">
             <div className="grid gap-1.5">
-              <Label htmlFor="w-emname" className="text-zinc-300">Contacto de emergencia</Label>
-              <Input id="w-emname" className="bg-zinc-900 border-zinc-800" placeholder="Nombre" value={data.emergencyName} onChange={(e) => set("emergencyName")(e.target.value)} />
+              <Label htmlFor="w-emname" className="text-foreground/90">Contacto de emergencia</Label>
+              <Input id="w-emname" className="bg-card border-border" placeholder="Nombre" value={data.emergencyName} onChange={(e) => set("emergencyName")(e.target.value)} />
             </div>
             <div className="grid gap-1.5">
-              <Label htmlFor="w-emphone" className="text-zinc-300">Teléfono</Label>
-              <Input id="w-emphone" className="bg-zinc-900 border-zinc-800" type="tel" placeholder="+56 9 1234 5678" value={data.emergencyPhone} onChange={(e) => set("emergencyPhone")(e.target.value)} />
+              <Label htmlFor="w-emphone" className="text-foreground/90">Teléfono</Label>
+              <Input id="w-emphone" className="bg-card border-border" type="tel" placeholder="+56 9 1234 5678" value={data.emergencyPhone} onChange={(e) => set("emergencyPhone")(e.target.value)} />
             </div>
           </div>
           <div className="flex gap-2">
@@ -384,24 +386,24 @@ export default function Wallet() {
                 variant="outline"
                 onClick={clearMedical}
                 aria-label="Borrar ficha médica"
-                className="border-zinc-800 text-zinc-400 hover:bg-zinc-900"
+                className="border-border text-muted-foreground hover:bg-card"
               >
                 <Trash2 className="h-4 w-4" />
               </Button>
             )}
           </div>
           {savedAt && (
-            <p className="text-[11px] text-zinc-600">Guardada el {new Date(savedAt).toLocaleString("es-CL")}</p>
+            <p className="text-[11px] text-muted-foreground/80">Guardada el {new Date(savedAt).toLocaleString("es-CL")}</p>
           )}
         </div>
       </Card>
 
       {/* ---- Datos de la bicicleta ---- */}
-      <Card className="bg-zinc-900/80 border-zinc-800 p-4">
+      <Card className="bg-card/80 border-border p-4">
         <div className="flex items-start gap-3 mb-3">
-          <BikeIcon className="h-5 w-5 text-emerald-400 mt-0.5 shrink-0" />
-          <div className="text-sm text-zinc-400">
-            <p className="font-medium text-zinc-200">Datos de tu bicicleta</p>
+          <BikeIcon className="h-5 w-5 text-emerald-600 dark:text-emerald-400 mt-0.5 shrink-0" />
+          <div className="text-sm text-muted-foreground">
+            <p className="font-medium text-foreground">Datos de tu bicicleta</p>
             <p className="mt-1 leading-relaxed">
               Registra tu bici para que aparezca en tu perfil y ayude a identificarla en caso de robo o accidente.
             </p>
@@ -410,16 +412,16 @@ export default function Wallet() {
         <div className="grid gap-3">
           <div className="grid sm:grid-cols-2 gap-3">
             <div className="grid gap-1.5">
-              <Label htmlFor="b-brand" className="text-zinc-300">Marca</Label>
-              <Input id="b-brand" className="bg-zinc-900 border-zinc-800" placeholder="Ej: Trek, Giant, Oxford" value={data.bikeBrand} onChange={(e) => set("bikeBrand")(e.target.value)} />
+              <Label htmlFor="b-brand" className="text-foreground/90">Marca</Label>
+              <Input id="b-brand" className="bg-card border-border" placeholder="Ej: Trek, Giant, Oxford" value={data.bikeBrand} onChange={(e) => set("bikeBrand")(e.target.value)} />
             </div>
             <div className="grid gap-1.5">
-              <Label className="text-zinc-300">Tipo</Label>
+              <Label className="text-foreground/90">Tipo</Label>
               <Select value={data.bikeType} onValueChange={set("bikeType")}>
-                <SelectTrigger className="bg-zinc-900 border-zinc-800 w-full" aria-label="Tipo de bicicleta">
+                <SelectTrigger className="bg-card border-border w-full" aria-label="Tipo de bicicleta">
                   <SelectValue placeholder="Ej: MTB" />
                 </SelectTrigger>
-                <SelectContent className="bg-zinc-900 border-zinc-800">
+                <SelectContent className="bg-card border-border">
                   {BIKE_TYPES.map((t) => (
                     <SelectItem key={t} value={t}>{t}</SelectItem>
                   ))}
@@ -429,16 +431,16 @@ export default function Wallet() {
           </div>
           <div className="grid sm:grid-cols-2 gap-3">
             <div className="grid gap-1.5">
-              <Label htmlFor="b-model" className="text-zinc-300">Modelo</Label>
-              <Input id="b-model" className="bg-zinc-900 border-zinc-800" placeholder="Ej: Marlin 7" value={data.bikeModel} onChange={(e) => set("bikeModel")(e.target.value)} />
+              <Label htmlFor="b-model" className="text-foreground/90">Modelo</Label>
+              <Input id="b-model" className="bg-card border-border" placeholder="Ej: Marlin 7" value={data.bikeModel} onChange={(e) => set("bikeModel")(e.target.value)} />
             </div>
             <div className="grid gap-1.5">
-              <Label className="text-zinc-300">Talla</Label>
+              <Label className="text-foreground/90">Talla</Label>
               <Select value={data.bikeSize} onValueChange={set("bikeSize")}>
-                <SelectTrigger className="bg-zinc-900 border-zinc-800 w-full" aria-label="Talla del cuadro">
+                <SelectTrigger className="bg-card border-border w-full" aria-label="Talla del cuadro">
                   <SelectValue placeholder="Talla del cuadro" />
                 </SelectTrigger>
-                <SelectContent className="bg-zinc-900 border-zinc-800">
+                <SelectContent className="bg-card border-border">
                   {BIKE_SIZES.map((t) => (
                     <SelectItem key={t} value={t}>{t}</SelectItem>
                   ))}
@@ -447,8 +449,8 @@ export default function Wallet() {
             </div>
           </div>
           <div className="grid gap-1.5">
-            <Label htmlFor="b-color" className="text-zinc-300">Color</Label>
-            <Input id="b-color" className="bg-zinc-900 border-zinc-800" placeholder="Ej: azul con negro" value={data.bikeColor} onChange={(e) => set("bikeColor")(e.target.value)} />
+            <Label htmlFor="b-color" className="text-foreground/90">Color</Label>
+            <Input id="b-color" className="bg-card border-border" placeholder="Ej: azul con negro" value={data.bikeColor} onChange={(e) => set("bikeColor")(e.target.value)} />
           </div>
           <Button onClick={saveBike} className="bg-emerald-600 hover:bg-emerald-500 text-zinc-950 font-semibold">
             Guardar bicicleta

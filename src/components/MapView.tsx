@@ -8,6 +8,7 @@
 // ============================================================
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useTheme } from "next-themes";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import {
@@ -128,14 +129,14 @@ function IncidentSheet({
               <button
                 key={t.id}
                 onClick={() => onType(t.id)}
-                className="px-2 py-1 rounded-md border border-zinc-700 bg-zinc-900 hover:border-amber-400 text-[11px] text-zinc-200"
+                className="px-2 py-1 rounded-md border border-border bg-card hover:border-amber-400 text-[11px] text-foreground"
               >
                 {t.emoji} {t.label}
               </button>
             ))}
             <button
               onClick={onCancel}
-              className="px-2 py-1 rounded-md border border-zinc-700 bg-zinc-900 hover:border-red-400 text-[11px] text-zinc-400"
+              className="px-2 py-1 rounded-md border border-border bg-card hover:border-red-400 text-[11px] text-muted-foreground"
             >
               Cancelar
             </button>
@@ -149,6 +150,10 @@ function IncidentSheet({
 }
 
 export default function MapView({ track, position, accuracyM, heading, userPin, route, dest }: Props) {
+  // Filtro nocturno de los tiles OSM: solo con el tema oscuro
+  // (en modo claro el mapa se muestra con sus colores normales).
+  const { resolvedTheme } = useTheme();
+  const darkMap = resolvedTheme !== "light";
   const [net, setNet] = useState<Network | null>(null);
   const incidents = useIncidentFeed();
   const [reportMode, setReportMode] = useState(false);
@@ -317,7 +322,7 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
             onClick={locate}
             aria-label="Localizarme"
             title="Centrar en mi ubicación"
-            className="h-10 w-10 rounded-lg bg-zinc-950 border border-zinc-700 text-zinc-100 flex items-center justify-center"
+            className="h-10 w-10 rounded-lg bg-background border border-border text-foreground flex items-center justify-center"
           >
             <Crosshair className="h-5 w-5" />
           </button>
@@ -326,7 +331,7 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
             aria-label="Reportar incidencia en el mapa"
             title="Toca el mapa para reportar una incidencia"
             className={`h-10 w-10 rounded-lg border flex items-center justify-center ${
-              reportMode ? "bg-amber-500 border-amber-300 text-zinc-950" : "bg-zinc-950 border-zinc-700 text-zinc-100"
+              reportMode ? "bg-amber-500 border-amber-300 text-zinc-950" : "bg-background border-border text-foreground"
             }`}
           >
             <AlertTriangle className="h-5 w-5" />
@@ -334,7 +339,7 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
         </div>
 
         {/* SOLO el lienzo nativo dentro del contenedor */}
-        <div className="rounded-xl overflow-hidden border border-zinc-800 h-[56vh] min-h-[420px] relative z-0">
+        <div className="rounded-xl overflow-hidden border border-border h-[56vh] min-h-[420px] relative z-0">
           <NativeMapCanvas
             id="bigmap"
             mode="flat"
@@ -360,7 +365,7 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
 
         {(status || pending) && (
           <IncidentSheet
-            className="rounded-lg bg-zinc-950 border border-amber-600/70 px-3 py-2 text-xs text-amber-200"
+            className="rounded-lg bg-background border border-amber-600/70 px-3 py-2 text-xs text-amber-800 dark:text-amber-200"
             pending={pending}
             status={status}
             onType={reportIncident}
@@ -368,11 +373,11 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
           />
         )}
 
-        {reportMode && !pending && <p className="text-xs text-amber-300/90">Toca el mapa donde está el problema y elige el tipo de incidencia.</p>}
+        {reportMode && !pending && <p className="text-xs text-amber-700/90 dark:text-amber-300/90">Toca el mapa donde está el problema y elige el tipo de incidencia.</p>}
 
-        <MapLegend className="rounded-lg bg-zinc-950 border border-zinc-800 px-3 py-2 text-[11px] text-zinc-300 space-y-1" />
+        <MapLegend className="rounded-lg bg-background border border-border px-3 py-2 text-[11px] text-foreground/90 space-y-1" />
 
-        <p className="text-xs text-zinc-500 leading-relaxed">
+        <p className="text-xs text-muted-foreground leading-relaxed">
           Mapa nativo: tu ubicación, zonas de riesgo, simbología e incidencias con fecha y hora. Para navegación con ruta y
           ciclovías, usa el velocímetro (pestaña Ride).
         </p>
@@ -382,12 +387,12 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="rounded-xl overflow-hidden border border-zinc-800 h-[62vh] min-h-[420px] relative z-0">
+      <div className="rounded-xl overflow-hidden border border-border h-[62vh] min-h-[420px] relative z-0">
         <MapContainer
           center={[center.lat, center.lon]}
           zoom={14}
           scrollWheelZoom
-          className={`map-dark h-full w-full bg-zinc-950 ${reportMode ? "cursor-crosshair" : ""}`}
+          className={`${darkMap ? "map-dark" : ""} h-full w-full bg-background ${reportMode ? "cursor-crosshair" : ""}`}
           attributionControl
         >
           <TileLayer
@@ -500,7 +505,7 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
             onClick={locate}
             aria-label="Localizarme"
             title="Centrar en mi ubicación"
-            className="h-10 w-10 rounded-lg bg-zinc-950/90 border border-zinc-700 text-zinc-100 flex items-center justify-center hover:border-emerald-500"
+            className="h-10 w-10 rounded-lg bg-background/90 border border-border text-foreground flex items-center justify-center hover:border-emerald-500"
           >
             <Crosshair className="h-5 w-5" />
           </button>
@@ -509,7 +514,7 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
             aria-label="Reportar incidencia en el mapa"
             title="Toca el mapa para reportar una incidencia"
             className={`h-10 w-10 rounded-lg border flex items-center justify-center ${
-              reportMode ? "bg-amber-500 border-amber-300 text-zinc-950" : "bg-zinc-950/90 border-zinc-700 text-zinc-100 hover:border-amber-400"
+              reportMode ? "bg-amber-500 border-amber-300 text-zinc-950" : "bg-background/90 border-border text-foreground hover:border-amber-400"
             }`}
           >
             <AlertTriangle className="h-5 w-5" />
@@ -517,7 +522,7 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
         </div>
 
         {/* Leyenda */}
-        <div className="absolute bottom-3 left-2 z-[500] rounded-lg bg-zinc-950/90 border border-zinc-800 px-3 py-2 text-[11px] text-zinc-300 space-y-1 pointer-events-none">
+        <div className="absolute bottom-3 left-2 z-[500] rounded-lg bg-background/90 border border-border px-3 py-2 text-[11px] text-foreground/90 space-y-1 pointer-events-none">
           <div className="flex items-center gap-2"><span className="h-2 w-4 rounded-sm bg-emerald-500/50 border border-emerald-400" /> Parque · límite 30</div>
           <div className="flex items-center gap-2"><span className="h-2 w-4 rounded-sm bg-emerald-500" /> Ciclovía (interior del cerro)</div>
           <div className="flex items-center gap-2"><span className="h-2 w-4 rounded-sm" style={{ background: "#a855f7" }} /> Ruta: ciclovía</div>
@@ -529,7 +534,7 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
 
         {/* Estado / avisos */}
         {(status || pending) && (
-          <div className="absolute top-16 inset-x-2 z-[650] rounded-lg bg-zinc-950/95 border border-amber-600/70 px-3 py-2 text-xs text-amber-200">
+          <div className="absolute top-16 inset-x-2 z-[650] rounded-lg bg-background/95 border border-amber-600/70 px-3 py-2 text-xs text-amber-800 dark:text-amber-200">
             {pending ? (
               <div>
                 <div className="font-semibold mb-1.5">¿Qué encontraste aquí?</div>
@@ -538,14 +543,14 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
                     <button
                       key={t.id}
                       onClick={() => reportIncident(t.id)}
-                      className="px-2 py-1 rounded-md border border-zinc-700 bg-zinc-900 hover:border-amber-400 text-[11px] text-zinc-200"
+                      className="px-2 py-1 rounded-md border border-border bg-card hover:border-amber-400 text-[11px] text-foreground"
                     >
                       {t.emoji} {t.label}
                     </button>
                   ))}
                   <button
                     onClick={() => setPending(null)}
-                    className="px-2 py-1 rounded-md border border-zinc-700 bg-zinc-900 hover:border-red-400 text-[11px] text-zinc-400"
+                    className="px-2 py-1 rounded-md border border-border bg-card hover:border-red-400 text-[11px] text-muted-foreground"
                   >
                     Cancelar
                   </button>
@@ -559,9 +564,9 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
       </div>
 
       {reportMode && !pending && (
-        <p className="text-xs text-amber-300/90 -mt-1">Toca el mapa donde está el problema y elige el tipo de incidencia.</p>
+        <p className="text-xs text-amber-700/90 dark:text-amber-300/90 -mt-1">Toca el mapa donde está el problema y elige el tipo de incidencia.</p>
       )}
-      <p className="text-xs text-zinc-500 leading-relaxed">
+      <p className="text-xs text-muted-foreground leading-relaxed">
         Mapa de referencia: tu ubicación, zonas de riesgo, simbología e incidencias con fecha y hora. Para navegación con
         ruta y ciclovías, usa el velocímetro (pestaña Ride).
       </p>

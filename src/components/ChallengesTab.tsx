@@ -31,7 +31,7 @@ import { loadLocalIncidentCount } from "@/lib/localIncidents";
 
 function ProgressBar({ pct, accent = "bg-emerald-500" }: { pct: number; accent?: string }) {
   return (
-    <div className="h-1.5 rounded-full bg-zinc-800 overflow-hidden" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
+    <div className="h-1.5 rounded-full bg-muted overflow-hidden" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
       <div className={`h-full rounded-full ${accent} transition-all`} style={{ width: `${Math.min(100, pct)}%` }} />
     </div>
   );
@@ -112,21 +112,21 @@ export default function ChallengesTab() {
     const val = metricValue(stats, t.metric);
     const pct = Math.min(100, Math.round((val / t.goal) * 100));
     return (
-      <div key={t.code} className={`flex items-start gap-2.5 rounded-lg px-2.5 py-2 ${state === "current" ? "bg-zinc-900/90 border border-zinc-700" : ""}`}>
+      <div key={t.code} className={`flex items-start gap-2.5 rounded-lg px-2.5 py-2 ${state === "current" ? "bg-card/90 border border-border" : ""}`}>
         <span className="text-xl leading-none mt-0.5 shrink-0" aria-hidden>
-          {state === "done" ? reward.emoji : state === "current" ? <span className="inline-block text-2xl grayscale opacity-70">{reward.emoji}</span> : <Lock className="h-4.5 w-4.5 text-zinc-600 mt-1" />}
+          {state === "done" ? reward.emoji : state === "current" ? <span className="inline-block text-2xl grayscale opacity-70">{reward.emoji}</span> : <Lock className="h-4.5 w-4.5 text-muted-foreground/80 mt-1" />}
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <p className={`text-sm font-medium truncate ${state === "done" ? "text-zinc-400 line-through" : state === "current" ? "text-zinc-100" : "text-zinc-500"}`}>{t.name}</p>
-            {state === "done" && <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />}
-            {state === "current" && <span className="text-[10px] text-zinc-500 shrink-0">recompensa: {reward.emoji} {reward.name}</span>}
+            <p className={`text-sm font-medium truncate ${state === "done" ? "text-muted-foreground line-through" : state === "current" ? "text-foreground" : "text-muted-foreground"}`}>{t.name}</p>
+            {state === "done" && <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />}
+            {state === "current" && <span className="text-[10px] text-muted-foreground shrink-0">recompensa: {reward.emoji} {reward.name}</span>}
           </div>
-          <p className={`text-[11px] mt-0.5 ${state === "locked" ? "text-zinc-600" : "text-zinc-500"}`}>{t.desc}</p>
+          <p className={`text-[11px] mt-0.5 ${state === "locked" ? "text-muted-foreground/80" : "text-muted-foreground"}`}>{t.desc}</p>
           {state === "current" && (
             <div className="mt-1.5">
               <ProgressBar pct={pct} accent={ACCENT_BAR[accent] ?? "bg-emerald-500"} />
-              <p className="text-[10px] text-zinc-600 mt-1">
+              <p className="text-[10px] text-muted-foreground/80 mt-1">
                 {pct}% · {t.metric === "totalGainM" || t.metric === "totalKm" ? `${Math.round(val).toLocaleString("es-CL")}` : val.toLocaleString("es-CL")} / {t.goal.toLocaleString("es-CL")}
               </p>
             </div>
@@ -138,17 +138,17 @@ export default function ChallengesTab() {
 
   return (
     <div className="flex flex-col gap-4">
-      <Card className="bg-zinc-900/80 border-zinc-800 p-4">
+      <Card className="bg-card/80 border-border p-4">
         <div className="flex items-start gap-3">
-          <Trophy className="h-5 w-5 text-amber-400 mt-0.5" />
-          <div className="text-sm text-zinc-400">
-            <p className="font-medium text-zinc-200">Desafíos y logros</p>
+          <Trophy className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5" />
+          <div className="text-sm text-muted-foreground">
+            <p className="font-medium text-foreground">Desafíos y logros</p>
             <p className="mt-1 leading-relaxed">
-              Cada serie avanza <span className="text-emerald-300">nivel a nivel</span>: completas uno y se activa el
-              siguiente. Gana <span className="text-emerald-300">pines personalizables</span> para tu posición en el
+              Cada serie avanza <span className="text-emerald-700 dark:text-emerald-300">nivel a nivel</span>: completas uno y se activa el
+              siguiente. Gana <span className="text-emerald-700 dark:text-emerald-300">pines personalizables</span> para tu posición en el
               mapa; tus amigos y quienes vean tus reportes verán tu pin activo.
             </p>
-            {!me && <p className="mt-1 text-[11px] text-amber-300/80">Sin sesión el progreso se guarda solo en este dispositivo.</p>}
+            {!me && <p className="mt-1 text-[11px] text-amber-700/80 dark:text-amber-300/80">Sin sesión el progreso se guarda solo en este dispositivo.</p>}
           </div>
         </div>
       </Card>
@@ -159,17 +159,17 @@ export default function ChallengesTab() {
         const currentIdx = Math.min(done, s.tiers.length - 1);
         const complete = done === s.tiers.length;
         return (
-          <div key={s.id} className={`rounded-xl border p-4 ${complete ? "border-emerald-700/60 bg-emerald-950/20" : "border-zinc-800 bg-zinc-900/60"}`}>
+          <div key={s.id} className={`rounded-xl border p-4 ${complete ? "border-emerald-700/60 bg-emerald-950/20" : "border-border bg-card/60"}`}>
             <div className="flex items-center gap-2 mb-2">
               <span className="text-xl" aria-hidden>{s.emoji}</span>
-              <p className="font-semibold text-sm text-zinc-200">{s.name}</p>
-              <span className={`ml-auto text-xs px-2 py-0.5 rounded-full border ${complete ? "border-emerald-600 text-emerald-300" : "border-zinc-700 text-zinc-400"}`}>
+              <p className="font-semibold text-sm text-foreground">{s.name}</p>
+              <span className={`ml-auto text-xs px-2 py-0.5 rounded-full border ${complete ? "border-emerald-600 text-emerald-700 dark:text-emerald-300" : "border-border text-muted-foreground"}`}>
                 {done}/{s.tiers.length} {complete ? "· completa" : ""}
               </span>
             </div>
             <div className="flex gap-1 mb-2" aria-hidden>
               {s.tiers.map((t, i) => (
-                <div key={t.code} className={`h-1.5 flex-1 rounded-full ${unlocked.has(t.code) ? ACCENT_BAR[s.accent] ?? "bg-emerald-500" : "bg-zinc-800"}`} />
+                <div key={t.code} className={`h-1.5 flex-1 rounded-full ${unlocked.has(t.code) ? ACCENT_BAR[s.accent] ?? "bg-emerald-500" : "bg-muted"}`} />
               ))}
             </div>
             <div className="space-y-1">
@@ -182,11 +182,11 @@ export default function ChallengesTab() {
       })}
 
       {/* Retos puntuales */}
-      <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-4">
+      <div className="rounded-xl border border-border bg-card/60 p-4">
         <div className="flex items-center gap-2 mb-2">
           <span className="text-xl" aria-hidden>🎯</span>
-          <p className="font-semibold text-sm text-zinc-200">Retos puntuales</p>
-          <span className="ml-auto text-xs text-zinc-500">disponibles siempre</span>
+          <p className="font-semibold text-sm text-foreground">Retos puntuales</p>
+          <span className="ml-auto text-xs text-muted-foreground">disponibles siempre</span>
         </div>
         <div className="space-y-1">
           {RETOS.map((t) => tierRow(t, unlocked.has(t.code) ? "done" : "current", "emerald"))}
@@ -194,15 +194,15 @@ export default function ChallengesTab() {
       </div>
 
       {/* Pines */}
-      <div className="rounded-xl border border-zinc-800 bg-zinc-900/70 p-4">
+      <div className="rounded-xl border border-border bg-card/70 p-4">
         <div className="flex items-center gap-2 mb-1">
-          <MapPin className="h-4 w-4 text-emerald-400" />
-          <p className="text-sm font-medium text-zinc-200">Tu pin en el mapa</p>
-          <span className="ml-auto text-xs text-zinc-500">
-            activo: <span className="text-zinc-200">{PINS[isPinId(activePin) ? activePin : DEFAULT_PIN].emoji} {PINS[isPinId(activePin) ? activePin : DEFAULT_PIN].name}</span>
+          <MapPin className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+          <p className="text-sm font-medium text-foreground">Tu pin en el mapa</p>
+          <span className="ml-auto text-xs text-muted-foreground">
+            activo: <span className="text-foreground">{PINS[isPinId(activePin) ? activePin : DEFAULT_PIN].emoji} {PINS[isPinId(activePin) ? activePin : DEFAULT_PIN].name}</span>
           </span>
         </div>
-        {!me && <p className="text-[11px] text-amber-300/80 mb-2">Inicia sesión en Perfil para activar los pines que desbloquees.</p>}
+        {!me && <p className="text-[11px] text-amber-700/80 dark:text-amber-300/80 mb-2">Inicia sesión en Perfil para activar los pines que desbloquees.</p>}
         <div className="grid grid-cols-5 gap-2 mt-2">
           {Object.values(PINS).map((pin) => {
             const open = unlockedPins.has(pin.id);
@@ -217,13 +217,13 @@ export default function ChallengesTab() {
                   active
                     ? "border-emerald-400 bg-emerald-950/60"
                     : open
-                      ? "border-zinc-700 bg-zinc-950 hover:border-emerald-600"
-                      : "border-zinc-800 bg-zinc-950/40 opacity-60"
+                      ? "border-border bg-background hover:border-emerald-600"
+                      : "border-border bg-background/40 opacity-60"
                 }`}
               >
                 <span className="text-2xl" aria-hidden>{open ? pin.emoji : "🔒"}</span>
-                <span className={`text-[9px] leading-tight text-center ${active ? "text-emerald-300 font-semibold" : "text-zinc-400"}`}>{pin.name}</span>
-                {active && <CheckCircle2 className="absolute -top-1.5 -right-1.5 h-4 w-4 text-emerald-400" />}
+                <span className={`text-[9px] leading-tight text-center ${active ? "text-emerald-700 dark:text-emerald-300 font-semibold" : "text-muted-foreground"}`}>{pin.name}</span>
+                {active && <CheckCircle2 className="absolute -top-1.5 -right-1.5 h-4 w-4 text-emerald-600 dark:text-emerald-400" />}
               </button>
             );
           })}
@@ -231,7 +231,7 @@ export default function ChallengesTab() {
       </div>
 
       {!me && (
-        <Button variant="outline" className="border-zinc-800 text-zinc-400" onClick={() => historyStore.refresh()}>
+        <Button variant="outline" className="border-border text-muted-foreground" onClick={() => historyStore.refresh()}>
           Actualizar progreso local
         </Button>
       )}

@@ -30,17 +30,18 @@ import { isOfflineMode } from "@/lib/offlineAuth";
 import { nativeGoogleSignIn, nativeGoogleSignOut } from "@/lib/googleAuth";
 import { Capacitor } from "@capacitor/core";
 import { shareOrDownloadFile } from "@/lib/shareFile";
+import { ThemeSetting } from "@/components/ThemeToggle";
 import { PINS, DEFAULT_PIN, type PinId } from "@/lib/pins";
 import { APP_VERSION, APP_VERSION_CODE, APK_SIZE_MB } from "@/lib/appVersion";
 
 function StatBox({ label, value, unit }: { label: string; value: string | number; unit?: string }) {
   return (
-    <div className="rounded-lg border border-zinc-800 bg-zinc-900/70 px-3 py-2.5">
-      <div className="font-mono text-lg font-bold text-emerald-300 leading-none tabular-nums">
+    <div className="rounded-lg border border-border bg-card/70 px-3 py-2.5">
+      <div className="font-mono text-lg font-bold text-emerald-700 dark:text-emerald-300 leading-none tabular-nums">
         {value}
-        {unit && <span className="text-[11px] text-zinc-500 font-sans ml-1">{unit}</span>}
+        {unit && <span className="text-[11px] text-muted-foreground font-sans ml-1">{unit}</span>}
       </div>
-      <div className="text-[11px] text-zinc-500 mt-1">{label}</div>
+      <div className="text-[11px] text-muted-foreground mt-1">{label}</div>
     </div>
   );
 }
@@ -248,11 +249,11 @@ export default function ProfileTab() {
   if (ready && !me) {
     return (
       <div className="flex flex-col gap-4">
-        <Card className="bg-zinc-900/80 border-zinc-800 p-4">
+        <Card className="bg-card/80 border-border p-4">
           <div className="flex items-start gap-3">
-            <Users className="h-5 w-5 text-emerald-400 mt-0.5" />
-            <div className="text-sm text-zinc-400">
-              <p className="font-medium text-zinc-200">Tu cuenta Cumbre30</p>
+            <Users className="h-5 w-5 text-emerald-600 dark:text-emerald-400 mt-0.5" />
+            <div className="text-sm text-muted-foreground">
+              <p className="font-medium text-foreground">Tu cuenta Cumbre30</p>
               <p className="mt-1 leading-relaxed">
                 Crea tu sesión con correo y nombre de usuario para acumular kilómetros, sumar amigos,
                 desbloquear pines y reportar incidencias visibles para todos.
@@ -265,14 +266,14 @@ export default function ProfileTab() {
           <Button
             variant={mode === "login" ? "default" : "outline"}
             onClick={() => setMode("login")}
-            className={`flex-1 ${mode === "login" ? "bg-emerald-600 hover:bg-emerald-500 text-zinc-950 font-semibold" : "border-zinc-800 text-zinc-400"}`}
+            className={`flex-1 ${mode === "login" ? "bg-emerald-600 hover:bg-emerald-500 text-zinc-950 font-semibold" : "border-border text-muted-foreground"}`}
           >
             <LogIn className="h-4 w-4 mr-2" /> Iniciar sesión
           </Button>
           <Button
             variant={mode === "register" ? "default" : "outline"}
             onClick={() => setMode("register")}
-            className={`flex-1 ${mode === "register" ? "bg-emerald-600 hover:bg-emerald-500 text-zinc-950 font-semibold" : "border-zinc-800 text-zinc-400"}`}
+            className={`flex-1 ${mode === "register" ? "bg-emerald-600 hover:bg-emerald-500 text-zinc-950 font-semibold" : "border-border text-muted-foreground"}`}
           >
             <UserPlus className="h-4 w-4 mr-2" /> Crear cuenta
           </Button>
@@ -280,50 +281,53 @@ export default function ProfileTab() {
 
         <div className="grid gap-3">
           <div className="grid gap-1.5">
-            <Label htmlFor="pf-email" className="text-zinc-300">Correo</Label>
-            <Input id="pf-email" type="email" className="bg-zinc-900 border-zinc-800" placeholder="tu@correo.cl" value={email} onChange={(e) => setEmail(e.target.value)} />
+            <Label htmlFor="pf-email" className="text-foreground/90">Correo</Label>
+            <Input id="pf-email" type="email" className="bg-card border-border" placeholder="tu@correo.cl" value={email} onChange={(e) => setEmail(e.target.value)} />
           </div>
           {mode === "register" && (
             <div className="grid gap-1.5">
-              <Label htmlFor="pf-user" className="text-zinc-300">Nombre de usuario</Label>
-              <Input id="pf-user" className="bg-zinc-900 border-zinc-800" placeholder="ej: ciclista_stgo" value={username} onChange={(e) => setUsername(e.target.value)} />
-              <p className="text-[11px] text-zinc-500">3-20 caracteres: letras, números, punto, guion o guion bajo. Así te verán tus amigos.</p>
+              <Label htmlFor="pf-user" className="text-foreground/90">Nombre de usuario</Label>
+              <Input id="pf-user" className="bg-card border-border" placeholder="ej: ciclista_stgo" value={username} onChange={(e) => setUsername(e.target.value)} />
+              <p className="text-[11px] text-muted-foreground">3-20 caracteres: letras, números, punto, guion o guion bajo. Así te verán tus amigos.</p>
             </div>
           )}
           <div className="grid gap-1.5">
-            <Label htmlFor="pf-pass" className="text-zinc-300">Contraseña</Label>
-            <Input id="pf-pass" type="password" className="bg-zinc-900 border-zinc-800" placeholder="mínimo 6 caracteres" value={password} onChange={(e) => setPassword(e.target.value)} />
+            <Label htmlFor="pf-pass" className="text-foreground/90">Contraseña</Label>
+            <Input id="pf-pass" type="password" className="bg-card border-border" placeholder="mínimo 6 caracteres" value={password} onChange={(e) => setPassword(e.target.value)} />
           </div>
-          {error && <p className="text-sm text-red-400" role="alert">{error}</p>}
+          {error && <p className="text-sm text-red-600 dark:text-red-400" role="alert">{error}</p>}
           <Button onClick={submit} disabled={busy || !email || !password || (mode === "register" && !username)} className="h-11 bg-emerald-600 hover:bg-emerald-500 text-zinc-950 font-bold">
             {busy ? "Conectando…" : mode === "login" ? "Entrar" : "Crear mi cuenta"}
           </Button>
 
           <div className="flex items-center gap-3 pt-1">
-            <div className="h-px flex-1 bg-zinc-800" />
-            <span className="text-[11px] uppercase tracking-wide text-zinc-600">o</span>
-            <div className="h-px flex-1 bg-zinc-800" />
+            <div className="h-px flex-1 bg-muted" />
+            <span className="text-[11px] uppercase tracking-wide text-muted-foreground/80">o</span>
+            <div className="h-px flex-1 bg-muted" />
           </div>
           <Button
             variant="outline"
             onClick={signInGoogle}
             disabled={busyGoogle}
-            className="h-11 border-zinc-600 bg-zinc-100 text-zinc-900 hover:bg-zinc-200 hover:text-zinc-900 font-semibold"
+            className="h-11 border-zinc-600! bg-zinc-100! text-zinc-900! hover:bg-zinc-200! hover:text-zinc-900! font-semibold"
           >
             {busyGoogle ? ("Conectando…") : (<><GoogleIcon /> <span className="ml-2">Continuar con Google</span></>)}
           </Button>
-          <p className="text-[11px] text-zinc-500 leading-relaxed">
+          <p className="text-[11px] text-muted-foreground leading-relaxed">
             En la app Android puedes entrar con tu cuenta de Google. Si ya tienes una cuenta
             con el mismo correo, se enlaza y conservas tus km, logros y pines.
           </p>
         </div>
+
+        {/* Apariencia: modo oscuro / claro (también sin sesión) */}
+        <ThemeSetting />
       </div>
     );
   }
 
   // ---------- Con sesión ----------
   if (!me) {
-    return <div className="h-24 rounded-xl border border-zinc-800 bg-zinc-900 flex items-center justify-center text-sm text-zinc-500">Cargando perfil…</div>;
+    return <div className="h-24 rounded-xl border border-border bg-card flex items-center justify-center text-sm text-muted-foreground">Cargando perfil…</div>;
   }
 
   const pin = PINS[(me.user.selectedPin as PinId) ?? DEFAULT_PIN] ?? PINS[DEFAULT_PIN];
@@ -331,14 +335,14 @@ export default function ProfileTab() {
   return (
     <div className="flex flex-col gap-4">
       {/* Cabecera de cuenta */}
-      <Card className="bg-zinc-900/80 border-zinc-800 p-4">
+      <Card className="bg-card/80 border-border p-4">
         <div className="flex items-center gap-3">
           <div className="h-12 w-12 rounded-full border-2 flex items-center justify-center text-2xl shrink-0" style={{ borderColor: pin.color }}>
             {pin.emoji}
           </div>
           <div className="min-w-0 flex-1">
-            <div className="font-bold text-zinc-100 truncate">@{me.user.username}</div>
-            <div className="text-xs text-zinc-500 flex items-center gap-1 truncate">
+            <div className="font-bold text-foreground truncate">@{me.user.username}</div>
+            <div className="text-xs text-muted-foreground flex items-center gap-1 truncate">
               <AtSign className="h-3 w-3" /> {me.user.email}
             </div>
           </div>
@@ -349,7 +353,7 @@ export default function ProfileTab() {
               void nativeGoogleSignOut();
               void logout();
             }}
-            className="border-zinc-800 text-zinc-400 hover:text-red-400"
+            className="border-border text-muted-foreground hover:text-red-600 dark:hover:text-red-400"
           >
             <LogOut className="h-4 w-4 mr-1" /> Salir
           </Button>
@@ -362,12 +366,15 @@ export default function ProfileTab() {
         </div>
       </Card>
 
+      {/* Apariencia: modo oscuro / claro */}
+      <ThemeSetting />
+
       {/* Compartir para Instagram */}
-      <Card className="bg-zinc-900/80 border-zinc-800 p-4">
+      <Card className="bg-card/80 border-border p-4">
         <div className="flex items-start gap-3 mb-3">
-          <Share2 className="h-5 w-5 text-pink-400 mt-0.5" />
-          <div className="text-sm text-zinc-400">
-            <p className="font-medium text-zinc-200">Comparte tu ruta en Instagram</p>
+          <Share2 className="h-5 w-5 text-pink-600 dark:text-pink-400 mt-0.5" />
+          <div className="text-sm text-muted-foreground">
+            <p className="font-medium text-foreground">Comparte tu ruta en Instagram</p>
             <p className="mt-1 leading-relaxed">
               Genera una imagen resumen con tus estadísticas (formato 4:5 ideal para post o historia) y súbela
               directo a Instagram desde el menú compartir de tu teléfono.
@@ -377,15 +384,15 @@ export default function ProfileTab() {
         <Button onClick={share} className="w-full h-11 bg-pink-600 hover:bg-pink-500 text-white font-semibold">
           <Share2 className="h-4 w-4 mr-2" /> Generar y compartir resumen
         </Button>
-        {shareMsg && <p className="mt-2 text-xs text-emerald-300">{shareMsg}</p>}
+        {shareMsg && <p className="mt-2 text-xs text-emerald-700 dark:text-emerald-300">{shareMsg}</p>}
       </Card>
 
       {/* Descarga app Android */}
-      <Card className="bg-zinc-900/80 border-zinc-800 p-4">
+      <Card className="bg-card/80 border-border p-4">
         <div className="flex items-start gap-3 mb-3">
-          <Smartphone className="h-5 w-5 text-emerald-400 mt-0.5" />
-          <div className="text-sm text-zinc-400">
-            <p className="font-medium text-zinc-200">App Android (APK)</p>
+          <Smartphone className="h-5 w-5 text-emerald-600 dark:text-emerald-400 mt-0.5" />
+          <div className="text-sm text-muted-foreground">
+            <p className="font-medium text-foreground">App Android (APK)</p>
             <p className="mt-1 leading-relaxed">
               Lleva Cumbre30 al teléfono con mapas nativos, GPS en segundo plano y avisos de voz
               aunque la pantalla esté apagada. Al instalar, acepta “fuentes desconocidas”.
@@ -397,72 +404,72 @@ export default function ProfileTab() {
             <Download className="h-4 w-4 mr-2" /> Descargar Cumbre30 v{APP_VERSION} ({APK_SIZE_MB} MB)
           </Button>
         </a>
-        <p className="mt-2 text-xs text-zinc-500">
-          Versión instalada en este teléfono: <span className="text-zinc-300 font-medium">v{APP_VERSION}</span> (build {APP_VERSION_CODE}).
+        <p className="mt-2 text-xs text-muted-foreground">
+          Versión instalada en este teléfono: <span className="text-foreground/90 font-medium">v{APP_VERSION}</span> (build {APP_VERSION_CODE}).
           Si descargaste hace rato y algo no coincide, borra el APK viejo y vuelve a descargar.
         </p>
       </Card>
 
       {/* Bicicleta */}
-      <Card className="bg-zinc-900/80 border-zinc-800 p-4">
+      <Card className="bg-card/80 border-border p-4">
         <div className="flex items-start gap-3">
-          <BikeIcon className="h-5 w-5 text-emerald-400 mt-0.5" />
+          <BikeIcon className="h-5 w-5 text-emerald-600 dark:text-emerald-400 mt-0.5" />
           <div className="text-sm flex-1">
-            <p className="font-medium text-zinc-200">Mi bicicleta</p>
+            <p className="font-medium text-foreground">Mi bicicleta</p>
             {me.user.bikeBrand || me.user.bikeType ? (
               <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1.5 text-[13px]">
-                <span className="text-zinc-500">Marca</span><span className="text-zinc-200">{me.user.bikeBrand ?? "—"}</span>
-                <span className="text-zinc-500">Tipo</span><span className="text-zinc-200">{me.user.bikeType ?? "—"}</span>
-                <span className="text-zinc-500">Modelo</span><span className="text-zinc-200">{me.user.bikeModel ?? "—"}</span>
-                <span className="text-zinc-500">Talla</span><span className="text-zinc-200">{me.user.bikeSize ?? "—"}</span>
-                <span className="text-zinc-500">Color</span><span className="text-zinc-200">{me.user.bikeColor ?? "—"}</span>
+                <span className="text-muted-foreground">Marca</span><span className="text-foreground">{me.user.bikeBrand ?? "—"}</span>
+                <span className="text-muted-foreground">Tipo</span><span className="text-foreground">{me.user.bikeType ?? "—"}</span>
+                <span className="text-muted-foreground">Modelo</span><span className="text-foreground">{me.user.bikeModel ?? "—"}</span>
+                <span className="text-muted-foreground">Talla</span><span className="text-foreground">{me.user.bikeSize ?? "—"}</span>
+                <span className="text-muted-foreground">Color</span><span className="text-foreground">{me.user.bikeColor ?? "—"}</span>
               </div>
             ) : (
-              <p className="mt-1 text-zinc-500">Edita los datos de tu bici en la pestaña QR.</p>
+              <p className="mt-1 text-muted-foreground">Edita los datos de tu bici en la pestaña QR.</p>
             )}
           </div>
         </div>
       </Card>
 
       {/* Amigos */}
-      <Card className="bg-zinc-900/80 border-zinc-800 p-4">
+      <Card className="bg-card/80 border-border p-4">
         <div className="flex items-center gap-2 mb-3">
-          <Users className="h-5 w-5 text-emerald-400" />
-          <p className="font-medium text-zinc-200 text-sm">Amigos ({me.friends.length})</p>
+          <Users className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+          <p className="font-medium text-foreground text-sm">Amigos ({me.friends.length})</p>
         </div>
         <div className="flex gap-2 mb-3">
           <Input
             value={friendName}
             onChange={(e) => setFriendName(e.target.value)}
             placeholder="usuario de tu amigo, ej: pedro_ruta"
-            className="bg-zinc-900 border-zinc-800"
+            className="bg-card border-border"
             aria-label="Usuario de tu amigo"
           />
           <Button onClick={addFriend} disabled={!friendName.trim()} className="bg-emerald-600 hover:bg-emerald-500 text-zinc-950 font-semibold shrink-0">
             <UserPlus className="h-4 w-4 mr-1" /> Agregar
           </Button>
         </div>
-        {friendError && <p className="text-xs text-red-400 mb-2">{friendError}</p>}
+        {friendError && <p className="text-xs text-red-600 dark:text-red-400 mb-2">{friendError}</p>}
         {me.friends.length === 0 ? (
-          <p className="text-xs text-zinc-500">Aún no tienes amigos. Agrega a alguien por su nombre de usuario para ver sus km y logros.</p>
+          <p className="text-xs text-muted-foreground">Aún no tienes amigos. Agrega a alguien por su nombre de usuario para ver sus km y logros.</p>
         ) : (
           <ul className="space-y-2 max-h-72 overflow-y-auto pr-1">
             {me.friends.map((f) => {
               const fp = PINS[(f.selectedPin as PinId) ?? DEFAULT_PIN] ?? PINS[DEFAULT_PIN];
               return (
-                <li key={f.username} className="rounded-lg border border-zinc-800 bg-zinc-950/60 p-3">
+                <li key={f.username} className="rounded-lg border border-border bg-background/60 p-3">
                   <div className="flex items-center gap-2">
                     <span className="text-xl">{fp.emoji}</span>
-                    <span className="font-semibold text-zinc-100 text-sm">@{f.username}</span>
-                    <span className="ml-auto flex items-center gap-1 text-[11px] text-amber-300">
+                    <span className="font-semibold text-foreground text-sm">@{f.username}</span>
+                    <span className="ml-auto flex items-center gap-1 text-[11px] text-amber-700 dark:text-amber-300">
                       <Award className="h-3.5 w-3.5" /> {f.achievementCount ?? 0}
                     </span>
-                    <button onClick={() => removeFriend(f.username)} aria-label={`Eliminar a ${f.username}`} className="text-zinc-600 hover:text-red-400">
+                    <button onClick={() => removeFriend(f.username)} aria-label={`Eliminar a ${f.username}`} className="text-muted-foreground/80 hover:text-red-600 dark:hover:text-red-400">
                       <Trash2 className="h-4 w-4" />
                     </button>
                   </div>
-                  <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-zinc-400">
-                    <span className="font-mono text-emerald-300">{f.totalKm.toFixed(1)} km</span>
+                  <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
+                    <span className="font-mono text-emerald-700 dark:text-emerald-300">{f.totalKm.toFixed(1)} km</span>
                     <span>{f.rideCount} rides</span>
                     <span>máx {f.maxKmh.toFixed(1)} km/h</span>
                     {f.lastRideDate && <span>último: {new Date(f.lastRideDate).toLocaleDateString("es-CL")}</span>}
@@ -475,22 +482,22 @@ export default function ProfileTab() {
       </Card>
 
       {/* Logros y pin activo */}
-      <Card className="bg-zinc-900/80 border-zinc-800 p-4">
+      <Card className="bg-card/80 border-border p-4">
         <div className="flex items-center gap-2 mb-2">
-          <MapPin className="h-5 w-5 text-emerald-400" />
-          <p className="font-medium text-zinc-200 text-sm">Pin activo en el mapa</p>
+          <MapPin className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+          <p className="font-medium text-foreground text-sm">Pin activo en el mapa</p>
         </div>
-        <p className="text-xs text-zinc-500">
-          Tu pin <span className="text-zinc-200">{pin.emoji} {pin.name}</span> es el que ven tus amigos y queda en tus
-          reportes. Desbloquea más en la pestaña <span className="text-zinc-300">Desafíos</span>.
+        <p className="text-xs text-muted-foreground">
+          Tu pin <span className="text-foreground">{pin.emoji} {pin.name}</span> es el que ven tus amigos y queda en tus
+          reportes. Desbloquea más en la pestaña <span className="text-foreground/90">Desafíos</span>.
         </p>
-        <p className="mt-2 text-xs text-zinc-500 flex items-center gap-1">
+        <p className="mt-2 text-xs text-muted-foreground flex items-center gap-1">
           <KeyRound className="h-3.5 w-3.5" /> Tus rides del dispositivo se sincronizan automáticamente al tener sesión.
         </p>
       </Card>
 
       {/* Descarga directa (fallback sin Web Share) */}
-      <p className="text-[11px] text-zinc-600 flex items-center gap-1">
+      <p className="text-[11px] text-muted-foreground/80 flex items-center gap-1">
         <Download className="h-3 w-3" /> Si tu teléfono no muestra el menú compartir, la imagen se descarga y la subes manualmente.
       </p>
     </div>
