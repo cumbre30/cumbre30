@@ -450,6 +450,32 @@ export function useRideEngine() {
     return () => window.removeEventListener("devicemotion", onMotion);
   }, [status]);
 
+  // --- GPS ambiental (app cargada, sin ride activo): publica la
+  // posición del usuario apenas abre la app para que el mapa y la
+  // navegación partan en TU ubicación y no en el centro del parque.
+  // No toca estadísticas ni recorrido: solo position/accuracy. ---
+  useEffect(() => {
+    if (status !== "idle") return; // durante el ride el GPS del ride manda
+    if (typeof navigator === "undefined" || !("geolocation" in navigator)) return;
+    setGpsStatus((s) => (s === "idle" || s === "error" ? "requesting" : s));
+    const id = navigator.geolocation.watchPosition(
+      (pos) => {
+        setGpsStatus("active");
+        setAccuracyM(pos.coords.accuracy ?? null);
+        setPosition({ lat: pos.coords.latitude, lon: pos.coords.longitude });
+      },
+      (err) => {
+        if (err.code === err.PERMISSION_DENIED) {
+          setGpsStatus("denied");
+        } else {
+          setGpsStatus((s) => (s === "requesting" ? "error" : s));
+        }
+      },
+      { enableHighAccuracy: true, maximumAge: 5000, timeout: 20000 }
+    );
+    return () => navigator.geolocation.clearWatch(id);
+  }, [status]);
+
   // Limpieza al desmontar
   useEffect(() => () => {
     const e = engine.current;

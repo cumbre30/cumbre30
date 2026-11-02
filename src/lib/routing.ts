@@ -305,26 +305,124 @@ export function findRoute(net: Network, from: LatLng, to: LatLng): NavRoute | nu
 }
 
 /**
- * Ancla el inicio de la ruta a la posición EXACTA del ciclista.
- * Tanto el A* propio como OSRM ajustan el origen al nodo más
- * cercano de la red de vías (por eso la ruta "partía" en la
- * ciclovía y no donde estaba el usuario): aquí se antepone el
- * punto real como vértice 0 con un conector directo a la red.
+ * Proyección de `p` sobre la polilínea: devuelve el punto más cercano
+ * (SOBRE una calle de la ruta), el índice del tramo y la distancia en m.
+ * Escala equirectangular local — error < 0,2 % en tramos urbanos.
+ */
+export function projectOnPolyline(
+  coords: LatLng[],
+  p: LatLng
+): { segIdx: number; point: LatLng; distM: number } {
+  if (coords.length === 0) return { segIdx: 0, point: p, distM: 0 };
+  if (coords.length === 1) return { segIdx: 0, point: coords[0], distM: haversineM(p, coords[0]) };
+  const kx = Math.cos((p.lat * Math.PI) / 180); // grados lon → proporción métrica
+  let bestSeg = 0;
+  let bestT = 0;
+  let bestD = Infinity;
+  for (let i = 0; i < coords.length - 1; i++) {
+    const a = coords[i];
+    const b = coords[i + 1];
+    const ax = a.lon * kx, ay = a.lat;
+    const bx = b.lon * kx, by = b.lat;
+    const px = p.lon * kx, py = p.lat;
+    const dx = bx - ax, dy = by - ay;
+    const len2 = dx * dx + dy * dy;
+    let t = len2 > 0 ? ((px - ax) * dx + (py - ay) * dy) / len2 : 0;
+    t = Math.max(0, Math.min(1, t));
+    const qx = ax + dx * t, qy = ay + dy * t;
+    const dM = Math.hypot(px - qx, py - qy) * 111_320;
+    if (dM < bestD) {
+      bestD = dM;
+      bestSeg = i;
+      bestT = t;
+    }
+  }
+  const a = coords[bestSeg];
+  const b = coords[bestSeg + 1];
+  return {
+    segIdx: bestSeg,
+    point: { lat: a.lat + (b.lat - a.lat) * bestT, lon: a.lon + (b.lon - a.lon) * bestT },
+    distM: bestD,
+  };
+}
+
+/** Largo máx. del chaflán posición→ruta: más lejos = se parte en la
+ *  calle más cercana, NUNCA un cordón recto que atraviese la manzana. */
+export const CONNECTOR_MAX_M = 40;
+
+/**
+ * Ancla el inicio de la ruta a la posición del ciclista SIN cortar
+ * manzanas: en vez de unir la posición real con un cordón recto al
+ * nodo más cercano (antes podía atravesar una cuadra entera), se
+ * PROYECTA la posición sobre la polilínea (que sigue calles) y:
+ * · ≤ CONNECTOR_MAX_M → chaflán corto perpendicular a la calle.
+ * · más lejos        → la ruta parte directo en el punto proyectado
+ *   de la calle (sin conector).
+ * Los pasos (steps) se re-mapean a los nuevos índices.
  */
 export function attachOrigin(route: NavRoute, from: LatLng): NavRoute {
-  const d0 = haversineM(from, route.coords[0]);
-  if (d0 < 3) return route; // ya parte de la posición real
-  const coords = [from, ...route.coords];
-  // el conector hereda la clasificación del primer tramo real
-  // (si aparece en ciclovía, se dibuja ciclovía y sin cortes)
-  const firstFlag = route.flags[0] ?? false;
-  const flags = [firstFlag, ...route.flags];
-  const segNames = ["", ...route.segNames];
-  const steps = route.steps.map((st) => ({ ...st, idx: st.idx + 1 }));
-  if (steps.length > 1) {
-    steps[0] = { ...steps[0], point: from, idx: 0, distM: Math.max(1, steps[0].distM + Math.round(d0)) };
+  if (route.coords.length < 2) return route;
+  const pr = projectOnPolyline(route.coords, from);
+  const i = pr.segIdx;
+  const withStub = pr.distM > 2 && pr.distM <= CONNECTOR_MAX_M;
+
+  // ¿Sin cambios útiles? proyección ≈ el inicio actual y la posición cae ahí
+  if (!withStub && i === 0 && pr.distM <= 3) return route;
+
+  const tail = route.coords.slice(i + 1);
+  // P reemplaza coords[i]; si la proyección cae prácticamente sobre
+  // coords[i+1] (dup), el punto coincide con ese vértice y el "resto
+  // del tramo i" desaparece: arrancamos desde el tramo i+1.
+  const dup = tail.length > 0 && haversineM(pr.point, tail[0]) < 0.5;
+  const tailClean = dup ? tail.slice(1) : tail;
+  const coords: LatLng[] = withStub ? [from, pr.point, ...tailClean] : [pr.point, ...tailClean];
+  if (coords.length < 2) return route;
+
+  const off = withStub ? 1 : 0; // índice viejo j (j ≥ i+1) → j - restIdx + off
+  const restIdx = dup ? i + 1 : i;
+  // banderas/nombres: el tramo P→coords[i+1] conserva la clasificación
+  // del tramo viejo i; el chaflán se dibuja como vía compartida
+  const flags: boolean[] = withStub ? [false, ...route.flags.slice(restIdx)] : route.flags.slice(restIdx);
+  const segNames: string[] = withStub ? ["", ...route.segNames.slice(restIdx)] : route.segNames.slice(restIdx);
+
+  let distanceM = withStub ? pr.distM : 0;
+  for (let k = 0; k < coords.length - 1; k++) distanceM += haversineM(coords[k], coords[k + 1]);
+  distanceM = Math.round(distanceM);
+
+  // re-mapeo de pasos: los que quedaron detrás del punto proyectado se
+  // descartan; el primero hereda el recorte del tramo (headM)
+  const headM = haversineM(route.coords[i], pr.point);
+  const steps: RouteStep[] = [];
+  let firstKept = true;
+  for (const st of route.steps) {
+    if (st.idx <= i) continue;
+    const newIdx = st.idx - restIdx + off;
+    steps.push({
+      ...st,
+      idx: newIdx,
+      point: coords[Math.min(newIdx, coords.length - 1)],
+      distM: firstKept ? Math.max(1, st.distM - Math.round(headM)) : st.distM,
+    });
+    firstKept = false;
   }
-  return { ...route, coords, flags, segNames, steps, distanceM: route.distanceM + Math.round(d0) };
+  const startName = segNames[off]?.trim() || "la vía";
+  steps.unshift({
+    icon: "start",
+    text: `Parte por ${startName}`,
+    distM: withStub ? Math.max(1, Math.round(pr.distM)) : 0,
+    point: coords[0],
+    idx: 0,
+  });
+
+  return {
+    ...route,
+    coords,
+    flags,
+    segNames,
+    steps,
+    distanceM,
+    etaMin: Math.max(1, Math.round(distanceM / 1000 / 15 * 60)),
+  };
 }
 
 export type RouteSegGroup = { ciclovia: boolean; coords: LatLng[] };

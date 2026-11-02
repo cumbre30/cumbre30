@@ -12,7 +12,7 @@ import path from "path";
 export const dynamic = "force-dynamic"; // nunca estático: binario grande desde disco
 export const runtime = "nodejs";
 
-const APK_NAME = "Cumbre30-v1.3.2-debug.apk";
+const APK_NAME = "Cumbre30-v1.3.3-debug.apk";
 
 // Rutas candidatas: download/ (carpeta de entregables) y apk-store/
 // (copia versionada en git que sobrevive a los reciclajes del sandbox).

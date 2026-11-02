@@ -7,7 +7,7 @@
 
 import type { Feature, FeatureCollection } from "geojson";
 import type { LatLng, NavRoute, Network } from "@/lib/routing";
-import { groupSegments, haversineM } from "@/lib/routing";
+import { CONNECTOR_MAX_M, groupSegments, haversineM, projectOnPolyline } from "@/lib/routing";
 import { pointInPolygon } from "@/lib/geo";
 import { PARK_POLYGON } from "@/lib/park";
 
@@ -43,9 +43,11 @@ export function bearingOf(a: LatLng, b: LatLng): number {
 
 /**
  * Features de la ruta activa:
- * · remaining → SIEMPRE parte de la ubicación ACTUAL del ciclista (si el
- *   pin se movió del vértice más cercano, se antepone la posición viva
- *   con un conector directo, como Waze al desencajarse).
+ * · remaining → SIEMPRE parte de la ubicación ACTUAL del ciclista.
+ *   La posición se PROYECTA sobre la polilínea (que sigue calles):
+ *   si cae a ≤ CONNECTOR_MAX_M se antepone con un chaflán corto
+ *   hacia la calle; si cae más lejos, el restante parte en el punto
+ *   proyectado — nunca un cordón recto atravesando la manzana.
  * · traveled → tramo ya recorrido, atenuado, cerrando en el pin.
  */
 export function buildRouteFeatures(
@@ -57,23 +59,46 @@ export function buildRouteFeatures(
 
   const from = Math.min(nearestIdx ?? 0, route.coords.length - 1);
   const pos = position;
-  const startAtUser = !!pos && haversineM(pos, route.coords[from]) > 2.5;
-  const stubFlag = route.flags[Math.min(from, route.flags.length - 1)] ?? false;
+  const onVertex = !pos || haversineM(pos, route.coords[from]) <= 2.5;
 
-  const remCoords = startAtUser ? [pos!, ...route.coords.slice(from)] : route.coords.slice(from);
-  const remFlags = startAtUser ? [stubFlag, ...route.flags.slice(from)] : route.flags.slice(from);
-  const remainingGroups = groupSegments(remCoords, remFlags, 0, remCoords.length - 2);
+  // Sobre la ruta (o sin posición): tal cual desde el vértice más cercano
+  if (onVertex) {
+    const remCoords = route.coords.slice(from);
+    const remFlags = route.flags.slice(from);
+    const remaining = toFc([
+      lineFeat(remCoords, { kind: "casing", ciclo: false }),
+      ...groupSegments(remCoords, remFlags, 0, remCoords.length - 2).map((g) =>
+        lineFeat(g.coords, { kind: "seg", ciclo: g.ciclovia })
+      ),
+    ]);
+    const travCoords = route.coords.slice(0, from + 1);
+    const travFlags = route.flags.slice(0, from);
+    const traveled = toFc(
+      groupSegments(travCoords, travFlags, 0, travCoords.length - 2).map((g) => lineFeat(g.coords, { ciclo: g.ciclovia }))
+    );
+    return { remaining, traveled };
+  }
 
-  const travCoords = startAtUser ? [...route.coords.slice(0, from + 1), pos!] : route.coords.slice(0, from + 1);
-  const travFlags = startAtUser ? [...route.flags.slice(0, from), stubFlag] : route.flags.slice(0, from);
-  const traveledGroups = nearestIdx !== null ? groupSegments(travCoords, travFlags, 0, travCoords.length - 2) : [];
-
+  // Fuera del vértice: proyección sobre la polilínea (chaflán corto a
+  // la calle; jamás una diagonal que corte la cuadra)
+  const pr = projectOnPolyline(route.coords, pos!);
+  const i = Math.min(pr.segIdx, route.coords.length - 2);
+  const stub = pr.distM > 2 && pr.distM <= CONNECTOR_MAX_M;
+  const tail = route.coords.slice(i + 1);
+  const remCoords = stub ? [pos!, pr.point, ...tail] : [pr.point, ...tail];
+  const remFlags = stub ? [false, ...route.flags.slice(i)] : route.flags.slice(i);
   const remaining = toFc([
-    // casing bajo la ruta completa restante (desde MI posición)
-    lineFeat(remCoords, { kind: "casing", ciclo: false }),
-    ...remainingGroups.map((g) => lineFeat(g.coords, { kind: "seg", ciclo: g.ciclovia })),
+    ...(remCoords.length >= 2 ? [lineFeat(remCoords, { kind: "casing", ciclo: false })] : []),
+    ...groupSegments(remCoords, remFlags, 0, remCoords.length - 2).map((g) =>
+      lineFeat(g.coords, { kind: "seg", ciclo: g.ciclovia })
+    ),
   ]);
-  const traveled = toFc(traveledGroups.map((g) => lineFeat(g.coords, { ciclo: g.ciclovia })));
+
+  const travCoords = [...route.coords.slice(0, i + 1), pr.point];
+  const travFlags = [...route.flags.slice(0, i), route.flags[i] ?? false];
+  const traveled = toFc(
+    groupSegments(travCoords, travFlags, 0, travCoords.length - 2).map((g) => lineFeat(g.coords, { ciclo: g.ciclovia }))
+  );
   return { remaining, traveled };
 }
 

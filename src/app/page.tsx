@@ -156,7 +156,8 @@ export default function Home() {
             <Button variant="ghost" size="icon" onClick={toggleVoice} aria-label={voiceOn ? "Desactivar avisos de voz" : "Activar avisos de voz"} className="h-8 w-8 text-zinc-400">
               {voiceOn ? <Mic className="h-4 w-4" /> : <MicOff className="h-4 w-4 text-red-400" />}
             </Button>
-            <GpsChip status={running ? ride.gpsStatus : "idle"} simRunning={running && ride.source === "sim"} />
+            {/* Estado GPS real: con el GPS ambiental también refleja el estado sin ride */}
+            <GpsChip status={ride.gpsStatus} simRunning={running && ride.source === "sim"} />
           </div>
         </div>
       </header>

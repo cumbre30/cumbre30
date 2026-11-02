@@ -150,7 +150,11 @@ export function RideView(p: Props) {
       </Card>
 
       <div className="text-xs text-zinc-500 -mt-1">
-        {p.accuracyM !== null && p.running ? `Precisión GPS: ±${Math.round(p.accuracyM)} m` : p.running ? "Adquiriendo señal GPS…" : "En espera — presiona Iniciar"}
+        {p.accuracyM !== null
+          ? `Precisión GPS: ±${Math.round(p.accuracyM)} m`
+          : p.running
+            ? "Adquiriendo señal GPS…"
+            : "Esperando GPS…"}
       </div>
 
       {/* Contador de exceso (evidencia) */}

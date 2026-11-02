@@ -7,7 +7,7 @@
 // La navegación «Ir a…» vive ahora en el velocímetro (minimapa).
 // ============================================================
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import {
@@ -53,8 +53,17 @@ type Props = {
 
 function Recenter({ position }: { position: LatLng | null }) {
   const map = useMap();
+  const centeredOnce = useRef(false);
   useEffect(() => {
     if (!position) return;
+    // Primer arreglo GPS: el mapa parte SIEMPRE en la ubicación del
+    // usuario (ubicación predeterminada = la mía), sin importar cuán
+    // lejos esté del centro por defecto.
+    if (!centeredOnce.current) {
+      centeredOnce.current = true;
+      map.setView([position.lat, position.lon], Math.max(map.getZoom(), 15), { animate: true });
+      return;
+    }
     const center = map.getCenter();
     const d = Math.abs(center.lat - position.lat) + Math.abs(center.lng - position.lon);
     if (d > 0.01) map.setView([position.lat, position.lon], Math.max(map.getZoom(), 15), { animate: true });
@@ -147,6 +156,8 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
   const [status, setStatus] = useState<string | null>(null);
   const [locateTarget, setLocateTarget] = useState<LatLng | null>(null);
   const last = track.length > 0 ? track[track.length - 1] : null;
+  // Sin fix aún: el centro por defecto es el parque; al llegar el
+  // primer arreglo GPS, Recenter lleva la vista a TU ubicación.
   const center = position ?? last ?? { lat: -33.408, lon: -70.636 };
   // Mapa nativo (MapLibre Native) o Leaflet en la web
   // ⚠️ NATIVE_MAPS_ENABLED=false (v1.3.1): el WebView del dispositivo no
