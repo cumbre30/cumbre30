@@ -33,15 +33,30 @@ Cuando termine, refresca https://github.com/TU-USUARIO/cumbre30 y verás el proy
 
 ---
 
-## Paso 3 — Subir el APK v1.4.5 a "Releases" (opcional pero recomendado)
+## Paso 3 — Subir el APK v1.5.0 a "Releases" (opcional pero recomendado)
 
 GitHub da gratis hasta 2 GB por release para binarios — es el lugar correcto para los APKs (mejor que dentro del código):
 
 1. En tu repo: **Releases → Create a new release** (o https://github.com/TU-USUARIO/cumbre30/releases/new).
-2. **Tag**: escribe `v1.4.5` y elige "Create new tag on publish".
-3. **Title**: `Cumbre30 v1.4.5 (build 20)`.
-4. Arrastra el archivo `cumbre30-v1.4.5-code20.apk` a la zona de adjuntos.
+2. **Tag**: escribe `v1.5.0` y elige "Create new tag on publish".
+3. **Title**: `Cumbre30 v1.5.0 (build 21)`.
+4. Arrastra el archivo `cumbre30-v1.5.0-code21.apk` a la zona de adjuntos.
 5. **Publish release** ✅
+
+### Novedades v1.5.0 (build 21) — monetización
+
+- 💛 **Aportes voluntarios** (Perfil): botón "Aportar — monto libre" que abre tu
+  enlace de Mercado Pago (link.mercadopago.cl/perfumatch) en el navegador.
+- 👑 **Cumbre30 Pro** ($6.500, pago único):
+  - Export **GPX** de cada viaje con GPS → importar en Strava, Garmin o Komoot.
+  - **Constancias PDF ilimitadas** (gratis: 3 al mes).
+  - Activación **sin servidor**: pagas → te llega un código `C30P-XXXX-…` ligado a tu
+    correo → lo ingresas en Perfil → "Ya pagué". Se valida offline en el teléfono.
+- 🏔️ **Formulario "¿Gestionas un parque o ciclovía?"**: los interesados en un prototipo
+  para otro parque envían sus datos por WhatsApp (+56 9 4296 1619) o correo
+  (contacto.cumbre30@gmail.com) con el mensaje ya redactado.
+- ℹ️ El pago se hace con Mercado Pago (fuera de la app, en el navegador); la app
+  sigue 100% offline y sin servidores propios.
 
 ### Novedades v1.4.5 (build 20)
 
@@ -68,7 +83,7 @@ Así cada versión futura del APK queda descargable y ordenada.
 
 ---
 
-## Paso 4 — Futuras actualizaciones (cuando saques v1.4.5, etc.)
+## Paso 4 — Futuras actualizaciones (cuando saques v1.5.0, etc.)
 
 En la carpeta del proyecto:
 

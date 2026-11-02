@@ -9,20 +9,19 @@
 // ============================================================
 
 /** Enlace de pago de Cumbre30 Pro (pago único). */
-export const PRO_PAY_URL = ""; // ej: "https://mpago.la/abcd1234"
+export const PRO_PAY_URL = "https://mpago.la/1WdyZaW";
 
 /** Etiqueta del precio que se muestra en la tarjeta Pro. */
 export const PRO_PRICE_LABEL = "$6.500 · pago único";
 
-/** Aportes voluntarios (botón de pago de Mercado Pago). */
+/** Aportes voluntarios (botón de pago de Mercado Pago, monto libre). */
 export const DONATE_OPTIONS: { label: string; url: string }[] = [
-  { label: "Aporte $2.000", url: "" }, // ej: "https://mpago.la/efgh5678"
-  { label: "Aporte $5.000", url: "" },
+  { label: "Aportar — monto libre", url: "https://link.mercadopago.cl/perfumatch" },
 ];
 
 /** Contacto para el formulario "prototipo para otro parque". */
-export const CONTACT_WHATSAPP = ""; // ej: "56912345678" (código de país + número, sin "+")
-export const CONTACT_EMAIL = ""; // ej: "contacto@cumbre30.cl"
+export const CONTACT_WHATSAPP = "56942961619"; // código de país + número, sin "+"
+export const CONTACT_EMAIL = "contacto.cumbre30@gmail.com";
 
 /** Beneficios Pro que se muestran en la tarjeta. */
 export const PRO_BENEFITS = [
