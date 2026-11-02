@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import QRCode from "qrcode";
 import { BIKE_SIZES, BIKE_TYPES } from "@/lib/bike";
+import { isOfflineMode, offlineUpdateProfile } from "@/lib/offlineAuth";
 import { refreshMe } from "@/hooks/useMe";
 
 type WalletData = {
@@ -92,7 +93,19 @@ export default function Wallet() {
     const savedAtISO = new Date().toISOString();
     localStorage.setItem(KEY, JSON.stringify({ ...data, savedAt: savedAtISO }));
     setStored({ data, savedAt: savedAtISO });
-    // Sincroniza la bici al perfil si hay sesión (silencioso)
+    // Sincroniza la bici al perfil si hay sesión (silencioso).
+    // APK: guarda directo en el perfil local (offline).
+    if (isOfflineMode()) {
+      offlineUpdateProfile({
+        bikeBrand: data.bikeBrand,
+        bikeType: data.bikeType,
+        bikeModel: data.bikeModel,
+        bikeSize: data.bikeSize,
+        bikeColor: data.bikeColor,
+      });
+      void refreshMe();
+      return;
+    }
     void fetch("/api/me", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },

@@ -10,5 +10,7 @@ if [ -d src/app/api ]; then
 fi
 trap 'if [ -d /tmp/api-routes-apk-backup ] && [ ! -d src/app/api ]; then mv /tmp/api-routes-apk-backup src/app/api; echo "API restaurada"; fi' EXIT
 
-STATIC_EXPORT=1 npx next build
+# NEXT_PUBLIC_STATIC=1: activa el modo offline en el bundle (auth y logros
+# por localStorage en vez de /api/*, que no existe dentro del APK).
+NEXT_PUBLIC_STATIC=1 STATIC_EXPORT=1 npx next build
 echo "EXPORT_OK: $(du -sh build-static | cut -f1)"

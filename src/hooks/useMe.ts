@@ -2,8 +2,10 @@
 
 // Estado de sesión compartido: /api/me con caché de módulo +
 // useSyncExternalStore para consumirlo sin efectos problemáticos.
+// En el APK (export estático) todo va por offlineAuth (localStorage).
 
 import { useSyncExternalStore } from "react";
+import { isOfflineMode, offlineLogin, offlineLogout, offlineMe, offlineRegister } from "@/lib/offlineAuth";
 
 export type MeUser = {
   id: string;
@@ -60,6 +62,21 @@ function notify() {
 
 export function refreshMe(): Promise<MeData | null> {
   if (!inflight) {
+    if (isOfflineMode()) {
+      // APK: sin servidor. Reconstruye MeData desde localStorage.
+      inflight = Promise.resolve().then(() => {
+        cache = offlineMe();
+      })
+        .catch(() => {
+          cache = null;
+        })
+        .finally(() => {
+          ready = true;
+          inflight = null;
+          notify();
+        });
+      return inflight.then(() => cache);
+    }
     inflight = fetch("/api/me", { cache: "no-store" })
       .then(async (r) => {
         cache = r.ok ? ((await r.json()) as MeData) : null;
@@ -78,6 +95,12 @@ export function refreshMe(): Promise<MeData | null> {
 
 export async function authAction(kind: "login" | "register", payload: Record<string, string>): Promise<string | null> {
   try {
+    if (isOfflineMode()) {
+      const err = kind === "login" ? await offlineLogin(payload) : await offlineRegister(payload);
+      if (err) return err;
+      await refreshMe();
+      return null;
+    }
     const r = await fetch(`/api/auth/${kind}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -94,7 +117,11 @@ export async function authAction(kind: "login" | "register", payload: Record<str
 
 export async function logout(): Promise<void> {
   try {
-    await fetch("/api/auth/logout", { method: "POST" });
+    if (isOfflineMode()) {
+      offlineLogout();
+    } else {
+      await fetch("/api/auth/logout", { method: "POST" });
+    }
   } catch {
     // sin conexión
   }

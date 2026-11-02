@@ -26,6 +26,7 @@ import {
   type Tier,
 } from "@/lib/pins";
 import { useMe, refreshMe } from "@/hooks/useMe";
+import { isOfflineMode, offlineUpdateProfile } from "@/lib/offlineAuth";
 import { loadLocalIncidentCount } from "@/lib/localIncidents";
 
 function ProgressBar({ pct, accent = "bg-emerald-500" }: { pct: number; accent?: string }) {
@@ -90,11 +91,15 @@ export default function ChallengesTab() {
     if (!me || !unlockedPins.has(pinId) || !isPinId(pinId)) return;
     setSavingPin(pinId);
     try {
-      await fetch("/api/me", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ selectedPin: pinId }),
-      });
+      if (isOfflineMode()) {
+        offlineUpdateProfile({ selectedPin: pinId });
+      } else {
+        await fetch("/api/me", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ selectedPin: pinId }),
+        });
+      }
       await refreshMe();
     } catch {
       // sin conexión

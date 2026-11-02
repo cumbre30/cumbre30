@@ -2,13 +2,26 @@
 
 // Sincronización local→servidor: sube el ride guardado y registra
 // logros nuevos. Silencioso: si no hay sesión o conexión, no hace nada.
+// En el APK (export estático) no hay servidor: los logros se evalúan
+// y guardan localmente para que Retos/Pines funcionen igual.
 
 import { historyStore, type RideSummary } from "@/lib/history";
+import { isOfflineMode, offlineUnlockAchievements } from "@/lib/offlineAuth";
 import { evaluateAchievements, statsFromRides } from "@/lib/pins";
 import { refreshMe } from "@/hooks/useMe";
 
 export async function syncRideAfterSave(summary: RideSummary): Promise<void> {
   try {
+    if (isOfflineMode()) {
+      // APK: evalúa logros contra el historial local y guárdalos.
+      const me = await refreshMe();
+      const stats = statsFromRides(historyStore.get());
+      const have = me?.achievements.map((a) => a.code) ?? [];
+      const codes = evaluateAchievements(stats, have);
+      if (codes.length) offlineUnlockAchievements(codes);
+      await refreshMe();
+      return;
+    }
     const r = await fetch("/api/rides", {
       method: "POST",
       headers: { "Content-Type": "application/json" },

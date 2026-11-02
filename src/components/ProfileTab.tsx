@@ -26,6 +26,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { authAction, logout, useMe } from "@/hooks/useMe";
+import { isOfflineMode } from "@/lib/offlineAuth";
 import { PINS, DEFAULT_PIN, type PinId } from "@/lib/pins";
 import { APP_VERSION, APP_VERSION_CODE, APK_SIZE_MB } from "@/lib/appVersion";
 
@@ -148,6 +149,10 @@ export default function ProfileTab() {
 
   const addFriend = async () => {
     setFriendError(null);
+    if (isOfflineMode()) {
+      setFriendError("Los amigos no están disponibles en la app sin servidor.");
+      return;
+    }
     try {
       const r = await fetch("/api/friends", {
         method: "POST",
