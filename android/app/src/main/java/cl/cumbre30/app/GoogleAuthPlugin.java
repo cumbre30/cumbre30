@@ -3,6 +3,8 @@ package cl.cumbre30.app;
 import android.content.Intent;
 import android.util.Base64;
 
+import androidx.activity.result.ActivityResult;
+
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
@@ -56,11 +58,16 @@ public class GoogleAuthPlugin extends Plugin {
         startActivityForResult(call, client.getSignInIntent(), "signInResult");
     }
 
+    // ⚠️ Capacitor 8 entrega un androidx.activity.result.ActivityResult, NO un
+    // Intent directo. Con la firma antigua (Intent) el Method.invoke del bridge
+    // lanzaba IllegalArgumentException sin capturar y la app se CERRABA justo
+    // después de elegir la cuenta (el usuario "volvía" a la app anterior).
     @ActivityCallback
-    private void signInResult(PluginCall call, Intent data) {
+    private void signInResult(PluginCall call, ActivityResult result) {
         if (call == null) return; // la actividad se destruyó mientras tanto
-        Task<GoogleSignInAccount> task = GoogleSignIn.getSignedInAccountFromIntent(data);
+        Intent data = result != null ? result.getData() : null;
         try {
+            Task<GoogleSignInAccount> task = GoogleSignIn.getSignedInAccountFromIntent(data);
             GoogleSignInAccount acct = task.getResult(ApiException.class);
             String sub = acct.getId();
             String idToken = acct.getIdToken();
@@ -90,6 +97,10 @@ public class GoogleAuthPlugin extends Plugin {
                 msg = "Error de Google Sign-In (código " + code + ").";
             }
             call.reject(msg, "GSI_" + code);
+        } catch (Exception e) {
+            // Red de seguridad: ningún error de Google debe cerrar la app.
+            call.reject("Error inesperado al procesar la respuesta de Google ("
+                    + e.getClass().getSimpleName() + "). Intenta otra vez.", "GSI_UNEXPECTED");
         }
     }
 
