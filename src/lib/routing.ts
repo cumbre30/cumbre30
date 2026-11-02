@@ -426,70 +426,129 @@ export function projectOnPolyline(
   };
 }
 
-/** Largo máx. del chaflán posición→ruta: más lejos = se parte en la
- *  calle más cercana, NUNCA un cordón recto que atraviese la manzana. */
+/** Largo máx. del chaflán posición→ruta (lo usa el canvas de nav para
+ *  dibujar el tramo de aproximación como tal). El anclaje del inicio
+ *  ya no depende de esta cifra: el pin SIEMPRE encabeza la ruta. */
 export const CONNECTOR_MAX_M = 40;
 
 /**
- * Ancla el inicio de la ruta a la posición del ciclista SIN cortar
- * manzanas: en vez de unir la posición real con un cordón recto al
- * nodo más cercano (antes podía atravesar una cuadra entera), se
- * PROYECTA la posición sobre la polilínea (que sigue calles) y:
- * · ≤ CONNECTOR_MAX_M → chaflán corto perpendicular a la calle.
- * · más lejos        → la ruta parte directo en el punto proyectado
- *   de la calle (sin conector).
+ * Ventana de recorte del inicio: solo se recorta la ruta si la
+ * proyección de tu posición cae dentro de los primeros TRIM_WINDOW_M
+ * metros de la polilínea. Antes el recorte podía caer en CUALQUIER
+ * tramo (p. ej. la ciclovía que la ruta tomaba unos metros más
+ * adelante, más cerca del fix GPS ruidoso que el propio arranque):
+ * se borraba el comienzo real y el mapa mostraba la ruta iniciando
+ * en la ciclovía en vez de en tu ubicación.
+ */
+const TRIM_WINDOW_M = 150;
+
+/**
+ * Ancla el inicio de la ruta a la posición del ciclista. Regla dura:
+ * coords[0] ES SIEMPRE el pin GPS del ciclista ("la ruta parte de TU
+ * ubicación"), y la preferencia por ciclovías se aplica a partir de
+ * ahí, nunca moviendo el arranque. Se proyecta la posición sobre la
+ * polilínea (que sigue calles) y:
+ * · Proyección cercana (dentro de TRIM_WINDOW_M) → se recorta el
+ *   arranque hasta el punto proyectado y se antepone el pin con un
+ *   chaflán corto posición→calle.
+ * · Proyección lejana (más allá de TRIM_WINDOW_M) → NO se recorta
+ *   nada: la ruta completa se conserva y el pin se antepone con un
+ *   conector recto al inicio de la ruta.
  * Los pasos (steps) se re-mapean a los nuevos índices.
  */
 export function attachOrigin(route: NavRoute, from: LatLng): NavRoute {
   if (route.coords.length < 2) return route;
   const pr = projectOnPolyline(route.coords, from);
   const i = pr.segIdx;
-  const withStub = pr.distM > 2 && pr.distM <= CONNECTOR_MAX_M;
+
+  // metros recorridos por la ruta hasta el inicio del tramo proyectado
+  let prefixM = 0;
+  for (let k = 0; k < i; k++) prefixM += haversineM(route.coords[k], route.coords[k + 1]);
+  const canTrim = prefixM <= TRIM_WINDOW_M;
 
   // ¿Sin cambios útiles? proyección ≈ el inicio actual y la posición cae ahí
-  if (!withStub && i === 0 && pr.distM <= 3) return route;
+  if (canTrim && i === 0 && pr.distM <= 3) return route;
 
-  const tail = route.coords.slice(i + 1);
-  // P reemplaza coords[i]; si la proyección cae prácticamente sobre
-  // coords[i+1] (dup), el punto coincide con ese vértice y el "resto
-  // del tramo i" desaparece: arrancamos desde el tramo i+1.
-  const dup = tail.length > 0 && haversineM(pr.point, tail[0]) < 0.5;
-  const tailClean = dup ? tail.slice(1) : tail;
-  const coords: LatLng[] = withStub ? [from, pr.point, ...tailClean] : [pr.point, ...tailClean];
-  if (coords.length < 2) return route;
+  if (canTrim) {
+    const tail = route.coords.slice(i + 1);
+    // P reemplaza coords[i]; si la proyección cae prácticamente sobre
+    // coords[i+1] (dup), el punto coincide con ese vértice y el "resto
+    // del tramo i" desaparece: arrancamos desde el tramo i+1.
+    const dup = tail.length > 0 && haversineM(pr.point, tail[0]) < 0.5;
+    const tailClean = dup ? tail.slice(1) : tail;
+    // tu pin SIEMPRE primero; chaflán pin→calle proyectada
+    const coords: LatLng[] = [from, pr.point, ...tailClean];
+    if (coords.length < 2) return route;
 
-  const off = withStub ? 1 : 0; // índice viejo j (j ≥ i+1) → j - restIdx + off
-  const restIdx = dup ? i + 1 : i;
-  // banderas/nombres: el tramo P→coords[i+1] conserva la clasificación
-  // del tramo viejo i; el chaflán se dibuja como vía compartida
-  const flags: boolean[] = withStub ? [false, ...route.flags.slice(restIdx)] : route.flags.slice(restIdx);
-  const segNames: string[] = withStub ? ["", ...route.segNames.slice(restIdx)] : route.segNames.slice(restIdx);
+    const restIdx = dup ? i + 1 : i;
+    // banderas/nombres: el chaflán se dibuja como vía compartida; el
+    // resto conserva la clasificación original desde restIdx
+    const flags: boolean[] = [false, ...route.flags.slice(restIdx)];
+    const segNames: string[] = ["", ...route.segNames.slice(restIdx)];
 
-  let distanceM = withStub ? pr.distM : 0;
+    let distanceM = 0;
+    for (let k = 0; k < coords.length - 1; k++) distanceM += haversineM(coords[k], coords[k + 1]);
+    distanceM = Math.round(distanceM);
+
+    // re-mapeo de pasos: los que quedaron detrás del punto proyectado se
+    // descartan; el primero hereda el recorte del tramo (headM)
+    const headM = haversineM(route.coords[i], pr.point);
+    const steps: RouteStep[] = [];
+    let firstKept = true;
+    for (const st of route.steps) {
+      if (st.idx <= i) continue;
+      const newIdx = st.idx - restIdx + 1;
+      steps.push({
+        ...st,
+        idx: newIdx,
+        point: coords[Math.min(newIdx, coords.length - 1)],
+        distM: firstKept ? Math.max(1, st.distM - Math.round(headM)) : st.distM,
+      });
+      firstKept = false;
+    }
+    const startName = segNames[1]?.trim() || "la vía";
+    steps.unshift({
+      icon: "start",
+      text: `Parte por ${startName}`,
+      distM: Math.max(1, Math.round(pr.distM)),
+      point: coords[0],
+      idx: 0,
+    });
+
+    return {
+      ...route,
+      coords,
+      flags,
+      segNames,
+      steps,
+      distanceM,
+      etaMin: Math.max(1, Math.round(distanceM / 1000 / 15 * 60)),
+    };
+  }
+
+  // Proyección lejana: el arranque real de la ruta es el correcto (el
+  // recorte borraría el comienzo para saltar a un tramo posterior —
+  // típicamente la ciclovía—). Se conserva la ruta íntegra y el pin
+  // queda como vértice 0 con un conector recto hasta la ruta.
+  const coords: LatLng[] = [from, ...route.coords];
+  const flags: boolean[] = [false, ...route.flags];
+  const segNames: string[] = ["", ...route.segNames];
+
+  let distanceM = 0;
   for (let k = 0; k < coords.length - 1; k++) distanceM += haversineM(coords[k], coords[k + 1]);
   distanceM = Math.round(distanceM);
 
-  // re-mapeo de pasos: los que quedaron detrás del punto proyectado se
-  // descartan; el primero hereda el recorte del tramo (headM)
-  const headM = haversineM(route.coords[i], pr.point);
+  const startName = route.segNames[0]?.trim() || "la vía";
   const steps: RouteStep[] = [];
-  let firstKept = true;
   for (const st of route.steps) {
-    if (st.idx <= i) continue;
-    const newIdx = st.idx - restIdx + off;
-    steps.push({
-      ...st,
-      idx: newIdx,
-      point: coords[Math.min(newIdx, coords.length - 1)],
-      distM: firstKept ? Math.max(1, st.distM - Math.round(headM)) : st.distM,
-    });
-    firstKept = false;
+    if (st.icon === "start") continue; // lo reemplaza el start anclado al pin
+    const newIdx = st.idx + 1;
+    steps.push({ ...st, idx: newIdx, point: coords[Math.min(newIdx, coords.length - 1)] });
   }
-  const startName = segNames[off]?.trim() || "la vía";
   steps.unshift({
     icon: "start",
-    text: `Parte por ${startName}`,
-    distM: withStub ? Math.max(1, Math.round(pr.distM)) : 0,
+    text: `Parte desde tu ubicación por ${startName}`,
+    distM: Math.max(1, Math.round(haversineM(from, route.coords[0]))),
     point: coords[0],
     idx: 0,
   });

@@ -126,7 +126,11 @@ export function useNavEngine(position: LatLng | null, running: boolean): NavEngi
         }
         setLoading(true);
         setNote("Buscando tu ubicación para rutear desde ahí…");
-        const fix = await oneShotFix();
+        // 2 intentos: el GPS frío (recién abierto / bajo techo) suele
+        // necesitar más de un disparo para dar un fix utilizable.
+        // Solo si ambos fallan se usa el origen provisional del acceso.
+        let fix = await oneShotFix();
+        if (!fix) fix = await oneShotFix(8000);
         if (fix) {
           posRef.current = fix;
           await compute(fix, d, "gps");
