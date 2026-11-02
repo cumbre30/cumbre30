@@ -14,6 +14,12 @@ import { attachOrigin, findRoute, haversineM, loadNetwork, snapInfo, type LatLng
 
 /** Distancia máx. al grafo local para usar el motor propio. */
 const GRAPH_COVER_M = 900;
+/** El ORIGEN exige estar (casi) sobre el grafo: si estás más lejos, tu
+ *  calle no está en el grafo y anclar el inicio a una arista lejana
+ *  producía rutas que nacían en la ciclovía más próxima o con cordones
+ *  rectos cruzando cuadras. Con esto caes a OSRM, que parte desde tu
+ *  posición real siguiendo calles. */
+const ORIGIN_COVER_M = 250;
 const OSRM_BASE = "https://routing.openstreetmap.de/routed-bike/route/v1/driving";
 const OVERPASS_BASE = "https://overpass-api.de/api/interpreter";
 
@@ -196,7 +202,12 @@ function overpassCycleFlags(coords: LatLng[]): Promise<boolean[]> {
 // ----------------------------------------------------------------
 
 async function osrmRoute(from: LatLng, to: LatLng): Promise<NavRoute | null> {
-  const url = `${OSRM_BASE}/${from.lon.toFixed(6)},${from.lat.toFixed(6)};${to.lon.toFixed(6)},${to.lat.toFixed(6)}?overview=full&geometries=geojson&steps=true&alternatives=false`;
+  // radiuses=200; → el ORIGEN debe anclarse a una calle ciclable a ≤200 m
+  // del pin. Sin este límite OSRM anclaba a ~700 m (p. ej. pin dentro del
+  // Campus San Joaquín, sin calles ciclables) y el tramo pin→red salía
+  // como un cordón recto que cruzaba las cuadras. El destino queda sin
+  // límite (puede caer en senderos del parque).
+  const url = `${OSRM_BASE}/${from.lon.toFixed(6)},${from.lat.toFixed(6)};${to.lon.toFixed(6)},${to.lat.toFixed(6)}?overview=full&geometries=geojson&steps=true&alternatives=false&radiuses=200;`;
   const ctrl = new AbortController();
   const to2 = setTimeout(() => ctrl.abort(), 12000);
   try {
@@ -269,7 +280,7 @@ export async function computeRoute(from: LatLng, to: LatLng): Promise<RouteResul
   if (net) {
     const a = snapInfo(net, from);
     const b = snapInfo(net, to);
-    if (a.distM <= GRAPH_COVER_M && b.distM <= GRAPH_COVER_M) {
+    if (a.distM <= ORIGIN_COVER_M && b.distM <= GRAPH_COVER_M) {
       const r = findRoute(net, from, to);
       if (r) {
         // flags del A* ya son confiables en el sector cubierto;

@@ -222,7 +222,16 @@ function nearestEdge(
  *  El origen se ancla a la ARISTA (calle) más cercana al ciclista mediante
  *  un nodo virtual en la proyección: la ruta nace en la calle donde estás,
  *  no salta al nodo más próximo (que puede quedar arriba, en la ciclovía).
- *  attachOrigin() agrega después el chaflán final hasta el pin GPS. */
+ *  attachOrigin() agrega después el chaflán final hasta el pin GPS.
+ *
+ *  ORIGIN_ANCHOR_MAX_M: si el ciclista está más lejos que esto del grafo
+ *  (típico: en la ciudad, fuera del sector cubierto), NO se ancla a una
+ *  arista lejana (antes 800 m: la ruta nacía sobre la ciclovía de una
+ *  avenida a 700 m y el conector al pin cruzaba las cuadras en línea
+ *  recta) — se devuelve null y computeRoute cae a OSRM, que sí parte
+ *  desde la posición real siguiendo calles. */
+export const ORIGIN_ANCHOR_MAX_M = 250;
+
 export function findRoute(net: Network, from: LatLng, to: LatLng): NavRoute | null {
   const t = nearestNode(net, to);
   if (t === null) return null;
@@ -232,7 +241,7 @@ export function findRoute(net: Network, from: LatLng, to: LatLng): NavRoute | nu
   // lejos del punto real (típico: el nodo está arriba, en la ciclovía, y el
   // ciclista abajo en la entrada del parque). Se crea un nodo virtual en la
   // proyección sobre la arista más cercana, heredando su clase/nombre.
-  const edge = nearestEdge(net, from, 800);
+  const edge = nearestEdge(net, from, ORIGIN_ANCHOR_MAX_M);
   let runNet: Network = net;
   let s: number;
   if (edge) {
@@ -257,7 +266,7 @@ export function findRoute(net: Network, from: LatLng, to: LatLng): NavRoute | nu
     runNet = { ...net, nodes: nodes2, adj: adj2 };
     s = virt;
   } else {
-    const s0 = nearestNode(net, from);
+    const s0 = nearestNode(net, from, ORIGIN_ANCHOR_MAX_M);
     if (s0 === null) return null;
     s = s0;
   }

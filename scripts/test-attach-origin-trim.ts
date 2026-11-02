@@ -176,5 +176,47 @@ for (const c of cases) {
   console.log(`    primera vía real tras el pin: "${firstStreet}" · inicio: "${route.steps[0].text}"`);
 }
 
+// ---------------------------------------------------------------
+// 4) Origen FUERA del grafo (caso del respaldo 2026-11-01: pin cerca
+//    de Marín / Fray Camilo Henríquez, a ~700 m del grafo). La ruta NO
+//    debe anclar su inicio a una arista lejana (antes 800 m: nacía en
+//    la ciclovía de Vicuña Mackenna y el conector al pin cruzaba las
+//    cuadras en línea recta). findRoute debe devolver null → computeRoute
+//    cae a OSRM, que parte desde la posición real por calles.
+// ---------------------------------------------------------------
+console.log("\n4) Origen fuera del grafo (caso del respaldo):");
+{
+  // Buscador de un punto del sector Vicuña Mackenna sur / San Joaquín
+  // que quede a >250 m de cualquier nodo del grafo local.
+  const candidates: LatLng[] = [
+    { lat: -33.5055, lon: -70.6195 },
+    { lat: -33.5049, lon: -70.6205 },
+    { lat: -33.5070, lon: -70.6210 },
+    { lat: -33.5100, lon: -70.6220 },
+    { lat: -33.5150, lon: -70.6220 },
+  ];
+  function snapDist(p: LatLng): number {
+    let bestD = Infinity;
+    for (let i = 0; i < net.nodes.length; i++) {
+      const d = haversineM(p, { lat: net.nodes[i][0], lon: net.nodes[i][1] });
+      if (d < bestD) { bestD = d; if (d < 12) break; }
+    }
+    return bestD;
+  }
+  let tested = 0;
+  for (const c of candidates) {
+    const dist = snapDist(c);
+    if (dist <= 250) continue; // el grafo cubre ese punto: no es el caso buscado
+    tested++;
+    const r = findRoute(net, c, { lat: -33.404, lon: -70.617 }); // destino Cumbre
+    console.log(`  pin a ${Math.round(dist)} m del grafo → findRoute: ${r ? "RUTA LOCAL (❌ debe ser null)" : "null (cae a OSRM ✅)"}`);
+    check(r === null, `origen a ${Math.round(dist)} m del grafo: findRoute devuelve null (→ OSRM por calles)`);
+  }
+  check(tested > 0, "se probó al menos un punto fuera del grafo en ese sector");
+  // Y los orígenes sobre el grafo siguen funcionando con el motor local:
+  const pio = findRoute(net, { lat: -33.430691, lon: -70.63592 }, { lat: -33.404, lon: -70.617 });
+  check(!!pio, "Pío Nono (sobre el grafo) sigue produciendo ruta local");
+}
+
 console.log("\n" + (failures === 0 ? "✅ TODO OK" : `❌ ${failures} fallos`));
 process.exit(failures === 0 ? 0 : 1);
