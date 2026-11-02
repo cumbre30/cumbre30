@@ -98,6 +98,7 @@ o simplemente pídeme el rebuild cuando cambies el Client ID.
 | Síntoma | Causa y arreglo |
 |---|---|
 | "Not implemented" al tocar el botón | APK anterior a la v1.4.1 (los plugins nativos se registraban tarde). Instala la v1.4.1+. |
+| Al elegir la cuenta la app se cierra (o "vuelve" a otra app como Descargas) | APK anterior a la v1.4.2: el callback recibía un `Intent` en vez del `ActivityResult` de Capacitor 8 y el app crasheaba al recibir la respuesta. Instala la v1.4.2+. |
 | "Google no reconoce esta app (código 10)" | El SHA-1 o el paquete no coinciden. Revisa el paso 3a (debe ser el mismo proyecto que el client Web). |
 | El botón avisa que falta el Client ID | Paso 4 no aplicado o la APK no se recompiló. |
 | "Sin conexión con Google" | Sin internet al momento de entrar; los rides nunca la necesitan, solo este botón. |
