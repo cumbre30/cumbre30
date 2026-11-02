@@ -4,42 +4,87 @@
 // nunca quede embebido dentro del build estático del propio APK.
 // export-web.sh mueve src/app/api fuera del export estático, así
 // que esta ruta solo existe en el servidor web (dev/prod Node).
+//
+// v1.3.6: ya NO hay nombre hardcodeado (causaba que el botón de
+// la app sirviera para siempre la 1.3.3). Orden de búsqueda:
+//   1. APK_FILE_NAME declarado en src/lib/appVersion.ts
+//   2. El *.apk más reciente por fecha de modificación en
+//      apk-store/ o download/ (fallback a prueba de olvidos).
 // ============================================================
 
-import { readFile } from "fs/promises";
+import { readFile, readdir, stat } from "fs/promises";
 import path from "path";
+import { APK_FILE_NAME } from "@/lib/appVersion";
 
 export const dynamic = "force-dynamic"; // nunca estático: binario grande desde disco
 export const runtime = "nodejs";
 
-const APK_NAME = "Cumbre30-v1.3.3-debug.apk";
-
-// Rutas candidatas: download/ (carpeta de entregables) y apk-store/
-// (copia versionada en git que sobrevive a los reciclajes del sandbox).
-const APK_CANDIDATES = [
-  path.join(process.cwd(), "download", APK_NAME),
-  path.join(process.cwd(), "apk-store", APK_NAME),
+const APK_DIRS = [
+  path.join(process.cwd(), "apk-store"),
+  path.join(process.cwd(), "download"),
 ];
 
-export async function GET() {
+/** Devuelve el APK a servir: primero el declarado, si no el más reciente que exista. */
+async function resolveApk(): Promise<{ file: string; p: string } | null> {
   const errors: string[] = [];
-  for (const p of APK_CANDIDATES) {
+
+  // 1) El nombre declarado en appVersion.ts, en cada carpeta candidata.
+  for (const dir of APK_DIRS) {
+    const p = path.join(dir, APK_FILE_NAME);
     try {
-      const buf = await readFile(p);
-      return new Response(new Uint8Array(buf), {
-        headers: {
-          "Content-Type": "application/vnd.android.package-archive",
-          "Content-Disposition": `attachment; filename="${APK_NAME}"`,
-          "Content-Length": String(buf.length),
-          "Cache-Control": "no-store",
-        },
-      });
+      await stat(p);
+      return { file: APK_FILE_NAME, p };
     } catch (e) {
       errors.push(`${p}: ${(e as Error)?.message ?? "error"}`);
     }
   }
-  return new Response(JSON.stringify({ error: "APK no disponible", errors }), {
-    status: 404,
-    headers: { "Content-Type": "application/json" },
-  });
+
+  // 2) Fallback: el *.apk más reciente por mtime (evita servir versiones viejas).
+  let best: { file: string; p: string; mtime: number } | null = null;
+  for (const dir of APK_DIRS) {
+    try {
+      const entries = await readdir(dir);
+      for (const f of entries) {
+        if (!f.toLowerCase().endsWith(".apk")) continue;
+        const p = path.join(dir, f);
+        try {
+          const s = await stat(p);
+          if (!best || s.mtimeMs > best.mtime) best = { file: f, p, mtime: s.mtimeMs };
+        } catch (e) {
+          errors.push(`${p}: ${(e as Error)?.message ?? "error"}`);
+        }
+      }
+    } catch (e) {
+      errors.push(`${dir}: ${(e as Error)?.message ?? "error"}`);
+    }
+  }
+  if (best) return { file: best.file, p: best.p };
+  if (errors.length) console.error("[/api/apk] sin APK disponible:", errors.join(" | "));
+  return null;
+}
+
+export async function GET() {
+  const apk = await resolveApk();
+  if (!apk) {
+    return new Response(JSON.stringify({ error: "APK no disponible" }), {
+      status: 404,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+  try {
+    const buf = await readFile(apk.p);
+    return new Response(new Uint8Array(buf), {
+      headers: {
+        "Content-Type": "application/vnd.android.package-archive",
+        "Content-Disposition": `attachment; filename="${apk.file}"`,
+        "Content-Length": String(buf.length),
+        "Cache-Control": "no-store",
+      },
+    });
+  } catch (e) {
+    return new Response(
+      JSON.stringify({ error: "APK no legible", detail: (e as Error)?.message ?? "error" }),
+      { status: 500, headers: { "Content-Type": "application/json" } },
+    );
+  }
 }

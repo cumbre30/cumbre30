@@ -27,6 +27,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { authAction, logout, useMe } from "@/hooks/useMe";
 import { PINS, DEFAULT_PIN, type PinId } from "@/lib/pins";
+import { APP_VERSION, APP_VERSION_CODE, APK_SIZE_MB } from "@/lib/appVersion";
 
 function StatBox({ label, value, unit }: { label: string; value: string | number; unit?: string }) {
   return (
@@ -325,9 +326,13 @@ export default function ProfileTab() {
         </div>
         <a href="/api/apk" download className="block">
           <Button className="w-full h-11 bg-emerald-600 hover:bg-emerald-500 text-zinc-950 font-semibold">
-            <Download className="h-4 w-4 mr-2" /> Descargar Cumbre30 v1.3.3 (53 MB)
+            <Download className="h-4 w-4 mr-2" /> Descargar Cumbre30 v{APP_VERSION} ({APK_SIZE_MB} MB)
           </Button>
         </a>
+        <p className="mt-2 text-xs text-zinc-500">
+          Versión instalada en este teléfono: <span className="text-zinc-300 font-medium">v{APP_VERSION}</span> (build {APP_VERSION_CODE}).
+          Si descargaste hace rato y algo no coincide, borra el APK viejo y vuelve a descargar.
+        </p>
       </Card>
 
       {/* Bicicleta */}
