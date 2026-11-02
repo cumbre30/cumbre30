@@ -56,6 +56,10 @@ Toma unos 10 minutos.
 
 ## Paso 4 — Pegar el Client ID en la app (1 min)
 
+> ✅ **Ya hecho en la v1.4.0**: el Client ID del proyecto Cumbre30 está pegado en
+> `src/lib/googleAuth.ts` y la APK ya se compiló con él. Estos pasos solo se
+> repiten si algún día cambias de proyecto de Google Cloud o de Client ID.
+
 Abre `src/lib/googleAuth.ts` y reemplaza la línea:
 
 ```ts
@@ -76,7 +80,7 @@ npx cap sync android
 cd android && ./gradlew assembleDebug
 ```
 
-o simplemente pídeme el rebuild (v1.4.0) cuando me pases el Client ID.
+o simplemente pídeme el rebuild cuando cambies el Client ID.
 
 ---
 

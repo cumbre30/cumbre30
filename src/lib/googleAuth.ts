@@ -33,9 +33,11 @@ const GoogleAuth = registerPlugin<GoogleAuthPluginInterface>("GoogleAuth");
 /**
  * Client ID OAuth de tipo "Web application" (mismo proyecto de Cloud
  * Console que el client "Android" con el SHA-1 de la APK).
- * Ejemplo de formato: "1234567890-abc123.apps.googleusercontent.com"
+ * Formato: "1234567890-abc123.apps.googleusercontent.com"
+ * Proyecto Google Cloud: Cumbre30 (configurado por el dueño de la app).
  */
-export const GOOGLE_WEB_CLIENT_ID = "";
+export const GOOGLE_WEB_CLIENT_ID =
+  "1083733199182-gbe3bnj00bivr7la3d4s80r5av7r964e.apps.googleusercontent.com";
 
 /** true solo dentro del APK y con el Client ID ya configurado. */
 export function googleSignInReady(): boolean {
