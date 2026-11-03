@@ -680,6 +680,7 @@ function BottomBar({ className, onRoute, etaMin, arrivalClock, remainingM, dest,
             aria-label="Ir a"
             value={dest ? NAV_DESTINATIONS.find((d) => d.position === dest.position)?.id ?? "mapa" : ""}
             onChange={(e) => {
+              if (e.target.value === "mapa") return; // ya navegando a un punto libre: no borrar la ruta
               const d = NAV_DESTINATIONS.find((x) => x.id === e.target.value);
               if (d) onSetDest({ name: d.name, position: d.position });
               else onSetDest(null);
@@ -690,7 +691,7 @@ function BottomBar({ className, onRoute, etaMin, arrivalClock, remainingM, dest,
             {NAV_DESTINATIONS.map((d) => (
               <option key={d.id} value={d.id} className="bg-card">{d.name}</option>
             ))}
-            {dest && <option value="mapa" className="bg-card">Punto en el mapa</option>}
+            {dest && <option value="mapa" className="bg-card">🎯 {dest.name}</option>}
           </select>
         </div>
       )}
