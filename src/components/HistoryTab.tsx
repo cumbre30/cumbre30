@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState, useSyncExternalStore } from "react";
-import { CalendarClock, Download, FileDown, Gauge, ShieldAlert, Timer, Trash2, Route } from "lucide-react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { CalendarClock, Download, FileDown, Gauge, ShieldAlert, Timer, Trash2, Route, Mountain, Trophy, Crown } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -10,6 +10,7 @@ import { clearHistory, historyStore, type RideSummary } from "@/lib/history";
 import { buildRidePdf, type RideIdentity } from "@/lib/ridePdf";
 import { shareOrDownloadFile } from "@/lib/shareFile";
 import { buildRideGpxBlob } from "@/lib/gpx";
+import { computeSegmentStats, effortsByRide, SEGMENTS, fmtEffort } from "@/lib/segments";
 import {
   constanciaCount,
   FREE_CONSTANCIA_LIMIT,
@@ -26,9 +27,11 @@ function fmtDate(iso: string): string {
 export function HistoryTab({
   refreshKey,
   user,
+  onGoPro,
 }: {
   refreshKey: number;
   user?: { email?: string; username?: string };
+  onGoPro?: () => void;
 }) {
   const rides = useSyncExternalStore(historyStore.subscribe, historyStore.get, historyStore.getServer);
   const { pro } = useProLicense();
@@ -37,6 +40,17 @@ export function HistoryTab({
   const [gpxBusyId, setGpxBusyId] = useState<string | null>(null);
   const [gpxMsg, setGpxMsg] = useState<string | null>(null);
   const [constCount, setConstCount] = useState(0);
+
+  // Segmentos: se calculan solo con Pro (función Pro); para nivel
+  // gratis basta el teaser.
+  const segStats = useMemo(
+    () => (pro.active ? computeSegmentStats(rides) : []),
+    [pro.active, rides],
+  );
+  const perRideEfforts = useMemo(
+    () => (pro.active ? effortsByRide(rides) : new Map()),
+    [pro.active, rides],
+  );
 
   // Relee el historial cuando se guarda un ride nuevo
   useEffect(() => {
@@ -138,6 +152,71 @@ export function HistoryTab({
         )}
       </Card>
 
+      {/* Segmentos del cerro (función Cumbre30 Pro) */}
+      <Card className="bg-card/80 border-border p-4">
+        <div className="flex items-center gap-2">
+          <Mountain className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+          <p className="font-medium text-foreground text-sm">Segmentos del cerro</p>
+          {pro.active && (
+            <Badge className="bg-amber-500 font-bold text-zinc-950 text-[10px]">PRO</Badge>
+          )}
+        </div>
+        {pro.active ? (
+          <>
+            <ul className="mt-2 flex flex-col gap-2">
+              {segStats.map((s) => (
+                <li key={s.def.id} className="rounded-lg border border-border bg-background/60 p-3">
+                  <div className="flex items-baseline justify-between gap-2 flex-wrap">
+                    <span className="text-sm font-medium text-foreground">{s.def.name}</span>
+                    {s.pb ? (
+                      <span className="flex items-center gap-1 font-mono text-base font-semibold text-amber-600 dark:text-amber-300">
+                        <Trophy className="h-4 w-4" /> {fmtEffort(s.pb.timeSec)}
+                      </span>
+                    ) : (
+                      <span className="text-[11px] text-muted-foreground">aún sin intentos</span>
+                    )}
+                  </div>
+                  <p className="mt-0.5 text-[11px] text-muted-foreground">{s.def.detail}</p>
+                  {s.pb && (
+                    <p className="mt-1 text-[11px] text-muted-foreground">
+                      Récord: {fmtDate(s.pb.dateISO)} · prom {s.pb.avgKmh.toFixed(1)} km/h · +{Math.round(s.pb.gainM)} m
+                    </p>
+                  )}
+                  {s.count > 0 && s.last && (
+                    <p className="mt-0.5 text-[11px] text-muted-foreground">
+                      {s.count} {s.count === 1 ? "intento" : "intentos"} · último: {fmtEffort(s.last.timeSec)} — {fmtDate(s.last.dateISO)}
+                    </p>
+                  )}
+                  {s.top.length > 1 && (
+                    <p className="mt-0.5 text-[11px] text-muted-foreground">
+                      Top: {s.top.map((e, i) => `${i + 1}) ${fmtEffort(e.timeSec)}`).join("  ")}
+                    </p>
+                  )}
+                </li>
+              ))}
+            </ul>
+            <p className="mt-2 text-[11px] text-muted-foreground">
+              Se detectan solos: graba tu viaje con GPS y si pasas por el acceso del segmento
+              hasta la meta, queda cronometrado con récord personal e historial.
+            </p>
+          </>
+        ) : (
+          <>
+            <p className="mt-1 leading-relaxed text-muted-foreground">
+              Cronometraje oficial de tus subidas — Pío Nono → Cumbre, Pedro de Valdivia Norte
+              → Cumbre y el tramo final Antilén → Cumbre — con récord personal, contador de
+              intentos e historial de tiempos.
+            </p>
+            <Button
+              onClick={onGoPro}
+              className="mt-3 h-9 bg-amber-500 font-bold text-zinc-950 hover:bg-amber-400"
+            >
+              <Crown className="mr-2 h-4 w-4" /> Es parte de Cumbre30 Pro
+            </Button>
+          </>
+        )}
+      </Card>
+
       {rides.length === 0 ? (
         <Card className="bg-card/60 border-border p-8 text-center text-muted-foreground text-sm">
           Aún no hay viajes guardados. Inicia un ride y al detenerlo quedará registrado aquí.
@@ -218,6 +297,20 @@ export function HistoryTab({
                     Máx en parque: {r.maxInParkKmh !== null ? `${r.maxInParkKmh.toFixed(1)} km/h` : "no ingresó"} · Promedio: {r.avgKmh.toFixed(1)} km/h · Desnivel: +{Math.round(r.gainM)} m
                     {r.source === "sim" && " · Viaje de demostración: no emite constancia"}
                   </div>
+                  {(perRideEfforts.get(r.id)?.length ?? 0) > 0 && (
+                    <div className="mt-1.5 flex items-start gap-1.5 text-[11px] text-amber-700 dark:text-amber-300">
+                      <Trophy className="mt-0.5 h-3 w-3 shrink-0" />
+                      <span>
+                        {perRideEfforts
+                          .get(r.id)!
+                          .map((e) => {
+                            const def = SEGMENTS.find((d) => d.id === e.segmentId);
+                            return `${def?.name ?? e.segmentId}: ${fmtEffort(e.timeSec)}`;
+                          })
+                          .join(" · ")}
+                      </span>
+                    </div>
+                  )}
                 </Card>
               </li>
             ))}

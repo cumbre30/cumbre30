@@ -223,6 +223,7 @@ export default function Home() {
             <HistoryTab
               refreshKey={historyKey}
               user={me ? { email: me.user.email, username: me.user.username } : undefined}
+              onGoPro={() => setTab("profile")}
             />
           </TabsContent>
 

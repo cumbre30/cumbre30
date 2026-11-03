@@ -13,7 +13,7 @@ import { Ema, SpeedKalman, haversineM, pointInPolygon } from "@/lib/geo";
 import { alerts } from "@/lib/alertEngine";
 import { RideNative, isNativeApp, type PluginListenerHandleLike } from "@/lib/rideNative";
 import { RideSimulator } from "@/lib/simulation";
-import { saveRide, type RideSummary } from "@/lib/history";
+import { saveRide, type RideSummary, type TrackPt } from "@/lib/history";
 import { syncRideAfterSave } from "@/lib/sync";
 
 export type SpeedState = "ok" | "caution" | "over";
@@ -78,7 +78,7 @@ export function useRideEngine() {
     tickTimer: null as ReturnType<typeof setInterval> | null,
     lastTick: 0,
     // Pista muestreada para export GPX: [lat, lon, eleM, tsSec]
-    trackPts: [] as number[][],
+    trackPts: [] as TrackPt[],
     trackEveryMs: 5000,
   });
 
