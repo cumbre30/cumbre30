@@ -24,7 +24,6 @@ import {
   Polyline,
   TileLayer,
   useMap,
-  useMapEvents,
 } from "react-leaflet";
 import type { LatLng } from "@/lib/park";
 import type { NavRoute } from "@/lib/routing";
@@ -40,8 +39,6 @@ type Props = {
   onRoute: boolean;
   route: NavRoute | null;
   dest: { name: string; position: LatLng } | null;
-  pickMode: boolean;
-  onPick: (p: LatLng) => void;
   userPin?: string;
   locateTarget: LatLng | null;
 };
@@ -81,14 +78,6 @@ function Follow({
   return null;
 }
 
-function ClickHandler({ onPick, enabled }: { onPick: (p: LatLng) => void; enabled: boolean }) {
-  useMapEvents({
-    click(e) {
-      if (enabled) onPick({ lat: e.latlng.lat, lon: e.latlng.lng });
-    },
-  });
-  return null;
-}
 
 export default function LeafletNav({
   position,
@@ -98,8 +87,6 @@ export default function LeafletNav({
   onRoute,
   route,
   dest,
-  pickMode,
-  onPick,
   userPin,
   locateTarget,
 }: Props) {
@@ -175,7 +162,6 @@ export default function LeafletNav({
       )}
 
       <Follow position={position} locateTarget={locateTarget} />
-      <ClickHandler enabled={pickMode} onPick={onPick} />
     </MapContainer>
   );
 }

@@ -26,7 +26,7 @@ import "maplibre-gl/dist/maplibre-gl.css";
 // así que lo servimos nosotros: public/maplibre-gl-worker.mjs — mismo
 // archivo incluido en el APK como asset.
 setWorkerUrl("/maplibre-gl-worker.mjs?v=6.16.0");
-import { Crosshair, Flag, Plus, Route as RouteIcon, TriangleAlert, X } from "lucide-react";
+import { Crosshair, Plus, Route as RouteIcon, TriangleAlert, X } from "lucide-react";
 import { GATES, NAV_DESTINATIONS, PARK_POLYGON, RISK_ZONES, type LatLng } from "@/lib/park";
 import { DEFAULT_PIN, PINS, type PinId } from "@/lib/pins";
 import { INCIDENT_BY_ID } from "@/lib/incidents";
@@ -221,8 +221,6 @@ type NavCanvasProps = {
   remainingM: number;
   nextStep: RouteStep | null;
   dest: LatLng | null;
-  pickMode: boolean;
-  onPick: (p: LatLng) => void;
   userPin?: string;
   incidents: IncidentItem[];
   locateTarget: LatLng | null;
@@ -233,14 +231,6 @@ function NavCanvas(props: NavCanvasProps) {
   const mapRef = useRef<MlMap | null>(null);
   const [ready, setReady] = useState(false);
   const firstFixRef = useRef(false);
-
-  // refs vivas para handlers registrados una sola vez
-  const pickModeRef = useRef(props.pickMode);
-  const onPickRef = useRef(props.onPick);
-  useEffect(() => {
-    pickModeRef.current = props.pickMode;
-    onPickRef.current = props.onPick;
-  }, [props.pickMode, props.onPick]);
 
   // ---- init ----
   useEffect(() => {
@@ -362,10 +352,6 @@ function NavCanvas(props: NavCanvasProps) {
       });
 
       setReady(true);
-    });
-
-    map.on("click", (e) => {
-      if (pickModeRef.current) onPickRef.current({ lat: e.lngLat.lat, lon: e.lngLat.lng });
     });
 
     const ro = new ResizeObserver(() => map.resize());
@@ -637,13 +623,11 @@ function LegendChip({ className, route }: { className: string; route: NavEngine[
 type ControlsProps = {
   className: string;
   onLocate: () => void;
-  pickMode: boolean;
-  onTogglePick: () => void;
   hasDest: boolean;
   onClear: () => void;
 };
 
-function Controls({ className, onLocate, pickMode, onTogglePick, hasDest, onClear }: ControlsProps) {
+function Controls({ className, onLocate, hasDest, onClear }: ControlsProps) {
   return (
     <div className={className}>
       <button
@@ -653,16 +637,6 @@ function Controls({ className, onLocate, pickMode, onTogglePick, hasDest, onClea
         className="h-8 w-8 rounded-md bg-background/90 border border-border text-foreground flex items-center justify-center hover:border-emerald-500"
       >
         <Crosshair className="h-4 w-4" />
-      </button>
-      <button
-        onClick={onTogglePick}
-        aria-label="Elegir destino en el minimapa"
-        title="Toca el minimapa para fijar destino"
-        className={`h-8 w-8 rounded-md border flex items-center justify-center ${
-          pickMode ? "bg-sky-600 border-sky-300 text-white" : "bg-background/90 border-border text-foreground hover:border-sky-500"
-        }`}
-      >
-        <Flag className="h-4 w-4" />
       </button>
       {hasDest && (
         <button
@@ -775,23 +749,11 @@ function StatusNote({ className, text }: { className: string; text: string }) {
   return <div className={`${className} pointer-events-none shadow-xl`}>{text}</div>;
 }
 
-function PickBanner({ className, onClose }: { className: string; onClose: () => void }) {
-  return (
-    <div className={className}>
-      <span>Toca el minimapa para fijar tu destino</span>
-      <button onClick={onClose} aria-label="Cancelar elección" className="text-sky-700 dark:text-sky-300 hover:text-white">
-        <X className="h-3.5 w-3.5" />
-      </button>
-    </div>
-  );
-}
-
 // ============================================================
 // Componente principal: lienzo + capa Waze (banner, barra, etc.)
 // ============================================================
 export default function MiniMap({ position, heading, track, accuracyM, userPin, nav, speedKmh = 0 }: Props) {
   const incidents = useIncidentFeed();
-  const [pickMode, setPickMode] = useState(false);
   const [locateTarget, setLocateTarget] = useState<LatLng | null>(null);
   const [reportOpen, setReportOpen] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
@@ -815,11 +777,6 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
       return false;
     }
   }, []);
-
-  const pick = (p: LatLng) => {
-    nav.setDestination({ name: "Punto en el mapa", position: p });
-    setPickMode(false);
-  };
 
   const locate = () => {
     if (position) {
@@ -925,8 +882,6 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
             remainingM={remainingM}
             nextStep={nextStep}
             dest={dest ? dest.position : null}
-            pickMode={pickMode}
-            onPick={pick}
             userPin={userPin}
             incidents={incidents}
             locateTarget={locateTarget}
@@ -946,14 +901,11 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
           <Controls
             className="ml-auto flex gap-1.5"
             onLocate={locate}
-            pickMode={pickMode}
-            onTogglePick={() => setPickMode((v) => !v)}
             hasDest={!!dest}
             onClear={() => nav.setDestination(null)}
           />
         </div>
 
-        {pickMode && <PickBanner className="rounded-md bg-sky-950/95 border border-sky-600 px-2.5 py-1.5 text-[11px] text-sky-100 flex items-center justify-between" onClose={() => setPickMode(false)} />}
         {reportOpen && <ReportSheet className="rounded-xl bg-background/95 border border-border shadow-2xl p-3" hasPosition={!!position} onType={reportIncident} onClose={() => setReportOpen(false)} />}
         {status && <StatusNote className="rounded-lg bg-card/95 border border-border px-3 py-2 text-[11px] text-foreground" text={status} />}
 
@@ -985,8 +937,6 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
           remainingM={remainingM}
           nextStep={nextStep}
           dest={dest ? dest.position : null}
-          pickMode={pickMode}
-          onPick={pick}
           userPin={userPin}
           incidents={incidents}
           locateTarget={locateTarget}
@@ -1001,8 +951,6 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
           onRoute={onRoute}
           route={onRoute ? route : null}
           dest={dest ? { name: dest.name, position: dest.position } : null}
-          pickMode={pickMode}
-          onPick={pick}
           userPin={userPin}
           locateTarget={locateTarget}
         />
@@ -1049,8 +997,6 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
       <Controls
         className="absolute top-2 right-2 z-[500] flex flex-col gap-1.5"
         onLocate={locate}
-        pickMode={pickMode}
-        onTogglePick={() => setPickMode((v) => !v)}
         hasDest={!!dest}
         onClear={() => nav.setDestination(null)}
       />
@@ -1079,14 +1025,6 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
 
       {/* Confirmación / avisos */}
       {status && <StatusNote className="absolute bottom-[60px] inset-x-3 z-[700] rounded-lg bg-card/95 border border-border px-3 py-2 text-[11px] text-foreground" text={status} />}
-
-      {/* Aviso de modo elección de destino */}
-      {pickMode && (
-        <PickBanner
-          className={`absolute inset-x-2 z-[700] rounded-md bg-sky-950/95 border border-sky-600 px-2.5 py-1.5 text-[11px] text-sky-100 flex items-center justify-between ${onRoute ? "top-[86px]" : "top-2"}`}
-          onClose={() => setPickMode(false)}
-        />
-      )}
     </div>
   );
 }

@@ -24,17 +24,19 @@ import {
   useMap,
   useMapEvents,
 } from "react-leaflet";
-import { Crosshair, AlertTriangle, Trash2, X } from "lucide-react";
-import { GATES, PARK_POLYGON, RISK_ZONES, type LatLng } from "@/lib/park";
+import { Crosshair, AlertTriangle, Trash2, X, Search, MapPin, Flag, Crown } from "lucide-react";
+import { GATES, NAV_DESTINATIONS, PARK_POLYGON, RISK_ZONES, type LatLng } from "@/lib/park";
 import { PINS, DEFAULT_PIN } from "@/lib/pins";
 import { INCIDENT_BY_ID, INCIDENT_TYPES, type IncidentTypeId } from "@/lib/incidents";
 import { pointInPolygon } from "@/lib/geo";
-import { incidentIcon, userPinIcon, flagIcon } from "@/lib/mapIcons";
+import { incidentIcon, userPinIcon, flagIcon, markIcon } from "@/lib/mapIcons";
 import { groupSegments, loadNetwork, type NavRoute, type Network } from "@/lib/routing";
 import { useIncidentFeed, addIncident, removeIncident, saveLocalIncidents, loadLocalIncidents, type IncidentItem } from "@/hooks/useIncidentFeed";
 import { isNativeMapPlatform } from "@/lib/nativeMapBridge";
 import NativeMapCanvas from "@/components/NativeMapCanvas";
 import { buildCicloFeature } from "@/lib/navCanvasLogic";
+import { useProLicense } from "@/lib/proLicense";
+import { addMark, removeMark, useMarks, normalizeForSearch } from "@/lib/marks";
 
 function pinEmoji(pinId: string): string {
   const p = PINS[pinId as keyof typeof PINS];
@@ -50,6 +52,10 @@ type Props = {
   /** Ruta activa elegida en el velocímetro (solo lectura aquí). */
   route: NavRoute | null;
   dest: { name: string; position: LatLng } | null;
+  /** Fijar/quitar el destino de navegación (buscador Pro). */
+  onSetDest?: (d: { name: string; position: LatLng } | null) => void;
+  /** Saltar a la pestaña Perfil (teaser Pro). */
+  onGoPro?: () => void;
 };
 
 function Recenter({ position }: { position: LatLng | null }) {
@@ -88,6 +94,155 @@ function ClickHandler({ onPick, enabled }: { onPick: (p: LatLng) => void; enable
     },
   });
   return null;
+}
+
+// ---- Buscador de destinos y marcadores (función Cumbre30 Pro) ----
+
+function SearchCard({
+  pro,
+  marks,
+  query,
+  onQuery,
+  activeDest,
+  onSetDest,
+  onGoPro,
+  markMode,
+  onToggleMarkMode,
+  onMarkPoi,
+  onRemoveMark,
+}: {
+  pro: boolean;
+  marks: { id: string; name: string; lat: number; lon: number }[];
+  query: string;
+  onQuery: (q: string) => void;
+  activeDest: { name: string; position: LatLng } | null;
+  onSetDest?: (d: { name: string; position: LatLng } | null) => void;
+  onGoPro?: () => void;
+  markMode: boolean;
+  onToggleMarkMode: () => void;
+  onMarkPoi: (name: string, p: LatLng) => void;
+  onRemoveMark: (id: string) => void;
+}) {
+  const nq = normalizeForSearch(query);
+  const dests = NAV_DESTINATIONS.filter((d) => !nq || normalizeForSearch(d.name).includes(nq));
+  const mine = marks.filter((m) => !nq || normalizeForSearch(m.name).includes(nq));
+
+  if (!pro) {
+    return (
+      <div className="rounded-xl border border-border bg-card/80 p-3">
+        <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+          <Search className="h-4 w-4 text-emerald-600 dark:text-emerald-400" /> Buscador de destinos
+          <Crown className="h-4 w-4 text-amber-500" />
+        </div>
+        <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+          Busca lugares del cerro, genera la ruta hasta ellos y guarda tus propios
+          marcadores (miradores, fuentes, puntos de encuentro). Parte de Cumbre30 Pro.
+        </p>
+        <button
+          onClick={onGoPro}
+          className="mt-2.5 h-9 rounded-md bg-amber-500 px-3 text-xs font-bold text-zinc-950 hover:bg-amber-400"
+        >
+          Es parte de Cumbre30 Pro
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-xl border border-border bg-card/80 p-3">
+      <div className="flex items-center gap-2 rounded-lg border border-border bg-background px-2.5 py-2">
+        <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
+        <input
+          value={query}
+          onChange={(e) => onQuery(e.target.value)}
+          placeholder="Buscar destino: cumbre, zoo, piscina…"
+          aria-label="Buscar destino en el mapa"
+          className="w-full min-w-0 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
+        />
+        {query && (
+          <button onClick={() => onQuery("")} aria-label="Limpiar búsqueda" className="text-muted-foreground hover:text-foreground">
+            <X className="h-4 w-4" />
+          </button>
+        )}
+      </div>
+
+      {activeDest && onSetDest && (
+        <div className="mt-2 flex items-center gap-2 rounded-lg border border-sky-700/60 bg-sky-950/30 px-2.5 py-1.5 text-[11px] text-foreground">
+          <Flag className="h-3.5 w-3.5 shrink-0 text-sky-600 dark:text-sky-400" />
+          <span className="min-w-0 flex-1 truncate">Ruta activa: {activeDest.name}</span>
+          <button
+            onClick={() => onSetDest(null)}
+            className="shrink-0 rounded border border-border px-1.5 py-0.5 text-[10px] text-muted-foreground hover:border-red-400 hover:text-red-500"
+          >
+            Quitar ruta
+          </button>
+        </div>
+      )}
+
+      <ul className="mt-1.5 max-h-44 overflow-y-auto pr-0.5">
+        {dests.map((d) => (
+          <li key={d.id} className="flex items-center gap-1.5 border-b border-border/50 py-1.5 last:border-0">
+            <span className="min-w-0 flex-1 truncate text-xs text-foreground">{d.name}</span>
+            {onSetDest && (
+              <button
+                onClick={() => onSetDest({ name: d.name, position: d.position })}
+                className="shrink-0 rounded border border-sky-700/60 px-1.5 py-0.5 text-[10px] font-semibold text-sky-700 hover:bg-sky-950/40 dark:text-sky-300"
+                title="Generar ruta hasta aquí"
+              >
+                Ruta
+              </button>
+            )}
+            <button
+              onClick={() => onMarkPoi(d.name, d.position)}
+              className="shrink-0 rounded border border-border px-1.5 py-0.5 text-[10px] text-muted-foreground hover:border-emerald-500 hover:text-emerald-500"
+              title="Guardar en mis lugares"
+            >
+              📍
+            </button>
+          </li>
+        ))}
+        {mine.map((m) => (
+          <li key={m.id} className="flex items-center gap-1.5 border-b border-border/50 py-1.5 last:border-0">
+            <span className="min-w-0 flex-1 truncate text-xs text-foreground">
+              📍 {m.name} <span className="text-[10px] text-muted-foreground">· mi lugar</span>
+            </span>
+            {onSetDest && (
+              <button
+                onClick={() => onSetDest({ name: m.name, position: { lat: m.lat, lon: m.lon } })}
+                className="shrink-0 rounded border border-sky-700/60 px-1.5 py-0.5 text-[10px] font-semibold text-sky-700 hover:bg-sky-950/40 dark:text-sky-300"
+                title="Generar ruta hasta aquí"
+              >
+                Ruta
+              </button>
+            )}
+            <button
+              onClick={() => onRemoveMark(m.id)}
+              className="shrink-0 text-muted-foreground/70 hover:text-red-500"
+              aria-label={`Eliminar ${m.name}`}
+              title="Eliminar marcador"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          </li>
+        ))}
+        {dests.length === 0 && mine.length === 0 && (
+          <li className="py-2 text-center text-xs text-muted-foreground">Sin resultados para «{query}»</li>
+        )}
+      </ul>
+
+      <button
+        onClick={onToggleMarkMode}
+        className={`mt-2 flex h-8 w-full items-center justify-center gap-1.5 rounded-md border text-[11px] font-medium ${
+          markMode
+            ? "border-emerald-400 bg-emerald-600 text-zinc-950"
+            : "border-border bg-background text-muted-foreground hover:border-emerald-500 hover:text-foreground"
+        }`}
+      >
+        <MapPin className="h-3.5 w-3.5" />
+        {markMode ? "Toca el mapa para marcar (cancelar)" : "Marcar un punto tocando el mapa"}
+      </button>
+    </div>
+  );
 }
 
 // ---- Piezas compartidas web/nativo del mapa grande ----
@@ -149,7 +304,7 @@ function IncidentSheet({
   );
 }
 
-export default function MapView({ track, position, accuracyM, heading, userPin, route, dest }: Props) {
+export default function MapView({ track, position, accuracyM, heading, userPin, route, dest, onSetDest, onGoPro }: Props) {
   // Filtro nocturno de los tiles OSM: solo con el tema oscuro
   // (en modo claro el mapa se muestra con sus colores normales).
   const { resolvedTheme } = useTheme();
@@ -160,6 +315,13 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
   const [pending, setPending] = useState<LatLng | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [locateTarget, setLocateTarget] = useState<LatLng | null>(null);
+  // Buscador Pro: consulta, marcadores personales y modo "marcar tocando"
+  const { pro } = useProLicense();
+  const marks = useMarks();
+  const [query, setQuery] = useState("");
+  const [markMode, setMarkMode] = useState(false);
+  const [pendingMark, setPendingMark] = useState<LatLng | null>(null);
+  const [markName, setMarkName] = useState("");
   const last = track.length > 0 ? track[track.length - 1] : null;
   // Sin fix aún: el centro por defecto es el parque; al llegar el
   // primer arreglo GPS, Recenter lleva la vista a TU ubicación.
@@ -243,6 +405,23 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
         { enableHighAccuracy: true, timeout: 8000 }
       );
     }
+  };
+
+  // --- Marcadores personales (Pro): guardar POI o punto tocado ---
+  const markPoi = (name: string, p: LatLng) => {
+    addMark(name, p);
+    setStatus(`📍 «${name}» guardado en tus lugares.`);
+    setTimeout(() => setStatus(null), 4000);
+  };
+
+  const saveMark = () => {
+    if (!pendingMark) return;
+    const m = addMark(markName, pendingMark);
+    setPendingMark(null);
+    setMarkName("");
+    setMarkMode(false);
+    setStatus(`📍 «${m.name}» guardado en tus lugares.`);
+    setTimeout(() => setStatus(null), 4000);
   };
 
   // Ciclovías: SOLO las que están dentro del cerro (≥50% de sus puntos
@@ -387,12 +566,30 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
 
   return (
     <div className="flex flex-col gap-3">
+      <SearchCard
+        pro={pro.active}
+        marks={marks}
+        query={query}
+        onQuery={setQuery}
+        activeDest={dest}
+        onSetDest={onSetDest}
+        onGoPro={onGoPro}
+        markMode={markMode}
+        onToggleMarkMode={() => {
+          setMarkMode((v) => !v);
+          setPendingMark(null);
+          setReportMode(false);
+        }}
+        onMarkPoi={markPoi}
+        onRemoveMark={removeMark}
+      />
+
       <div className="rounded-xl overflow-hidden border border-border h-[62vh] min-h-[420px] relative z-0">
         <MapContainer
           center={[center.lat, center.lon]}
           zoom={14}
           scrollWheelZoom
-          className={`${darkMap ? "map-dark" : ""} h-full w-full bg-background ${reportMode ? "cursor-crosshair" : ""}`}
+          className={`${darkMap ? "map-dark" : ""} h-full w-full bg-background ${reportMode || markMode ? "cursor-crosshair" : ""}`}
           attributionControl
         >
           <TileLayer
@@ -480,6 +677,33 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
           {/* Incidencias */}
           {incidentMarkers}
 
+          {/* Marcadores personales (Pro) */}
+          {marks.map((m) => (
+            <Marker key={m.id} position={[m.lat, m.lon]} icon={markIcon()}>
+              <Popup>
+                <div className="min-w-[170px] text-[13px]">
+                  <div className="font-semibold mb-1">📍 {m.name}</div>
+                  <div className="flex gap-3">
+                    {onSetDest && (
+                      <button
+                        onClick={() => onSetDest({ name: m.name, position: { lat: m.lat, lon: m.lon } })}
+                        className="font-medium text-sky-600 hover:underline"
+                      >
+                        Ruta aquí
+                      </button>
+                    )}
+                    <button
+                      onClick={() => removeMark(m.id)}
+                      className="font-medium text-red-600 hover:underline"
+                    >
+                      Eliminar
+                    </button>
+                  </div>
+                </div>
+              </Popup>
+            </Marker>
+          ))}
+
           {/* Posición actual con pin personal (flecha si es el clásico) */}
           {position && (
             <>
@@ -497,6 +721,13 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
           <Recenter position={position} />
           <LocateHandler target={locateTarget} />
           <ClickHandler enabled={reportMode} onPick={setPending} />
+          <ClickHandler
+            enabled={markMode}
+            onPick={(p) => {
+              setPendingMark(p);
+              setMarkName("");
+            }}
+          />
         </MapContainer>
 
         {/* Controles flotantes */}
@@ -561,14 +792,48 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
             )}
           </div>
         )}
+        {/* Nombrar un marcador personal (Pro, modo marcar) */}
+        {pendingMark && (
+          <div className="absolute top-16 inset-x-2 z-[650] rounded-lg bg-background/95 border border-emerald-500/70 px-3 py-2 text-xs">
+            <div className="font-semibold mb-1.5 text-foreground">📍 ¿Qué nombre le ponemos a este lugar?</div>
+            <div className="flex gap-1.5">
+              <input
+                value={markName}
+                onChange={(e) => setMarkName(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && markName.trim() && saveMark()}
+                placeholder="Ej: mirador del cóndor"
+                aria-label="Nombre del marcador"
+                autoFocus
+                className="min-w-0 flex-1 rounded-md border border-border bg-card px-2 py-1.5 text-[12px] text-foreground outline-none focus:border-emerald-500"
+              />
+              <button
+                onClick={saveMark}
+                disabled={!markName.trim()}
+                className="rounded-md bg-emerald-600 px-2.5 py-1.5 text-[11px] font-semibold text-zinc-950 hover:bg-emerald-500 disabled:opacity-40"
+              >
+                Guardar
+              </button>
+              <button
+                onClick={() => setPendingMark(null)}
+                className="rounded-md border border-border bg-card px-2 py-1.5 text-[11px] text-muted-foreground hover:border-red-400 hover:text-red-500"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {reportMode && !pending && (
         <p className="text-xs text-amber-700/90 dark:text-amber-300/90 -mt-1">Toca el mapa donde está el problema y elige el tipo de incidencia.</p>
       )}
+      {markMode && !pendingMark && (
+        <p className="text-xs text-emerald-700/90 dark:text-emerald-300/90 -mt-1">Toca el mapa donde quieres dejar tu marcador 📍.</p>
+      )}
       <p className="text-xs text-muted-foreground leading-relaxed">
-        Mapa de referencia: tu ubicación, zonas de riesgo, simbología e incidencias con fecha y hora. Para navegación con
-        ruta y ciclovías, usa el velocímetro (pestaña Ride).
+        Mapa de referencia: tu ubicación, zonas de riesgo, simbología e incidencias. Con Cumbre30 Pro además
+        buscas destinos, generas rutas y guardas tus propios marcadores. Para navegación giro a giro, usa el
+        velocímetro (pestaña Ride).
       </p>
     </div>
   );

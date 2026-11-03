@@ -212,7 +212,11 @@ export default function Home() {
           </TabsContent>
 
           <TabsContent value="map" className="mt-4">
-            <MapView {...mapProps} />
+            <MapView
+              {...mapProps}
+              onSetDest={nav.setDestination}
+              onGoPro={() => setTab("profile")}
+            />
           </TabsContent>
 
           <TabsContent value="wallet" className="mt-4">

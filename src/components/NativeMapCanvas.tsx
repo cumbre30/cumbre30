@@ -36,8 +36,10 @@ type Props = {
   remainingM: number;
   nextStep: RouteStep | null;
   dest: LatLng | null;
-  pickMode: boolean;
-  onPick: (p: LatLng) => void;
+  /** Modo toque para reportar incidencias (mapa grande). Opcional.
+   *  El minimapa ya no elige destino tocando el lienzo. */
+  pickMode?: boolean;
+  onPick?: (p: LatLng) => void;
   userPin?: string;
   incidents: IncidentItem[];
   locateTarget: LatLng | null;
@@ -66,6 +68,7 @@ export default function NativeMapCanvas(props: Props) {
     pickModeRef.current = props.pickMode;
     onPickRef.current = props.onPick;
   }, [props.pickMode, props.onPick]);
+  // (en el minimapa ya no existen: props undefined = sin pick)
 
   // ---- crear / destruir el mapa nativo ----
   useEffect(() => {
@@ -94,7 +97,7 @@ export default function NativeMapCanvas(props: Props) {
     );
     handles.push(
       NativeMap.addListener("mapclick", (d) => {
-        if (alive && d.id === id && pickModeRef.current) onPickRef.current({ lat: d.lat, lon: d.lng });
+        if (alive && d.id === id && pickModeRef.current) onPickRef.current?.({ lat: d.lat, lon: d.lng });
       })
     );
     handles.push(

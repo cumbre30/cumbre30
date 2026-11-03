@@ -78,6 +78,17 @@ export function flagIcon(): L.DivIcon {
   });
 }
 
+/** Marcador personal guardado por el ciclista (Pro). */
+export function markIcon(): L.DivIcon {
+  return L.divIcon({
+    className: "",
+    html: `<div class="c30-billboard"><div style="display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:9999px 9999px 9999px 4px;background:#10b981;border:2.5px solid #fafafa;box-shadow:0 2px 8px rgba(0,0,0,.6);font-size:13px;line-height:1;">📍</div></div>`,
+    iconSize: [28, 28],
+    iconAnchor: [14, 26],
+    popupAnchor: [0, -24],
+  });
+}
+
 /** Insignia blanca del próximo giro (estilo Waze) sobre la ruta. */
 export function stepBadgeIcon(icon: "start" | "left" | "right" | "straight" | "end"): L.DivIcon {
   const stroke = `stroke="#09090b" stroke-width="15" fill="none" stroke-linecap="round" stroke-linejoin="round"`;
