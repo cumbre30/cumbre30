@@ -4,7 +4,9 @@
 // Mapa de referencia: parque + zonas de riesgo + ciclovías
 // (SOLO las del cerro, para no ensuciar la vista) + reporte de
 // incidencias + botón de localización + pin personal.
-// La navegación «Ir a…» vive ahora en el velocímetro (minimapa).
+// Buscador universal (Pro): escribes CUALQUIER dirección —casa,
+// trabajo, otro barrio— o un lugar del cerro y la ruta ciclable
+// se traza sola desde tu ubicación (grafo propio u OSRM bici).
 // ============================================================
 
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -37,6 +39,7 @@ import NativeMapCanvas from "@/components/NativeMapCanvas";
 import { buildCicloFeature } from "@/lib/navCanvasLogic";
 import { useProLicense } from "@/lib/proLicense";
 import { addMark, removeMark, useMarks, normalizeForSearch } from "@/lib/marks";
+import { geocodeAddress, type AddrResult } from "@/lib/geocode";
 
 function pinEmoji(pinId: string): string {
   const p = PINS[pinId as keyof typeof PINS];
@@ -52,13 +55,17 @@ type Props = {
   /** Ruta activa elegida en el velocímetro (solo lectura aquí). */
   route: NavRoute | null;
   dest: { name: string; position: LatLng } | null;
+  /** true mientras el motor de navegación calcula la ruta. */
+  navLoading?: boolean;
+  /** Aviso del motor de navegación (sin conexión, origen provisional…). */
+  navNote?: string | null;
   /** Fijar/quitar el destino de navegación (buscador Pro). */
   onSetDest?: (d: { name: string; position: LatLng } | null) => void;
   /** Saltar a la pestaña Perfil (teaser Pro). */
   onGoPro?: () => void;
 };
 
-function Recenter({ position }: { position: LatLng | null }) {
+function Recenter({ position, holdRef }: { position: LatLng | null; holdRef?: { current: number } }) {
   const map = useMap();
   const centeredOnce = useRef(false);
   useEffect(() => {
@@ -71,10 +78,13 @@ function Recenter({ position }: { position: LatLng | null }) {
       map.setView([position.lat, position.lon], Math.max(map.getZoom(), 15), { animate: true });
       return;
     }
+    // Una ruta recién trazada se mira un rato: el encuadre automático
+    // no debe pelear con el «volver a mí».
+    if (holdRef && Date.now() < holdRef.current) return;
     const center = map.getCenter();
     const d = Math.abs(center.lat - position.lat) + Math.abs(center.lng - position.lon);
     if (d > 0.01) map.setView([position.lat, position.lon], Math.max(map.getZoom(), 15), { animate: true });
-  }, [position, map]);
+  }, [position, map, holdRef]);
   return null;
 }
 
@@ -96,14 +106,39 @@ function ClickHandler({ onPick, enabled }: { onPick: (p: LatLng) => void; enable
   return null;
 }
 
+/** Cuando llega la ruta pedida desde el buscador, la encuadra COMPLETA
+ *  (inicio → destino) UNA sola vez; después la vista vuelve a seguir
+ *  al ciclista. Rutas del velocímetro/minimapa no se enmarcan. */
+function RouteFitter({
+  route,
+  pendingRef,
+  holdRef,
+}: {
+  route: NavRoute | null;
+  pendingRef: { current: boolean };
+  holdRef: { current: number };
+}) {
+  const map = useMap();
+  useEffect(() => {
+    if (!route || route.coords.length < 2 || !pendingRef.current) return;
+    pendingRef.current = false;
+    holdRef.current = Date.now() + 12_000;
+    const b = L.latLngBounds(route.coords.map((p) => [p.lat, p.lon] as [number, number]));
+    map.fitBounds(b, { padding: [44, 44], maxZoom: 16, animate: true });
+  }, [route, map, pendingRef, holdRef]);
+  return null;
+}
+
 // ---- Buscador de destinos y marcadores (función Cumbre30 Pro) ----
 
 function SearchCard({
   pro,
   marks,
-  query,
-  onQuery,
-  activeDest,
+  position,
+  dest,
+  route,
+  routeLoading,
+  routeNote,
   onSetDest,
   onGoPro,
   markMode,
@@ -113,9 +148,11 @@ function SearchCard({
 }: {
   pro: boolean;
   marks: { id: string; name: string; lat: number; lon: number }[];
-  query: string;
-  onQuery: (q: string) => void;
-  activeDest: { name: string; position: LatLng } | null;
+  position: LatLng | null;
+  dest: { name: string; position: LatLng } | null;
+  route: NavRoute | null;
+  routeLoading: boolean;
+  routeNote: string | null;
   onSetDest?: (d: { name: string; position: LatLng } | null) => void;
   onGoPro?: () => void;
   markMode: boolean;
@@ -123,19 +160,71 @@ function SearchCard({
   onMarkPoi: (name: string, p: LatLng) => void;
   onRemoveMark: (id: string) => void;
 }) {
+  const [query, setQuery] = useState("");
+  const [addr, setAddr] = useState<AddrResult[]>([]);
+  const [addrSearching, setAddrSearching] = useState(false);
+  const [addrOffline, setAddrOffline] = useState(false);
+
   const nq = normalizeForSearch(query);
   const dests = NAV_DESTINATIONS.filter((d) => !nq || normalizeForSearch(d.name).includes(nq));
   const mine = marks.filter((m) => !nq || normalizeForSearch(m.name).includes(nq));
+
+  // Direcciones libres: geocodificación en línea (Photon → Nominatim)
+  // con debonceo de 450 ms y aborto de la búsqueda anterior. El sesgo
+  // usa el último fix de GPS vía ref, para NO relanzar la búsqueda con
+  // cada tick del GPS ambiental.
+  const nearRef = useRef(position ?? { lat: -33.408, lon: -70.636 });
+  useEffect(() => {
+    if (position) nearRef.current = position;
+  }, [position]);
+  useEffect(() => {
+    if (!pro) return;
+    const q = query.trim();
+    if (q.length < 4) {
+      setAddr([]);
+      setAddrSearching(false);
+      setAddrOffline(false);
+      return;
+    }
+    const ctrl = new AbortController();
+    setAddrSearching(true);
+    setAddrOffline(false);
+    const t = setTimeout(() => {
+      geocodeAddress(q, nearRef.current, ctrl.signal)
+        .then((rs) => {
+          setAddr(rs);
+          setAddrSearching(false);
+        })
+        .catch((e) => {
+          if ((e as Error)?.name === "AbortError") return;
+          setAddr([]);
+          setAddrSearching(false);
+          setAddrOffline(true);
+        });
+    }, 450);
+    return () => {
+      clearTimeout(t);
+      ctrl.abort();
+    };
+  }, [query, pro]);
+
+  /** Elegir destino: el motor de navegación traza la ruta solo. */
+  const traceTo = (name: string, p: LatLng) => onSetDest?.({ name, position: p });
+  const traceFirstAddr = () => {
+    const a = addr[0];
+    if (a) traceTo(a.name, { lat: a.lat, lon: a.lon });
+  };
 
   if (!pro) {
     return (
       <div className="rounded-xl border border-border bg-card/80 p-3">
         <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-          <Search className="h-4 w-4 text-emerald-600 dark:text-emerald-400" /> Buscador de destinos
+          <Search className="h-4 w-4 text-emerald-600 dark:text-emerald-400" /> Buscador de rutas
           <Crown className="h-4 w-4 text-amber-500" />
         </div>
         <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-          Busca lugares del cerro, genera la ruta hasta ellos y guarda tus propios
+          Escribe cualquier dirección —tu casa, el trabajo, otro barrio— o un lugar del cerro
+          y la ruta ciclable se traza sola desde tu ubicación. Además guardas tus propios
           marcadores (miradores, fuentes, puntos de encuentro). Parte de Cumbre30 Pro.
         </p>
         <button
@@ -154,22 +243,27 @@ function SearchCard({
         <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
         <input
           value={query}
-          onChange={(e) => onQuery(e.target.value)}
-          placeholder="Buscar destino: cumbre, zoo, piscina…"
-          aria-label="Buscar destino en el mapa"
+          onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && traceFirstAddr()}
+          placeholder="Cualquier dirección o lugar: Providencia 1234, cumbre…"
+          aria-label="Buscar cualquier dirección o lugar y trazar la ruta"
           className="w-full min-w-0 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
         />
         {query && (
-          <button onClick={() => onQuery("")} aria-label="Limpiar búsqueda" className="text-muted-foreground hover:text-foreground">
+          <button onClick={() => setQuery("")} aria-label="Limpiar búsqueda" className="text-muted-foreground hover:text-foreground">
             <X className="h-4 w-4" />
           </button>
         )}
       </div>
 
-      {activeDest && onSetDest && (
+      {dest && onSetDest && (
         <div className="mt-2 flex items-center gap-2 rounded-lg border border-sky-700/60 bg-sky-950/30 px-2.5 py-1.5 text-[11px] text-foreground">
           <Flag className="h-3.5 w-3.5 shrink-0 text-sky-600 dark:text-sky-400" />
-          <span className="min-w-0 flex-1 truncate">Ruta activa: {activeDest.name}</span>
+          <span className="min-w-0 flex-1 truncate">
+            {route
+              ? `${dest.name} · ${(route.distanceM / 1000).toFixed(1)} km · ~${route.etaMin} min en bici`
+              : `Ruta a ${dest.name}`}
+          </span>
           <button
             onClick={() => onSetDest(null)}
             className="shrink-0 rounded border border-border px-1.5 py-0.5 text-[10px] text-muted-foreground hover:border-red-400 hover:text-red-500"
@@ -179,10 +273,23 @@ function SearchCard({
         </div>
       )}
 
-      <ul className="mt-1.5 max-h-44 overflow-y-auto pr-0.5">
+      {routeLoading && (
+        <p className="mt-1.5 text-[11px] text-muted-foreground animate-pulse">Trazando la ruta hasta «{dest?.name}»…</p>
+      )}
+      {!routeLoading && dest && routeNote && (
+        <p className="mt-1.5 text-[11px] text-amber-700 dark:text-amber-300">{routeNote}</p>
+      )}
+
+      <ul className="mt-1.5 max-h-56 overflow-y-auto pr-0.5">
         {dests.map((d) => (
           <li key={d.id} className="flex items-center gap-1.5 border-b border-border/50 py-1.5 last:border-0">
-            <span className="min-w-0 flex-1 truncate text-xs text-foreground">{d.name}</span>
+            <button
+              onClick={() => traceTo(d.name, d.position)}
+              className="min-w-0 flex-1 truncate text-left text-xs text-foreground hover:text-emerald-600 dark:hover:text-emerald-400"
+              title="Trazar ruta hasta aquí"
+            >
+              {d.name}
+            </button>
             {onSetDest && (
               <button
                 onClick={() => onSetDest({ name: d.name, position: d.position })}
@@ -203,9 +310,13 @@ function SearchCard({
         ))}
         {mine.map((m) => (
           <li key={m.id} className="flex items-center gap-1.5 border-b border-border/50 py-1.5 last:border-0">
-            <span className="min-w-0 flex-1 truncate text-xs text-foreground">
+            <button
+              onClick={() => traceTo(m.name, { lat: m.lat, lon: m.lon })}
+              className="min-w-0 flex-1 truncate text-left text-xs text-foreground hover:text-emerald-600 dark:hover:text-emerald-400"
+              title="Trazar ruta hasta aquí"
+            >
               📍 {m.name} <span className="text-[10px] text-muted-foreground">· mi lugar</span>
-            </span>
+            </button>
             {onSetDest && (
               <button
                 onClick={() => onSetDest({ name: m.name, position: { lat: m.lat, lon: m.lon } })}
@@ -225,7 +336,50 @@ function SearchCard({
             </button>
           </li>
         ))}
-        {dests.length === 0 && mine.length === 0 && (
+        {(addr.length > 0 || addrSearching) && (
+          <li className="pb-0.5 pt-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground/80">
+            Direcciones{addrSearching ? " · buscando…" : ""}
+          </li>
+        )}
+        {addr.map((a) => (
+          <li key={a.id} className="flex items-center gap-1.5 border-b border-border/50 py-1.5 last:border-0">
+            <button
+              onClick={() => traceTo(a.name, { lat: a.lat, lon: a.lon })}
+              className="min-w-0 flex-1 text-left hover:text-emerald-600 dark:hover:text-emerald-400"
+              title="Trazar ruta hasta aquí"
+            >
+              <span className="block truncate text-xs text-foreground">
+                {a.emoji} {a.name}
+              </span>
+              {a.detail && <span className="block truncate text-[10px] text-muted-foreground">{a.detail}</span>}
+            </button>
+            {onSetDest && (
+              <button
+                onClick={() => traceTo(a.name, { lat: a.lat, lon: a.lon })}
+                className="shrink-0 rounded border border-sky-700/60 px-1.5 py-0.5 text-[10px] font-semibold text-sky-700 hover:bg-sky-950/40 dark:text-sky-300"
+                title="Generar ruta hasta aquí"
+              >
+                Ruta
+              </button>
+            )}
+            <button
+              onClick={() => onMarkPoi(a.name, { lat: a.lat, lon: a.lon })}
+              className="shrink-0 rounded border border-border px-1.5 py-0.5 text-[10px] text-muted-foreground hover:border-emerald-500 hover:text-emerald-500"
+              title="Guardar en mis lugares"
+            >
+              📍
+            </button>
+          </li>
+        ))}
+        {addrSearching && addr.length === 0 && (
+          <li className="py-2 text-center text-xs text-muted-foreground animate-pulse">Buscando direcciones…</li>
+        )}
+        {addrOffline && (
+          <li className="py-2 text-center text-[11px] text-amber-700 dark:text-amber-300">
+            Sin conexión para buscar direcciones — los lugares del cerro y tus marcadores siguen disponibles.
+          </li>
+        )}
+        {dests.length === 0 && mine.length === 0 && addr.length === 0 && !addrSearching && !addrOffline && query.trim().length >= 2 && (
           <li className="py-2 text-center text-xs text-muted-foreground">Sin resultados para «{query}»</li>
         )}
       </ul>
@@ -304,7 +458,7 @@ function IncidentSheet({
   );
 }
 
-export default function MapView({ track, position, accuracyM, heading, userPin, route, dest, onSetDest, onGoPro }: Props) {
+export default function MapView({ track, position, accuracyM, heading, userPin, route, dest, navLoading, navNote, onSetDest, onGoPro }: Props) {
   // Filtro nocturno de los tiles OSM: solo con el tema oscuro
   // (en modo claro el mapa se muestra con sus colores normales).
   const { resolvedTheme } = useTheme();
@@ -318,7 +472,9 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
   // Buscador Pro: consulta, marcadores personales y modo "marcar tocando"
   const { pro } = useProLicense();
   const marks = useMarks();
-  const [query, setQuery] = useState("");
+  // Encuadre único de la ruta recién trazada desde el buscador
+  const pendingFitRef = useRef(false);
+  const recenterHoldRef = useRef(0);
   const [markMode, setMarkMode] = useState(false);
   const [pendingMark, setPendingMark] = useState<LatLng | null>(null);
   const [markName, setMarkName] = useState("");
@@ -422,6 +578,14 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
     setMarkMode(false);
     setStatus(`📍 «${m.name}» guardado en tus lugares.`);
     setTimeout(() => setStatus(null), 4000);
+  };
+
+  /** Destino desde el buscador/marcadores: cuando llegue la ruta se
+   *  encuadra entera UNA vez (RouteFitter) y luego la vista vuelve al
+   *  ciclista. Las rutas del velocímetro no se enmarcan. */
+  const handleSetDest = (d: { name: string; position: LatLng } | null) => {
+    if (d) pendingFitRef.current = true;
+    onSetDest?.(d);
   };
 
   // Ciclovías: SOLO las que están dentro del cerro (≥50% de sus puntos
@@ -569,10 +733,12 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
       <SearchCard
         pro={pro.active}
         marks={marks}
-        query={query}
-        onQuery={setQuery}
-        activeDest={dest}
-        onSetDest={onSetDest}
+        position={position}
+        dest={dest}
+        route={route}
+        routeLoading={!!navLoading}
+        routeNote={navNote ?? null}
+        onSetDest={handleSetDest}
         onGoPro={onGoPro}
         markMode={markMode}
         onToggleMarkMode={() => {
@@ -686,7 +852,7 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
                   <div className="flex gap-3">
                     {onSetDest && (
                       <button
-                        onClick={() => onSetDest({ name: m.name, position: { lat: m.lat, lon: m.lon } })}
+                        onClick={() => handleSetDest({ name: m.name, position: { lat: m.lat, lon: m.lon } })}
                         className="font-medium text-sky-600 hover:underline"
                       >
                         Ruta aquí
@@ -718,7 +884,8 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
             </>
           )}
 
-          <Recenter position={position} />
+          <Recenter position={position} holdRef={recenterHoldRef} />
+          <RouteFitter route={route} pendingRef={pendingFitRef} holdRef={recenterHoldRef} />
           <LocateHandler target={locateTarget} />
           <ClickHandler enabled={reportMode} onPick={setPending} />
           <ClickHandler
@@ -831,9 +998,10 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
         <p className="text-xs text-emerald-700/90 dark:text-emerald-300/90 -mt-1">Toca el mapa donde quieres dejar tu marcador 📍.</p>
       )}
       <p className="text-xs text-muted-foreground leading-relaxed">
-        Mapa de referencia: tu ubicación, zonas de riesgo, simbología e incidencias. Con Cumbre30 Pro además
-        buscas destinos, generas rutas y guardas tus propios marcadores. Para navegación giro a giro, usa el
-        velocímetro (pestaña Ride).
+        Mapa de referencia: tu ubicación, zonas de riesgo, simbología e incidencias. Con Cumbre30 Pro escribes
+        cualquier dirección o lugar del cerro y la ruta ciclable se traza sola desde tu ubicación (buscar la
+        dirección necesita internet); además guardas tus propios marcadores. Para navegación giro a giro, usa
+        el velocímetro (pestaña Ride).
       </p>
     </div>
   );

@@ -214,6 +214,8 @@ export default function Home() {
           <TabsContent value="map" className="mt-4">
             <MapView
               {...mapProps}
+              navLoading={nav.loading}
+              navNote={nav.note}
               onSetDest={nav.setDestination}
               onGoPro={() => setTab("profile")}
             />

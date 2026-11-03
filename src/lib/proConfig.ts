@@ -28,7 +28,7 @@ export const PRO_BENEFITS = [
   "Export GPX de tus viajes con GPS (Strava, Garmin, Komoot)",
   "Constancias PDF ilimitadas (gratis: 3 al mes)",
   "Segmentos del cerro: Pío Nono → Cumbre con récord personal e historial",
-  "Buscador de destinos con ruta y marcadores en el mapa",
+  "Buscador universal: escribe cualquier dirección y la ruta ciclable se traza sola + marcadores en el mapa",
   "Apoyo directo al desarrollo de la app",
 ];
 
