@@ -24,6 +24,16 @@ export type RideSummary = {
 
 const KEY = "cumbre30-history-v1";
 
+/**
+ * Solo viajes con GPS real. Los viajes de demostración (source "sim",
+ * simulación sin GPS) NO cuentan para ninguna estadística: totales,
+ * resúmenes semanales, contadores ni logros — igual que ya ocurría
+ * con las constancias PDF y los segmentos del cerro.
+ */
+export function gpsOnly(rides: RideSummary[]): RideSummary[] {
+  return rides.filter((r) => r.source === "gps");
+}
+
 // Store externo simple para leer localStorage con useSyncExternalStore
 let snapshot: RideSummary[] = [];
 let dirty = true;

@@ -8,7 +8,7 @@
 // Se activa con NEXT_PUBLIC_STATIC=1 en tiempo de build.
 // ============================================================
 
-import { historyStore, type RideSummary } from "@/lib/history";
+import { gpsOnly, historyStore, type RideSummary } from "@/lib/history";
 import { ACHIEVEMENT_BY_CODE, evaluateAchievements, isPinId, normalizeCodes, statsFromRides, type PinId } from "@/lib/pins";
 import { validateUsername, usernameLocked } from "@/lib/username";
 import type { MeData, MeUser } from "@/hooks/useMe";
@@ -361,7 +361,8 @@ export function offlineMe(): MeData | null {
   const user = currentUser();
   if (!user) return null;
 
-  const rides: RideSummary[] = historyStore.get();
+  // Estadísticas y logros: solo viajes con GPS real (los demo no cuentan).
+  const rides: RideSummary[] = gpsOnly(historyStore.get());
   const statsRaw = statsFromRides(rides);
   const stats = {
     totalKm: Number(statsRaw.totalKm.toFixed(1)),

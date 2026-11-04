@@ -10,7 +10,7 @@
 // extra: jerarquía clara y agrupación por propósito.
 // ============================================================
 
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useSyncExternalStore } from "react";
 import {
   Bike,
@@ -24,7 +24,7 @@ import {
   UserRound,
   X,
 } from "lucide-react";
-import { historyStore } from "@/lib/history";
+import { gpsOnly, historyStore } from "@/lib/history";
 import { PlanBadge, ProPromoCard } from "@/components/ProUI";
 
 export type MenuScreen =
@@ -78,6 +78,8 @@ export function AppDrawer({
   onNavigate: (s: MenuScreen) => void;
 }) {
   const rides = useSyncExternalStore(historyStore.subscribe, historyStore.get, historyStore.getServer);
+  // Contador del menú: solo viajes con GPS real (los demo no cuentan).
+  const gpsCount = useMemo(() => gpsOnly(rides).length, [rides]);
 
   // Cierra con Escape (accesibilidad básica)
   useEffect(() => {
@@ -175,7 +177,7 @@ export function AppDrawer({
         <div className="mt-auto px-4 pt-6 text-center text-[10.5px] leading-relaxed text-muted-foreground/60">
           Cumbre30 · ciclocomputador del cerro
           <br />
-          {rides.length} {rides.length === 1 ? "viaje registrado" : "viajes registrados"}
+          {gpsCount} {gpsCount === 1 ? "viaje registrado" : "viajes registrados"}
         </div>
       </aside>
     </>

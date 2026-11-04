@@ -143,9 +143,11 @@ export function HistoryTab({
     [linkedRides, mode, inRange],
   );
 
-  // Resumen semanal (todos los modos) + botón compartir
+  // Resumen semanal: solo viajes con GPS real (los demo no cuentan
+  // en estadísticas) + botón compartir
   const weekRides = useMemo(
     () => linkedRides.filter((r) => {
+      if (r.source !== "gps") return false;
       const d = new Date(r.dateISO);
       return d >= wk.start && d < wk.end;
     }),

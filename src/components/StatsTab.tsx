@@ -5,13 +5,16 @@
 //   · "General": totales del historial local (FREE).
 //   · "Pro": estadísticas por segmento del cerro (función Pro,
 //     validada: HistoryTab ya las calcula solo con Pro).
+//
+// Solo viajes con GPS real: los de demostración (simulación, sin
+// GPS) no cuentan en ninguna estadística (gpsOnly de lib/history).
 // ============================================================
 
 import { useMemo, useState, useSyncExternalStore } from "react";
 import { Gauge, Clock, Lock, Mountain, Route, Trophy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { historyStore } from "@/lib/history";
+import { gpsOnly, historyStore } from "@/lib/history";
 import { formatClock } from "@/lib/geo";
 import { computeSegmentStats, fmtEffort } from "@/lib/segments";
 import { useProLicense } from "@/lib/proLicense";
@@ -40,16 +43,23 @@ export function StatsTab({ onGoPro }: { onGoPro: () => void }) {
   // Subsecciones: General (totales) | Pro (segmentos del cerro)
   const [sub, setSub] = useState<"general" | "pro">("general");
 
-  const totals = useMemo(() => {
-    const dist = rides.reduce((a, r) => a + r.distanceKm, 0);
-    const time = rides.reduce((a, r) => a + r.elapsedSec, 0);
-    const gain = rides.reduce((a, r) => a + r.gainM, 0);
-    const max = rides.reduce((a, r) => Math.max(a, r.maxKmh), 0);
-    const gpsRides = rides.filter((r) => r.source === "gps").length;
-    return { dist, time, gain, max, gpsRides, count: rides.length };
-  }, [rides]);
+  // Todas las estadísticas provienen exclusivamente de viajes con GPS real.
+  const gpsRides = useMemo(() => gpsOnly(rides), [rides]);
 
-  const segStats = useMemo(() => (pro.active ? computeSegmentStats(rides) : []), [pro.active, rides]);
+  const totals = useMemo(() => {
+    const dist = gpsRides.reduce((a, r) => a + r.distanceKm, 0);
+    const time = gpsRides.reduce((a, r) => a + r.elapsedSec, 0);
+    const gain = gpsRides.reduce((a, r) => a + r.gainM, 0);
+    const max = gpsRides.reduce((a, r) => Math.max(a, r.maxKmh), 0);
+    // Velocidad promedio global: km recorridos / tiempo total.
+    const avg = time > 0 ? (dist / time) * 3600 : 0;
+    return { dist, time, gain, max, avg, count: gpsRides.length };
+  }, [gpsRides]);
+
+  const segStats = useMemo(
+    () => (pro.active ? computeSegmentStats(gpsRides) : []),
+    [pro.active, gpsRides],
+  );
 
   return (
     <div className="flex flex-col gap-4">
@@ -71,9 +81,11 @@ export function StatsTab({ onGoPro }: { onGoPro: () => void }) {
             <Kpi icon={<Clock className="h-3.5 w-3.5" />} label="Tiempo" value={formatClock(totals.time)} />
             <Kpi icon={<Mountain className="h-3.5 w-3.5" />} label="Desnivel" value={`+${Math.round(totals.gain)}`} unit="m" />
             <Kpi icon={<Gauge className="h-3.5 w-3.5" />} label="Vel. máx" value={totals.max.toFixed(1)} unit="km/h" />
-            <Kpi icon={<Gauge className="h-3.5 w-3.5" />} label="Con GPS real" value={String(totals.gpsRides)} />
+            <Kpi icon={<Gauge className="h-3.5 w-3.5" />} label="Vel. prom" value={totals.avg.toFixed(1)} unit="km/h" />
           </div>
-          <p className="-mt-1 text-center text-[11px] text-muted-foreground">Tus viajes se guardan en este teléfono (últimos 50).</p>
+          <p className="-mt-1 text-center text-[11px] text-muted-foreground">
+            Solo cuentan viajes con GPS real (los demo no) · se guardan en este teléfono (últimos 50).
+          </p>
         </>
       )}
 

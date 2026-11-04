@@ -27,8 +27,10 @@ export async function GET() {
   const me = await getSessionUser();
   if (!me) return NextResponse.json({ error: "Sin sesión" }, { status: 401 });
 
+  // Estadísticas: solo viajes con GPS real. Los de demostración
+  // (simulación, sin GPS) no cuentan en ningún total.
   const [rides, achievements, friendships] = await Promise.all([
-    db.ride.findMany({ where: { userId: me.id }, orderBy: { dateISO: "desc" }, take: 200 }),
+    db.ride.findMany({ where: { userId: me.id, source: "gps" }, orderBy: { dateISO: "desc" }, take: 200 }),
     db.achievement.findMany({ where: { userId: me.id }, orderBy: { unlockedAt: "asc" } }),
     db.friendship.findMany({ where: { userId: me.id }, include: { friend: true } }),
   ]);
@@ -50,12 +52,12 @@ export async function GET() {
     friendships.map(async (f) => {
       const [agg, lastRide] = await Promise.all([
         db.ride.aggregate({
-          where: { userId: f.friendId },
+          where: { userId: f.friendId, source: "gps" },
           _sum: { distanceKm: true, gainM: true },
           _max: { maxKmh: true },
           _count: true,
         }),
-        db.ride.findFirst({ where: { userId: f.friendId }, orderBy: { dateISO: "desc" }, select: { dateISO: true } }),
+        db.ride.findFirst({ where: { userId: f.friendId, source: "gps" }, orderBy: { dateISO: "desc" }, select: { dateISO: true } }),
       ]);
       return {
         username: f.friend.username,
