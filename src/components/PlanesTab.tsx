@@ -3,7 +3,7 @@
 // ============================================================
 // Planes — comparación FREE vs PRO (brief §4-D).
 // Tabla validada contra el código (planData.ts). Pago único por
-// Mercado Pago; activación offline por código en Perfil.
+// Mercado Pago; activación offline por código en Pagos y suscripciones.
 // ============================================================
 
 import { useState } from "react";
@@ -52,7 +52,7 @@ export function PlanesTab() {
             Obtener PRO
           </Button>
           <p className="mt-2 text-[11px] text-muted-foreground">
-            Pagas en Mercado Pago y recibes un código por correo. Lo activas en Perfil — funciona 100% sin internet.
+            Pagas en Mercado Pago y recibes un código por correo. Lo activas en Pagos y suscripciones — funciona 100% sin internet.
           </p>
         </div>
       )}
@@ -85,7 +85,7 @@ export function PlanesTab() {
             variant="outline"
             onClick={() => {
               deactivate();
-              setMsg("Licencia quitada de este teléfono. Puedes reactivarla con tu código en Perfil.");
+              setMsg("Licencia quitada de este teléfono. Puedes reactivarla con tu código en Pagos y suscripciones.");
               setTimeout(() => setMsg(null), 8000);
             }}
             className="h-11 w-full rounded-xl border-border text-muted-foreground hover:text-foreground"
@@ -96,7 +96,7 @@ export function PlanesTab() {
         </div>
       ) : (
         <p className="text-center text-[11.5px] leading-relaxed text-muted-foreground">
-          ¿Ya pagaste? Activa tu código en <b className="text-foreground">Perfil → Cumbre30 Pro</b>.
+          ¿Ya pagaste? Activa tu código en <b className="text-foreground">Pagos y suscripciones</b> (menú lateral).
         </p>
       )}
     </div>

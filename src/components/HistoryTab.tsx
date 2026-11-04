@@ -1,16 +1,46 @@
 "use client";
 
+// ============================================================
+// Mis viajes (antes "Historial de viajes"):
+//   · Segmentos del cerro al principio — solo aplican a viajes GPS.
+//   · Resumen semanal con botón compartir (Instagram).
+//   · Viajes de la semana por defecto + filtro de fecha
+//     (semana / mes / día con calendario / todos) y desplegable
+//     de modo: demo o GPS.
+//   · Contador visual de constancias: al tocar muestra la cuota.
+//   · Viajes enlazados al correo de la cuenta; sin correo son locales.
+// ============================================================
+
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
-import { CalendarClock, Download, FileDown, Gauge, ShieldAlert, Timer, Trash2, Route, Mountain, Trophy, Crown } from "lucide-react";
+import {
+  CalendarClock,
+  CalendarDays,
+  ChevronDown,
+  Crown,
+  Download,
+  FileDown,
+  Gauge,
+  Infinity as InfinityIcon,
+  Mountain,
+  Route,
+  Share2,
+  ShieldAlert,
+  Timer,
+  Trash2,
+  Trophy,
+} from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatClock } from "@/lib/geo";
 import { clearHistory, historyStore, type RideSummary } from "@/lib/history";
 import { buildRidePdf, type RideIdentity } from "@/lib/ridePdf";
 import { shareOrDownloadFile } from "@/lib/shareFile";
 import { buildRideGpxBlob } from "@/lib/gpx";
+import { buildShareImage, sharePngBlob } from "@/lib/shareImage";
 import { computeSegmentStats, effortsByRide, SEGMENTS, fmtEffort } from "@/lib/segments";
+import { PINS, DEFAULT_PIN } from "@/lib/pins";
 import {
   constanciaCount,
   FREE_CONSTANCIA_LIMIT,
@@ -24,13 +54,28 @@ function fmtDate(iso: string): string {
   });
 }
 
+// Semana actual: lunes 00:00 → domingo 23:59 (semana ISO, Chile)
+function weekBounds(): { start: Date; end: Date; label: string } {
+  const now = new Date();
+  const start = new Date(now);
+  start.setHours(0, 0, 0, 0);
+  start.setDate(start.getDate() - ((start.getDay() + 6) % 7)); // lunes
+  const end = new Date(start);
+  end.setDate(end.getDate() + 7);
+  const fmt = (d: Date) => d.toLocaleDateString("es-CL", { day: "numeric", month: "short" });
+  return { start, end, label: `${fmt(start)} — ${fmt(new Date(end.getTime() - 1))}` };
+}
+
+type RangeKey = "week" | "month" | "day" | "all";
+type ModeKey = "all" | "gps" | "sim";
+
 export function HistoryTab({
   refreshKey,
   user,
   onGoPro,
 }: {
   refreshKey: number;
-  user?: { email?: string; username?: string };
+  user?: { email?: string; username?: string; selectedPin?: string };
   onGoPro?: () => void;
 }) {
   const rides = useSyncExternalStore(historyStore.subscribe, historyStore.get, historyStore.getServer);
@@ -40,9 +85,17 @@ export function HistoryTab({
   const [gpxBusyId, setGpxBusyId] = useState<string | null>(null);
   const [gpxMsg, setGpxMsg] = useState<string | null>(null);
   const [constCount, setConstCount] = useState(0);
+  const [constOpen, setConstOpen] = useState(false);
+  const [shareBusy, setShareBusy] = useState(false);
+  const [shareMsg, setShareMsg] = useState<string | null>(null);
+
+  // Filtros: por defecto solo la semana actual; modo: todos
+  const [range, setRange] = useState<RangeKey>("week");
+  const [dayISO, setDayISO] = useState(() => new Date().toISOString().slice(0, 10));
+  const [mode, setMode] = useState<ModeKey>("all");
 
   // Segmentos: se calculan solo con Pro (función Pro); para nivel
-  // gratis basta el teaser.
+  // gratis basta el teaser. Solo viajes GPS: los demo no guardan pista.
   const segStats = useMemo(
     () => (pro.active ? computeSegmentStats(rides) : []),
     [pro.active, rides],
@@ -58,6 +111,83 @@ export function HistoryTab({
     setConstCount(constanciaCount());
   }, [refreshKey]);
 
+  // ---- Enlace viaje ↔ cuenta: sin correo solo se ven los locales ----
+  const accountEmail = user?.email?.trim().toLowerCase() ?? null;
+  const linkedRides = useMemo(() => {
+    if (!accountEmail) return rides.filter((r) => !r.account);
+    return rides.filter((r) => !r.account || r.account === accountEmail);
+  }, [rides, accountEmail]);
+
+  // ---- Filtros de tiempo y modo ----
+  const wk = useMemo(() => weekBounds(), []);
+  const now = useMemo(() => new Date(), []);
+  const inRange = useMemo(() => {
+    if (range === "all") return () => true;
+    if (range === "week") return (d: Date) => d >= wk.start && d < wk.end;
+    if (range === "month") {
+      return (d: Date) => d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+    }
+    const [y, m, dd] = dayISO.split("-").map(Number);
+    return (d: Date) =>
+      d.getFullYear() === y && d.getMonth() === m - 1 && d.getDate() === dd;
+  }, [range, wk, now, dayISO]);
+
+  const shownRides = useMemo(
+    () =>
+      linkedRides.filter((r) => {
+        if (mode !== "all" && r.source !== mode) return false;
+        return inRange(new Date(r.dateISO));
+      }),
+    [linkedRides, mode, inRange],
+  );
+
+  // Resumen semanal (todos los modos) + botón compartir
+  const weekRides = useMemo(
+    () => linkedRides.filter((r) => {
+      const d = new Date(r.dateISO);
+      return d >= wk.start && d < wk.end;
+    }),
+    [linkedRides, wk],
+  );
+  const weekStats = useMemo(() => {
+    const km = weekRides.reduce((a, r) => a + r.distanceKm, 0);
+    const sec = weekRides.reduce((a, r) => a + r.elapsedSec, 0);
+    const gain = weekRides.reduce((a, r) => a + r.gainM, 0);
+    const max = weekRides.reduce((a, r) => Math.max(a, r.maxKmh), 0);
+    return { count: weekRides.length, km, sec, gain, max };
+  }, [weekRides]);
+
+  const shareWeek = async () => {
+    setShareBusy(true);
+    setShareMsg(null);
+    try {
+      const pin = PINS[(user?.selectedPin as keyof typeof PINS) ?? DEFAULT_PIN] ?? PINS[DEFAULT_PIN];
+      const uname = user?.username ?? "ciclista";
+      const blob = await buildShareImage({
+        headline: `${pin.emoji} @${uname}`,
+        sub: `Mi semana en el cerro · ${wk.label}`,
+        rows: [
+          { label: "Viajes", value: String(weekStats.count) },
+          { label: "Kilómetros", value: `${weekStats.km.toFixed(1)} km` },
+          { label: "Tiempo pedaleado", value: formatClock(weekStats.sec) },
+          { label: "Desnivel acumulado", value: `+${Math.round(weekStats.gain)} m` },
+        ],
+      });
+      const res = await sharePngBlob(blob, "cumbre30-semana.png", "Mi semana en el cerro con Cumbre30 🚴");
+      setShareMsg(
+        res === "shared"
+          ? "¡Listo! Elige Instagram (Historia o Feed) en el panel."
+          : "Imagen descargada. Compártela en Instagram como historia o post."
+      );
+    } catch (e) {
+      if ((e as Error)?.name === "AbortError") return;
+      setShareMsg("No pudimos generar la imagen en este dispositivo.");
+    } finally {
+      setShareBusy(false);
+      setTimeout(() => setShareMsg(null), 8000);
+    }
+  };
+
   const exportPdf = async (r: RideSummary) => {
     // Los viajes demo (simulación) no emiten constancia: el registro
     // debe corresponder a un trayecto real hecho con GPS.
@@ -66,7 +196,7 @@ export function HistoryTab({
     if (!pro.active && constanciaCount() >= FREE_CONSTANCIA_LIMIT) {
       setPdfMsg(
         `Este mes ya usaste tus ${FREE_CONSTANCIA_LIMIT} constancias gratis. ` +
-          "Con Cumbre30 Pro (pestaña Perfil) son ilimitadas.",
+          "Con Cumbre30 Pro (Pagos y suscripciones) son ilimitadas.",
       );
       setTimeout(() => setPdfMsg(null), 9000);
       return;
@@ -106,7 +236,7 @@ export function HistoryTab({
     setGpxMsg(null);
     try {
       if (!pro.active) {
-        setGpxMsg("El export GPX es parte de Cumbre30 Pro — actívalo en la pestaña Perfil.");
+        setGpxMsg("El export GPX es parte de Cumbre30 Pro — actívalo en Pagos y suscripciones.");
         return;
       }
       if (!r.track || r.track.length < 2) {
@@ -131,35 +261,89 @@ export function HistoryTab({
     }
   };
 
+  const rangeChips: { key: RangeKey; label: string }[] = [
+    { key: "week", label: "Semana" },
+    { key: "month", label: "Mes" },
+    { key: "day", label: "Día" },
+    { key: "all", label: "Todos" },
+  ];
+
   return (
     <div className="flex flex-col gap-4">
-      <Card className="bg-card/80 border-border p-4 text-sm text-muted-foreground leading-relaxed">
-        Registro local de tus viajes por el cerro. Si recibes un parte por exceso de velocidad,
-        esta bitácora (velocidad máxima dentro del parque y tiempo sobre el límite) sirve como
-        respaldo de tu comportamiento real: cada viaje hecho con GPS se puede descargar como{" "}
-        <span className="text-foreground">constancia PDF con redacción formal y código de verificación</span>{" "}
-        para presentarla ante Parquemet o la autoridad. Los viajes de demostración no emiten constancia.
-        {pro.active ? (
-          <span className="mt-2 block text-emerald-700 dark:text-emerald-300">
-            Cumbre30 Pro activo: constancias ilimitadas y export GPX en cada viaje con GPS.
+      {/* ---- Contador visual de constancias ---- */}
+      <Card className="bg-card/80 border-border p-4">
+        <button
+          type="button"
+          onClick={() => setConstOpen((v) => !v)}
+          aria-expanded={constOpen}
+          className="flex w-full items-center gap-3 text-left"
+        >
+          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-emerald-600/15">
+            <FileDown className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
           </span>
-        ) : (
-          <span className="mt-2 block">
-            Este mes llevas <span className="text-foreground">{constCount}/{FREE_CONSTANCIA_LIMIT}</span> constancias
-            gratis. Con <span className="text-foreground">Cumbre30 Pro</span> (Perfil) son ilimitadas y cada viaje
-            con GPS se exporta en GPX para Strava o Garmin.
+          <span className="min-w-0 flex-1">
+            <span className="block font-mono text-2xl font-bold leading-none tabular-nums text-foreground">
+              {pro.active ? (
+                <span className="flex items-center gap-1.5">
+                  <InfinityIcon className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
+                  <Badge className="border border-amber-500/40 bg-amber-500/15 text-[10px] font-extrabold text-amber-700 dark:text-amber-300">
+                    PRO
+                  </Badge>
+                </span>
+              ) : (
+                <>
+                  {constCount}
+                  <span className="text-base text-muted-foreground">/{FREE_CONSTANCIA_LIMIT}</span>
+                </>
+              )}
+            </span>
+            <span className="mt-1 block text-[11px] text-muted-foreground">
+              constancias PDF {pro.active ? "ilimitadas" : "gratis este mes"}
+            </span>
           </span>
+          <ChevronDown className={`h-5 w-5 shrink-0 text-muted-foreground transition-transform ${constOpen ? "rotate-180" : ""}`} />
+        </button>
+        {constOpen && (
+          <div className="mt-3 rounded-xl border border-border bg-background/60 p-3 text-[13px] leading-relaxed text-muted-foreground">
+            {pro.active ? (
+              <p>
+                Tienes Cumbre30 Pro: constancias PDF <b className="text-foreground">ilimitadas</b> y cada
+                viaje con GPS se exporta en GPX para Strava o Garmin.
+              </p>
+            ) : (
+              <p>
+                Este mes llevas <b className="text-foreground">{constCount}/{FREE_CONSTANCIA_LIMIT} constancias gratis</b>.
+                Con Cumbre30 Pro son ilimitadas y cada viaje con GPS se exporta en GPX para Strava o Garmin.
+              </p>
+            )}
+            <p className="mt-2">
+              La bitácora (velocidad máxima dentro del parque y tiempo sobre el límite) sirve como respaldo
+              de tu comportamiento real: cada viaje con GPS descarga una constancia con redacción formal y
+              código de verificación. Los viajes de demostración no emiten constancia.
+            </p>
+            {!pro.active && onGoPro && (
+              <Button
+                onClick={onGoPro}
+                className="mt-3 h-9 bg-amber-500 font-bold text-zinc-950 hover:bg-amber-400"
+              >
+                <Crown className="mr-2 h-4 w-4" /> Ver Cumbre30 Pro
+              </Button>
+            )}
+          </div>
         )}
       </Card>
 
-      {/* Segmentos del cerro (función Cumbre30 Pro) */}
+      {/* ---- Segmentos del cerro (función Cumbre30 Pro, solo GPS) ---- */}
       <Card className="bg-card/80 border-border p-4">
         <div className="flex items-center gap-2">
           <Mountain className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-          <p className="font-medium text-foreground text-sm">Segmentos del cerro</p>
+          <p className="text-sm font-medium text-foreground">Segmentos del cerro</p>
           {pro.active && (
             <Badge className="bg-amber-500 font-bold text-zinc-950 text-[10px]">PRO</Badge>
           )}
+          <Badge variant="outline" className="ml-auto border-border text-[10px] uppercase text-muted-foreground">
+            solo viajes GPS
+          </Badge>
         </div>
         {pro.active ? (
           <>
@@ -205,7 +389,7 @@ export function HistoryTab({
             <p className="mt-1 leading-relaxed text-muted-foreground">
               Cronometraje oficial de tus subidas — Pío Nono → Cumbre, Pedro de Valdivia Norte
               → Cumbre y el tramo final Antilén → Cumbre — con récord personal, contador de
-              intentos e historial de tiempos.
+              intentos e historial de tiempos. Aplican solo a viajes grabados con GPS.
             </p>
             <Button
               onClick={onGoPro}
@@ -217,14 +401,109 @@ export function HistoryTab({
         )}
       </Card>
 
+      {/* ---- Resumen semanal + compartir ---- */}
+      <Card className="bg-card/80 border-border p-4">
+        <div className="flex items-center gap-2">
+          <CalendarDays className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+          <p className="text-sm font-medium text-foreground">Tu semana</p>
+          <span className="ml-auto text-[11px] text-muted-foreground">{wk.label}</span>
+        </div>
+        {weekStats.count === 0 ? (
+          <p className="mt-2 text-[13px] text-muted-foreground">
+            Sin viajes esta semana todavía. Pedalea y aparecerán aquí.
+          </p>
+        ) : (
+          <div className="mt-3 grid grid-cols-4 gap-2 text-center">
+            <div>
+              <div className="text-[10px] uppercase text-muted-foreground">Viajes</div>
+              <div className="font-mono text-sm text-foreground">{weekStats.count}</div>
+            </div>
+            <div>
+              <div className="text-[10px] uppercase text-muted-foreground">Km</div>
+              <div className="font-mono text-sm text-foreground">{weekStats.km.toFixed(1)}</div>
+            </div>
+            <div>
+              <div className="text-[10px] uppercase text-muted-foreground">Tiempo</div>
+              <div className="font-mono text-sm text-foreground">{formatClock(weekStats.sec)}</div>
+            </div>
+            <div>
+              <div className="text-[10px] uppercase text-muted-foreground">Desnivel</div>
+              <div className="font-mono text-sm text-foreground">+{Math.round(weekStats.gain)}</div>
+            </div>
+          </div>
+        )}
+        <div className="mt-3 flex items-center gap-2">
+          <Button
+            onClick={() => void shareWeek()}
+            disabled={shareBusy || weekStats.count === 0}
+            className="h-9 flex-1 bg-pink-600 font-semibold text-white hover:bg-pink-500 disabled:opacity-40"
+          >
+            <Share2 className="mr-2 h-4 w-4" />
+            {shareBusy ? "Generando…" : "Compartir resumen (Instagram)"}
+          </Button>
+        </div>
+        {shareMsg && <p className="mt-2 text-xs text-emerald-700 dark:text-emerald-300" role="status">{shareMsg}</p>}
+      </Card>
+
+      {/* ---- Filtros: modo (demo/GPS) + rango de fecha ---- */}
+      <div className="flex flex-col gap-2">
+        <div className="flex gap-2">
+          <Select value={mode} onValueChange={(v) => setMode(v as ModeKey)}>
+            <SelectTrigger className="h-9 w-[190px] shrink-0 border-border bg-card" aria-label="Filtrar por modo del viaje">
+              <SelectValue placeholder="Todos los viajes" />
+            </SelectTrigger>
+            <SelectContent className="border-border bg-card">
+              <SelectItem value="all">Todos los viajes</SelectItem>
+              <SelectItem value="sim">Viajes en modo demo</SelectItem>
+              <SelectItem value="gps">Viajes en modo GPS</SelectItem>
+            </SelectContent>
+          </Select>
+          <div className="flex flex-1 gap-1.5 overflow-x-auto">
+            {rangeChips.map((c) => (
+              <button
+                key={c.key}
+                onClick={() => setRange(c.key)}
+                aria-pressed={range === c.key}
+                className={`h-9 flex-1 whitespace-nowrap rounded-lg border px-3 text-[12px] font-semibold transition-colors ${
+                  range === c.key
+                    ? "border-emerald-700 bg-emerald-600/15 text-emerald-700 dark:text-emerald-300"
+                    : "border-border text-muted-foreground hover:bg-accent hover:text-foreground"
+                }`}
+              >
+                {c.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        {range === "day" && (
+          <label className="flex items-center gap-2 text-[12px] text-muted-foreground">
+            <CalendarClock className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+            Elegir día
+            <input
+              type="date"
+              value={dayISO}
+              max={new Date().toISOString().slice(0, 10)}
+              onChange={(e) => setDayISO(e.target.value || new Date().toISOString().slice(0, 10))}
+              className="h-9 flex-1 rounded-lg border border-border bg-card px-2 text-[13px] text-foreground"
+              aria-label="Fecha de los viajes"
+            />
+          </label>
+        )}
+      </div>
+
+      {/* ---- Lista de viajes ---- */}
       {rides.length === 0 ? (
         <Card className="bg-card/60 border-border p-8 text-center text-muted-foreground text-sm">
           Aún no hay viajes guardados. Inicia un ride y al detenerlo quedará registrado aquí.
         </Card>
+      ) : shownRides.length === 0 ? (
+        <Card className="bg-card/60 border-border p-6 text-center text-muted-foreground text-sm">
+          No hay viajes con estos filtros. Prueba otro rango de fecha o el modo.
+        </Card>
       ) : (
         <>
           <ul className="flex flex-col gap-2" aria-label="Viajes guardados">
-            {rides.map((r) => (
+            {shownRides.map((r) => (
               <li key={r.id}>
                 <Card className="bg-card/80 border-border p-4">
                   <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -329,6 +608,14 @@ export function HistoryTab({
             <Trash2 className="h-4 w-4 mr-2" /> Borrar historial
           </Button>
         </>
+      )}
+
+      {/* Enlace cuenta: sin sesión los viajes nuevos son locales */}
+      {!accountEmail && rides.length > 0 && (
+        <p className="text-[11px] leading-relaxed text-muted-foreground/80">
+          Estos viajes son locales del dispositivo. Inicia sesión en Perfil y quedarán enlazados a tu
+          correo automáticamente.
+        </p>
       )}
     </div>
   );

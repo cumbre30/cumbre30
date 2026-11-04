@@ -12,7 +12,7 @@
 // (computeRoute), historial, QR, premios, perfil, licencia Pro.
 // ============================================================
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import { Bike, Map as MapIcon, QrCode } from "lucide-react";
 import { RideView } from "@/components/RideView";
@@ -27,6 +27,7 @@ import { useRideEngine, type Source } from "@/hooks/useRideEngine";
 import { useMe } from "@/hooks/useMe";
 import { useNavEngine } from "@/hooks/useNavEngine";
 import { useProLicense } from "@/lib/proLicense";
+import { linkRidesToAccount, setRideOwner } from "@/lib/history";
 import { courseHeading } from "@/lib/geo";
 import { alerts } from "@/lib/alertEngine";
 import type { ProLockFeature } from "@/lib/planData";
@@ -67,19 +68,39 @@ const ChallengesTab = dynamic(() => import("@/components/ChallengesTab"), {
   ),
 });
 
+const PagosTab = dynamic(() => import("@/components/PagosTab").then((m) => m.PagosTab), {
+  ssr: false,
+  loading: () => (
+    <div className="h-40 rounded-xl border border-border bg-card flex items-center justify-center text-sm text-muted-foreground">
+      Cargando pagos…
+    </div>
+  ),
+});
+
+const AmigosTab = dynamic(() => import("@/components/AmigosTab").then((m) => m.AmigosTab), {
+  ssr: false,
+  loading: () => (
+    <div className="h-40 rounded-xl border border-border bg-card flex items-center justify-center text-sm text-muted-foreground">
+      Cargando amigos…
+    </div>
+  ),
+});
+
 /** Destinos de la barra inferior (los 3 del brief). */
 type TabScreen = "ride" | "explorar" | "acceso";
 /** Sub-pantallas accesibles desde el menú lateral. */
-type SubScreen = MenuScreen; // historial | stats | premios | perfil | config | ayuda | planes
+type SubScreen = MenuScreen; // historial | stats | premios | perfil | config | ayuda | pagos | amigos | planes
 type Screen = TabScreen | SubScreen;
 
 const SUB_TITLES: Record<SubScreen, string> = {
-  historial: "Historial de viajes",
+  historial: "Mis viajes",
   stats: "Estadísticas generales",
   premios: "Premios y desafíos",
   perfil: "Perfil",
   config: "Configuración",
   ayuda: "Ayuda y contacto",
+  pagos: "Pagos y suscripciones",
+  amigos: "Amigos",
   planes: "Planes",
 };
 
@@ -120,6 +141,13 @@ export default function Home() {
 
   const status = ride.status; // idle | running | paused
   const active = status !== "idle"; // el ride (o su pausa) está en curso
+  // Enlace viaje ↔ cuenta: rides nuevos y antiguos quedan asociados al
+  // correo de la sesión; sin correo son locales del dispositivo.
+  const userEmail = me?.user.email ?? null;
+  useEffect(() => {
+    setRideOwner(userEmail);
+    if (userEmail) linkRidesToAccount(userEmail);
+  }, [userEmail]);
   // Navegación compartida: velocímetro (minimapa) + mapa grande.
   // Sigue viva también en pausa: revisar la ruta no requiere ride activo.
   const nav = useNavEngine(ride.position, active);
@@ -244,13 +272,19 @@ export default function Home() {
             {screen === "historial" && (
               <HistoryTab
                 refreshKey={historyKey}
-                user={me ? { email: me.user.email, username: me.user.username } : undefined}
-                onGoPro={() => go("planes")}
+                user={
+                  me
+                    ? { email: me.user.email, username: me.user.username, selectedPin: me.user.selectedPin }
+                    : undefined
+                }
+                onGoPro={() => go("pagos")}
               />
             )}
             {screen === "stats" && <StatsTab onGoPro={() => go("planes")} />}
             {screen === "premios" && <ChallengesTab />}
             {screen === "perfil" && <ProfileTab />}
+            {screen === "pagos" && <PagosTab />}
+            {screen === "amigos" && <AmigosTab onGoPerfil={() => go("perfil")} />}
             {screen === "config" && (
               <ConfigTab
                 source={source}

@@ -13,12 +13,14 @@ import {
   Bike,
   ChartLine,
   ChevronRight,
+  CreditCard,
   Crown,
   HelpCircle,
   History,
   Settings,
   Trophy,
   UserRound,
+  Users,
   X,
 } from "lucide-react";
 import { historyStore } from "@/lib/history";
@@ -31,6 +33,8 @@ export type MenuScreen =
   | "perfil"
   | "config"
   | "ayuda"
+  | "pagos"
+  | "amigos"
   | "planes";
 
 function MenuItem({
@@ -141,7 +145,7 @@ export function AppDrawer({
         {/* Zona 2: Mi actividad */}
         <div className="mt-4 px-3">
           <p className="px-1 pb-1 pt-2 text-[10.5px] font-extrabold uppercase tracking-widest text-muted-foreground/70">Mi actividad</p>
-          <MenuItem icon={<History className="h-5 w-5" />} label="Historial de viajes" onClick={() => go("historial")} />
+          <MenuItem icon={<History className="h-5 w-5" />} label="Mis viajes" onClick={() => go("historial")} />
           <MenuItem icon={<ChartLine className="h-5 w-5" />} label="Estadísticas generales" onClick={() => go("stats")} />
           <MenuItem icon={<Trophy className="h-5 w-5" />} label="Premios y desafíos" onClick={() => go("premios")} />
         </div>
@@ -154,7 +158,29 @@ export function AppDrawer({
           <MenuItem icon={<HelpCircle className="h-5 w-5" />} label="Ayuda y contacto" onClick={() => go("ayuda")} />
         </div>
 
-        {/* Zona 4: Plan actual */}
+        {/* Zona 4: Pagos y suscripciones */}
+        <div className="mt-3 px-3">
+          <p className="px-1 pb-1 pt-2 text-[10.5px] font-extrabold uppercase tracking-widest text-muted-foreground/70">Pagos y suscripciones</p>
+          <MenuItem
+            icon={<CreditCard className="h-5 w-5" />}
+            label="Modo Pro y aporte voluntario"
+            hint={pro ? "Pro activo · gestionar licencia" : "Habilitar Pro con tu código"}
+            onClick={() => go("pagos")}
+          />
+        </div>
+
+        {/* Zona 5: Amigos */}
+        <div className="mt-3 px-3">
+          <p className="px-1 pb-1 pt-2 text-[10.5px] font-extrabold uppercase tracking-widest text-muted-foreground/70">Amigos</p>
+          <MenuItem
+            icon={<Users className="h-5 w-5" />}
+            label="Lista de amigos"
+            hint="Km y logros de tu grupo"
+            onClick={() => go("amigos")}
+          />
+        </div>
+
+        {/* Zona 6: Plan actual */}
         <div className="mt-3 px-3">
           <p className="px-1 pb-1 pt-2 text-[10.5px] font-extrabold uppercase tracking-widest text-muted-foreground/70">Plan actual</p>
           <button

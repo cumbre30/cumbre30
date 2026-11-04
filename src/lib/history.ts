@@ -18,6 +18,8 @@ export type RideSummary = {
   overLimitSec: number;
   /** Pista GPS para export GPX — solo viajes grabados desde v1.5.0. */
   track?: TrackPt[];
+  /** Correo de la cuenta dueña del viaje. Sin correo = viaje local del dispositivo. */
+  account?: string;
 };
 
 const KEY = "cumbre30-history-v1";
@@ -62,10 +64,52 @@ export const historyStore = {
   },
 };
 
+// ------------------------------------------------------------------
+// Enlace viaje ↔ cuenta: los rides nuevos quedan asociados al correo
+// de la sesión activa; sin sesión son locales del dispositivo.
+// ------------------------------------------------------------------
+
+let rideOwner: string | null = null;
+
+/** Define la cuenta activa (correo normalizado) o null para modo local. */
+export function setRideOwner(email: string | null): void {
+  rideOwner = email ? email.trim().toLowerCase() : null;
+}
+
+/**
+ * Enlaza al correo los viajes antiguos que aún no tienen cuenta
+ * (grabados sin sesión iniciada). Idempotente: solo toca los sueltos.
+ * Devuelve cuántos viajes quedaron enlazados.
+ */
+export function linkRidesToAccount(email: string): number {
+  if (typeof window === "undefined") return 0;
+  const mail = email.trim().toLowerCase();
+  if (!mail) return 0;
+  const list = readFromStorage();
+  let n = 0;
+  for (const r of list) {
+    if (!r.account) {
+      r.account = mail;
+      n++;
+    }
+  }
+  if (n) {
+    try {
+      localStorage.setItem(KEY, JSON.stringify(list));
+      historyStore.refresh();
+    } catch {
+      // almacenamiento lleno/bloqueado
+    }
+  }
+  return n;
+}
+
 export function saveRide(s: RideSummary): void {
   if (typeof window === "undefined") return;
   const list = readFromStorage();
-  list.unshift(s);
+  const rec: RideSummary = { ...s };
+  if (!rec.account && rideOwner) rec.account = rideOwner;
+  list.unshift(rec);
   localStorage.setItem(KEY, JSON.stringify(list.slice(0, 50)));
   historyStore.refresh();
 }

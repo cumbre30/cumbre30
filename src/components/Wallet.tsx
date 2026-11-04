@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Bike as BikeIcon,
+  ChevronDown,
   Droplets as BloodType,
   IdCard,
   Maximize2,
@@ -333,19 +334,20 @@ export default function Wallet() {
         </Card>
       )}
 
-      {/* ---- Ficha médica de emergencia ---- */}
-      <Card className="bg-card/80 border-border p-4">
-        <div className="flex items-start gap-3 mb-3">
-          <UserRound className="h-5 w-5 text-emerald-600 dark:text-emerald-400 mt-0.5 shrink-0" />
-          <div className="text-sm text-muted-foreground">
+      {/* ---- Ficha médica de emergencia (desplegable) ---- */}
+      <details className="group rounded-xl border border-border bg-card/80 p-4">
+        <summary className="flex cursor-pointer list-none items-start gap-3 [&::-webkit-details-marker]:hidden">
+          <UserRound className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600 dark:text-emerald-400" />
+          <div className="min-w-0 flex-1 text-sm text-muted-foreground">
             <p className="font-medium text-foreground">Ficha médica de emergencia</p>
             <p className="mt-1 leading-relaxed">
               Guarda tu información básica en el teléfono: si tienes un accidente, quienes te ayuden pueden verla
               aquí. No se comparte ni sale del dispositivo.
             </p>
           </div>
-        </div>
-        <div className="grid gap-3">
+          <ChevronDown className="mt-1 h-5 w-5 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
+        </summary>
+        <div className="mt-3 grid gap-3">
           <div className="grid gap-1.5">
             <Label htmlFor="w-name" className="text-foreground/90">Nombre completo</Label>
             <Input id="w-name" className="bg-card border-border" placeholder="Ej: Camila Rojas Fuentes" value={data.fullName} onChange={(e) => set("fullName")(e.target.value)} />
@@ -396,20 +398,21 @@ export default function Wallet() {
             <p className="text-[11px] text-muted-foreground/80">Guardada el {new Date(savedAt).toLocaleString("es-CL")}</p>
           )}
         </div>
-      </Card>
+      </details>
 
-      {/* ---- Datos de la bicicleta ---- */}
-      <Card className="bg-card/80 border-border p-4">
-        <div className="flex items-start gap-3 mb-3">
-          <BikeIcon className="h-5 w-5 text-emerald-600 dark:text-emerald-400 mt-0.5 shrink-0" />
-          <div className="text-sm text-muted-foreground">
+      {/* ---- Datos de la bicicleta (desplegable) ---- */}
+      <details className="group rounded-xl border border-border bg-card/80 p-4">
+        <summary className="flex cursor-pointer list-none items-start gap-3 [&::-webkit-details-marker]:hidden">
+          <BikeIcon className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600 dark:text-emerald-400" />
+          <div className="min-w-0 flex-1 text-sm text-muted-foreground">
             <p className="font-medium text-foreground">Datos de tu bicicleta</p>
             <p className="mt-1 leading-relaxed">
               Registra tu bici para que aparezca en tu perfil y ayude a identificarla en caso de robo o accidente.
             </p>
           </div>
-        </div>
-        <div className="grid gap-3">
+          <ChevronDown className="mt-1 h-5 w-5 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
+        </summary>
+        <div className="mt-3 grid gap-3">
           <div className="grid sm:grid-cols-2 gap-3">
             <div className="grid gap-1.5">
               <Label htmlFor="b-brand" className="text-foreground/90">Marca</Label>
@@ -456,7 +459,7 @@ export default function Wallet() {
             Guardar bicicleta
           </Button>
         </div>
-      </Card>
+      </details>
 
       {/* ---- Pantalla completa del QR (para el acceso) ---- */}
       {fullQr && entryQr && (
