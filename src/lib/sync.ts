@@ -4,57 +4,100 @@
 // logros nuevos. Silencioso: si no hay sesión o conexión, no hace nada.
 // En el APK (export estático) no hay servidor: los logros se evalúan
 // y guardan localmente para que Retos/Pines funcionen igual.
+//
+// Vehículos motorizados: el ride sube con su flag `motorized`; si el
+// usuario corrige ("fui en bici"), markRideAsBike quita el flag aquí
+// y en el servidor (PATCH por clientId) y re-evalúa logros.
 
-import { gpsOnly, historyStore, ridesForAccount, type RideSummary } from "@/lib/history";
+import { bikeOnly, historyStore, ridesForAccount, type RideSummary } from "@/lib/history";
 import { isOfflineMode, offlineUnlockAchievements } from "@/lib/offlineAuth";
 import { evaluateAchievements, statsFromRides } from "@/lib/pins";
+import { setRideMotorized } from "@/lib/history";
 import { refreshMe } from "@/hooks/useMe";
+
+const AUTH_JSON = { "Content-Type": "application/json" };
+
+/** Logros: evalúa contra el historial local (en bici) y registra los nuevos. */
+async function evaluateOfflineAchievements(): Promise<void> {
+  const me = await refreshMe();
+  const stats = statsFromRides(
+    bikeOnly(ridesForAccount(historyStore.get(), me?.user.email ?? null)),
+  );
+  const have = me?.achievements.map((a) => a.code) ?? [];
+  const codes = evaluateAchievements(stats, have);
+  if (codes.length) offlineUnlockAchievements(codes);
+  await refreshMe();
+}
+
+/** Logros en el despliegue web: evalúa localmente y sube los nuevos. */
+async function evaluateOnlineAchievements(): Promise<void> {
+  const me = await refreshMe();
+  const stats = statsFromRides(
+    bikeOnly(ridesForAccount(historyStore.get(), me?.user.email ?? null)),
+  );
+  const have = me?.achievements.map((a) => a.code) ?? [];
+  // La evaluación respeta el avance secuencial de las series y
+  // traduce los códigos v1 a sus equivalentes actuales.
+  const codes = evaluateAchievements(stats, have);
+  const haveSet = new Set(have);
+  for (const code of codes) {
+    if (!haveSet.has(code)) {
+      try {
+        await fetch("/api/achievements", {
+          method: "POST",
+          headers: AUTH_JSON,
+          body: JSON.stringify({ code }),
+        });
+      } catch {
+        // sin conexión
+      }
+    }
+  }
+  await refreshMe();
+}
 
 export async function syncRideAfterSave(summary: RideSummary): Promise<void> {
   try {
     if (isOfflineMode()) {
       // APK: evalúa logros contra el historial local y guárdalos.
-      const me = await refreshMe();
-      const stats = statsFromRides(
-        gpsOnly(ridesForAccount(historyStore.get(), me?.user.email ?? null)),
-      );
-      const have = me?.achievements.map((a) => a.code) ?? [];
-      const codes = evaluateAchievements(stats, have);
-      if (codes.length) offlineUnlockAchievements(codes);
-      await refreshMe();
+      await evaluateOfflineAchievements();
       return;
     }
     const r = await fetch("/api/rides", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: AUTH_JSON,
       body: JSON.stringify(summary),
     });
     if (!r.ok) return; // sin sesión o sin conexión
-
-    const me = await refreshMe();
-    const stats = statsFromRides(
-      gpsOnly(ridesForAccount(historyStore.get(), me?.user.email ?? null)),
-    );
-    const have = me?.achievements.map((a) => a.code) ?? [];
-    // La evaluación respeta el avance secuencial de las series y
-    // traduce los códigos v1 a sus equivalentes actuales.
-    const codes = evaluateAchievements(stats, have);
-    const haveSet = new Set(have);
-    for (const code of codes) {
-      if (!haveSet.has(code)) {
-        try {
-          await fetch("/api/achievements", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ code }),
-          });
-        } catch {
-          // sin conexión
-        }
-      }
-    }
-    await refreshMe();
+    await evaluateOnlineAchievements();
   } catch {
     // modo offline: el ride queda guardado localmente
+  }
+}
+
+/**
+ * El usuario confirmó que fue en bici: quita el flag de vehículo del
+ * ride (local + servidor, por clientId) y re-evalúa logros con las
+ * estadísticas corregidas. Si el ride nunca llegó al servidor (sin
+ * sesión al grabar), la corrección es solo local, como el ride mismo.
+ */
+export async function markRideAsBike(summary: RideSummary): Promise<void> {
+  setRideMotorized(summary.id, false);
+  try {
+    if (!isOfflineMode()) {
+      await fetch("/api/rides", {
+        method: "PATCH",
+        headers: AUTH_JSON,
+        body: JSON.stringify({ clientId: summary.id, motorized: false }),
+      });
+    }
+  } catch {
+    // sin conexión: la corrección queda local y el ride nunca subió
+  }
+  try {
+    if (isOfflineMode()) await evaluateOfflineAchievements();
+    else await evaluateOnlineAchievements();
+  } catch {
+    // la corrección del ride ya está aplicada
   }
 }

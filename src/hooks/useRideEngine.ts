@@ -14,7 +14,8 @@ import { alerts } from "@/lib/alertEngine";
 import { RideNative, isNativeApp, type PluginListenerHandleLike } from "@/lib/rideNative";
 import { RideSimulator } from "@/lib/simulation";
 import { saveRide, type RideSummary, type TrackPt } from "@/lib/history";
-import { syncRideAfterSave } from "@/lib/sync";
+import { isMotorizedRide, VEH_LIMIT_KMH, VEH_STREAK_SEC, VEH_TOTAL_SEC } from "@/lib/vehicleDetect";
+import { syncRideAfterSave, markRideAsBike } from "@/lib/sync";
 
 export type SpeedState = "ok" | "caution" | "over";
 export type RideStatus = "idle" | "running" | "paused";
@@ -53,6 +54,12 @@ export function useRideEngine() {
   const [events, setEvents] = useState<RideEvent[]>([]);
   const [track, setTrack] = useState<LatLng[]>([]);
   const [position, setPosition] = useState<LatLng | null>(null);
+  // Ride sospechoso de vehículo esperando la confirmación del usuario
+  // ("¿fuiste en bici?"). Ya está guardado (con el flag) y sincronizado:
+  // esta confirmación solo corrige el flag si fue falso positivo.
+  const [pendingConfirm, setPendingConfirm] = useState<RideSummary | null>(null);
+  const pendingRef = useRef<RideSummary | null>(null);
+  useEffect(() => { pendingRef.current = pendingConfirm; }, [pendingConfirm]);
 
   // --- refs del motor ---
   const engine = useRef({
@@ -82,6 +89,14 @@ export function useRideEngine() {
     // Pista muestreada para export GPX: [lat, lon, eleM, tsSec]
     trackPts: [] as TrackPt[],
     trackEveryMs: 5000,
+    // Huella de vehículo motorizado: segundos sobre 45 km/h (total y
+    // tramo continuo más largo). Con GPS a 1 Hz es la señal que separa
+    // un auto de una bici (que solo toca puntas en bajada). Ver
+    // lib/vehicleDetect: la decisión final la confirma el usuario.
+    vehSec: 0,
+    vehStreakSec: 0,
+    vehStreakMax: 0,
+    vehNotified: false,
   });
 
   const logEvent = useCallback((kind: RideEvent["kind"], text: string) => {
@@ -147,6 +162,21 @@ export function useRideEngine() {
       // 4) Tiempos
       e.elapsed += dt;
       if (vKmh > 1.5) e.movingSec += dt;
+
+      // 4b) Huella de vehículo motorizado: tiempo sobre el umbral que una
+      //     bici no sostiene. La decisión (isMotorizedRide) se toma al
+      //     guardar y el usuario la confirma; aquí solo se mide.
+      if (vKmh > VEH_LIMIT_KMH) {
+        e.vehSec += dt;
+        e.vehStreakSec += dt;
+        if (e.vehStreakSec > e.vehStreakMax) e.vehStreakMax = e.vehStreakSec;
+        if (!e.vehNotified && (e.vehStreakMax >= VEH_STREAK_SEC || e.vehSec >= VEH_TOTAL_SEC)) {
+          e.vehNotified = true;
+          logEvent("warn", "Velocidad sostenida típica de vehículo: al guardar te preguntaremos");
+        }
+      } else {
+        e.vehStreakSec = 0;
+      }
 
       // 5) Geofence del parque
       const inside = pointInPolygon(fix, PARK_POLYGON);
@@ -383,6 +413,10 @@ export function useRideEngine() {
       e.gateLastTrigger = {};
       e.trackPts = [];
       e.trackEveryMs = 5000;
+      e.vehSec = 0;
+      e.vehStreakSec = 0;
+      e.vehStreakMax = 0;
+      e.vehNotified = false;
       e.paused = false;
       setSource(src);
       setEvents([]);
@@ -464,6 +498,20 @@ export function useRideEngine() {
     alerts.releaseWakeLock();
     // Un ride pausado también se guarda: la pausa no borra lo pedaleado.
     if ((status === "running" || status === "paused") && (e.distanceM > 50 || e.elapsed > 10)) {
+      // Detección de vehículo motorizado: solo rides con GPS real (el
+      // demo corre a su propia velocidad y no cuenta para nada). Si es
+      // sospechoso se marca motorizado de inmediato (nunca se pierde el
+      // ride) y la app pregunta: "¿fuiste en bici?" para corregirlo.
+      const movingAvg = e.movingSec > 2 ? (e.distanceM / e.movingSec) * 3.6 : 0;
+      const vehicleSuspect =
+        source === "gps" &&
+        isMotorizedRide({
+          vehSec: e.vehSec,
+          vehStreakSec: e.vehStreakMax,
+          avgKmh: movingAvg,
+          movingSec: e.movingSec,
+          maxKmh: maxRef.current,
+        });
       const summary: RideSummary = {
         id: crypto.randomUUID(),
         dateISO: new Date().toISOString(),
@@ -472,16 +520,18 @@ export function useRideEngine() {
         maxKmh: maxRef.current,
         maxInParkKmh: maxInParkRef.current,
         inParkKm: Number((e.parkDistanceM / 1000).toFixed(2)),
-        avgKmh: e.movingSec > 2 ? (e.distanceM / e.movingSec) * 3.6 : 0,
+        avgKmh: movingAvg,
         elapsedSec: e.elapsed,
         gainM: e.gain,
         overLimitSec: e.overSec,
+        motorized: vehicleSuspect || undefined,
         // Solo los viajes GPS guardan pista (los demo no exportan GPX).
         track: source === "gps" && e.trackPts.length > 1 ? e.trackPts : undefined,
       };
       saveRide(summary);
       logEvent("info", "Ride guardado en el historial");
       void syncRideAfterSave(summary); // sube al servidor + logros si hay sesión
+      if (vehicleSuspect) setPendingConfirm(summary);
     }
     e.paused = false;
     setStatus("idle");
@@ -489,6 +539,18 @@ export function useRideEngine() {
     setSpeedState("ok");
     setSpeedKmh(0);
   }, [logEvent, source, status]);
+
+  /** Respuesta al diálogo "¿fuiste en bici?": si fue bici, corrige el
+   *  flag del ride (local + servidor) y re-evalúa logros; si fue
+   *  vehículo, el flag ya quedó puesto al guardar. */
+  const confirmVehicle = useCallback((wasBike: boolean) => {
+    const s = pendingRef.current;
+    pendingRef.current = null;
+    setPendingConfirm(null);
+    if (!s) return;
+    if (!wasBike) return; // ya quedó guardado como vehículo
+    void markRideAsBike(s);
+  }, []);
 
   // Re-adquirir Wake Lock al volver a la app
   useEffect(() => {
@@ -537,6 +599,7 @@ export function useRideEngine() {
     speedKmh, maxKmh, avgKmh, distanceKm, elapsedSec, gainM, slopePct,
     insidePark, speedState, overLimitSec, maxInParkKmh,
     events, track, position,
+    pendingConfirm, confirmVehicle,
     start, pause, resume, stop,
   };
 }

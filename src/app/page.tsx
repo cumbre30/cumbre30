@@ -17,6 +17,7 @@ import dynamic from "next/dynamic";
 import { Bike, Map as MapIcon, QrCode } from "lucide-react";
 import { RideView } from "@/components/RideView";
 import { HistoryTab } from "@/components/HistoryTab";
+import { VehicleConfirmModal } from "@/components/VehicleConfirmModal";
 import { AppDrawer, type MenuScreen } from "@/components/AppDrawer";
 import { PlanPill, ProContextModal } from "@/components/ProUI";
 import { PlanesTab } from "@/components/PlanesTab";
@@ -302,6 +303,9 @@ export default function Home() {
 
       {/* Modal contextual de funciones Pro (buscador / marcadores) */}
       <ProContextModal feature={proLock} onClose={() => setProLock(null)} onDiscover={() => { setProLock(null); go("planes"); }} />
+
+      {/* ¿Fuiste en bici?: corrección del flag de vehículo detectado */}
+      <VehicleConfirmModal pending={ride.pendingConfirm} onAnswer={ride.confirmVehicle} />
     </div>
   );
 }

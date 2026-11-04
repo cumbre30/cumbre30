@@ -24,7 +24,7 @@ import {
   UserRound,
   X,
 } from "lucide-react";
-import { gpsOnly, historyStore, ridesForAccount } from "@/lib/history";
+import { bikeOnly, historyStore, ridesForAccount } from "@/lib/history";
 import { PlanBadge, ProPromoCard } from "@/components/ProUI";
 
 export type MenuScreen =
@@ -78,10 +78,11 @@ export function AppDrawer({
   onNavigate: (s: MenuScreen) => void;
 }) {
   const rides = useSyncExternalStore(historyStore.subscribe, historyStore.get, historyStore.getServer);
-  // Contador del menú: solo viajes con GPS real de la cuenta activa
-  // (los demo no cuentan; sin sesión solo los locales del teléfono).
+  // Contador del menú: solo viajes con GPS real en bici de la cuenta
+  // activa (los demo y los rides en vehículo no cuentan; sin sesión
+  // solo los locales del teléfono).
   const gpsCount = useMemo(
-    () => gpsOnly(ridesForAccount(rides, email ?? null)).length,
+    () => bikeOnly(ridesForAccount(rides, email ?? null)).length,
     [rides, email],
   );
 

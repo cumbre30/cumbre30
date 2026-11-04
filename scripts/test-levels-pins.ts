@@ -1,5 +1,6 @@
 // Prueba de lógica: niveles (Desafiante 500 / Leyenda 500+) + Serie Horas
-// + parque solo dentro de la geocerca (inParkKm) + desbloqueo secuencial.
+// + parque solo dentro de la geocerca (inParkKm) + detección de vehículo
+// motorizado + desbloqueo secuencial.
 // Correr: npx tsx scripts/test-levels-pins.ts
 import {
   RIDER_LEVELS,
@@ -13,6 +14,7 @@ import {
   PINS,
   type PinId,
 } from "../src/lib/pins";
+import { isMotorizedRide, VEH_LIMIT_KMH } from "../src/lib/vehicleDetect";
 
 let fails = 0;
 function eq(label: string, got: unknown, want: unknown) {
@@ -78,7 +80,32 @@ const got10h = evaluateAchievements(s10h, []);
 eq("12 h → hrs_10 desbloqueado", got10h.includes("hrs_10"), true);
 eq("12 h → hrs_25 NO", got10h.includes("hrs_25"), false);
 
-// ---- 5. Coherencia del catálogo ----
+// ---- 5. Detección de vehículo motorizado (lib/vehicleDetect) ----
+eq("bajada rápida en bici (44 km/h 30 s, prom 24) NO es motorizado", isMotorizedRide({ vehSec: 30, vehStreakSec: 30, avgKmh: 24, movingSec: 1800, maxKmh: 44 }), false);
+eq("punta de 42 en bajada (reto Velocista) NO es motorizado", isMotorizedRide({ vehSec: 0, vehStreakSec: 0, avgKmh: 18, movingSec: 2400, maxKmh: 42 }), false);
+eq("auto: tramo continuo de 50 s sobre 45 SÍ es motorizado", isMotorizedRide({ vehSec: 120, vehStreakSec: 50, avgKmh: 38, movingSec: 900, maxKmh: 58 }), true);
+eq("auto urbano: ráfagas entre semáforos (total 100 s) SÍ", isMotorizedRide({ vehSec: 100, vehStreakSec: 25, avgKmh: 31, movingSec: 700, maxKmh: 52 }), true);
+eq("auto lento: prom 33 sostenido 12 min SÍ", isMotorizedRide({ vehSec: 0, vehStreakSec: 0, avgKmh: 33, movingSec: 720, maxKmh: 45 }), true);
+eq("prom 33 pero solo 5 min en movimiento NO (aún)", isMotorizedRide({ vehSec: 0, vehStreakSec: 0, avgKmh: 33, movingSec: 300, maxKmh: 45 }), false);
+eq("moto: punta de 95 km/h SÍ", isMotorizedRide({ vehSec: 10, vehStreakSec: 10, avgKmh: 30, movingSec: 600, maxKmh: 95 }), true);
+eq("bici fuerte: 45 km/h sostenidos 40 s (no llega al tramo de 45 s) NO", isMotorizedRide({ vehSec: 40, vehStreakSec: 40, avgKmh: 26, movingSec: 3600, maxKmh: 47 }), false);
+eq("umbral VEH_LIMIT_KMH = 45", VEH_LIMIT_KMH, 45);
+
+// ---- 6. Los rides motorizados NO cuentan en stats ni logros ----
+const conVehiculo = statsFromRides([
+  ...rides, // 43.4 km / 3 rides / máx 45
+  { distanceKm: 40, maxKmh: 70, maxInParkKmh: null, inParkKm: 0, gainM: 10, overLimitSec: 0, elapsedSec: 2400, dateISO: "2026-11-03T20:00:00Z", motorized: true }, // auto
+]);
+eq("motorizado excluido: totalKm sigue 43.4", Number(conVehiculo.totalKm.toFixed(1)), 43.4);
+eq("motorizado excluido: rideCount sigue 3", conVehiculo.rideCount, 3);
+eq("motorizado excluido: maxKmh sigue 45 (auto 70 no da Velocista)", conVehiculo.maxKmh, 45);
+eq("motorizado excluido: totalHours sin el auto", Number(conVehiculo.totalHours.toFixed(2)), 3.25);
+eq("motorizado excluido: maxRideKm sigue 21.4", Number(conVehiculo.maxRideKm.toFixed(1)), 21.4);
+// Sin flag no excluye nada (rides viejos/otros clientes).
+const sinFlag = statsFromRides([...rides, { distanceKm: 40, maxKmh: 70, maxInParkKmh: null, gainM: 10, overLimitSec: 0, elapsedSec: 2400, dateISO: "2026-11-03T20:00:00Z" }]);
+eq("sin flag: el ride cuenta (compatibilidad)", Number(sinFlag.totalKm.toFixed(1)), 83.4);
+
+// ---- 7. Coherencia del catálogo ----
 const rewards = ALL_TIERS.map((t) => t.reward);
 eq("recompensas de tiers todas únicas", new Set(rewards).size === rewards.length, true);
 eq("recompensas existen en PINS", rewards.every((r) => r in PINS), true);

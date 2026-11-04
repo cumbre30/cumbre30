@@ -58,6 +58,12 @@ model Ride {
   // rides antiguos o que nunca entraron). Los desafíos del parque usan
   // este valor, no la distancia total del ride.
   inParkKm     Float?
+  // True si el ride se registró en vehículo motorizado (sospecha del
+  // motor confirmada por el usuario): no cuenta para desafíos ni stats.
+  motorized    Boolean @default(false)
+  // id del ride en el dispositivo (summary.id) para poder corregir el
+  // flag motorizado desde el cliente (PATCH /api/rides).
+  clientId     String?
   avgKmh       Float
   elapsedSec   Float
   gainM        Float

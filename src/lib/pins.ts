@@ -304,9 +304,13 @@ export function statsFromRides(
     overLimitSec: number;
     elapsedSec?: number;
     dateISO: string | Date;
+    /** Rides confirmados en vehículo motorizado NO cuentan: ni km,
+     *  ni horas, ni velocidad (un auto no da el reto Velocista). */
+    motorized?: boolean;
   }>,
   incidentCount = 0
 ): AchievementStats {
+  let rideCount = 0;
   let totalKm = 0;
   let maxKmh = 0;
   let maxRideKm = 0;
@@ -318,6 +322,10 @@ export function statsFromRides(
   let dawnRides = 0;
   let weekendRides = 0;
   for (const r of rides) {
+    // Viaje en vehículo motorizado (confirmado al guardar): no aporta a
+    // ninguna métrica de desafíos ni de estadísticas del ciclista.
+    if (r.motorized) continue;
+    rideCount++;
     totalKm += r.distanceKm ?? 0;
     maxKmh = Math.max(maxKmh, r.maxKmh ?? 0);
     maxRideKm = Math.max(maxRideKm, r.distanceKm ?? 0);
@@ -342,7 +350,7 @@ export function statsFromRides(
     const clDay = new Date(d.getTime() - 3 * 3600_000).getUTCDay(); // 0 dom, 6 sáb
     if (clDay === 0 || clDay === 6) weekendRides++;
   }
-  return { totalKm, rideCount: rides.length, maxKmh, totalGainM, parkRides, cleanParkRides, nightRides, dawnRides, maxRideKm, weekendRides, totalHours, incidentCount };
+  return { totalKm, rideCount, maxKmh, totalGainM, parkRides, cleanParkRides, nightRides, dawnRides, maxRideKm, weekendRides, totalHours, incidentCount };
 }
 
 /**

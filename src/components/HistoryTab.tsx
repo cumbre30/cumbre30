@@ -13,6 +13,7 @@ import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import {
   CalendarClock,
   CalendarDays,
+  Car,
   ChevronDown,
   Crown,
   Download,
@@ -105,14 +106,19 @@ export function HistoryTab({
 
   // Segmentos: se calculan solo con Pro (función Pro); para nivel
   // gratis basta el teaser. Solo viajes de la cuenta activa con GPS
-  // real: los demo no guardan pista y otra cuenta no se mezcla.
+  // real: los demo no guardan pista, los rides en vehículo no son
+  // pedaleo y otra cuenta no se mezcla.
+  const bikeRides = useMemo(
+    () => linkedRides.filter((r) => r.source === "gps" && !r.motorized),
+    [linkedRides],
+  );
   const segStats = useMemo(
-    () => (pro.active ? computeSegmentStats(linkedRides) : []),
-    [pro.active, linkedRides],
+    () => (pro.active ? computeSegmentStats(bikeRides) : []),
+    [pro.active, bikeRides],
   );
   const perRideEfforts = useMemo(
-    () => (pro.active ? effortsByRide(linkedRides) : new Map()),
-    [pro.active, linkedRides],
+    () => (pro.active ? effortsByRide(bikeRides) : new Map()),
+    [pro.active, bikeRides],
   );
 
   // Relee el historial cuando se guarda un ride nuevo
@@ -144,11 +150,11 @@ export function HistoryTab({
     [linkedRides, mode, inRange],
   );
 
-  // Resumen semanal: solo viajes con GPS real (los demo no cuentan
-  // en estadísticas) + botón compartir
+  // Resumen semanal: solo viajes con GPS real en bici (los demo y los
+  // rides en vehículo no cuentan en estadísticas) + botón compartir
   const weekRides = useMemo(
     () => linkedRides.filter((r) => {
-      if (r.source !== "gps") return false;
+      if (r.source !== "gps" || r.motorized) return false;
       const d = new Date(r.dateISO);
       return d >= wk.start && d < wk.end;
     }),
@@ -463,6 +469,11 @@ export function HistoryTab({
                       <Badge variant="outline" className="border-border text-muted-foreground text-[10px] uppercase">
                         {r.source === "sim" ? "demo" : "gps"}
                       </Badge>
+                      {r.motorized && (
+                        <Badge variant="outline" className="border-amber-600/70 bg-amber-950/40 text-amber-700 dark:text-amber-300 text-[10px] uppercase" title="Viaje en vehículo motorizado: no cuenta para desafíos ni estadísticas">
+                          <Car className="h-3 w-3" /> vehículo
+                        </Badge>
+                      )}
                       {r.source !== "sim" && (
                         <Button
                           variant="outline"
@@ -524,6 +535,7 @@ export function HistoryTab({
                   <div className="mt-2 text-[11px] text-muted-foreground">
                     Máx en parque: {r.maxInParkKmh !== null ? `${r.maxInParkKmh.toFixed(1)} km/h` : "no ingresó"} · Promedio: {r.avgKmh.toFixed(1)} km/h · Desnivel: +{Math.round(r.gainM)} m
                     {r.source === "sim" && " · Viaje de demostración: no emite constancia"}
+                    {r.motorized && " · Viaje en vehículo: no cuenta para desafíos ni estadísticas"}
                   </div>
                   {(perRideEfforts.get(r.id)?.length ?? 0) > 0 && (
                     <div className="mt-1.5 flex items-start gap-1.5 text-[11px] text-amber-700 dark:text-amber-300">

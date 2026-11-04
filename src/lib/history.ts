@@ -23,6 +23,10 @@ export type RideSummary = {
   track?: TrackPt[];
   /** Correo de la cuenta dueña del viaje. Sin correo = viaje local del dispositivo. */
   account?: string;
+  /** True si el viaje se registró en vehículo motorizado (confirmado
+   *  por el usuario tras la sospecha del motor): NO cuenta para
+   *  desafíos ni estadísticas; queda en el historial con badge. */
+  motorized?: boolean;
 };
 
 const KEY = "cumbre30-history-v1";
@@ -35,6 +39,15 @@ const KEY = "cumbre30-history-v1";
  */
 export function gpsOnly(rides: RideSummary[]): RideSummary[] {
   return rides.filter((r) => r.source === "gps");
+}
+
+/**
+ * Viajes que cuentan como pedaleo real: GPS y confirmados en bici.
+ * Excluye los demo (sim) y los marcados como vehículo motorizado;
+ * es la base de estadísticas, contadores y desafíos.
+ */
+export function bikeOnly(rides: RideSummary[]): RideSummary[] {
+  return rides.filter((r) => r.source === "gps" && !r.motorized);
 }
 
 /**
@@ -138,6 +151,31 @@ export function saveRide(s: RideSummary): void {
   list.unshift(rec);
   localStorage.setItem(KEY, JSON.stringify(list.slice(0, 50)));
   historyStore.refresh();
+}
+
+/**
+ * Corrige el flag de vehículo motorizado de un ride guardado
+ * (el usuario confirmó "fui en bici" o lo marca como vehículo).
+ * Idempotente: si el flag ya está en ese valor, no toca nada.
+ */
+export function setRideMotorized(id: string, motorized: boolean): void {
+  if (typeof window === "undefined") return;
+  const list = readFromStorage();
+  let changed = false;
+  for (const r of list) {
+    if (r.id !== id) continue;
+    if (motorized && r.motorized !== true) {
+      r.motorized = true;
+      changed = true;
+    } else if (!motorized && r.motorized !== undefined) {
+      delete r.motorized;
+      changed = true;
+    }
+  }
+  if (changed) {
+    localStorage.setItem(KEY, JSON.stringify(list.slice(0, 50)));
+    historyStore.refresh();
+  }
 }
 
 export function clearHistory(): void {

@@ -46,6 +46,8 @@ export async function GET() {
       overLimitSec: r.overLimitSec,
       elapsedSec: r.elapsedSec,
       dateISO: r.dateISO,
+      // Los rides en vehículo motorizado no cuentan (igual que en el teléfono).
+      motorized: r.motorized,
     })),
     incidentCount
   );
@@ -54,12 +56,12 @@ export async function GET() {
     friendships.map(async (f) => {
       const [agg, lastRide] = await Promise.all([
         db.ride.aggregate({
-          where: { userId: f.friendId, source: "gps" },
+          where: { userId: f.friendId, source: "gps", motorized: false },
           _sum: { distanceKm: true, gainM: true },
           _max: { maxKmh: true },
           _count: true,
         }),
-        db.ride.findFirst({ where: { userId: f.friendId, source: "gps" }, orderBy: { dateISO: "desc" }, select: { dateISO: true } }),
+        db.ride.findFirst({ where: { userId: f.friendId, source: "gps", motorized: false }, orderBy: { dateISO: "desc" }, select: { dateISO: true } }),
       ]);
       return {
         username: f.friend.username,

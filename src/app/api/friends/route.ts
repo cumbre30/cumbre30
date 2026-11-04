@@ -21,12 +21,12 @@ export async function GET() {
     rows.map(async (f) => {
       const [agg, lastRide, achCount] = await Promise.all([
         db.ride.aggregate({
-          where: { userId: f.friendId },
+          where: { userId: f.friendId, motorized: false },
           _sum: { distanceKm: true, gainM: true },
           _max: { maxKmh: true },
           _count: true,
         }),
-        db.ride.findFirst({ where: { userId: f.friendId }, orderBy: { dateISO: "desc" }, select: { dateISO: true } }),
+        db.ride.findFirst({ where: { userId: f.friendId, motorized: false }, orderBy: { dateISO: "desc" }, select: { dateISO: true } }),
         db.achievement.count({ where: { userId: f.friendId } }),
       ]);
       return {

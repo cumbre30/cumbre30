@@ -15,7 +15,7 @@ import { useMemo, useState, useSyncExternalStore } from "react";
 import { Gauge, Clock, Lock, Mountain, Route, Trophy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { gpsOnly, historyStore, ridesForAccount } from "@/lib/history";
+import { bikeOnly, historyStore, ridesForAccount } from "@/lib/history";
 import { formatClock } from "@/lib/geo";
 import { computeSegmentStats, fmtEffort, SEGMENTS } from "@/lib/segments";
 import { useProLicense } from "@/lib/proLicense";
@@ -47,10 +47,11 @@ export function StatsTab({ onGoPro }: { onGoPro: () => void }) {
   const [sub, setSub] = useState<"general" | "pro">("general");
 
   // Todas las estadísticas provienen exclusivamente de viajes con GPS
-  // real enlazados a la cuenta (sin sesión: solo locales del teléfono).
+  // real en bici, enlazados a la cuenta (sin sesión: solo locales del
+  // teléfono; los demo y los rides en vehículo no cuentan).
   const accountEmail = me?.user.email ?? null;
   const gpsRides = useMemo(
-    () => gpsOnly(ridesForAccount(rides, accountEmail)),
+    () => bikeOnly(ridesForAccount(rides, accountEmail)),
     [rides, accountEmail],
   );
 
@@ -92,7 +93,7 @@ export function StatsTab({ onGoPro }: { onGoPro: () => void }) {
             <Kpi icon={<Gauge className="h-3.5 w-3.5" />} label="Vel. prom" value={totals.avg.toFixed(1)} unit="km/h" />
           </div>
           <p className="-mt-1 text-center text-[11px] text-muted-foreground">
-            Solo cuentan viajes con GPS real (los demo no) · se guardan en este teléfono (últimos 50).
+            Solo cuentan viajes con GPS real en bici (los demo y los viajes en vehículo no) · se guardan en este teléfono (últimos 50).
           </p>
         </>
       )}
