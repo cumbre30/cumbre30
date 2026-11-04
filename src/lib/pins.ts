@@ -136,7 +136,21 @@ export type Tier = {
   metric: MetricKey;
   goal: number;
   reward: PinId;
+  /** Desafíos Pro: solo el PRIMER desafío de cada serie es gratis;
+   *  los siguientes (y sus pines) requieren Cumbre30 Pro. */
+  pro?: boolean;
 };
+
+/** ¿Este desafío requiere Cumbre30 Pro? */
+export function tierIsPro(t: Tier): boolean {
+  return t.pro === true;
+}
+
+/** ¿El pin como recompensa requiere Pro? (el pin inicial nunca) */
+export function pinIsPro(pinId: PinId): boolean {
+  if (pinId === DEFAULT_PIN) return false;
+  return ALL_TIERS.some((t) => t.reward === pinId && t.pro);
+}
 
 export type Series = {
   id: string;
@@ -158,10 +172,10 @@ export const SERIES: Series[] = [
     accent: "emerald",
     tiers: [
       { code: "km_10", name: "Diez al pie", desc: `Acumula ${kmFmt(10)} pedaleando.`, metric: "totalKm", goal: 10, reward: "trebol" },
-      { code: "km_50", name: "Medio centenario", desc: `Acumula ${kmFmt(50)} entre todos tus rides.`, metric: "totalKm", goal: 50, reward: "mate" },
-      { code: "km_100", name: "Cien en el cerro", desc: `Acumula ${kmFmt(100)}. La corona te espera.`, metric: "totalKm", goal: 100, reward: "corona" },
-      { code: "km_250", name: "Gran turista", desc: `Acumula ${kmFmt(250)}. Vuelo de cóndor.`, metric: "totalKm", goal: 250, reward: "condor" },
-      { code: "km_500", name: "Quinientos", desc: `Acumula ${kmFmt(500)}. Un diamante puro.`, metric: "totalKm", goal: 500, reward: "diamante" },
+      { code: "km_50", name: "Medio centenario", desc: `Acumula ${kmFmt(50)} entre todos tus rides.`, metric: "totalKm", goal: 50, reward: "mate", pro: true },
+      { code: "km_100", name: "Cien en el cerro", desc: `Acumula ${kmFmt(100)}. La corona te espera.`, metric: "totalKm", goal: 100, reward: "corona", pro: true },
+      { code: "km_250", name: "Gran turista", desc: `Acumula ${kmFmt(250)}. Vuelo de cóndor.`, metric: "totalKm", goal: 250, reward: "condor", pro: true },
+      { code: "km_500", name: "Quinientos", desc: `Acumula ${kmFmt(500)}. Un diamante puro.`, metric: "totalKm", goal: 500, reward: "diamante", pro: true },
     ],
   },
   {
@@ -171,9 +185,9 @@ export const SERIES: Series[] = [
     accent: "sky",
     tiers: [
       { code: "gain_300", name: "Primer ascenso", desc: `Suma ${mFmt(300)} de desnivel positivo (≈ 1 subida a la cumbre).`, metric: "totalGainM", goal: 300, reward: "cumbre" },
-      { code: "gain_1500", name: "Piernas de acero", desc: `Suma ${mFmt(1500)} de desnivel acumulado (≈ 6 subidas).`, metric: "totalGainM", goal: 1500, reward: "sol" },
-      { code: "gain_4000", name: "Tormenta acumulada", desc: `Suma ${mFmt(4000)} de desnivel acumulado (≈ 17 subidas).`, metric: "totalGainM", goal: 4000, reward: "trueno" },
-      { code: "gain_8000", name: "Ocho mil del cerro", desc: `Suma ${mFmt(8000)} (≈ 35 subidas). Fuego sagrado.`, metric: "totalGainM", goal: 8000, reward: "fuego" },
+      { code: "gain_1500", name: "Piernas de acero", desc: `Suma ${mFmt(1500)} de desnivel acumulado (≈ 6 subidas).`, metric: "totalGainM", goal: 1500, reward: "sol", pro: true },
+      { code: "gain_4000", name: "Tormenta acumulada", desc: `Suma ${mFmt(4000)} de desnivel acumulado (≈ 17 subidas).`, metric: "totalGainM", goal: 4000, reward: "trueno", pro: true },
+      { code: "gain_8000", name: "Ocho mil del cerro", desc: `Suma ${mFmt(8000)} (≈ 35 subidas). Fuego sagrado.`, metric: "totalGainM", goal: 8000, reward: "fuego", pro: true },
     ],
   },
   {
@@ -183,8 +197,8 @@ export const SERIES: Series[] = [
     accent: "teal",
     tiers: [
       { code: "park_clean_1", name: "Ride limpio", desc: "Un ride de 2+ km dentro del parque sin exceder 30 km/h.", metric: "cleanParkRides", goal: 1, reward: "escudo" },
-      { code: "park_10", name: "Habitué del parque", desc: "Completa 10 rides entrando al parque.", metric: "parkRides", goal: 10, reward: "mariposa" },
-      { code: "park_30", name: "Copihue de oro", desc: "Completa 30 rides entrando al parque. Respeto total al límite.", metric: "parkRides", goal: 30, reward: "copihue" },
+      { code: "park_10", name: "Habitué del parque", desc: "Completa 10 rides entrando al parque.", metric: "parkRides", goal: 10, reward: "mariposa", pro: true },
+      { code: "park_30", name: "Copihue de oro", desc: "Completa 30 rides entrando al parque. Respeto total al límite.", metric: "parkRides", goal: 30, reward: "copihue", pro: true },
     ],
   },
   {
@@ -194,7 +208,7 @@ export const SERIES: Series[] = [
     accent: "amber",
     tiers: [
       { code: "rep_1", name: "Ojos del cerro", desc: "Reporta tu primera incidencia en el mapa.", metric: "incidentCount", goal: 1, reward: "estrella" },
-      { code: "rep_10", name: "Centinela", desc: "Reporta 10 incidencias. Los ojos de toda la comunidad.", metric: "incidentCount", goal: 10, reward: "campana" },
+      { code: "rep_10", name: "Centinela", desc: "Reporta 10 incidencias. Los ojos de toda la comunidad.", metric: "incidentCount", goal: 10, reward: "campana", pro: true },
     ],
   },
   {
@@ -204,9 +218,9 @@ export const SERIES: Series[] = [
     accent: "emerald",
     tiers: [
       { code: "const_1", name: "Primer pedal", desc: "Completa tu primer ride con GPS real. Toda cumbre empieza así.", metric: "rideCount", goal: 1, reward: "brote" },
-      { code: "const_10", name: "Ya es rutina", desc: "Completa 10 rides registrados con GPS.", metric: "rideCount", goal: 10, reward: "dorsal" },
-      { code: "const_25", name: "Rueda fiel", desc: "Completa 25 rides. El cerro ya te conoce.", metric: "rideCount", goal: 25, reward: "zorro" },
-      { code: "const_50", name: "Cincuenta vueltas", desc: "Completa 50 rides. Hábito de hierro.", metric: "rideCount", goal: 50, reward: "bosque" },
+      { code: "const_10", name: "Ya es rutina", desc: "Completa 10 rides registrados con GPS.", metric: "rideCount", goal: 10, reward: "dorsal", pro: true },
+      { code: "const_25", name: "Rueda fiel", desc: "Completa 25 rides. El cerro ya te conoce.", metric: "rideCount", goal: 25, reward: "zorro", pro: true },
+      { code: "const_50", name: "Cincuenta vueltas", desc: "Completa 50 rides. Hábito de hierro.", metric: "rideCount", goal: 50, reward: "bosque", pro: true },
     ],
   },
   {
@@ -216,21 +230,22 @@ export const SERIES: Series[] = [
     accent: "violet",
     tiers: [
       { code: "hrs_10", name: "Primeras horas", desc: `Acumula ${hFmt(10)} pedaleando (≈ 12 vueltas al cerro).`, metric: "totalHours", goal: 10, reward: "reloj" },
-      { code: "hrs_25", name: "Tiempo al aire", desc: `Acumula ${hFmt(25)} pedaleando.`, metric: "totalHours", goal: 25, reward: "amanecer" },
-      { code: "hrs_50", name: "Media jornada", desc: `Acumula ${hFmt(50)} pedaleando. Un día entero en dos ruedas.`, metric: "totalHours", goal: 50, reward: "atardecer" },
-      { code: "hrs_100", name: "Cien horas", desc: `Acumula ${hFmt(100)} pedaleando. Crónica del cerro.`, metric: "totalHours", goal: 100, reward: "cronista" },
+      { code: "hrs_25", name: "Tiempo al aire", desc: `Acumula ${hFmt(25)} pedaleando.`, metric: "totalHours", goal: 25, reward: "amanecer", pro: true },
+      { code: "hrs_50", name: "Media jornada", desc: `Acumula ${hFmt(50)} pedaleando. Un día entero en dos ruedas.`, metric: "totalHours", goal: 50, reward: "atardecer", pro: true },
+      { code: "hrs_100", name: "Cien horas", desc: `Acumula ${hFmt(100)} pedaleando. Crónica del cerro.`, metric: "totalHours", goal: 100, reward: "cronista", pro: true },
     ],
   },
 ];
 
-/** Retos puntuales: independientes, sin cadena previa. */
+/** Retos puntuales: independientes, sin cadena previa. Igual regla
+ *  Free/Pro que las series: el primero es gratis, el resto Pro. */
 export const RETOS: Tier[] = [
   { code: "night_1", name: "Ciclista nocturno", desc: "Completa un ride entre las 21:00 y las 06:00.", metric: "nightRides", goal: 1, reward: "luna" },
-  { code: "speed_42", name: "Velocista", desc: "Registra 42 km/h en un tramo libre (siempre fuera del parque).", metric: "maxKmh", goal: 42, reward: "rayo" },
-  { code: "dawn_1", name: "Madrugador", desc: "Termina un ride antes de las 08:00 de la mañana.", metric: "dawnRides", goal: 1, reward: "cohete" },
-  { code: "dist_21", name: "Media maratón", desc: "Completa un solo ride de 21 km o más. Tu mejor vuelta.", metric: "maxRideKm", goal: 21, reward: "medalla" },
-  { code: "finde_8", name: "Guerrero del finde", desc: "Completa 8 rides en sábado o domingo.", metric: "weekendRides", goal: 8, reward: "picnic" },
-  { code: "clean_5", name: "Cinco limpios", desc: "Suma 5 rides dentro del parque sin exceder los 30 km/h.", metric: "cleanParkRides", goal: 5, reward: "zen" },
+  { code: "speed_42", name: "Velocista", desc: "Registra 42 km/h en un tramo libre (siempre fuera del parque).", metric: "maxKmh", goal: 42, reward: "rayo", pro: true },
+  { code: "dawn_1", name: "Madrugador", desc: "Termina un ride antes de las 08:00 de la mañana.", metric: "dawnRides", goal: 1, reward: "cohete", pro: true },
+  { code: "dist_21", name: "Media maratón", desc: "Completa un solo ride de 21 km o más. Tu mejor vuelta.", metric: "maxRideKm", goal: 21, reward: "medalla", pro: true },
+  { code: "finde_8", name: "Guerrero del finde", desc: "Completa 8 rides en sábado o domingo.", metric: "weekendRides", goal: 8, reward: "picnic", pro: true },
+  { code: "clean_5", name: "Cinco limpios", desc: "Suma 5 rides dentro del parque sin exceder los 30 km/h.", metric: "cleanParkRides", goal: 5, reward: "zen", pro: true },
 ];
 
 export const ALL_TIERS: Tier[] = [...SERIES.flatMap((s) => s.tiers), ...RETOS];
@@ -357,21 +372,178 @@ export function statsFromRides(
  * Evalúa logros con avance SECUENCIAL: dentro de cada serie, un nivel
  * solo se desbloquea si el anterior ya está completo (o se completa en
  * esta misma evaluación). Los retos puntuales son independientes.
+ *
+ * Free/Pro: con `{ pro: false }` los desafíos marcados `pro: true` no
+ * se desbloquean (y cortan la cadena de su serie); el progreso métrico
+ * se acumula igual y se desbloquean en cadena al activar Pro. Sin
+ * opciones todo es desbloqueable (compatibilidad).
  */
-export function evaluateAchievements(s: AchievementStats, unlocked: Iterable<string> = []): string[] {
+export function evaluateAchievements(
+  s: AchievementStats,
+  unlocked: Iterable<string> = [],
+  opts?: { pro?: boolean },
+): string[] {
+  const allowPro = opts?.pro !== false;
   const have = normalizeCodes(unlocked);
   const out = new Set<string>(have);
   for (const series of SERIES) {
     for (let i = 0; i < series.tiers.length; i++) {
       const t = series.tiers[i];
       if (out.has(t.code)) continue;
+      if (!allowPro && t.pro) break; // requiere Pro: corta la cadena de la serie
       if (i > 0 && !out.has(series.tiers[i - 1].code)) break; // nivel previo pendiente
       if (metricValue(s, t.metric) >= t.goal) out.add(t.code);
       else break;
     }
   }
   for (const t of RETOS) {
-    if (!out.has(t.code) && metricValue(s, t.metric) >= t.goal) out.add(t.code);
+    if (out.has(t.code)) continue;
+    if (!allowPro && t.pro) continue; // requiere Pro: se salta sin cortar a los free
+    if (metricValue(s, t.metric) >= t.goal) out.add(t.code);
   }
   return [...out];
+}
+
+// ---- Desafíos con fecha: diarios, semanales y mensuales ----
+// Series GRATIS sin recompensas (ni pines ni logros guardados): se
+// evalúan en el cliente contra la ventana vigente y se reinician
+// solas al cambiar el día, la semana o el mes.
+
+export type TimeScope = "dia" | "semana" | "mes";
+
+export type TimeChallenge = {
+  id: string;
+  scope: TimeScope;
+  name: string;
+  desc: string;
+  metric: "rides" | "km" | "gainM";
+  goal: number;
+};
+
+export type TimeSeries = {
+  id: TimeScope;
+  name: string;
+  emoji: string;
+  accent: string;
+  /** Etiqueta del periodo que se reinicia (para la UI). */
+  resetLabel: string;
+  challenges: TimeChallenge[];
+};
+
+export const TIME_SERIES: TimeSeries[] = [
+  {
+    id: "dia",
+    name: "Desafíos diarios",
+    emoji: "☀️",
+    accent: "amber",
+    resetLabel: "se reinician cada día",
+    challenges: [
+      { id: "d_ride_1", scope: "dia", name: "Rueda del día", desc: "Completa 1 ride hoy.", metric: "rides", goal: 1 },
+      { id: "d_km_5", scope: "dia", name: "Cinco al día", desc: "Pedalea 5 km hoy.", metric: "km", goal: 5 },
+    ],
+  },
+  {
+    id: "semana",
+    name: "Desafíos semanales",
+    emoji: "📅",
+    accent: "sky",
+    resetLabel: "se reinician cada lunes",
+    challenges: [
+      { id: "w_ride_3", scope: "semana", name: "Ritmo semanal", desc: "Completa 3 rides esta semana.", metric: "rides", goal: 3 },
+      { id: "w_km_25", scope: "semana", name: "25 km de la semana", desc: "Pedalea 25 km entre lunes y domingo.", metric: "km", goal: 25 },
+      { id: "w_gain_300", scope: "semana", name: "Cuesta de la semana", desc: "Suma 300 m de desnivel esta semana.", metric: "gainM", goal: 300 },
+    ],
+  },
+  {
+    id: "mes",
+    name: "Desafíos mensuales",
+    emoji: "🗓️",
+    accent: "violet",
+    resetLabel: "se reinician cada mes",
+    challenges: [
+      { id: "m_ride_10", scope: "mes", name: "Diez vueltas al mes", desc: "Completa 10 rides este mes.", metric: "rides", goal: 10 },
+      { id: "m_km_100", scope: "mes", name: "Cien del mes", desc: "Pedalea 100 km este mes.", metric: "km", goal: 100 },
+      { id: "m_gain_1500", scope: "mes", name: "Piso del mes", desc: "Suma 1.500 m de desnivel este mes.", metric: "gainM", goal: 1500 },
+    ],
+  },
+];
+
+/** Métricas de una ventana de tiempo (día / semana / mes en curso). */
+export type ScopeStats = { rides: number; km: number; gainM: number };
+
+/** Inicio del día en curso (hora local del dispositivo). */
+function startOfToday(now: Date): Date {
+  const d = new Date(now);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+/** Inicio de la semana: lunes 00:00 local (la semana chilena parte el lunes). */
+export function startOfWeek(now: Date): Date {
+  const d = startOfToday(now);
+  d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+  return d;
+}
+
+/** Inicio del mes en curso (día 1, 00:00 local). */
+export function startOfMonth(now: Date): Date {
+  const d = startOfToday(now);
+  d.setDate(1);
+  return d;
+}
+
+/**
+ * Suma rides/km/desnivel por ventana: día, semana y mes en curso
+ * (hora local del dispositivo). Los rides en vehículo motorizado no
+ * cuentan — misma regla que el resto de los desafíos.
+ */
+export function windowStatsFromRides(
+  rides: Array<{
+    dateISO: string | Date;
+    distanceKm: number;
+    gainM: number;
+    motorized?: boolean;
+  }>,
+  now: Date = new Date(),
+): Record<TimeScope, ScopeStats> {
+  const d0 = startOfToday(now);
+  const w0 = startOfWeek(now);
+  const m0 = startOfMonth(now);
+  const out: Record<TimeScope, ScopeStats> = {
+    dia: { rides: 0, km: 0, gainM: 0 },
+    semana: { rides: 0, km: 0, gainM: 0 },
+    mes: { rides: 0, km: 0, gainM: 0 },
+  };
+  for (const r of rides) {
+    if (r.motorized) continue;
+    const t = new Date(r.dateISO).getTime();
+    if (Number.isNaN(t)) continue;
+    if (t >= m0.getTime()) {
+      out.mes.rides++;
+      out.mes.km += r.distanceKm ?? 0;
+      out.mes.gainM += Math.max(0, r.gainM ?? 0);
+    }
+    if (t >= w0.getTime()) {
+      out.semana.rides++;
+      out.semana.km += r.distanceKm ?? 0;
+      out.semana.gainM += Math.max(0, r.gainM ?? 0);
+    }
+    if (t >= d0.getTime()) {
+      out.dia.rides++;
+      out.dia.km += r.distanceKm ?? 0;
+      out.dia.gainM += Math.max(0, r.gainM ?? 0);
+    }
+  }
+  return out;
+}
+
+/** Valor, % y estado de un desafío con fecha contra las métricas vigentes. */
+export function timeChallengeProgress(
+  c: TimeChallenge,
+  ws: Record<TimeScope, ScopeStats>,
+): { value: number; pct: number; done: boolean } {
+  const raw = ws[c.scope];
+  const value = c.metric === "rides" ? raw.rides : c.metric === "km" ? raw.km : raw.gainM;
+  const pct = Math.min(100, Math.round((value / c.goal) * 100));
+  return { value, pct, done: value >= c.goal };
 }

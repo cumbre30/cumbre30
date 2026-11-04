@@ -9,10 +9,10 @@
 // usuario corrige ("fui en bici"), markRideAsBike quita el flag aquí
 // y en el servidor (PATCH por clientId) y re-evalúa logros.
 
-import { bikeOnly, historyStore, ridesForAccount, type RideSummary } from "@/lib/history";
+import { bikeOnly, historyStore, ridesForAccount, setRideMotorized, type RideSummary } from "@/lib/history";
 import { isOfflineMode, offlineUnlockAchievements } from "@/lib/offlineAuth";
 import { evaluateAchievements, statsFromRides } from "@/lib/pins";
-import { setRideMotorized } from "@/lib/history";
+import { isProActive } from "@/lib/proLicense";
 import { refreshMe } from "@/hooks/useMe";
 
 const AUTH_JSON = { "Content-Type": "application/json" };
@@ -24,7 +24,7 @@ async function evaluateOfflineAchievements(): Promise<void> {
     bikeOnly(ridesForAccount(historyStore.get(), me?.user.email ?? null)),
   );
   const have = me?.achievements.map((a) => a.code) ?? [];
-  const codes = evaluateAchievements(stats, have);
+  const codes = evaluateAchievements(stats, have, { pro: isProActive() });
   if (codes.length) offlineUnlockAchievements(codes);
   await refreshMe();
 }
@@ -37,8 +37,9 @@ async function evaluateOnlineAchievements(): Promise<void> {
   );
   const have = me?.achievements.map((a) => a.code) ?? [];
   // La evaluación respeta el avance secuencial de las series y
-  // traduce los códigos v1 a sus equivalentes actuales.
-  const codes = evaluateAchievements(stats, have);
+  // traduce los códigos v1 a sus equivalentes actuales. Free/Pro:
+  // sin licencia activa, los desafíos Pro no se desbloquean.
+  const codes = evaluateAchievements(stats, have, { pro: isProActive() });
   const haveSet = new Set(have);
   for (const code of codes) {
     if (!haveSet.has(code)) {

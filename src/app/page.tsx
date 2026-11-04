@@ -262,7 +262,12 @@ export default function Home() {
               />
             )}
             {screen === "stats" && <StatsTab onGoPro={() => go("planes")} />}
-            {screen === "premios" && <ChallengesTab onGoPerfil={() => go("perfil")} />}
+            {screen === "premios" && (
+              <ChallengesTab
+                onGoPerfil={() => go("perfil")}
+                onGoPro={() => go("planes")} // desafíos Pro → comparación FREE/PRO
+              />
+            )}
             {screen === "perfil" && <ProfileTab />}
             {screen === "config" && (
               <ConfigTab

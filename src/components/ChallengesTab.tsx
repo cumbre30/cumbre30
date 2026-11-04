@@ -8,13 +8,17 @@
 //     de avance del nivel actual y km que faltan al siguiente.
 //   · "Tus niveles": Explorador → Ciclista → Montañero → Desafiante
 //     (umbrales compartidos en lib/pins.ts → RIDER_LEVELS).
-//   · "Desafíos activos": series con avance SECUENCIAL (cada nivel
-//     se activa al completar el anterior) + retos puntuales.
-//   · "Tus pines": recompensas personalizables para el mapa.
+//   · "Desafíos del cerro": las series acumulativas agrupadas en un
+//     menú desplegable, con % de avance por serie.
+//   · "Desafíos con fecha": diarios / semanales / mensuales — gratis,
+//     sin recompensas; se reinician solos con el periodo.
+//   · "Retos puntuales" y "Tus pines": igual regla Free/Pro — solo el
+//     primer desafío de cada serie (y su pin) es gratis; el resto
+//     requiere Cumbre30 Pro (los ya ganados se conservan).
 // ============================================================
 
-import { useState } from "react";
-import { CheckCircle2, Lock, LogIn, MapPin, Trophy } from "lucide-react";
+import { useEffect, useState, type ReactNode } from "react";
+import { CheckCircle2, ChevronDown, Crown, Lock, LogIn, MapPin } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,15 +29,24 @@ import {
   RETOS,
   RIDER_LEVELS,
   SERIES,
+  TIME_SERIES,
   isPinId,
   metricValue,
   normalizeCodes,
+  pinIsPro,
   riderLevelForKm,
+  tierIsPro,
+  timeChallengeProgress,
+  windowStatsFromRides,
   type AchievementStats,
   type Tier,
+  type TimeChallenge,
+  type TimeScope,
 } from "@/lib/pins";
-import { useMe, refreshMe } from "@/hooks/useMe";
+import { bikeOnly, historyStore, ridesForAccount, type RideSummary } from "@/lib/history";
 import { isOfflineMode, offlineUpdateProfile } from "@/lib/offlineAuth";
+import { useMe, refreshMe, type MeData } from "@/hooks/useMe";
+import { useProLicense } from "@/lib/proLicense";
 
 function ProgressBar({ pct, accent = "bg-emerald-500" }: { pct: number; accent?: string }) {
   return (
@@ -50,6 +63,173 @@ const ACCENT_BAR: Record<string, string> = {
   amber: "bg-amber-500",
   violet: "bg-violet-500",
 };
+
+/** Chip "Pro" para desafíos y pines que requieren licencia. */
+function ProChip() {
+  return (
+    <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full border border-amber-500/60 bg-amber-950/40 px-1.5 py-px text-[9px] font-extrabold uppercase tracking-wide text-amber-600 dark:text-amber-400">
+      <Crown className="h-2.5 w-2.5" aria-hidden /> Pro
+    </span>
+  );
+}
+
+/** Cabecera plegable de un grupo de series (menú desplegable). */
+function GroupHeader({
+  emoji,
+  title,
+  hint,
+  pct,
+  open,
+  onToggle,
+}: {
+  emoji: string;
+  title: string;
+  hint: string;
+  pct: number;
+  open: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <div>
+      <button
+        onClick={onToggle}
+        aria-expanded={open}
+        className="flex w-full items-center gap-2 rounded-lg text-left"
+      >
+        <span className="text-xl leading-none" aria-hidden>{emoji}</span>
+        <div className="min-w-0 flex-1">
+          <p className="font-semibold text-sm text-foreground">{title}</p>
+          <p className="text-[10.5px] leading-tight text-muted-foreground">{hint}</p>
+        </div>
+        <span className="shrink-0 text-xs font-semibold tabular-nums text-muted-foreground">{pct}%</span>
+        <ChevronDown className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} aria-hidden />
+      </button>
+      <div className="mt-2">
+        <ProgressBar pct={pct} />
+      </div>
+    </div>
+  );
+}
+
+/** Fila plegable de una serie dentro de un grupo, con su % de avance. */
+function SeriesRow({
+  emoji,
+  name,
+  pct,
+  done,
+  total,
+  accent,
+  open,
+  onToggle,
+  right,
+}: {
+  emoji: string;
+  name: string;
+  pct: number;
+  done: number;
+  total: number;
+  accent: string;
+  open: boolean;
+  onToggle: () => void;
+  right?: ReactNode;
+}) {
+  return (
+    <button
+      onClick={onToggle}
+      aria-expanded={open}
+      className="flex w-full items-center gap-2 rounded-lg px-1 py-1.5 text-left hover:bg-background/60"
+    >
+      <span className="text-lg leading-none" aria-hidden>{emoji}</span>
+      <span className="min-w-0 flex-1 truncate text-[13px] font-medium text-foreground">{name}</span>
+      {right}
+      <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">
+        {done}/{total} · {pct}%
+      </span>
+      <div className="w-14 shrink-0">
+        <ProgressBar pct={pct} accent={ACCENT_BAR[accent] ?? "bg-emerald-500"} />
+      </div>
+      <ChevronDown className={`h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} aria-hidden />
+    </button>
+  );
+}
+
+/** Formatea el valor de un desafío con fecha según su métrica. */
+function timeValueFmt(metric: TimeChallenge["metric"], v: number): string {
+  if (metric === "rides") return `${Math.round(v)}`;
+  if (metric === "km") return `${v.toFixed(1)} km`;
+  return `${Math.round(v).toLocaleString("es-CL")} m`;
+}
+
+function timeGoalFmt(c: TimeChallenge): string {
+  if (c.metric === "rides") return `${c.goal} rides`;
+  if (c.metric === "km") return `${c.goal} km`;
+  return `${c.goal.toLocaleString("es-CL")} m`;
+}
+
+/** Fila de un desafío diario/semanal/mensual con progreso en vivo. */
+function TimeChallengeRow({ c, ws }: { c: TimeChallenge; ws: Record<TimeScope, { rides: number; km: number; gainM: number }> }) {
+  const { value, pct, done } = timeChallengeProgress(c, ws);
+  return (
+    <div className={`flex items-start gap-2.5 rounded-lg px-2.5 py-2 ${done ? "bg-emerald-950/20" : ""}`}>
+      <span className="mt-0.5 shrink-0" aria-hidden>
+        {done ? (
+          <CheckCircle2 className="h-4.5 w-4.5 text-emerald-600 dark:text-emerald-400" />
+        ) : (
+          <span className="inline-block h-4.5 w-4.5 rounded-full border-2 border-muted-foreground/50" />
+        )}
+      </span>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2">
+          <p className={`text-sm font-medium ${done ? "text-muted-foreground line-through" : "text-foreground"}`}>{c.name}</p>
+        </div>
+        <p className="text-[11px] mt-0.5 text-muted-foreground">{c.desc}</p>
+        <div className="mt-1.5">
+          <ProgressBar pct={pct} accent={done ? "bg-emerald-500" : "bg-amber-500"} />
+        </div>
+        <p className="text-[10px] text-muted-foreground/80 mt-1 tabular-nums">
+          {timeValueFmt(c.metric, value)} / {timeGoalFmt(c)} · {pct}%
+        </p>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Rides de la cuenta para los desafíos con fecha: en el APK, el
+ * historial local (en bici); en la web, GET /api/rides del servidor.
+ */
+function useAccountRides(me: MeData | null): RideSummary[] {
+  const [rides, setRides] = useState<RideSummary[]>([]);
+  const email = me?.user.email ?? null;
+  const offline = isOfflineMode();
+  useEffect(() => {
+    if (!me) return;
+    let alive = true;
+    if (offline) {
+      const upd = () => setRides(bikeOnly(ridesForAccount(historyStore.get(), email)));
+      upd();
+      const unsub = historyStore.subscribe(upd);
+      return () => {
+        alive = false;
+        unsub();
+      };
+    }
+    fetch("/api/rides", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : { rides: [] }))
+      .then((d: { rides?: unknown[] }) => {
+        if (!alive) return;
+        const list = (d.rides ?? []).filter((r) => (r as { source?: string }).source === "gps") as unknown as RideSummary[];
+        setRides(bikeOnly(list));
+      })
+      .catch(() => {
+        if (alive) setRides([]);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [me?.user.id, email, offline]);
+  return rides;
+}
 
 /** Anillo de progreso del nivel actual, con los km acumulados al centro. */
 function LevelRing({ pct, km, gold = false }: { pct: number; km: number; gold?: boolean }) {
@@ -75,9 +255,16 @@ function LevelRing({ pct, km, gold = false }: { pct: number; km: number; gold?: 
   );
 }
 
-export default function ChallengesTab({ onGoPerfil }: { onGoPerfil: () => void }) {
+export default function ChallengesTab({ onGoPerfil, onGoPro }: { onGoPerfil: () => void; onGoPro?: () => void }) {
   const { me, ready } = useMe();
+  const { pro } = useProLicense();
   const [savingPin, setSavingPin] = useState<string | null>(null);
+  // Menús desplegables: grupo del cerro, grupo con fecha y series internas.
+  const [cerroOpen, setCerroOpen] = useState(false);
+  const [fechaOpen, setFechaOpen] = useState(false);
+  const [openSeries, setOpenSeries] = useState<Record<string, boolean>>({});
+  const [openTimeSeries, setOpenTimeSeries] = useState<Record<string, boolean>>({});
+  const rides = useAccountRides(me);
 
   // ---- Sin sesión: la sección es parte de la cuenta ----
   if (!ready) {
@@ -157,6 +344,7 @@ export default function ChallengesTab({ onGoPerfil }: { onGoPerfil: () => void }
     const reward = PINS[t.reward];
     const val = metricValue(stats, t.metric);
     const pct = Math.min(100, Math.round((val / t.goal) * 100));
+    const needPro = tierIsPro(t) && !pro.active;
     return (
       <div key={t.code} className={`flex items-start gap-2.5 rounded-lg px-2.5 py-2 ${state === "current" ? "bg-card/90 border border-border" : ""}`}>
         <span className="text-xl leading-none mt-0.5 shrink-0" aria-hidden>
@@ -165,8 +353,9 @@ export default function ChallengesTab({ onGoPerfil }: { onGoPerfil: () => void }
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <p className={`text-sm font-medium truncate ${state === "done" ? "text-muted-foreground line-through" : state === "current" ? "text-foreground" : "text-muted-foreground"}`}>{t.name}</p>
+            {needPro && <ProChip />}
             {state === "done" && <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />}
-            {state === "current" && <span className="text-[10px] text-muted-foreground shrink-0">recompensa: {reward.emoji} {reward.name}</span>}
+            {state === "current" && !needPro && <span className="text-[10px] text-muted-foreground shrink-0">recompensa: {reward.emoji} {reward.name}</span>}
           </div>
           <p className={`text-[11px] mt-0.5 ${state === "locked" ? "text-muted-foreground/80" : "text-muted-foreground"}`}>{t.desc}</p>
           {state === "current" && (
@@ -175,12 +364,45 @@ export default function ChallengesTab({ onGoPerfil }: { onGoPerfil: () => void }
               <p className="text-[10px] text-muted-foreground/80 mt-1">
                 {pct}% · {t.metric === "totalGainM" || t.metric === "totalKm" || t.metric === "totalHours" ? `${Math.round(val).toLocaleString("es-CL")}` : val.toLocaleString("es-CL")} / {t.goal.toLocaleString("es-CL")}
               </p>
+              {needPro && onGoPro && (
+                <Button
+                  onClick={onGoPro}
+                  size="sm"
+                  className="mt-2 h-8 w-full rounded-lg bg-amber-500 text-[11px] font-extrabold uppercase tracking-wide text-zinc-950 hover:bg-amber-400"
+                >
+                  <Crown className="mr-1.5 h-3.5 w-3.5" aria-hidden /> Desbloquea con Pro
+                </Button>
+              )}
             </div>
           )}
         </div>
       </div>
     );
   };
+
+  // ---- Series del cerro: % por serie y totales del grupo ----
+  const cerroRows = SERIES.map((s) => {
+    const done = s.tiers.filter((t) => unlocked.has(t.code)).length;
+    const currentIdx = Math.min(done, s.tiers.length - 1);
+    const complete = done === s.tiers.length;
+    const pct = Math.round((done / s.tiers.length) * 100);
+    return { s, done, currentIdx, complete, pct };
+  });
+  const cerroDone = cerroRows.reduce((n, r) => n + r.done, 0);
+  const cerroTotal = cerroRows.reduce((n, r) => n + r.s.tiers.length, 0);
+  const cerroPct = cerroTotal ? Math.round((cerroDone / cerroTotal) * 100) : 0;
+  // Primera serie aún incompleta: se abre por defecto al expandir el grupo.
+  const firstIncompleteId = cerroRows.find((r) => !r.complete)?.s.id ?? null;
+
+  // ---- Desafíos con fecha: progreso en vivo por ventana ----
+  const ws = windowStatsFromRides(rides);
+  const timeRows = TIME_SERIES.map((ts) => {
+    const done = ts.challenges.filter((c) => timeChallengeProgress(c, ws).done).length;
+    return { ts, done, pct: Math.round((done / ts.challenges.length) * 100) };
+  });
+  const timeDone = timeRows.reduce((n, r) => n + r.done, 0);
+  const timeTotal = timeRows.reduce((n, r) => n + r.ts.challenges.length, 0);
+  const timePct = timeTotal ? Math.round((timeDone / timeTotal) * 100) : 0;
 
   // ---- Nivel actual según km acumulados (helper compartido con Perfil) ----
   const km = stats.totalKm;
@@ -269,45 +491,99 @@ export default function ChallengesTab({ onGoPerfil }: { onGoPerfil: () => void }
         </div>
       </Card>
 
-      {/* ---- Desafíos activos (series secuenciales) ---- */}
-      <div>
-        <p className="mb-2 text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground">Desafíos activos</p>
-        <div className="flex flex-col gap-3">
-          {SERIES.map((s) => {
-            const done = s.tiers.filter((t) => unlocked.has(t.code)).length;
-            const currentIdx = Math.min(done, s.tiers.length - 1);
-            const complete = done === s.tiers.length;
-            return (
-              <div key={s.id} className={`rounded-xl border p-4 ${complete ? "border-emerald-700/60 bg-emerald-950/20" : "border-border bg-card/60"}`}>
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-xl" aria-hidden>{s.emoji}</span>
-                  <p className="font-semibold text-sm text-foreground">{s.name}</p>
-                  <span className={`ml-auto text-xs px-2 py-0.5 rounded-full border ${complete ? "border-emerald-600 text-emerald-700 dark:text-emerald-300" : "border-border text-muted-foreground"}`}>
-                    {done}/{s.tiers.length} {complete ? "· completa" : ""}
-                  </span>
-                </div>
-                <div className="flex gap-1 mb-2" aria-hidden>
-                  {s.tiers.map((t) => (
-                    <div key={t.code} className={`h-1.5 flex-1 rounded-full ${unlocked.has(t.code) ? ACCENT_BAR[s.accent] ?? "bg-emerald-500" : "bg-muted"}`} />
-                  ))}
-                </div>
-                <div className="space-y-1">
-                  {s.tiers.map((t, i) =>
-                    tierRow(t, unlocked.has(t.code) ? "done" : i === currentIdx ? "current" : "locked", s.accent)
+      {/* ---- Desafíos del cerro (menú desplegable con % por serie) ---- */}
+      <Card className="bg-card/80 border-border p-4">
+        <GroupHeader
+          emoji="🏔️"
+          title="Desafíos del cerro"
+          hint={
+            pro.active
+              ? `${cerroDone}/${cerroTotal} completados · Pro activo`
+              : `El primer desafío de cada serie es gratis · ${cerroDone}/${cerroTotal}`
+          }
+          pct={cerroPct}
+          open={cerroOpen}
+          onToggle={() => setCerroOpen((v) => !v)}
+        />
+        {cerroOpen && (
+          <div className="mt-3 space-y-2.5">
+            {cerroRows.map(({ s, done, currentIdx, complete, pct }) => {
+              // Por defecto solo queda abierta la primera serie incompleta
+              // (la que tiene el desafío en curso); el resto, plegadas.
+              const open = openSeries[s.id] ?? s.id === firstIncompleteId;
+              return (
+                <div key={s.id} className={`rounded-xl border p-3 ${complete ? "border-emerald-700/60 bg-emerald-950/20" : "border-border bg-card/60"}`}>
+                  <SeriesRow
+                    emoji={s.emoji}
+                    name={s.name}
+                    pct={pct}
+                    done={done}
+                    total={s.tiers.length}
+                    accent={s.accent}
+                    open={open}
+                    onToggle={() => setOpenSeries((m) => ({ ...m, [s.id]: !open }))}
+                  />
+                  {open && (
+                    <div className="space-y-1 pt-1">
+                      {s.tiers.map((t, i) =>
+                        tierRow(t, unlocked.has(t.code) ? "done" : i === currentIdx ? "current" : "locked", s.accent)
+                      )}
+                    </div>
                   )}
                 </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
+              );
+            })}
+          </div>
+        )}
+      </Card>
 
-      {/* Retos puntuales */}
+      {/* ---- Desafíos con fecha: diarios / semanales / mensuales ---- */}
+      <Card className="bg-card/80 border-border p-4">
+        <GroupHeader
+          emoji="⏱️"
+          title="Desafíos con fecha"
+          hint="Gratis · sin recompensas · se reinician con el periodo"
+          pct={timePct}
+          open={fechaOpen}
+          onToggle={() => setFechaOpen((v) => !v)}
+        />
+        {fechaOpen && (
+          <div className="mt-3 space-y-2.5">
+            {timeRows.map(({ ts, done, pct }) => {
+              const open = openTimeSeries[ts.id] ?? ts.id === "dia";
+              return (
+                <div key={ts.id} className="rounded-xl border border-border bg-card/60 p-3">
+                  <SeriesRow
+                    emoji={ts.emoji}
+                    name={ts.name}
+                    pct={pct}
+                    done={done}
+                    total={ts.challenges.length}
+                    accent={ts.accent}
+                    open={open}
+                    onToggle={() => setOpenTimeSeries((m) => ({ ...m, [ts.id]: !open }))}
+                    right={<span className="hidden shrink-0 text-[9.5px] uppercase tracking-wide text-muted-foreground sm:inline">{ts.resetLabel}</span>}
+                  />
+                  {open && (
+                    <div className="space-y-1 pt-1">
+                      {ts.challenges.map((c) => (
+                        <TimeChallengeRow key={c.id} c={c} ws={ws} />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </Card>
+
+      {/* Retos puntuales (primero gratis, resto Pro) */}
       <div className="rounded-xl border border-border bg-card/60 p-4">
         <div className="flex items-center gap-2 mb-2">
           <span className="text-xl" aria-hidden>🎯</span>
           <p className="font-semibold text-sm text-foreground">Retos puntuales</p>
-          <span className="ml-auto text-xs text-muted-foreground">disponibles siempre</span>
+          <span className="ml-auto text-xs text-muted-foreground">{pro.active ? "todos disponibles" : "primero gratis · resto Pro"}</span>
         </div>
         <div className="space-y-1">
           {RETOS.map((t) => tierRow(t, unlocked.has(t.code) ? "done" : "current", "emerald"))}
@@ -325,28 +601,33 @@ export default function ChallengesTab({ onGoPerfil }: { onGoPerfil: () => void }
         </div>
         <p className="text-[11px] leading-snug text-muted-foreground">
           El pin que elijas es el que ven tus amigos y queda en tus reportes. Se desbloquean completando desafíos.
+          {!pro.active && <> Los pines <Crown className="inline h-3 w-3 text-amber-500" aria-hidden /> son recompensas de <b className="text-foreground">Cumbre30 Pro</b>.</>}
         </p>
         <div className="grid grid-cols-5 gap-2 mt-2">
           {Object.values(PINS).map((pin) => {
             const open = unlockedPins.has(pin.id);
             const active = activePin === pin.id;
+            const needPro = !open && !pro.active && pinIsPro(pin.id);
             return (
               <button
                 key={pin.id}
                 onClick={() => void selectPin(pin.id)}
                 disabled={!open || savingPin !== null}
-                title={open ? `${pin.name} — ${pin.desc}` : `Bloqueado: ${pin.desc}`}
+                title={open ? `${pin.name} — ${pin.desc}` : needPro ? `Recompensa Pro: ${pin.desc}` : `Bloqueado: ${pin.desc}`}
                 className={`relative rounded-lg border p-2 flex flex-col items-center gap-1 transition-colors ${
                   active
                     ? "border-emerald-400 bg-emerald-950/60"
                     : open
                       ? "border-border bg-background hover:border-emerald-600"
-                      : "border-border bg-background/40 opacity-60"
+                      : needPro
+                        ? "border-amber-700/40 bg-background/40 opacity-70"
+                        : "border-border bg-background/40 opacity-60"
                 }`}
               >
-                <span className="text-2xl" aria-hidden>{open ? pin.emoji : "🔒"}</span>
+                <span className="text-2xl" aria-hidden>{open ? pin.emoji : needPro ? "👑" : "🔒"}</span>
                 <span className={`text-[9px] leading-tight text-center ${active ? "text-emerald-700 dark:text-emerald-300 font-semibold" : "text-muted-foreground"}`}>{pin.name}</span>
                 {active && <CheckCircle2 className="absolute -top-1.5 -right-1.5 h-4 w-4 text-emerald-600 dark:text-emerald-400" />}
+                {needPro && <Crown className="absolute -top-1.5 -left-1.5 h-3 w-3 rounded-full bg-card text-amber-500" aria-hidden />}
               </button>
             );
           })}

@@ -10,6 +10,7 @@
 
 import { bikeOnly, historyStore, ridesForAccount, type RideSummary } from "@/lib/history";
 import { ACHIEVEMENT_BY_CODE, evaluateAchievements, isPinId, normalizeCodes, statsFromRides, type PinId } from "@/lib/pins";
+import { isProActive } from "@/lib/proLicense";
 import { validateUsername, usernameLocked } from "@/lib/username";
 import type { MeData, MeUser } from "@/hooks/useMe";
 
@@ -383,9 +384,10 @@ export function offlineMe(): MeData | null {
   };
 
   // Logros: los guardados + los que ya cumple con el historial local.
+  // Free/Pro: sin licencia activa, los desafíos Pro no se desbloquean.
   const saved = readAchievements();
   const have = saved.map((a) => a.code);
-  const earned = evaluateAchievements(statsRaw, have);
+  const earned = evaluateAchievements(statsRaw, have, { pro: isProActive() });
   if (earned.some((c) => !have.includes(c))) offlineUnlockAchievements(earned);
 
   const all = [...have, ...earned.filter((c) => !have.includes(c))];

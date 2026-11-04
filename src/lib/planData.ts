@@ -1,9 +1,13 @@
 // ============================================================
 // Tabla FREE vs PRO — rediseño de planes.
 // ⚠️ Cada fila está validada contra el código real de la app:
-//   · Ciclocomputador, GPS, registro, mapa/destinos, QR, premios:
-//     funcionan completos en FREE (page.tsx, MapView, Wallet,
-//     ChallengesTab — sin gating).
+//   · Ciclocomputador, GPS, registro, mapa/destinos, QR:
+//     funcionan completos en FREE (page.tsx, MapView, Wallet).
+//   · Desafíos con fecha (diarios/semanales/mensuales): gratis y
+//     sin recompensas (pins.ts TIME_SERIES + ChallengesTab).
+//   · Desafíos del cerro y pines: solo el PRIMER desafío de cada
+//     serie es gratis; el resto (y sus pines) requiere Pro
+//     (pins.ts Tier.pro + evaluateAchievements {pro:false}).
 //   · Constancias PDF: 3 al mes en FREE (proLicenseCore
 //     FREE_CONSTANCIA_LIMIT + HistoryTab.exportPdf).
 //   · Buscador universal + marcadores: solo Pro (MapView SearchCard).
@@ -23,7 +27,9 @@ export const PLAN_ROWS: PlanRow[] = [
   { feature: "GPS real y registro de viajes", free: true, pro: true },
   { feature: "Mapa del cerro y rutas a destinos", free: true, pro: true },
   { feature: "Acceso QR y ficha médica", free: true, pro: true },
-  { feature: "Desafíos y recompensas", free: true, pro: true },
+  { feature: "Desafíos diarios, semanales y mensuales", free: true, pro: true },
+  { feature: "Desafíos del cerro", free: "1.º de cada serie", pro: "Todos" },
+  { feature: "Pines de recompensa", free: "Los de retos gratis", pro: "Todos" },
   { feature: "Constancias PDF", free: "3 al mes", pro: "Ilimitadas" },
   { feature: "Buscador universal de direcciones", free: false, pro: true },
   { feature: "Segmentos del cerro con récords", free: false, pro: true },

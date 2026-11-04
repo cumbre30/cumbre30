@@ -12,6 +12,14 @@ import {
   RETOS,
   ALL_TIERS,
   PINS,
+  ACHIEVEMENT_BY_CODE,
+  tierIsPro,
+  pinIsPro,
+  TIME_SERIES,
+  windowStatsFromRides,
+  startOfWeek,
+  timeChallengeProgress,
+  type AchievementStats,
   type PinId,
 } from "../src/lib/pins";
 import { isMotorizedRide, VEH_LIMIT_KMH } from "../src/lib/vehicleDetect";
@@ -113,6 +121,98 @@ const codes = ALL_TIERS.map((t) => t.code);
 eq("códigos de tiers únicos", new Set(codes).size === codes.length, true);
 const pinSinTier = (Object.keys(PINS) as PinId[]).filter((p) => !rewards.includes(p));
 eq("pines sin tier (solo clasico)", pinSinTier, ["clasico"]);
+// ---- 8. Free/Pro: solo el primer desafío de cada serie es gratis ----
+const proPorSerie = SERIES.flatMap((s) => s.tiers.map((t, i) => ({ code: t.code, pro: t.pro === true, i })));
+eq("km_10 free", proPorSerie.find((x) => x.code === "km_10")?.pro, false);
+eq("km_50 pro", proPorSerie.find((x) => x.code === "km_50")?.pro, true);
+eq("gain_300 free", proPorSerie.find((x) => x.code === "gain_300")?.pro, false);
+eq("gain_1500 pro", proPorSerie.find((x) => x.code === "gain_1500")?.pro, true);
+eq("park_clean_1 free", proPorSerie.find((x) => x.code === "park_clean_1")?.pro, false);
+eq("park_10 pro", proPorSerie.find((x) => x.code === "park_10")?.pro, true);
+eq("rep_1 free", proPorSerie.find((x) => x.code === "rep_1")?.pro, false);
+eq("rep_10 pro", proPorSerie.find((x) => x.code === "rep_10")?.pro, true);
+eq("const_1 free", proPorSerie.find((x) => x.code === "const_1")?.pro, false);
+eq("const_10 pro", proPorSerie.find((x) => x.code === "const_10")?.pro, true);
+eq("hrs_10 free", proPorSerie.find((x) => x.code === "hrs_10")?.pro, false);
+eq("hrs_25 pro", proPorSerie.find((x) => x.code === "hrs_25")?.pro, true);
+eq("exactamente un free por serie", SERIES.every((s) => s.tiers.filter((t) => !t.pro).length === 1), true);
+eq("night_1 (primer reto) free", RETOS[0].pro ?? false, false);
+eq("retos 2+ pro", RETOS.slice(1).every((t) => t.pro === true), true);
+eq("tierIsPro(km_50)", tierIsPro(ACHIEVEMENT_BY_CODE["km_50"]), true);
+eq("pinIsPro(clasico) false", pinIsPro("clasico"), false);
+eq("pinIsPro(trebol) false (1er de kilómetros)", pinIsPro("trebol"), false);
+eq("pinIsPro(mate) true", pinIsPro("mate"), true);
+eq("pinIsPro(luna) false (1er reto)", pinIsPro("luna"), false);
+eq("pinIsPro(rayo) true", pinIsPro("rayo"), true);
+eq("pinIsPro(reloj) false (1er de horas)", pinIsPro("reloj"), false);
+eq("pinIsPro(cronista) true", pinIsPro("cronista"), true);
+const pinesPro = (Object.keys(PINS) as PinId[]).filter((p) => pinIsPro(p));
+eq("pines free = 1 por serie + 1 reto + clasico", pinesPro.length, Object.keys(PINS).length - (SERIES.length + 1 + 1));
+
+// Free/Pro en la evaluación de logros
+const stats60km: AchievementStats = { totalKm: 60, rideCount: 8, maxKmh: 30, totalGainM: 200, parkRides: 2, cleanParkRides: 1, nightRides: 2, dawnRides: 0, maxRideKm: 20, weekendRides: 2, totalHours: 4, incidentCount: 0 };
+const freeEval = evaluateAchievements(stats60km, [], { pro: false });
+eq("free: km_10 sí", freeEval.includes("km_10"), true);
+eq("free: km_50 NO (pro)", freeEval.includes("km_50"), false);
+eq("free: night_1 sí", freeEval.includes("night_1"), true);
+eq("free: speed_42 NO (pro, aunque maxKmh 30 no alcanza igual)", freeEval.includes("speed_42"), false);
+const statsProReto: AchievementStats = { ...stats60km, maxKmh: 45 };
+const freeEval2 = evaluateAchievements(statsProReto, [], { pro: false });
+eq("free con 45 km/h: speed_42 NO (requiere Pro)", freeEval2.includes("speed_42"), false);
+const proEval = evaluateAchievements(statsProReto, [], { pro: true });
+eq("pro con 45 km/h: speed_42 SÍ", proEval.includes("speed_42"), true);
+eq("pro con 60 km: km_50 SÍ", proEval.includes("km_50"), true);
+// Ya ganados con Pro se conservan aunque la licencia expire.
+const licVencida = evaluateAchievements(stats60km, ["km_50", "km_100"], { pro: false });
+eq("licencia vencida: km_50/km_100 ya ganados se conservan", [licVencida.includes("km_50"), licVencida.includes("km_100")], [true, true]);
+eq("licencia vencida: km_250 no se desbloquea (cadena cortada por pro)", licVencida.includes("km_250"), false);
+
+// ---- 9. Desafíos con fecha: día / semana / mes ----
+eq("series de fecha: 3 (dia/semana/mes)", TIME_SERIES.map((t) => t.id), ["dia", "semana", "mes"]);
+eq("desafíos con fecha sin reward", TIME_SERIES.every((t) => t.challenges.every((c) => !("reward" in c))), true);
+eq("desafíos con fecha sin pro", TIME_SERIES.every((t) => t.challenges.every((c) => !("pro" in c))), true);
+const totalFecha = TIME_SERIES.reduce((n, t) => n + t.challenges.length, 0);
+eq("8 desafíos con fecha (2+3+3)", totalFecha, 8);
+
+// Ventanas: ahora = miércoles 2026-11-04 15:00 local del servidor de pruebas.
+// Usamos fechas LOCALES para que el test no dependa de la zona horaria.
+const ahora = new Date(2026, 10, 4, 15, 0, 0); // miércoles
+const mismoDia = new Date(2026, 10, 4, 9, 0, 0);
+const ayer = new Date(2026, 10, 3, 18, 0, 0);  // martes (misma semana)
+const lunes = new Date(2026, 10, 2, 8, 0, 0);  // lunes (misma semana)
+const domingoPasado = new Date(2026, 10, 1, 20, 0, 0); // domingo semana anterior
+const mesPasado = new Date(2026, 9, 28, 12, 0, 0);     // octubre
+const wsRides = [
+  { dateISO: mismoDia, distanceKm: 8, gainM: 120 },
+  { dateISO: ayer, distanceKm: 10, gainM: 150 },
+  { dateISO: lunes, distanceKm: 12, gainM: 200 },
+  { dateISO: domingoPasado, distanceKm: 30, gainM: 400 },
+  { dateISO: mesPasado, distanceKm: 100, gainM: 900 },
+  { dateISO: mismoDia, distanceKm: 5, gainM: 60, motorized: true }, // auto: no cuenta
+];
+const ws = windowStatsFromRides(wsRides, ahora);
+eq("hoy: 1 ride (el auto no cuenta)", ws.dia.rides, 1);
+eq("hoy: 8 km", Number(ws.dia.km.toFixed(1)), 8);
+eq("hoy: 120 m", ws.dia.gainM, 120);
+eq("semana (lunes a hoy): 3 rides", ws.semana.rides, 3);
+eq("semana: 30 km", Number(ws.semana.km.toFixed(1)), 30);
+eq("semana: 470 m", ws.semana.gainM, 470);
+eq("mes: 4 rides", ws.mes.rides, 4);
+eq("mes: 60 km", Number(ws.mes.km.toFixed(1)), 60);
+eq("mes: 870 m (120+150+200+400)", ws.mes.gainM, 870);
+// Semana parte el lunes: startOfWeek(mie 4-nov) = lun 2-nov 00:00
+const sow = startOfWeek(new Date(2026, 10, 4, 15, 0, 0));
+eq("startOfWeek → lunes 2-nov 00:00", [sow.getFullYear(), sow.getMonth(), sow.getDate(), sow.getHours(), sow.getMinutes()], [2026, 10, 2, 0, 0]);
+const sowDom = startOfWeek(new Date(2026, 10, 1, 20, 0, 0)); // domingo → lunes 26-oct
+eq("startOfWeek(domingo) → lunes 26-oct", [sowDom.getMonth(), sowDom.getDate()], [9, 26]);
+// Progreso de desafíos con fecha
+eq("d_ride_1 cumplido hoy", timeChallengeProgress(TIME_SERIES[0].challenges[0], ws).done, true);
+eq("d_km_5 con 8 km: cumplido", timeChallengeProgress(TIME_SERIES[0].challenges[1], ws).done, true);
+eq("w_km_25 con 30 km: cumplido", timeChallengeProgress(TIME_SERIES[1].challenges[1], ws).done, true);
+eq("w_ride_3 con 3 rides: cumplido", timeChallengeProgress(TIME_SERIES[1].challenges[0], ws).done, true);
+eq("m_km_100 con 60 km: 60%", timeChallengeProgress(TIME_SERIES[2].challenges[1], ws).pct, 60);
+eq("m_gain_1500 con 870 m: sin cumplir", timeChallengeProgress(TIME_SERIES[2].challenges[2], ws).done, false);
+
 console.log(`Series: ${SERIES.map((x) => x.name).join(", ")} · Retos: ${RETOS.length} · Pines: ${Object.keys(PINS).length}`);
 
 console.log(fails === 0 ? "\nTODO OK" : `\n${fails} FALLAS`);

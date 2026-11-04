@@ -28,6 +28,16 @@ export {
   validateProCode,
 } from "./proLicenseCore";
 
+/**
+ * ¿Licencia Pro activa? Lectura SÍNCRONA para módulos no-React
+ * (sync/offlineAuth evalúan logros fuera de componentes). El código
+ * solo se guarda en localStorage tras validar, así que si existe,
+ * está activo; si el usuario lo borra, deactivate() lo elimina.
+ */
+export function isProActive(): boolean {
+  return readStored() != null;
+}
+
 // --- store reactivo compartido (Perfil e Historial) ---
 let snap: ProInfo = INITIAL_PRO;
 const listeners = new Set<() => void>();
