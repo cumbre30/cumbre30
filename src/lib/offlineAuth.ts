@@ -41,6 +41,9 @@ type OfflineUser = {
   googleSub?: string;
   /** Origen de la cuenta: contraseña local o inicio con Google. */
   provider?: "local" | "google";
+  /** Código de recuperación (XXXX-XXXX): permite restablecer la contraseña
+   *  sin perder km/logros. Se genera al crear la cuenta y se muestra en Perfil. */
+  recoveryCode?: string;
 };
 
 type OfflineSession = { email: string; expiresAt: number };
@@ -152,6 +155,51 @@ function currentUser(): OfflineUser | null {
   return readUsers()[s.email] ?? null;
 }
 
+// ---------- código de recuperación (restablecimiento offline) ----------
+
+function newRecoveryCode(): string {
+  return `${randomHex(2).toUpperCase()}-${randomHex(2).toUpperCase()}`;
+}
+
+/** Garantiza que la cuenta tenga código de recuperación (cuentas antiguas). */
+function ensureRecoveryCode(user: OfflineUser): void {
+  if (user.recoveryCode) return;
+  user.recoveryCode = newRecoveryCode();
+  const users = readUsers();
+  users[user.email] = user;
+  writeJSON(USERS_KEY, users);
+}
+
+/**
+ * Restablece la contraseña de una cuenta local del dispositivo usando
+ * su código de recuperación (se muestra en Perfil → Mis datos).
+ * Devuelve el mensaje de error o null si salió bien.
+ */
+export async function offlineForgotReset(payload: {
+  email?: string;
+  recoveryCode?: string;
+  newPassword?: string;
+}): Promise<string | null> {
+  const email = (payload.email ?? "").trim().toLowerCase();
+  const code = (payload.recoveryCode ?? "").trim().toUpperCase().replace(/\s+/g, "");
+  const newPassword = payload.newPassword ?? "";
+
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return "Ingresa un correo válido.";
+  if (!/^[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(code)) return "El código de recuperación tiene el formato XXXX-XXXX.";
+  if (newPassword.length < 6) return "La contraseña debe tener al menos 6 caracteres.";
+
+  const users = readUsers();
+  const user = users[email];
+  if (!user) return "No hay una cuenta con ese correo en este dispositivo.";
+  if (!user.recoveryCode) return "Esta cuenta no tiene código de recuperación. Entra con Google para vincularla y protegerla.";
+  if (user.recoveryCode.toUpperCase() !== code) return "Código de recuperación incorrecto.";
+
+  user.passwordHash = await hashPassword(newPassword);
+  users[email] = user;
+  writeJSON(USERS_KEY, users);
+  return null;
+}
+
 // ---------- registro / login / logout ----------
 
 export async function offlineRegister(payload: { email?: string; username?: string; password?: string }): Promise<string | null> {
@@ -183,6 +231,7 @@ export async function offlineRegister(payload: { email?: string; username?: stri
     bikeSize: null,
     bikeColor: null,
     createdAt: new Date().toISOString(),
+    recoveryCode: newRecoveryCode(),
   };
   users[email] = user;
   writeJSON(USERS_KEY, users);
@@ -197,6 +246,7 @@ export async function offlineLogin(payload: { email?: string; password?: string 
   if (!user) return "Correo o contraseña incorrectos.";
   const ok = await verifyPassword(password, user.passwordHash);
   if (!ok) return "Correo o contraseña incorrectos.";
+  ensureRecoveryCode(user); // cuentas creadas antes del código de recuperación
   setSession(email);
   return null;
 }
@@ -355,12 +405,14 @@ function toMeUser(u: OfflineUser): MeUser {
     bikeModel: u.bikeModel,
     bikeSize: u.bikeSize,
     bikeColor: u.bikeColor,
+    recoveryCode: u.recoveryCode ?? null,
   };
 }
 
 export function offlineMe(): MeData | null {
   const user = currentUser();
   if (!user) return null;
+  ensureRecoveryCode(user); // cuentas antiguas sin código lo obtienen al abrir Perfil
 
   // Estadísticas y logros: solo viajes con GPS real en bici de la
   // cuenta activa (los demo, los rides en vehículo y otra cuenta no

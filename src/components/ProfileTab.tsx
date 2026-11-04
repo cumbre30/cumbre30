@@ -28,8 +28,9 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { authAction, googleAuthAction, changeUsername, logout, useMe } from "@/hooks/useMe";
+import { authAction, forgotPassword, googleAuthAction, changeUsername, logout, resetPassword, useMe } from "@/hooks/useMe";
 import { isOfflineMode } from "@/lib/offlineAuth";
+import { CONTACT_WHATSAPP } from "@/lib/proConfig";
 import { nativeGoogleSignIn, nativeGoogleSignOut } from "@/lib/googleAuth";
 import { Capacitor } from "@capacitor/core";
 import { shareOrDownloadFile } from "@/lib/shareFile";
@@ -78,6 +79,7 @@ function GoogleIcon() {
 
 export default function ProfileTab() {
   const { me, ready } = useMe();
+  const offline = isOfflineMode();
   const [mode, setMode] = useState<"login" | "register">("login");
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
@@ -90,6 +92,19 @@ export default function ProfileTab() {
   const [userBusy, setUserBusy] = useState(false);
   const [userMsg, setUserMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
+  // --- Olvidé mi contraseña ---
+  // Server: paso 1 pide el código (lo entrega soporte por WhatsApp tras
+  // verificar identidad), paso 2 cambia la contraseña con el código.
+  // APK: se usa el código de recuperación local (XXXX-XXXX).
+  const [authView, setAuthView] = useState<"form" | "forgot">("form");
+  const [fStep, setFStep] = useState<1 | 2 | 3>(1); // 3 = listo
+  const [fEmail, setFEmail] = useState("");
+  const [fCode, setFCode] = useState("");
+  const [fPass, setFPass] = useState("");
+  const [fBusy, setFBusy] = useState(false);
+  const [fMsg, setFMsg] = useState<string | null>(null);
+  const [fErr, setFErr] = useState<string | null>(null);
+
   // Subsección activa de Perfil (se mantiene al iniciar sesión).
   // Sin sesión "pagos" no existe: cae a "datos".
   const [sub, setSub] = useState<SubKey>("datos");
@@ -101,6 +116,51 @@ export default function ProfileTab() {
     const err = await authAction(mode, mode === "register" ? { email, username, password } : { email, password });
     setBusy(false);
     if (err) setError(err);
+  };
+
+  // Paso 1: pedir el código (server). En offline no hay solicitud remota.
+  const requestReset = async () => {
+    setFBusy(true);
+    setFErr(null);
+    setFMsg(null);
+    const err = await forgotPassword(fEmail);
+    setFBusy(false);
+    if (err) {
+      setFErr(err);
+      return;
+    }
+    setFStep(2);
+    setFMsg(offline ? null : "Solicitud registrada. Escríbenos por WhatsApp para recibir el código.");
+  };
+
+  // Paso 2: cambiar la contraseña con el código (server o código de recuperación).
+  const confirmReset = async () => {
+    setFBusy(true);
+    setFErr(null);
+    setFMsg(null);
+    const err = await resetPassword({ email: fEmail, code: fCode, newPassword: fPass });
+    setFBusy(false);
+    if (err) {
+      setFErr(err);
+      return;
+    }
+    setFStep(3);
+    setFMsg(null);
+  };
+
+  const backToForm = (login = true) => {
+    setAuthView("form");
+    setFStep(1);
+    setFCode("");
+    setFPass("");
+    setFMsg(null);
+    setFErr(null);
+    if (login) {
+      setMode("login");
+      if (fEmail) setEmail(fEmail);
+      setPassword("");
+      setError(null);
+    }
   };
 
   const signInGoogle = async () => {
@@ -185,6 +245,133 @@ export default function ProfileTab() {
           </div>
         </Card>
 
+        {authView === "forgot" ? (
+          /* --- Olvidé mi contraseña: código por soporte (server) o
+                código de recuperación (APK) --- */
+          <Card className="bg-card/80 border-border p-4 grid gap-3">
+            <div className="flex items-center gap-2">
+              <KeyRound className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+              <p className="font-medium text-foreground">Restablecer contraseña</p>
+            </div>
+
+            {fStep === 3 ? (
+              <>
+                <p className="text-sm text-emerald-700 dark:text-emerald-300" role="status">
+                  ¡Listo! Tu contraseña se actualizó. Ingresa con la nueva.
+                </p>
+                <Button onClick={() => backToForm(true)} className="h-11 bg-emerald-600 hover:bg-emerald-500 text-zinc-950 font-bold">
+                  Iniciar sesión
+                </Button>
+              </>
+            ) : (
+              <>
+                <p className="text-sm text-muted-foreground">
+                  {offline
+                    ? "Tu cuenta vive en este dispositivo: ingresa el código de recuperación que te mostramos en Perfil → Mis datos (con la sesión iniciada)."
+                    : "Te entregaremos un código de 6 dígitos por WhatsApp o correo tras verificar tu identidad. El código vence en 30 minutos."}
+                </p>
+
+                <div className="grid gap-1.5">
+                  <Label htmlFor="pf-f-email" className="text-foreground/90">Correo de tu cuenta</Label>
+                  <Input
+                    id="pf-f-email"
+                    type="email"
+                    inputMode="email"
+                    autoCapitalize="none"
+                    spellCheck={false}
+                    autoComplete="email"
+                    className="bg-card border-border"
+                    placeholder="tu@correo.cl"
+                    value={fEmail}
+                    onChange={(e) => setFEmail(e.target.value)}
+                    disabled={fStep === 2}
+                  />
+                </div>
+
+                {fStep === 2 && fMsg && (
+                  <div className="rounded-lg border border-emerald-600/40 bg-emerald-950/20 p-3 text-xs text-emerald-700 dark:text-emerald-300">
+                    <p>{fMsg}</p>
+                    <Button asChild variant="outline" className="mt-2 h-9 w-full border-emerald-600/50 text-emerald-700 hover:bg-emerald-950/40 dark:text-emerald-300">
+                      <a
+                        href={`https://wa.me/${CONTACT_WHATSAPP}?text=${encodeURIComponent(`Hola Cumbre30, olvidé mi contraseña. Mi correo es ${fEmail}. ¿Me envían el código de restablecimiento?`)}`}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        Escribir por WhatsApp
+                      </a>
+                    </Button>
+                  </div>
+                )}
+
+                {(offline || fStep === 2) && (
+                  <>
+                    {offline && (
+                      <div className="grid gap-1.5">
+                        <Label htmlFor="pf-f-code" className="text-foreground/90">Código de recuperación</Label>
+                        <Input
+                          id="pf-f-code"
+                          autoCapitalize="characters"
+                          autoComplete="off"
+                          spellCheck={false}
+                          maxLength={9}
+                          className="bg-card border-border font-mono tracking-widest uppercase"
+                          placeholder="XXXX-XXXX"
+                          value={fCode}
+                          onChange={(e) => setFCode(e.target.value.toUpperCase())}
+                        />
+                      </div>
+                    )}
+                    {!offline && (
+                      <div className="grid gap-1.5">
+                        <Label htmlFor="pf-f-code" className="text-foreground/90">Código de 6 dígitos</Label>
+                        <Input
+                          id="pf-f-code"
+                          inputMode="numeric"
+                          autoComplete="one-time-code"
+                          maxLength={6}
+                          className="bg-card border-border font-mono tracking-[0.3em]"
+                          placeholder="······"
+                          value={fCode}
+                          onChange={(e) => setFCode(e.target.value.replace(/\D/g, ""))}
+                        />
+                      </div>
+                    )}
+                    <div className="grid gap-1.5">
+                      <Label htmlFor="pf-f-pass" className="text-foreground/90">Nueva contraseña</Label>
+                      <Input
+                        id="pf-f-pass"
+                        type="password"
+                        autoComplete="new-password"
+                        className="bg-card border-border"
+                        placeholder="mínimo 6 caracteres"
+                        value={fPass}
+                        onChange={(e) => setFPass(e.target.value)}
+                      />
+                    </div>
+                  </>
+                )}
+
+                {fErr && <p className="text-sm text-red-600 dark:text-red-400" role="alert">{fErr}</p>}
+
+                <Button
+                  onClick={() => void (offline || fStep === 2 ? confirmReset() : requestReset())}
+                  disabled={fBusy || !fEmail || (offline || fStep === 2 ? !fCode || fPass.length < 6 : false)}
+                  className="h-11 bg-emerald-600 hover:bg-emerald-500 text-zinc-950 font-bold"
+                >
+                  {fBusy ? "Conectando…" : offline || fStep === 2 ? "Restablecer contraseña" : "Solicitar código"}
+                </Button>
+                <button
+                  type="button"
+                  onClick={() => backToForm(true)}
+                  className="text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+                >
+                  Volver a iniciar sesión
+                </button>
+              </>
+            )}
+          </Card>
+        ) : (
+        <>
         <div className="flex gap-2">
           <Button
             variant={mode === "login" ? "default" : "outline"}
@@ -229,6 +416,15 @@ export default function ProfileTab() {
           <Button type="submit" disabled={busy || !email || !password || (mode === "register" && !username)} className="h-11 bg-emerald-600 hover:bg-emerald-500 text-zinc-950 font-bold">
             {busy ? "Conectando…" : mode === "login" ? "Entrar" : "Crear mi cuenta"}
           </Button>
+          {mode === "login" && (
+            <button
+              type="button"
+              onClick={() => setAuthView("forgot")}
+              className="justify-self-center text-xs text-emerald-700 underline-offset-2 hover:underline dark:text-emerald-300"
+            >
+              ¿Olvidaste tu contraseña?
+            </button>
+          )}
 
           <div className="flex items-center gap-3 pt-1">
             <div className="h-px flex-1 bg-muted" />
@@ -249,6 +445,8 @@ export default function ProfileTab() {
             con el mismo correo, se enlaza y conservas tus km, logros y pines.
           </p>
         </form>
+        </>
+        )}
         </>
         )}
 
@@ -328,6 +526,38 @@ export default function ProfileTab() {
           <StatBox label="Desnivel acum." value={`+${me.stats.totalGainM}`} unit="m" />
         </div>
       </Card>
+      {offline && me.user.recoveryCode && (
+        /* Solo APK: el código permite restablecer la contraseña de la
+           cuenta local sin perder km, logros ni pines. */
+        <Card className="bg-card/60 border-border p-3">
+          <div className="flex items-center gap-3">
+            <KeyRound className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+            <div className="min-w-0 flex-1">
+              <p className="text-[13px] font-medium text-foreground">Código de recuperación</p>
+              <p className="text-[11px] text-muted-foreground leading-snug">
+                Guárdalo en un lugar seguro: con él puedes restablecer tu contraseña sin perder tus km y logros.
+              </p>
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
+              <span className="font-mono text-sm font-bold tracking-widest text-foreground">{me.user.recoveryCode}</span>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 px-2 text-[11px] text-muted-foreground"
+                onClick={() => {
+                  void navigator.clipboard?.writeText(me.user.recoveryCode ?? "").then(
+                    () => setShareMsg("Código copiado al portapapeles."),
+                    () => undefined
+                  );
+                  setTimeout(() => setShareMsg(null), 8000);
+                }}
+              >
+                Copiar
+              </Button>
+            </div>
+          </div>
+        </Card>
+      )}
       {shareMsg && (
         <p className="text-xs text-emerald-700 dark:text-emerald-300" role="status">
           {shareMsg}

@@ -45,6 +45,22 @@ model Session {
   createdAt DateTime @default(now())
 }
 
+// Restablecimiento de contraseña: código de 6 dígitos entregado por
+// soporte (WhatsApp/correo) tras verificar la identidad del ciclista.
+// Sin envío de email automático: no hay SMTP en este despliegue.
+model PasswordReset {
+  id        String   @id @default(cuid())
+  email     String
+  code      String
+  attempts  Int      @default(0)
+  used      Boolean  @default(false)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([email])
+}
+
+
 model Ride {
   id           String   @id @default(cuid())
   userId       String

@@ -8,6 +8,7 @@ if (u) {
   try { await db.incident.deleteMany({ where: { userId: u.id } }); } catch {}
   try { await db.achievement.deleteMany({ where: { userId: u.id } }); } catch {}
   try { await db.friendship.deleteMany({ where: { OR: [{ userId: u.id }, { friendId: u.id }] } }); } catch {}
+  try { await db.passwordReset.deleteMany({ where: { email } }); } catch {}
   await db.user.delete({ where: { id: u.id } });
   console.log('deleted test user', u.username, '<', email + '>');
 } else console.log('no test user found for', email);

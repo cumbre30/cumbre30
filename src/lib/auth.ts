@@ -10,6 +10,10 @@ import { db } from "@/lib/db";
 export const SESSION_COOKIE = "cumbre30_session";
 const SESSION_DAYS = 30;
 
+// Restablecimiento de contraseña (flujo "olvidé mi contraseña").
+export const RESET_TTL_MIN = 30;
+export const RESET_MAX_ATTEMPTS = 5;
+
 export function hashPassword(password: string): string {
   const salt = crypto.randomBytes(16).toString("hex");
   const hash = crypto.scryptSync(password, salt, 64).toString("hex");

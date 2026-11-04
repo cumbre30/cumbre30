@@ -5,7 +5,7 @@
 // En el APK (export estático) todo va por offlineAuth (localStorage).
 
 import { useSyncExternalStore } from "react";
-import { isOfflineMode, offlineChangeUsername, offlineGoogleSignIn, offlineLogin, offlineLogout, offlineMe, offlineRegister } from "@/lib/offlineAuth";
+import { isOfflineMode, offlineChangeUsername, offlineForgotReset, offlineGoogleSignIn, offlineLogin, offlineLogout, offlineMe, offlineRegister } from "@/lib/offlineAuth";
 
 export type MeUser = {
   id: string;
@@ -19,6 +19,8 @@ export type MeUser = {
   bikeModel: string | null;
   bikeSize: string | null;
   bikeColor: string | null;
+  /** Solo APK (cuenta local): código para restablecer la contraseña sin perder datos. */
+  recoveryCode?: string | null;
 };
 
 export type MeStats = {
@@ -158,6 +160,44 @@ export async function changeUsername(newUsername: string): Promise<string | null
     return null;
   } catch {
     return "Sin conexión. Intenta de nuevo.";
+  }
+}
+
+/** Solicita un código de restablecimiento (server). En offline no aplica:
+ *  el APK usa el código de recuperación local desde la misma UI. */
+export async function forgotPassword(email: string): Promise<string | null> {
+  try {
+    if (isOfflineMode()) return null;
+    const r = await fetch("/api/auth/forgot", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+    const d = (await r.json().catch(() => ({}))) as { error?: string };
+    if (!r.ok) return d.error ?? "No pudimos registrar la solicitud.";
+    return null;
+  } catch {
+    return "Sin conexión con el servidor.";
+  }
+}
+
+/** Cambia la contraseña con el código: server (soporte) o código de
+ *  recuperación local (APK). Devuelve error o null si salió bien. */
+export async function resetPassword(payload: { email: string; code: string; newPassword: string }): Promise<string | null> {
+  try {
+    if (isOfflineMode()) {
+      return await offlineForgotReset({ email: payload.email, recoveryCode: payload.code, newPassword: payload.newPassword });
+    }
+    const r = await fetch("/api/auth/reset", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const d = (await r.json().catch(() => ({}))) as { error?: string };
+    if (!r.ok) return d.error ?? "No pudimos restablecer la contraseña.";
+    return null;
+  } catch {
+    return "Sin conexión con el servidor.";
   }
 }
 
