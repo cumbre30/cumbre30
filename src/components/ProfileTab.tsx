@@ -202,24 +202,31 @@ export default function ProfileTab() {
           </Button>
         </div>
 
-        <div className="grid gap-3">
+        {/* form: permite enviar con Enter desde cualquier campo */}
+        <form
+          className="grid gap-3"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (!busy) void submit();
+          }}
+        >
           <div className="grid gap-1.5">
             <Label htmlFor="pf-email" className="text-foreground/90">Correo</Label>
-            <Input id="pf-email" type="email" className="bg-card border-border" placeholder="tu@correo.cl" value={email} onChange={(e) => setEmail(e.target.value)} />
+            <Input id="pf-email" name="email" type="email" inputMode="email" autoCapitalize="none" spellCheck={false} autoComplete="email" className="bg-card border-border" placeholder="tu@correo.cl" value={email} onChange={(e) => setEmail(e.target.value)} />
           </div>
           {mode === "register" && (
             <div className="grid gap-1.5">
               <Label htmlFor="pf-user" className="text-foreground/90">Nombre de usuario</Label>
-              <Input id="pf-user" className="bg-card border-border" placeholder="ej: ciclista_stgo" value={username} onChange={(e) => setUsername(e.target.value)} />
+              <Input id="pf-user" name="username" autoCapitalize="none" autoComplete="username" spellCheck={false} className="bg-card border-border" placeholder="ej: ciclista_stgo" value={username} onChange={(e) => setUsername(e.target.value)} />
               <p className="text-[11px] text-muted-foreground">3-20 caracteres: letras, números, punto, guion o guion bajo. Así te verán tus amigos.</p>
             </div>
           )}
           <div className="grid gap-1.5">
             <Label htmlFor="pf-pass" className="text-foreground/90">Contraseña</Label>
-            <Input id="pf-pass" type="password" className="bg-card border-border" placeholder="mínimo 6 caracteres" value={password} onChange={(e) => setPassword(e.target.value)} />
+            <Input id="pf-pass" name="password" type="password" autoComplete={mode === "register" ? "new-password" : "current-password"} className="bg-card border-border" placeholder="mínimo 6 caracteres" value={password} onChange={(e) => setPassword(e.target.value)} />
           </div>
           {error && <p className="text-sm text-red-600 dark:text-red-400" role="alert">{error}</p>}
-          <Button onClick={submit} disabled={busy || !email || !password || (mode === "register" && !username)} className="h-11 bg-emerald-600 hover:bg-emerald-500 text-zinc-950 font-bold">
+          <Button type="submit" disabled={busy || !email || !password || (mode === "register" && !username)} className="h-11 bg-emerald-600 hover:bg-emerald-500 text-zinc-950 font-bold">
             {busy ? "Conectando…" : mode === "login" ? "Entrar" : "Crear mi cuenta"}
           </Button>
 
@@ -229,6 +236,7 @@ export default function ProfileTab() {
             <div className="h-px flex-1 bg-muted" />
           </div>
           <Button
+            type="button"
             variant="outline"
             onClick={signInGoogle}
             disabled={busyGoogle}
@@ -240,7 +248,7 @@ export default function ProfileTab() {
             En la app Android puedes entrar con tu cuenta de Google. Si ya tienes una cuenta
             con el mismo correo, se enlaza y conservas tus km, logros y pines.
           </p>
-        </div>
+        </form>
         </>
         )}
 
