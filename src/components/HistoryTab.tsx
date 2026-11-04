@@ -196,7 +196,7 @@ export function HistoryTab({
     if (!pro.active && constanciaCount() >= FREE_CONSTANCIA_LIMIT) {
       setPdfMsg(
         `Este mes ya usaste tus ${FREE_CONSTANCIA_LIMIT} constancias gratis. ` +
-          "Con Cumbre30 Pro (Pagos y suscripciones) son ilimitadas.",
+          "Con Cumbre30 Pro (Perfil → Pagos y suscripciones) son ilimitadas.",
       );
       setTimeout(() => setPdfMsg(null), 9000);
       return;
@@ -236,7 +236,7 @@ export function HistoryTab({
     setGpxMsg(null);
     try {
       if (!pro.active) {
-        setGpxMsg("El export GPX es parte de Cumbre30 Pro — actívalo en Pagos y suscripciones.");
+        setGpxMsg("El export GPX es parte de Cumbre30 Pro — actívalo en Perfil → Pagos y suscripciones.");
         return;
       }
       if (!r.track || r.track.length < 2) {

@@ -1,10 +1,11 @@
 "use client";
 
 // ============================================================
-// Pagos y suscripciones — menú lateral (brief: sección bajo Cuenta).
+// Pagos y suscripciones — sección dentro de Perfil (PerfilTab),
+// porque la licencia Pro va atada al correo de la cuenta.
 // Dentro vive únicamente:
 //   · La casilla para habilitar el modo Pro: ingresar código + validar.
-//   · El aporte voluntario (Mercado Pago), movido desde Perfil.
+//   · El aporte voluntario (Mercado Pago).
 // La comparativa de planes sigue en "Planes"; comprar es parte de
 // Planes y del menú lateral (tarjeta PRO).
 // ============================================================

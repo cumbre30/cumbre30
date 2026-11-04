@@ -3,6 +3,8 @@
 // ============================================================
 // Pestaña Perfil: sesión (correo + usuario), resumen de cuenta,
 // datos de la bici, amigos y compartir resumen para Instagram.
+// Incluye la sección "Pagos y suscripciones" (modo Pro + aporte
+// voluntario): la licencia va atada al correo de la cuenta.
 // ============================================================
 
 import { useCallback, useState } from "react";
@@ -33,6 +35,16 @@ import { usernameLocked } from "@/lib/username";
 import { PINS, DEFAULT_PIN, type PinId } from "@/lib/pins";
 import { APP_VERSION, APP_VERSION_CODE, APK_SIZE_MB } from "@/lib/appVersion";
 import { buildShareImage, sharePngBlob } from "@/lib/shareImage";
+import { PagosTab } from "@/components/PagosTab";
+
+/** Micro-encabezado de sección, mismo estilo que las zonas del menú lateral. */
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="px-1 pt-1 text-[10.5px] font-extrabold uppercase tracking-widest text-muted-foreground/70">
+      {children}
+    </p>
+  );
+}
 
 function StatBox({ label, value, unit }: { label: string; value: string | number; unit?: string }) {
   return (
@@ -209,6 +221,10 @@ export default function ProfileTab() {
             con el mismo correo, se enlaza y conservas tus km, logros y pines.
           </p>
         </div>
+
+        {/* Pagos y suscripciones: visible también sin sesión — el código Pro se valida con el correo de pago */}
+        <SectionLabel>Pagos y suscripciones</SectionLabel>
+        <PagosTab />
       </div>
     );
   }
@@ -322,6 +338,10 @@ export default function ProfileTab() {
           </p>
         )}
       </Card>
+
+      {/* Pagos y suscripciones: modo Pro + aporte voluntario (licencia atada al correo) */}
+      <SectionLabel>Pagos y suscripciones</SectionLabel>
+      <PagosTab />
 
       {/* Descarga app Android */}
       <Card className="bg-card/80 border-border p-4">

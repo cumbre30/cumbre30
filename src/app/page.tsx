@@ -68,15 +68,6 @@ const ChallengesTab = dynamic(() => import("@/components/ChallengesTab"), {
   ),
 });
 
-const PagosTab = dynamic(() => import("@/components/PagosTab").then((m) => m.PagosTab), {
-  ssr: false,
-  loading: () => (
-    <div className="h-40 rounded-xl border border-border bg-card flex items-center justify-center text-sm text-muted-foreground">
-      Cargando pagos…
-    </div>
-  ),
-});
-
 const AmigosTab = dynamic(() => import("@/components/AmigosTab").then((m) => m.AmigosTab), {
   ssr: false,
   loading: () => (
@@ -89,7 +80,7 @@ const AmigosTab = dynamic(() => import("@/components/AmigosTab").then((m) => m.A
 /** Destinos de la barra inferior (los 3 del brief). */
 type TabScreen = "ride" | "explorar" | "acceso";
 /** Sub-pantallas accesibles desde el menú lateral. */
-type SubScreen = MenuScreen; // historial | stats | premios | perfil | config | ayuda | pagos | amigos | planes
+type SubScreen = MenuScreen; // historial | stats | premios | perfil | config | ayuda | amigos | planes
 type Screen = TabScreen | SubScreen;
 
 const SUB_TITLES: Record<SubScreen, string> = {
@@ -99,7 +90,6 @@ const SUB_TITLES: Record<SubScreen, string> = {
   perfil: "Perfil",
   config: "Configuración",
   ayuda: "Ayuda y contacto",
-  pagos: "Pagos y suscripciones",
   amigos: "Amigos",
   planes: "Planes",
 };
@@ -277,13 +267,12 @@ export default function Home() {
                     ? { email: me.user.email, username: me.user.username, selectedPin: me.user.selectedPin }
                     : undefined
                 }
-                onGoPro={() => go("pagos")}
+                onGoPro={() => go("perfil")} // activar Pro ahora vive en Perfil → Pagos y suscripciones
               />
             )}
             {screen === "stats" && <StatsTab onGoPro={() => go("planes")} />}
             {screen === "premios" && <ChallengesTab />}
             {screen === "perfil" && <ProfileTab />}
-            {screen === "pagos" && <PagosTab />}
             {screen === "amigos" && <AmigosTab onGoPerfil={() => go("perfil")} />}
             {screen === "config" && (
               <ConfigTab
