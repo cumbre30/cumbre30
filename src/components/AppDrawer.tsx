@@ -3,6 +3,8 @@
 // ============================================================
 // Menú lateral del rediseño — 4 zonas (brief §1):
 //   CUMBRE30 PRO · Mi actividad · Cuenta · Plan actual
+// Cuenta consolida todo lo del ciclista: perfil, amigos,
+// pagos y suscripciones, configuración y ayuda.
 // Desliza desde la izquierda; el fondo cierra. Sin decoración
 // extra: jerarquía clara y agrupación por propósito.
 // ============================================================
@@ -150,37 +152,27 @@ export function AppDrawer({
           <MenuItem icon={<Trophy className="h-5 w-5" />} label="Premios y desafíos" onClick={() => go("premios")} />
         </div>
 
-        {/* Zona 3: Cuenta */}
+        {/* Zona 3: Cuenta — perfil, amigos, pagos, config y ayuda consolidados */}
         <div className="mt-3 px-3">
           <p className="px-1 pb-1 pt-2 text-[10.5px] font-extrabold uppercase tracking-widest text-muted-foreground/70">Cuenta</p>
           <MenuItem icon={<UserRound className="h-5 w-5" />} label="Perfil" onClick={() => go("perfil")} />
+          <MenuItem
+            icon={<Users className="h-5 w-5" />}
+            label="Amigos"
+            hint="Km y logros de tu grupo"
+            onClick={() => go("amigos")}
+          />
+          <MenuItem
+            icon={<CreditCard className="h-5 w-5" />}
+            label="Pagos y suscripciones"
+            hint={pro ? "Pro activo · gestionar licencia" : "Modo Pro y aporte voluntario"}
+            onClick={() => go("pagos")}
+          />
           <MenuItem icon={<Settings className="h-5 w-5" />} label="Configuración" hint="Demo / GPS, sonido y voz" onClick={() => go("config")} />
           <MenuItem icon={<HelpCircle className="h-5 w-5" />} label="Ayuda y contacto" onClick={() => go("ayuda")} />
         </div>
 
-        {/* Zona 4: Pagos y suscripciones */}
-        <div className="mt-3 px-3">
-          <p className="px-1 pb-1 pt-2 text-[10.5px] font-extrabold uppercase tracking-widest text-muted-foreground/70">Pagos y suscripciones</p>
-          <MenuItem
-            icon={<CreditCard className="h-5 w-5" />}
-            label="Modo Pro y aporte voluntario"
-            hint={pro ? "Pro activo · gestionar licencia" : "Habilitar Pro con tu código"}
-            onClick={() => go("pagos")}
-          />
-        </div>
-
-        {/* Zona 5: Amigos */}
-        <div className="mt-3 px-3">
-          <p className="px-1 pb-1 pt-2 text-[10.5px] font-extrabold uppercase tracking-widest text-muted-foreground/70">Amigos</p>
-          <MenuItem
-            icon={<Users className="h-5 w-5" />}
-            label="Lista de amigos"
-            hint="Km y logros de tu grupo"
-            onClick={() => go("amigos")}
-          />
-        </div>
-
-        {/* Zona 6: Plan actual */}
+        {/* Zona 4: Plan actual */}
         <div className="mt-3 px-3">
           <p className="px-1 pb-1 pt-2 text-[10.5px] font-extrabold uppercase tracking-widest text-muted-foreground/70">Plan actual</p>
           <button
