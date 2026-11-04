@@ -26,7 +26,7 @@ import {
   useMap,
   useMapEvents,
 } from "react-leaflet";
-import { Crosshair, AlertTriangle, Trash2, X, Search, MapPin, Flag, Crown } from "lucide-react";
+import { Crosshair, AlertTriangle, Trash2, X, Search, MapPin, Flag, Crown, Lock } from "lucide-react";
 import { GATES, NAV_DESTINATIONS, PARK_POLYGON, RISK_ZONES, type LatLng } from "@/lib/park";
 import { PINS, DEFAULT_PIN } from "@/lib/pins";
 import { INCIDENT_BY_ID, INCIDENT_TYPES, type IncidentTypeId } from "@/lib/incidents";
@@ -40,6 +40,7 @@ import { buildCicloFeature } from "@/lib/navCanvasLogic";
 import { useProLicense } from "@/lib/proLicense";
 import { addMark, removeMark, useMarks, normalizeForSearch } from "@/lib/marks";
 import { geocodeAddress, type AddrResult } from "@/lib/geocode";
+import type { ProLockFeature } from "@/lib/planData";
 
 function pinEmoji(pinId: string): string {
   const p = PINS[pinId as keyof typeof PINS];
@@ -61,8 +62,9 @@ type Props = {
   navNote?: string | null;
   /** Fijar/quitar el destino de navegación (buscador Pro). */
   onSetDest?: (d: { name: string; position: LatLng } | null) => void;
-  /** Saltar a la pestaña Perfil (teaser Pro). */
-  onGoPro?: () => void;
+  /** FREE tocó una función Pro → abrir modal contextual con el
+   *  beneficio real (sin sacarlo del mapa ni bloquear nada básico). */
+  onProLocked?: (feature: ProLockFeature) => void;
 };
 
 function Recenter({ position, holdRef }: { position: LatLng | null; holdRef?: { current: number } }) {
@@ -140,7 +142,7 @@ function SearchCard({
   routeLoading,
   routeNote,
   onSetDest,
-  onGoPro,
+  onProLocked,
   markMode,
   onToggleMarkMode,
   onMarkPoi,
@@ -154,7 +156,7 @@ function SearchCard({
   routeLoading: boolean;
   routeNote: string | null;
   onSetDest?: (d: { name: string; position: LatLng } | null) => void;
-  onGoPro?: () => void;
+  onProLocked?: (feature: ProLockFeature) => void;
   markMode: boolean;
   onToggleMarkMode: () => void;
   onMarkPoi: (name: string, p: LatLng) => void;
@@ -216,22 +218,78 @@ function SearchCard({
   };
 
   if (!pro) {
+    // FREE: la búsqueda de texto libre abre el modal contextual (no
+    // redirige ni interrumpe); los destinos del cerro siguen siendo
+    // trazables — el mapa y las rutas a destinos nunca se bloquean.
     return (
       <div className="rounded-xl border border-border bg-card/80 p-3">
-        <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-          <Search className="h-4 w-4 text-emerald-600 dark:text-emerald-400" /> Buscador de rutas
-          <Crown className="h-4 w-4 text-amber-500" />
-        </div>
-        <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-          Escribe cualquier dirección —tu casa, el trabajo, otro barrio— o un lugar del cerro
-          y la ruta ciclable se traza sola desde tu ubicación. Además guardas tus propios
-          marcadores (miradores, fuentes, puntos de encuentro). Parte de Cumbre30 Pro.
-        </p>
         <button
-          onClick={onGoPro}
-          className="mt-2.5 h-9 rounded-md bg-amber-500 px-3 text-xs font-bold text-zinc-950 hover:bg-amber-400"
+          onClick={() => onProLocked?.("buscador")}
+          className="flex w-full items-center gap-2 rounded-lg border border-border bg-background px-2.5 py-2 text-left hover:border-emerald-500/60"
+          aria-label="Buscador universal de direcciones — función Cumbre30 Pro"
         >
-          Es parte de Cumbre30 Pro
+          <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
+          <span className="min-w-0 flex-1 truncate text-sm text-muted-foreground">
+            ¿A dónde quieres ir? Busca una dirección…
+          </span>
+          <span className="inline-flex shrink-0 items-center gap-1 rounded border border-amber-500/50 bg-amber-500/10 px-1.5 py-0.5 text-[9.5px] font-extrabold uppercase tracking-widest text-amber-600 dark:text-amber-400">
+            <Crown className="h-2.5 w-2.5" /> PRO
+          </span>
+        </button>
+
+        {dest && onSetDest && (
+          <div className="mt-2 flex items-center gap-2 rounded-lg border border-sky-700/60 bg-sky-950/30 px-2.5 py-1.5 text-[11px] text-foreground">
+            <Flag className="h-3.5 w-3.5 shrink-0 text-sky-600 dark:text-sky-400" />
+            <span className="min-w-0 flex-1 truncate">
+              {route
+                ? `${dest.name} · ${(route.distanceM / 1000).toFixed(1)} km · ~${route.etaMin} min en bici`
+                : `Ruta a ${dest.name}`}
+            </span>
+            <button
+              onClick={() => onSetDest(null)}
+              className="shrink-0 rounded border border-border px-1.5 py-0.5 text-[10px] text-muted-foreground hover:border-red-400 hover:text-red-500"
+            >
+              Quitar ruta
+            </button>
+          </div>
+        )}
+        {routeLoading && (
+          <p className="mt-1.5 text-[11px] text-muted-foreground animate-pulse">Trazando la ruta hasta «{dest?.name}»…</p>
+        )}
+        {!routeLoading && dest && routeNote && (
+          <p className="mt-1.5 text-[11px] text-amber-700 dark:text-amber-300">{routeNote}</p>
+        )}
+
+        {/* Destinos del cerro: trazables también en FREE */}
+        <ul className="mt-1.5 max-h-56 overflow-y-auto pr-0.5">
+          {dests.map((d) => (
+            <li key={d.id} className="flex items-center gap-1.5 border-b border-border/50 py-1.5 last:border-0">
+              <button
+                onClick={() => traceTo(d.name, d.position)}
+                className="min-w-0 flex-1 truncate text-left text-xs text-foreground hover:text-emerald-600 dark:hover:text-emerald-400"
+                title="Trazar ruta hasta aquí"
+              >
+                {d.name}
+              </button>
+              {onSetDest && (
+                <button
+                  onClick={() => onSetDest({ name: d.name, position: d.position })}
+                  className="shrink-0 rounded border border-sky-700/60 px-1.5 py-0.5 text-[10px] font-semibold text-sky-700 hover:bg-sky-950/40 dark:text-sky-300"
+                  title="Generar ruta hasta aquí"
+                >
+                  Ruta
+                </button>
+              )}
+            </li>
+          ))}
+        </ul>
+
+        <button
+          onClick={() => onProLocked?.("marcador")}
+          className="mt-2 flex h-9 w-full items-center justify-center gap-1.5 rounded-md border border-border bg-background text-[11px] font-medium text-muted-foreground hover:border-emerald-500/60 hover:text-foreground"
+        >
+          <Lock className="h-3.5 w-3.5" />
+          Direcciones libres y tus lugares guardados · parte de PRO
         </button>
       </div>
     );
@@ -458,7 +516,7 @@ function IncidentSheet({
   );
 }
 
-export default function MapView({ track, position, accuracyM, heading, userPin, route, dest, navLoading, navNote, onSetDest, onGoPro }: Props) {
+export default function MapView({ track, position, accuracyM, heading, userPin, route, dest, navLoading, navNote, onSetDest, onProLocked }: Props) {
   // Filtro nocturno de los tiles OSM: solo con el tema oscuro
   // (en modo claro el mapa se muestra con sus colores normales).
   const { resolvedTheme } = useTheme();
@@ -739,7 +797,7 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
         routeLoading={!!navLoading}
         routeNote={navNote ?? null}
         onSetDest={handleSetDest}
-        onGoPro={onGoPro}
+        onProLocked={onProLocked}
         markMode={markMode}
         onToggleMarkMode={() => {
           setMarkMode((v) => !v);

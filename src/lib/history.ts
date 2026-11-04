@@ -37,6 +37,10 @@ function readFromStorage(): RideSummary[] {
   }
 }
 
+// Snapshot estable para SSR/hidratación: devolver un array nuevo en
+// cada llamada dispara "getServerSnapshot should be cached" en React.
+const EMPTY_SNAPSHOT: RideSummary[] = [];
+
 export const historyStore = {
   subscribe(l: () => void): () => void {
     listeners.add(l);
@@ -50,7 +54,7 @@ export const historyStore = {
     return snapshot;
   },
   getServer(): RideSummary[] {
-    return [];
+    return EMPTY_SNAPSHOT;
   },
   refresh(): void {
     dirty = true;

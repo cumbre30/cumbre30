@@ -47,10 +47,14 @@ export const marksStore = {
   get(): Mark[] {
     return snapshot;
   },
+  // Referencia estable: un literal [] nuevo por llamada dispara el
+  // aviso "getServerSnapshot should be cached" de React.
   getServer(): Mark[] {
-    return [];
+    return EMPTY;
   },
 };
+
+const EMPTY: Mark[] = [];
 
 export function addMark(name: string, p: LatLng): Mark {
   const list = read();

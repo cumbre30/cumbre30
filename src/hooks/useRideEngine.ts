@@ -17,7 +17,7 @@ import { saveRide, type RideSummary, type TrackPt } from "@/lib/history";
 import { syncRideAfterSave } from "@/lib/sync";
 
 export type SpeedState = "ok" | "caution" | "over";
-export type RideStatus = "idle" | "running";
+export type RideStatus = "idle" | "running" | "paused";
 export type Source = "gps" | "sim";
 
 export type RideEvent = {
@@ -73,6 +73,7 @@ export function useRideEngine() {
     zoneLastTrigger: {} as Record<string, number>,
     gateLastTrigger: {} as Record<string, number>,
     sim: null as RideSimulator | null,
+    paused: false,
     watchId: null as number | null,
     nativeSub: null as PluginListenerHandleLike | null,
     tickTimer: null as ReturnType<typeof setInterval> | null,
@@ -91,6 +92,18 @@ export function useRideEngine() {
     (fix: LatLng & { speedKmh: number; alt: number; accuracyM: number; t: number }) => {
       const e = engine.current;
       const dt = e.lastFix ? Math.min(10, Math.max(0.15, (fix.t - e.lastFix.t) / 1000)) : 1;
+
+      // 0) PAUSA: el GPS sigue vivo (el mapa no se congela) pero no se
+      //    acumula nada: ni tiempo, ni distancia, ni alertas. Solo se
+      //    publica posición/precisión y se actualiza lastFix para que
+      //    al reanudar no haya salto de distancia.
+      if (e.paused) {
+        setAccuracyM(fix.accuracyM);
+        setPosition(fix);
+        e.lastFix = { ...fix };
+        e.prevSpeed = null;
+        return;
+      }
 
       // 1) Velocidad: GPS (Doppler) → filtro de Kalman + micro-predicción.
       //    Los sensores (Bluetooth y acelerómetro) se retiraron: el WebView
@@ -361,6 +374,7 @@ export function useRideEngine() {
       e.gateLastTrigger = {};
       e.trackPts = [];
       e.trackEveryMs = 5000;
+      e.paused = false;
       setSource(src);
       setEvents([]);
       setTrack([]);
@@ -386,6 +400,35 @@ export function useRideEngine() {
     [logEvent, startGps, startSim]
   );
 
+  /** Pausa: congela cronómetro/estadísticas sin soltar el GPS.
+   *  El estado de velocidad vuelve a "ok" en silencio para que, al
+   *  reanudar, los avisos de caution/over se vuelvan a disparar si
+   *  corresponde (no se pierde la fiscalización). */
+  const pause = useCallback(() => {
+    if (status !== "running") return;
+    const e = engine.current;
+    e.paused = true;
+    e.state = "ok";
+    alerts.stopAll();
+    setStatus("paused");
+    setSpeedState("ok");
+    setSpeedKmh(0);
+    logEvent("info", "Ride en pausa — cronómetro detenido");
+  }, [status, logEvent]);
+
+  /** Reanuda: resetea los filtros (Kalman/último fix) para que ni la
+   *  velocidad ni la distancia salten con el tiempo de pausa. */
+  const resume = useCallback(() => {
+    if (status !== "paused") return;
+    const e = engine.current;
+    e.paused = false;
+    e.lastFix = null;
+    e.prevSpeed = null;
+    e.kalman.reset();
+    setStatus("running");
+    logEvent("info", "Ride reanudado");
+  }, [status, logEvent]);
+
   // Refs espejo para leer los máximos al guardar
   const maxRef = useRef(0);
   const maxInParkRef = useRef<number | null>(null);
@@ -410,7 +453,8 @@ export function useRideEngine() {
     e.sim = null;
     alerts.stopAll();
     alerts.releaseWakeLock();
-    if (status === "running" && (e.distanceM > 50 || e.elapsed > 10)) {
+    // Un ride pausado también se guarda: la pausa no borra lo pedaleado.
+    if ((status === "running" || status === "paused") && (e.distanceM > 50 || e.elapsed > 10)) {
       const summary: RideSummary = {
         id: crypto.randomUUID(),
         dateISO: new Date().toISOString(),
@@ -429,6 +473,7 @@ export function useRideEngine() {
       logEvent("info", "Ride guardado en el historial");
       void syncRideAfterSave(summary); // sube al servidor + logros si hay sesión
     }
+    e.paused = false;
     setStatus("idle");
     setGpsStatus("idle");
     setSpeedState("ok");
@@ -482,6 +527,6 @@ export function useRideEngine() {
     speedKmh, maxKmh, avgKmh, distanceKm, elapsedSec, gainM, slopePct,
     insidePark, speedState, overLimitSec, maxInParkKmh,
     events, track, position,
-    start, stop,
+    start, pause, resume, stop,
   };
 }

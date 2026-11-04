@@ -1,31 +1,35 @@
 "use client";
 
+// ============================================================
+// Cumbre30 — arquitectura de navegación del rediseño (brief §1):
+//   · Bottom nav con 3 destinos: Ride · Explorar · Acceso
+//     (el QR se usa en la portada: siempre a un toque).
+//   · Menú lateral con 4 zonas: CUMBRE30 PRO · Mi actividad ·
+//     Cuenta · Plan actual.
+//   · Header compacto: marca + estado GPS + plan + menú.
+//   · El control Demo/GPS, pitidos y voz viven en Configuración.
+// Todo lo que ya funcionaba se conserva: motor de ride, navegación
+// (computeRoute), historial, QR, premios, perfil, licencia Pro.
+// ============================================================
+
 import { useMemo, useState } from "react";
 import dynamic from "next/dynamic";
-import {
-  Bike,
-  History as HistoryIcon,
-  Map as MapIcon,
-  Mic,
-  MicOff,
-  Play,
-  QrCode,
-  Square,
-  Trophy,
-  UserRound,
-  Volume2,
-  VolumeX,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Bike, Map as MapIcon, QrCode } from "lucide-react";
 import { RideView } from "@/components/RideView";
 import { HistoryTab } from "@/components/HistoryTab";
-import { ThemeIconButton } from "@/components/ThemeToggle";
+import { AppDrawer, type MenuScreen } from "@/components/AppDrawer";
+import { PlanPill, ProContextModal } from "@/components/ProUI";
+import { PlanesTab } from "@/components/PlanesTab";
+import { StatsTab } from "@/components/StatsTab";
+import { ConfigTab } from "@/components/ConfigTab";
+import { HelpTab } from "@/components/HelpTab";
 import { useRideEngine, type Source } from "@/hooks/useRideEngine";
 import { useMe } from "@/hooks/useMe";
 import { useNavEngine } from "@/hooks/useNavEngine";
+import { useProLicense } from "@/lib/proLicense";
 import { courseHeading } from "@/lib/geo";
 import { alerts } from "@/lib/alertEngine";
+import type { ProLockFeature } from "@/lib/planData";
 
 const Wallet = dynamic(() => import("@/components/Wallet"), {
   ssr: false,
@@ -63,6 +67,22 @@ const ChallengesTab = dynamic(() => import("@/components/ChallengesTab"), {
   ),
 });
 
+/** Destinos de la barra inferior (los 3 del brief). */
+type TabScreen = "ride" | "explorar" | "acceso";
+/** Sub-pantallas accesibles desde el menú lateral. */
+type SubScreen = MenuScreen; // historial | stats | premios | perfil | config | ayuda | planes
+type Screen = TabScreen | SubScreen;
+
+const SUB_TITLES: Record<SubScreen, string> = {
+  historial: "Historial de viajes",
+  stats: "Estadísticas generales",
+  premios: "Premios y desafíos",
+  perfil: "Perfil",
+  config: "Configuración",
+  ayuda: "Ayuda y contacto",
+  planes: "Planes",
+};
+
 function GpsChip({ status, simRunning }: { status: string; simRunning: boolean }) {
   if (simRunning) {
     return (
@@ -89,15 +109,20 @@ function GpsChip({ status, simRunning }: { status: string; simRunning: boolean }
 export default function Home() {
   const ride = useRideEngine();
   const { me } = useMe();
-  const [tab, setTab] = useState("ride");
+  const { pro } = useProLicense();
+  const [screen, setScreen] = useState<Screen>("ride");
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [proLock, setProLock] = useState<ProLockFeature | null>(null);
   const [soundOn, setSoundOn] = useState(true);
   const [voiceOn, setVoiceOn] = useState(true);
   const [historyKey, setHistoryKey] = useState(0);
   const [source, setSource] = useState<Source>("sim");
 
-  const running = ride.status === "running";
-  // Navegación compartida: velocímetro (minimapa) + mapa grande
-  const nav = useNavEngine(ride.position, running);
+  const status = ride.status; // idle | running | paused
+  const active = status !== "idle"; // el ride (o su pausa) está en curso
+  // Navegación compartida: velocímetro (minimapa) + mapa grande.
+  // Sigue viva también en pausa: revisar la ruta no requiere ride activo.
+  const nav = useNavEngine(ride.position, active);
   const heading = useMemo(() => courseHeading(ride.track), [ride.track]);
 
   const toggleSound = () => {
@@ -112,14 +137,18 @@ export default function Home() {
     alerts.prefs.enabled = v;
   };
 
-  const handleStartStop = () => {
-    if (running) {
-      ride.stop();
-      setHistoryKey((k) => k + 1);
-    } else {
-      ride.start(source);
-      setTab("ride");
-    }
+  const startRide = () => {
+    ride.start(source);
+    setScreen("ride");
+  };
+  const finishRide = () => {
+    ride.stop();
+    setHistoryKey((k) => k + 1);
+  };
+
+  const go = (s: Screen) => {
+    setScreen(s);
+    setDrawerOpen(false);
   };
 
   const mapProps = useMemo(
@@ -137,7 +166,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
-      {/* Header */}
+      {/* Header compacto (brief §2.1): marca · GPS · plan · menú */}
       <header className="sticky top-0 z-40 bg-background/95 backdrop-blur border-b border-border">
         <div className="max-w-md mx-auto px-4 py-3 flex items-center gap-3">
           <div className="h-9 w-9 rounded-lg bg-emerald-600 flex items-center justify-center shrink-0">
@@ -147,147 +176,135 @@ export default function Home() {
             <h1 className="font-bold leading-tight tracking-tight">
               Cumbre<span className="text-emerald-600 dark:text-emerald-400">30</span>
             </h1>
-            <p className="text-[11px] text-muted-foreground leading-tight">Ciclocomputador · Cerro San Cristóbal</p>
+            <p className="text-[11px] text-muted-foreground leading-tight">Cerro San Cristóbal</p>
           </div>
-          <div className="ml-auto flex items-center gap-1.5">
-            <ThemeIconButton />
-            <Button variant="ghost" size="icon" onClick={toggleSound} aria-label={soundOn ? "Silenciar pitidos" : "Activar pitidos"} className="h-8 w-8 text-muted-foreground">
-              {soundOn ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4 text-red-600 dark:text-red-400" />}
-            </Button>
-            <Button variant="ghost" size="icon" onClick={toggleVoice} aria-label={voiceOn ? "Desactivar avisos de voz" : "Activar avisos de voz"} className="h-8 w-8 text-muted-foreground">
-              {voiceOn ? <Mic className="h-4 w-4" /> : <MicOff className="h-4 w-4 text-red-600 dark:text-red-400" />}
-            </Button>
-            {/* Estado GPS real: con el GPS ambiental también refleja el estado sin ride */}
-            <GpsChip status={ride.gpsStatus} simRunning={running && ride.source === "sim"} />
+          <div className="ml-auto flex items-center gap-2">
+            <GpsChip status={ride.gpsStatus} simRunning={status === "running" && ride.source === "sim"} />
+            <PlanPill pro={pro.active} onClick={() => go("planes")} />
+            <button
+              onClick={() => setDrawerOpen(true)}
+              aria-label="Abrir menú"
+              className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground"
+            >
+              <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
+                <path d="M4 6h16M4 12h16M4 18h10" />
+              </svg>
+            </button>
           </div>
         </div>
       </header>
 
       {/* Contenido */}
-      <main className="flex-1 w-full max-w-md mx-auto px-4 pt-4 pb-32">
-        <Tabs value={tab} onValueChange={setTab}>
-          <TabsList className="w-full grid grid-cols-6 bg-card border border-border h-11">
-            <TabsTrigger value="ride" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-zinc-950 data-[state=active]:font-semibold">
-              <Bike className="h-4 w-4 sm:mr-1.5" /><span className="hidden lg:inline">Ride</span>
-            </TabsTrigger>
-            <TabsTrigger value="map" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-zinc-950 data-[state=active]:font-semibold">
-              <MapIcon className="h-4 w-4 sm:mr-1.5" /><span className="hidden lg:inline">Mapa</span>
-            </TabsTrigger>
-            <TabsTrigger value="history" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-zinc-950 data-[state=active]:font-semibold">
-              <HistoryIcon className="h-4 w-4 sm:mr-1.5" /><span className="hidden lg:inline">Historial</span>
-            </TabsTrigger>
-            <TabsTrigger value="wallet" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-zinc-950 data-[state=active]:font-semibold">
-              <QrCode className="h-4 w-4 sm:mr-1.5" /><span className="hidden lg:inline">QR</span>
-            </TabsTrigger>
-            <TabsTrigger value="challenges" className="data-[state=active]:bg-amber-500 data-[state=active]:text-zinc-950 data-[state=active]:font-semibold">
-              <Trophy className="h-4 w-4 sm:mr-1.5" /><span className="hidden lg:inline">Premios</span>
-            </TabsTrigger>
-            <TabsTrigger value="profile" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-zinc-950 data-[state=active]:font-semibold">
-              <UserRound className="h-4 w-4 sm:mr-1.5" /><span className="hidden lg:inline">Perfil</span>
-            </TabsTrigger>
-          </TabsList>
+      <main className="flex-1 w-full max-w-md mx-auto px-4 pt-4 pb-28">
+        {screen === "ride" && (
+          <RideView
+            speedKmh={ride.speedKmh}
+            maxKmh={ride.maxKmh}
+            avgKmh={ride.avgKmh}
+            distanceKm={ride.distanceKm}
+            elapsedSec={ride.elapsedSec}
+            gainM={ride.gainM}
+            slopePct={ride.slopePct}
+            insidePark={ride.insidePark}
+            speedState={ride.speedState}
+            overLimitSec={ride.overLimitSec}
+            maxInParkKmh={ride.maxInParkKmh}
+            accuracyM={ride.accuracyM}
+            events={ride.events}
+            status={status}
+            source={source}
+            position={ride.position}
+            track={ride.track}
+            heading={heading}
+            userPin={me?.user.selectedPin}
+            nav={nav}
+            onStart={startRide}
+            onPause={ride.pause}
+            onResume={ride.resume}
+            onFinish={finishRide}
+          />
+        )}
 
-          <TabsContent value="ride" className="mt-4 flex flex-col gap-4">
-            <RideView
-              speedKmh={ride.speedKmh}
-              maxKmh={ride.maxKmh}
-              avgKmh={ride.avgKmh}
-              distanceKm={ride.distanceKm}
-              elapsedSec={ride.elapsedSec}
-              gainM={ride.gainM}
-              slopePct={ride.slopePct}
-              insidePark={ride.insidePark}
-              speedState={ride.speedState}
-              overLimitSec={ride.overLimitSec}
-              maxInParkKmh={ride.maxInParkKmh}
-              accuracyM={ride.accuracyM}
-              events={ride.events}
-              running={running}
-              position={ride.position}
-              track={ride.track}
-              heading={heading}
-              userPin={me?.user.selectedPin}
-              nav={nav}
-            />
-          </TabsContent>
+        {screen === "explorar" && (
+          <MapView
+            {...mapProps}
+            navLoading={nav.loading}
+            navNote={nav.note}
+            onSetDest={nav.setDestination}
+            onProLocked={(f) => setProLock(f)}
+          />
+        )}
 
-          <TabsContent value="map" className="mt-4">
-            <MapView
-              {...mapProps}
-              navLoading={nav.loading}
-              navNote={nav.note}
-              onSetDest={nav.setDestination}
-              onGoPro={() => setTab("profile")}
-            />
-          </TabsContent>
+        {screen === "acceso" && <Wallet />}
 
-          <TabsContent value="wallet" className="mt-4">
-            <Wallet />
-          </TabsContent>
-
-          <TabsContent value="history" className="mt-4">
-            <HistoryTab
-              refreshKey={historyKey}
-              user={me ? { email: me.user.email, username: me.user.username } : undefined}
-              onGoPro={() => setTab("profile")}
-            />
-          </TabsContent>
-
-          <TabsContent value="challenges" className="mt-4">
-            <ChallengesTab />
-          </TabsContent>
-
-          <TabsContent value="profile" className="mt-4">
-            <ProfileTab />
-          </TabsContent>
-        </Tabs>
+        {screen !== "ride" && screen !== "explorar" && screen !== "acceso" && (
+          <section aria-label={SUB_TITLES[screen]}>
+            <h2 className="mb-3 text-xl font-bold tracking-tight text-foreground">{SUB_TITLES[screen]}</h2>
+            {screen === "planes" && <PlanesTab />}
+            {screen === "historial" && (
+              <HistoryTab
+                refreshKey={historyKey}
+                user={me ? { email: me.user.email, username: me.user.username } : undefined}
+                onGoPro={() => go("planes")}
+              />
+            )}
+            {screen === "stats" && <StatsTab onGoPro={() => go("planes")} />}
+            {screen === "premios" && <ChallengesTab />}
+            {screen === "perfil" && <ProfileTab />}
+            {screen === "config" && (
+              <ConfigTab
+                source={source}
+                onSource={setSource}
+                soundOn={soundOn}
+                onToggleSound={toggleSound}
+                voiceOn={voiceOn}
+                onToggleVoice={toggleVoice}
+              />
+            )}
+            {screen === "ayuda" && <HelpTab />}
+          </section>
+        )}
       </main>
 
-      {/* Barra de control inferior */}
-      <div className="fixed bottom-0 inset-x-0 z-40 bg-background/95 backdrop-blur border-t border-border pb-[env(safe-area-inset-bottom)]">
-        <div className="max-w-md mx-auto px-4 py-3 flex items-center gap-3">
-          <div className="flex rounded-lg border border-border overflow-hidden" role="radiogroup" aria-label="Fuente de datos">
-            {(["sim", "gps"] as Source[]).map((s) => (
-              <button
-                key={s}
-                role="radio"
-                aria-checked={source === s}
-                disabled={running}
-                onClick={() => setSource(s)}
-                className={`px-3 py-2.5 text-xs font-semibold transition-colors disabled:opacity-60 ${
-                  source === s ? "bg-muted text-emerald-700 dark:text-emerald-300" : "text-muted-foreground hover:text-foreground/90"
-                }`}
-              >
-                {s === "sim" ? "Demo" : "GPS real"}
-              </button>
-            ))}
-          </div>
-
-          <Button
-            onClick={handleStartStop}
-            className={`flex-1 h-12 text-base font-bold rounded-lg ${
-              running
-                ? "bg-red-600 hover:bg-red-500 text-white"
-                : "bg-emerald-600 hover:bg-emerald-500 text-zinc-950"
-            }`}
-          >
-            {running ? (
-              <><Square className="h-5 w-5 mr-2" /> Detener</>
-            ) : (
-              <><Play className="h-5 w-5 mr-2" /> Iniciar ride</>
-            )}
-          </Button>
-
-          {running && (
-            <div className="text-right shrink-0 hidden xs:block sm:block" aria-hidden>
-              <div className={`font-mono text-xl font-bold tabular-nums leading-none ${ride.speedState === "over" ? "text-red-600 dark:text-red-400" : ride.speedState === "caution" ? "text-amber-700 dark:text-amber-300" : "text-foreground"}`}>
-                {Math.round(ride.speedKmh)}
-              </div>
-              <div className="text-[10px] text-muted-foreground">km/h</div>
-            </div>
-          )}
+      {/* Barra inferior: 3 destinos (Ride · Explorar · Acceso) */}
+      <nav
+        aria-label="Navegación principal"
+        className="fixed bottom-0 inset-x-0 z-40 border-t border-border bg-background/95 backdrop-blur pb-[env(safe-area-inset-bottom)]"
+      >
+        <div className="mx-auto grid max-w-md grid-cols-3 px-3 py-1.5">
+          <BottomTab icon={<Bike className="h-[22px] w-[22px]" />} label="Ride" on={screen === "ride"} onClick={() => go("ride")} />
+          <BottomTab icon={<MapIcon className="h-[22px] w-[22px]" />} label="Explorar" on={screen === "explorar"} onClick={() => go("explorar")} />
+          <BottomTab icon={<QrCode className="h-[22px] w-[22px]" />} label="Acceso" on={screen === "acceso"} onClick={() => go("acceso")} />
         </div>
-      </div>
+      </nav>
+
+      {/* Menú lateral: PRO · Mi actividad · Cuenta · Plan actual */}
+      <AppDrawer
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        pro={pro.active}
+        username={me?.user.username}
+        email={me?.user.email}
+        onNavigate={(s) => go(s)}
+      />
+
+      {/* Modal contextual de funciones Pro (buscador / marcadores) */}
+      <ProContextModal feature={proLock} onClose={() => setProLock(null)} onDiscover={() => { setProLock(null); go("planes"); }} />
     </div>
+  );
+}
+
+function BottomTab({ icon, label, on, onClick }: { icon: React.ReactNode; label: string; on: boolean; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      aria-current={on ? "page" : undefined}
+      className={`flex flex-col items-center gap-0.5 rounded-xl py-1.5 text-[10.5px] font-bold transition-colors ${
+        on ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground hover:text-foreground"
+      }`}
+    >
+      <span className={`flex items-center justify-center rounded-full px-4 py-0.5 ${on ? "bg-emerald-600/15" : ""}`}>{icon}</span>
+      {label}
+    </button>
   );
 }
