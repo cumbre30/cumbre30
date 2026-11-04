@@ -30,6 +30,10 @@ export type MeStats = {
   cleanParkRides: number;
   nightRides: number;
   dawnRides: number;
+  /** Mayor distancia en un solo ride (km). */
+  maxRideKm: number;
+  /** Rides de sábado o domingo. */
+  weekendRides: number;
   lastRideDate: string | null;
   incidentCount: number;
 };

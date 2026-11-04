@@ -82,6 +82,8 @@ export async function GET() {
       cleanParkRides: stats.cleanParkRides,
       nightRides: stats.nightRides,
       dawnRides: stats.dawnRides,
+      maxRideKm: Number(stats.maxRideKm.toFixed(1)),
+      weekendRides: stats.weekendRides,
       lastRideDate: rides[0]?.dateISO.toISOString() ?? null,
       incidentCount,
     },

@@ -34,7 +34,7 @@ import { nativeGoogleSignIn, nativeGoogleSignOut } from "@/lib/googleAuth";
 import { Capacitor } from "@capacitor/core";
 import { shareOrDownloadFile } from "@/lib/shareFile";
 import { usernameLocked } from "@/lib/username";
-import { PINS, DEFAULT_PIN, type PinId } from "@/lib/pins";
+import { PINS, DEFAULT_PIN, RIDER_LEVELS, riderLevelForKm, type PinId } from "@/lib/pins";
 import { APP_VERSION, APP_VERSION_CODE, APK_SIZE_MB } from "@/lib/appVersion";
 import { buildShareImage, sharePngBlob } from "@/lib/shareImage";
 import { PagosTab } from "@/components/PagosTab";
@@ -256,6 +256,8 @@ export default function ProfileTab() {
 
   const pin = PINS[(me.user.selectedPin as PinId) ?? DEFAULT_PIN] ?? PINS[DEFAULT_PIN];
   const uLock = usernameLocked(me.user.usernameChangedAt);
+  // Nivel del ciclista (compartido con Desafíos): km GPS de la cuenta.
+  const lvl = riderLevelForKm(me.stats.totalKm);
 
   return (
     <div className="flex flex-col gap-4">
@@ -276,7 +278,15 @@ export default function ProfileTab() {
           </div>
           <div className="min-w-0 flex-1">
             <div className="font-bold text-foreground truncate">@{me.user.username}</div>
-            <div className="text-xs text-muted-foreground flex items-center gap-1 truncate">
+            <div className="mt-0.5">
+              <span
+                className="inline-flex items-center gap-1 rounded-full border border-emerald-600/40 bg-emerald-950/30 px-2 py-0.5 text-[10.5px] font-bold leading-4 text-emerald-700 dark:text-emerald-300"
+                title={`Nivel ${lvl.index + 1} de ${RIDER_LEVELS.length} · ${me.stats.totalKm.toFixed(1)} km acumulados`}
+              >
+                <span aria-hidden>{lvl.level.emoji}</span> {lvl.level.name}
+              </span>
+            </div>
+            <div className="mt-0.5 text-xs text-muted-foreground flex items-center gap-1 truncate">
               <AtSign className="h-3 w-3" /> {me.user.email}
             </div>
           </div>

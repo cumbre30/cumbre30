@@ -6,7 +6,8 @@
 // Estructura (referencia: mockup de progreso gamificado):
 //   · "Tu progreso": km acumulados (GPS real, de la cuenta) + anillo
 //     de avance del nivel actual y km que faltan al siguiente.
-//   · "Tus niveles": Explorador → Ciclista → Montañero → Desafiante.
+//   · "Tus niveles": Explorador → Ciclista → Montañero → Desafiante
+//     (umbrales compartidos en lib/pins.ts → RIDER_LEVELS).
 //   · "Desafíos activos": series con avance SECUENCIAL (cada nivel
 //     se activa al completar el anterior) + retos puntuales.
 //   · "Tus pines": recompensas personalizables para el mapa.
@@ -21,24 +22,17 @@ import {
   DEFAULT_PIN,
   PINS,
   RETOS,
+  RIDER_LEVELS,
   SERIES,
   isPinId,
   metricValue,
   normalizeCodes,
+  riderLevelForKm,
   type AchievementStats,
   type Tier,
 } from "@/lib/pins";
 import { useMe, refreshMe } from "@/hooks/useMe";
 import { isOfflineMode, offlineUpdateProfile } from "@/lib/offlineAuth";
-
-/** Niveles del ciclista según km acumulados (igual que el mockup). */
-type LevelDef = { name: string; emoji: string; min: number; max: number | null };
-const LEVELS: LevelDef[] = [
-  { name: "Explorador", emoji: "🧭", min: 0, max: 30 },
-  { name: "Ciclista", emoji: "🚴", min: 30, max: 60 },
-  { name: "Montañero", emoji: "⛰️", min: 60, max: 120 },
-  { name: "Desafiante", emoji: "🏔️", min: 120, max: null },
-];
 
 function ProgressBar({ pct, accent = "bg-emerald-500" }: { pct: number; accent?: string }) {
   return (
@@ -119,6 +113,8 @@ export default function ChallengesTab({ onGoPerfil }: { onGoPerfil: () => void }
     cleanParkRides: me.stats.cleanParkRides,
     nightRides: me.stats.nightRides,
     dawnRides: me.stats.dawnRides,
+    maxRideKm: me.stats.maxRideKm,
+    weekendRides: me.stats.weekendRides,
     incidentCount: me.stats.incidentCount,
   };
   const unlocked = normalizeCodes(me.achievements.map((a) => a.code));
@@ -183,14 +179,9 @@ export default function ChallengesTab({ onGoPerfil }: { onGoPerfil: () => void }
     );
   };
 
-  // ---- Nivel actual según km acumulados ----
+  // ---- Nivel actual según km acumulados (helper compartido con Perfil) ----
   const km = stats.totalKm;
-  let lvlIdx = 0;
-  for (let i = 0; i < LEVELS.length; i++) if (km >= LEVELS[i].min) lvlIdx = i;
-  const lvl = LEVELS[lvlIdx];
-  const next = LEVELS[lvlIdx + 1] ?? null;
-  const lvlPct = lvl.max == null ? 100 : ((km - lvl.min) / (lvl.max - lvl.min)) * 100;
-  const toNext = next ? Math.max(0, next.min - km) : 0;
+  const { index: lvlIdx, level: lvl, next, pct: lvlPct, toNext } = riderLevelForKm(km);
 
   return (
     <div className="flex flex-col gap-4">
@@ -228,7 +219,7 @@ export default function ChallengesTab({ onGoPerfil }: { onGoPerfil: () => void }
       <Card className="bg-card/80 border-border p-4">
         <p className="text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground">Tus niveles</p>
         <div className="mt-3 grid grid-cols-4 gap-2">
-          {LEVELS.map((L, i) => {
+          {RIDER_LEVELS.map((L, i) => {
             const done = L.max != null ? km >= L.max : km >= L.min;
             const current = i === lvlIdx;
             return (

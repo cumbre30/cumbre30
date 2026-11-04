@@ -10,7 +10,9 @@ export type PinId =
   | "cumbre" | "sol" | "trueno" | "fuego"
   | "escudo" | "mariposa" | "copihue"
   | "estrella" | "campana"
-  | "luna" | "rayo" | "cohete";
+  | "luna" | "rayo" | "cohete"
+  | "brote" | "dorsal" | "zorro" | "bosque"
+  | "medalla" | "picnic" | "zen";
 
 export type PinDef = {
   id: PinId;
@@ -40,10 +42,18 @@ export const PINS: Record<PinId, PinDef> = {
   // Serie Vigía
   estrella: { id: "estrella", name: "Estrella", emoji: "⭐", color: "#fbbf24", desc: "Serie Vigía · tu primer reporte de incidencia." },
   campana: { id: "campana", name: "Campana", emoji: "🔔", color: "#f59e0b", desc: "Serie Vigía · 10 reportes de incidencias." },
+  // Serie Constancia
+  brote: { id: "brote", name: "Brote", emoji: "🌱", color: "#4ade80", desc: "Serie Constancia · tu primer ride con GPS real." },
+  dorsal: { id: "dorsal", name: "Dorsal", emoji: "🎽", color: "#60a5fa", desc: "Serie Constancia · 10 rides completados." },
+  zorro: { id: "zorro", name: "Zorro culpeo", emoji: "🦊", color: "#fb923c", desc: "Serie Constancia · 25 rides completados." },
+  bosque: { id: "bosque", name: "Bosque nativo", emoji: "🌳", color: "#16a34a", desc: "Serie Constancia · 50 rides completados." },
   // Retos puntuales
   luna: { id: "luna", name: "Nocturno", emoji: "🌙", color: "#818cf8", desc: "Reto: completa un ride entre las 21:00 y las 06:00." },
   rayo: { id: "rayo", name: "Velocista", emoji: "⚡", color: "#facc15", desc: "Reto: registra 42 km/h (hazlo fuera del parque)." },
   cohete: { id: "cohete", name: "Madrugador", emoji: "🚀", color: "#e879f9", desc: "Reto: termina un ride antes de las 08:00 de la mañana." },
+  medalla: { id: "medalla", name: "Medalla", emoji: "🏅", color: "#fbbf24", desc: "Reto: un solo ride de 21 km o más (media maratón)." },
+  picnic: { id: "picnic", name: "Picnic", emoji: "🧺", color: "#d6d3d1", desc: "Reto: 8 rides en sábado o domingo." },
+  zen: { id: "zen", name: "Zen", emoji: "🧘", color: "#2dd4bf", desc: "Reto: 5 rides dentro del parque sin exceder los 30 km/h." },
 };
 
 export const DEFAULT_PIN: PinId = "clasico";
@@ -52,17 +62,62 @@ export function isPinId(v: string): v is PinId {
   return Object.prototype.hasOwnProperty.call(PINS, v);
 }
 
-// ---- Series de desafíos (avance secuencial por nivel) ----
+// ---- Métricas evaluables + niveles del ciclista ----
 
 export type MetricKey =
   | "totalKm"
+  | "rideCount"
   | "totalGainM"
   | "parkRides"
   | "cleanParkRides"
   | "incidentCount"
   | "nightRides"
   | "dawnRides"
-  | "maxKmh";
+  | "maxKmh"
+  | "maxRideKm"
+  | "weekendRides";
+
+// ---- Niveles del ciclista (km acumulados con GPS real) ----
+
+export type RiderLevel = { name: string; emoji: string; min: number; max: number | null };
+
+/**
+ * Umbrales pensados para la escala del cerro: una vuelta al San
+ * Cristóbal ida y vuelta son ≈ 10 km, así que el nivel 2 llega con
+ * ≈ 5 vueltas, el 3 con ≈ 15 y Desafiante con ≈ 40. Queda alineado
+ * con la Serie Kilómetros (10/50/100/250/500): el umbral de Ciclista
+ * coincide con el tier de 50 km y el rango Desafiante contiene al
+ * tier de 500 km.
+ */
+export const RIDER_LEVELS: RiderLevel[] = [
+  { name: "Explorador", emoji: "🧭", min: 0, max: 50 },
+  { name: "Ciclista", emoji: "🚴", min: 50, max: 150 },
+  { name: "Montañero", emoji: "⛰️", min: 150, max: 400 },
+  { name: "Desafiante", emoji: "🏔️", min: 400, max: null },
+];
+
+export type RiderLevelInfo = {
+  /** Índice del nivel actual (0-based). */
+  index: number;
+  level: RiderLevel;
+  next: RiderLevel | null;
+  /** % de avance dentro del nivel actual (0-100). */
+  pct: number;
+  /** km que faltan al siguiente nivel (0 si ya estás en el máximo). */
+  toNext: number;
+};
+
+export function riderLevelForKm(km: number): RiderLevelInfo {
+  let index = 0;
+  for (let i = 0; i < RIDER_LEVELS.length; i++) if (km >= RIDER_LEVELS[i].min) index = i;
+  const level = RIDER_LEVELS[index];
+  const next = RIDER_LEVELS[index + 1] ?? null;
+  const pct = level.max == null ? 100 : ((km - level.min) / (level.max - level.min)) * 100;
+  const toNext = next ? Math.max(0, next.min - km) : 0;
+  return { index, level, next, pct, toNext };
+}
+
+// ---- Series de desafíos (avance secuencial por nivel) ----
 
 export type Tier = {
   code: string;
@@ -104,10 +159,10 @@ export const SERIES: Series[] = [
     emoji: "⛰️",
     accent: "sky",
     tiers: [
-      { code: "gain_300", name: "Primer ascenso", desc: `Suma ${mFmt(300)} de desnivel positivo (≈ 2 subidas al cerro).`, metric: "totalGainM", goal: 300, reward: "cumbre" },
-      { code: "gain_1500", name: "Piernas de acero", desc: `Suma ${mFmt(1500)} de desnivel acumulado.`, metric: "totalGainM", goal: 1500, reward: "sol" },
-      { code: "gain_4000", name: "Tormenta acumulada", desc: `Suma ${mFmt(4000)} de desnivel acumulado.`, metric: "totalGainM", goal: 4000, reward: "trueno" },
-      { code: "gain_8000", name: "Ocho mil del cerro", desc: `Suma ${mFmt(8000)}. Fuego sagrado.`, metric: "totalGainM", goal: 8000, reward: "fuego" },
+      { code: "gain_300", name: "Primer ascenso", desc: `Suma ${mFmt(300)} de desnivel positivo (≈ 1 subida a la cumbre).`, metric: "totalGainM", goal: 300, reward: "cumbre" },
+      { code: "gain_1500", name: "Piernas de acero", desc: `Suma ${mFmt(1500)} de desnivel acumulado (≈ 6 subidas).`, metric: "totalGainM", goal: 1500, reward: "sol" },
+      { code: "gain_4000", name: "Tormenta acumulada", desc: `Suma ${mFmt(4000)} de desnivel acumulado (≈ 17 subidas).`, metric: "totalGainM", goal: 4000, reward: "trueno" },
+      { code: "gain_8000", name: "Ocho mil del cerro", desc: `Suma ${mFmt(8000)} (≈ 35 subidas). Fuego sagrado.`, metric: "totalGainM", goal: 8000, reward: "fuego" },
     ],
   },
   {
@@ -131,6 +186,18 @@ export const SERIES: Series[] = [
       { code: "rep_10", name: "Centinela", desc: "Reporta 10 incidencias. Los ojos de toda la comunidad.", metric: "incidentCount", goal: 10, reward: "campana" },
     ],
   },
+  {
+    id: "constancia",
+    name: "Serie Constancia",
+    emoji: "🔁",
+    accent: "emerald",
+    tiers: [
+      { code: "const_1", name: "Primer pedal", desc: "Completa tu primer ride con GPS real. Toda cumbre empieza así.", metric: "rideCount", goal: 1, reward: "brote" },
+      { code: "const_10", name: "Ya es rutina", desc: "Completa 10 rides registrados con GPS.", metric: "rideCount", goal: 10, reward: "dorsal" },
+      { code: "const_25", name: "Rueda fiel", desc: "Completa 25 rides. El cerro ya te conoce.", metric: "rideCount", goal: 25, reward: "zorro" },
+      { code: "const_50", name: "Cincuenta vueltas", desc: "Completa 50 rides. Hábito de hierro.", metric: "rideCount", goal: 50, reward: "bosque" },
+    ],
+  },
 ];
 
 /** Retos puntuales: independientes, sin cadena previa. */
@@ -138,6 +205,9 @@ export const RETOS: Tier[] = [
   { code: "night_1", name: "Ciclista nocturno", desc: "Completa un ride entre las 21:00 y las 06:00.", metric: "nightRides", goal: 1, reward: "luna" },
   { code: "speed_42", name: "Velocista", desc: "Registra 42 km/h en un tramo libre (siempre fuera del parque).", metric: "maxKmh", goal: 42, reward: "rayo" },
   { code: "dawn_1", name: "Madrugador", desc: "Termina un ride antes de las 08:00 de la mañana.", metric: "dawnRides", goal: 1, reward: "cohete" },
+  { code: "dist_21", name: "Media maratón", desc: "Completa un solo ride de 21 km o más. Tu mejor vuelta.", metric: "maxRideKm", goal: 21, reward: "medalla" },
+  { code: "finde_8", name: "Guerrero del finde", desc: "Completa 8 rides en sábado o domingo.", metric: "weekendRides", goal: 8, reward: "picnic" },
+  { code: "clean_5", name: "Cinco limpios", desc: "Suma 5 rides dentro del parque sin exceder los 30 km/h.", metric: "cleanParkRides", goal: 5, reward: "zen" },
 ];
 
 export const ALL_TIERS: Tier[] = [...SERIES.flatMap((s) => s.tiers), ...RETOS];
@@ -186,6 +256,10 @@ export type AchievementStats = {
   cleanParkRides: number;
   nightRides: number;
   dawnRides: number;
+  /** Mayor distancia en un solo ride (km). */
+  maxRideKm: number;
+  /** Rides de sábado o domingo (hora local aprox. UTC-3). */
+  weekendRides: number;
   incidentCount: number;
 };
 
@@ -206,14 +280,17 @@ export function statsFromRides(
 ): AchievementStats {
   let totalKm = 0;
   let maxKmh = 0;
+  let maxRideKm = 0;
   let totalGainM = 0;
   let parkRides = 0;
   let cleanParkRides = 0;
   let nightRides = 0;
   let dawnRides = 0;
+  let weekendRides = 0;
   for (const r of rides) {
     totalKm += r.distanceKm ?? 0;
     maxKmh = Math.max(maxKmh, r.maxKmh ?? 0);
+    maxRideKm = Math.max(maxRideKm, r.distanceKm ?? 0);
     totalGainM += Math.max(0, r.gainM ?? 0);
     const touchedPark = r.maxInParkKmh != null;
     if (touchedPark) {
@@ -225,8 +302,10 @@ export function statsFromRides(
     const clHour = (d.getUTCHours() + 21) % 24;
     if (clHour >= 21 || clHour < 6) nightRides++;
     if (clHour < 8) dawnRides++;
+    const clDay = new Date(d.getTime() - 3 * 3600_000).getUTCDay(); // 0 dom, 6 sáb
+    if (clDay === 0 || clDay === 6) weekendRides++;
   }
-  return { totalKm, rideCount: rides.length, maxKmh, totalGainM, parkRides, cleanParkRides, nightRides, dawnRides, incidentCount };
+  return { totalKm, rideCount: rides.length, maxKmh, totalGainM, parkRides, cleanParkRides, nightRides, dawnRides, maxRideKm, weekendRides, incidentCount };
 }
 
 /**

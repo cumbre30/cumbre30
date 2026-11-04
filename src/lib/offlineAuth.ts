@@ -374,6 +374,8 @@ export function offlineMe(): MeData | null {
     cleanParkRides: statsRaw.cleanParkRides,
     nightRides: statsRaw.nightRides,
     dawnRides: statsRaw.dawnRides,
+    maxRideKm: Number(statsRaw.maxRideKm.toFixed(1)),
+    weekendRides: statsRaw.weekendRides,
     lastRideDate: rides[0]?.dateISO ?? null,
     incidentCount: 0,
   };
