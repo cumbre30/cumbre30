@@ -6,18 +6,20 @@
 //   · "Pro": estadísticas por segmento del cerro (función Pro,
 //     validada: HistoryTab ya las calcula solo con Pro).
 //
-// Solo viajes con GPS real: los de demostración (simulación, sin
-// GPS) no cuentan en ninguna estadística (gpsOnly de lib/history).
+// Solo viajes con GPS real de la cuenta activa: los de demostración
+// (simulación, sin GPS) no cuentan en ninguna estadística y los de
+// otra cuenta no se mezclan (gpsOnly + ridesForAccount de lib/history).
 // ============================================================
 
 import { useMemo, useState, useSyncExternalStore } from "react";
 import { Gauge, Clock, Lock, Mountain, Route, Trophy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { gpsOnly, historyStore } from "@/lib/history";
+import { gpsOnly, historyStore, ridesForAccount } from "@/lib/history";
 import { formatClock } from "@/lib/geo";
 import { computeSegmentStats, fmtEffort } from "@/lib/segments";
 import { useProLicense } from "@/lib/proLicense";
+import { useMe } from "@/hooks/useMe";
 import { ProTag } from "@/components/ProUI";
 import { SubTabs } from "@/components/SubTabs";
 
@@ -39,12 +41,18 @@ function Kpi({ icon, label, value, unit }: { icon: React.ReactNode; label: strin
 export function StatsTab({ onGoPro }: { onGoPro: () => void }) {
   const rides = useSyncExternalStore(historyStore.subscribe, historyStore.get, historyStore.getServer);
   const { pro } = useProLicense();
+  const { me } = useMe();
 
   // Subsecciones: General (totales) | Pro (segmentos del cerro)
   const [sub, setSub] = useState<"general" | "pro">("general");
 
-  // Todas las estadísticas provienen exclusivamente de viajes con GPS real.
-  const gpsRides = useMemo(() => gpsOnly(rides), [rides]);
+  // Todas las estadísticas provienen exclusivamente de viajes con GPS
+  // real enlazados a la cuenta (sin sesión: solo locales del teléfono).
+  const accountEmail = me?.user.email ?? null;
+  const gpsRides = useMemo(
+    () => gpsOnly(ridesForAccount(rides, accountEmail)),
+    [rides, accountEmail],
+  );
 
   const totals = useMemo(() => {
     const dist = gpsRides.reduce((a, r) => a + r.distanceKm, 0);

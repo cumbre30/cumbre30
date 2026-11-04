@@ -10,7 +10,7 @@ import { useMemo, useState } from "react";
 import { CheckCircle2, Lock, MapPin, Trophy } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { gpsOnly, historyStore } from "@/lib/history";
+import { gpsOnly, historyStore, ridesForAccount } from "@/lib/history";
 import {
   ACHIEVEMENT_BY_CODE,
   DEFAULT_PIN,
@@ -46,8 +46,9 @@ const ACCENT_BAR: Record<string, string> = {
 
 export default function ChallengesTab() {
   const { me } = useMe();
-  // Logros: solo viajes con GPS real (los demo no cuentan).
-  const localRides = gpsOnly(historyStore.get());
+  // Logros: solo viajes con GPS real de la cuenta activa (los demo
+  // no cuentan y otra cuenta no se mezcla).
+  const localRides = gpsOnly(ridesForAccount(historyStore.get(), me?.user.email ?? null));
   const [savingPin, setSavingPin] = useState<string | null>(null);
 
   const localStats = useMemo(

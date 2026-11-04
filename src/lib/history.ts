@@ -34,6 +34,19 @@ export function gpsOnly(rides: RideSummary[]): RideSummary[] {
   return rides.filter((r) => r.source === "gps");
 }
 
+/**
+ * Viajes visibles según la cuenta: con sesión, solo los enlazados a
+ * ese correo (más los locales aún sin enlazar, que el login enlaza
+ * automáticamente); sin sesión, solo los locales del dispositivo.
+ * Así los viajes y estadísticas de una cuenta nunca se mezclan con
+ * los de otra ni se muestran sin sesión.
+ */
+export function ridesForAccount(rides: RideSummary[], email: string | null): RideSummary[] {
+  if (!email) return rides.filter((r) => !r.account);
+  const mail = email.trim().toLowerCase();
+  return rides.filter((r) => !r.account || r.account === mail);
+}
+
 // Store externo simple para leer localStorage con useSyncExternalStore
 let snapshot: RideSummary[] = [];
 let dirty = true;

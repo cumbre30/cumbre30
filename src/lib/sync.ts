@@ -5,7 +5,7 @@
 // En el APK (export estático) no hay servidor: los logros se evalúan
 // y guardan localmente para que Retos/Pines funcionen igual.
 
-import { gpsOnly, historyStore, type RideSummary } from "@/lib/history";
+import { gpsOnly, historyStore, ridesForAccount, type RideSummary } from "@/lib/history";
 import { isOfflineMode, offlineUnlockAchievements } from "@/lib/offlineAuth";
 import { evaluateAchievements, statsFromRides } from "@/lib/pins";
 import { refreshMe } from "@/hooks/useMe";
@@ -15,7 +15,9 @@ export async function syncRideAfterSave(summary: RideSummary): Promise<void> {
     if (isOfflineMode()) {
       // APK: evalúa logros contra el historial local y guárdalos.
       const me = await refreshMe();
-      const stats = statsFromRides(gpsOnly(historyStore.get()));
+      const stats = statsFromRides(
+        gpsOnly(ridesForAccount(historyStore.get(), me?.user.email ?? null)),
+      );
       const have = me?.achievements.map((a) => a.code) ?? [];
       const codes = evaluateAchievements(stats, have);
       if (codes.length) offlineUnlockAchievements(codes);
@@ -30,7 +32,9 @@ export async function syncRideAfterSave(summary: RideSummary): Promise<void> {
     if (!r.ok) return; // sin sesión o sin conexión
 
     const me = await refreshMe();
-    const stats = statsFromRides(gpsOnly(historyStore.get()));
+    const stats = statsFromRides(
+      gpsOnly(ridesForAccount(historyStore.get(), me?.user.email ?? null)),
+    );
     const have = me?.achievements.map((a) => a.code) ?? [];
     // La evaluación respeta el avance secuencial de las series y
     // traduce los códigos v1 a sus equivalentes actuales.

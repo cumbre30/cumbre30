@@ -32,7 +32,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatClock } from "@/lib/geo";
-import { clearHistory, historyStore, type RideSummary } from "@/lib/history";
+import { clearHistory, historyStore, ridesForAccount, type RideSummary } from "@/lib/history";
 import { buildRidePdf, type RideIdentity } from "@/lib/ridePdf";
 import { shareOrDownloadFile } from "@/lib/shareFile";
 import { buildRideGpxBlob } from "@/lib/gpx";
@@ -96,15 +96,23 @@ export function HistoryTab({
   // Subsecciones: Viajes (lista) | Pro (segmentos del cerro)
   const [sub, setSub] = useState<"viajes" | "pro">("viajes");
 
+  // ---- Enlace viaje ↔ cuenta: sin correo solo se ven los locales ----
+  const accountEmail = user?.email?.trim().toLowerCase() ?? null;
+  const linkedRides = useMemo(
+    () => ridesForAccount(rides, accountEmail),
+    [rides, accountEmail],
+  );
+
   // Segmentos: se calculan solo con Pro (función Pro); para nivel
-  // gratis basta el teaser. Solo viajes GPS: los demo no guardan pista.
+  // gratis basta el teaser. Solo viajes de la cuenta activa con GPS
+  // real: los demo no guardan pista y otra cuenta no se mezcla.
   const segStats = useMemo(
-    () => (pro.active ? computeSegmentStats(rides) : []),
-    [pro.active, rides],
+    () => (pro.active ? computeSegmentStats(linkedRides) : []),
+    [pro.active, linkedRides],
   );
   const perRideEfforts = useMemo(
-    () => (pro.active ? effortsByRide(rides) : new Map()),
-    [pro.active, rides],
+    () => (pro.active ? effortsByRide(linkedRides) : new Map()),
+    [pro.active, linkedRides],
   );
 
   // Relee el historial cuando se guarda un ride nuevo
@@ -112,13 +120,6 @@ export function HistoryTab({
     historyStore.refresh();
     setConstCount(constanciaCount());
   }, [refreshKey]);
-
-  // ---- Enlace viaje ↔ cuenta: sin correo solo se ven los locales ----
-  const accountEmail = user?.email?.trim().toLowerCase() ?? null;
-  const linkedRides = useMemo(() => {
-    if (!accountEmail) return rides.filter((r) => !r.account);
-    return rides.filter((r) => !r.account || r.account === accountEmail);
-  }, [rides, accountEmail]);
 
   // ---- Filtros de tiempo y modo ----
   const wk = useMemo(() => weekBounds(), []);
