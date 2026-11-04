@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --page-bg:#f4f6f5; --card:#edf0ef; --header:#445f51; --border:#a4c1b2;
+    --icon:#468163; --accent:#1d9559; --text:#1f2321; --muted:#828b87;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{width:1180px;background:var(--page-bg);font-family:'Inter',sans-serif;color:var(--text);padding:26px 30px 30px}
+  .root{display:flex;justify-content:center;margin-bottom:6px}
+  .root-node{background:var(--header);color:#fff;font-weight:800;font-size:17px;padding:13px 34px;border-radius:13px;letter-spacing:.4px}
+  .root-node span{display:block;font-size:10.5px;font-weight:600;opacity:.75;letter-spacing:.3px;margin-top:2px}
+  .trunk{display:flex;justify-content:center}
+  .trunk svg{display:block}
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:26px;margin-top:6px}
+  .panel{background:#fff;border:1.5px solid var(--border);border-radius:16px;padding:16px 18px 18px}
+  .panel h3{font-size:12px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;color:var(--header);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+  .panel h3::before{content:"";width:9px;height:9px;border-radius:3px;background:var(--accent)}
+  .nodes3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  .dest{border:1.5px solid var(--border);border-radius:13px;padding:11px 10px 12px;background:var(--page-bg);text-align:center}
+  .dest.primary{border-color:var(--accent);background:rgba(29,149,89,.08)}
+  .dest .ic{height:19px;display:flex;align-items:center;justify-content:center;color:var(--header)}
+  .dest b{display:block;font-size:13.5px;font-weight:800;margin-top:5px}
+  .dest span{display:block;font-size:10px;color:var(--muted);margin-top:3px;line-height:1.35}
+  .grp{border:1.5px solid var(--border);border-radius:13px;padding:10px 13px 11px;background:var(--page-bg);margin-bottom:9px}
+  .grp:last-child{margin-bottom:0}
+  .grp .gt{font-size:10px;font-weight:800;letter-spacing:1.3px;text-transform:uppercase;color:var(--icon);margin-bottom:6px;display:flex;align-items:center;gap:6px}
+  .grp .gt .pro{font-size:8px;font-weight:800;color:#fff;background:var(--accent);border-radius:99px;padding:2px 7px;letter-spacing:.8px}
+  .grp .items{font-size:11.5px;color:var(--text);font-weight:600;line-height:1.7}
+  .grp .items i{font-style:normal;color:var(--muted);font-weight:400}
+  .foot{display:flex;justify-content:center;margin-top:16px}
+  .foot span{font-size:10.5px;color:var(--muted)}
+  .colroot{display:flex;justify-content:center;margin-bottom:14px}
+</style>
+</head>
+<body>
+  <div class="root">
+    <div class="root-node">CUMBRE30<span>navegación propuesta · 3 destinos + menú lateral</span></div>
+  </div>
+  <div class="trunk">
+    <svg width="1060" height="34" viewBox="0 0 1060 34">
+      <path d="M530 0 V12 M530 12 H180 M530 12 H880 M180 12 V30 M880 12 V30" stroke="#a4c1b2" stroke-width="2" fill="none"/>
+      <circle cx="180" cy="30" r="3.4" fill="#1d9559"/><circle cx="880" cy="30" r="3.4" fill="#1d9559"/>
+    </svg>
+  </div>
+  <div class="cols">
+    <div class="panel">
+      <h3>Navegación inferior · siempre visible</h3>
+      <div class="nodes3">
+        <div class="dest primary">
+          <div class="ic"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.5" cy="17.5" r="3.5"/><circle cx="18.5" cy="17.5" r="3.5"/><path d="M15 6a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm-1 3h3l-2.6 6.5M6 17.5l4-8h3"/></svg></div>
+          <b>Ride</b>
+          <span>ciclocomputador, velocidad, minimapa y navegación en vivo</span>
+        </div>
+        <div class="dest">
+          <div class="ic"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2z"/><path d="M9 4v14M15 6v14"/></svg></div>
+          <b>Explorar</b>
+          <span>mapa general, búsqueda de direcciones (Pro) y POI</span>
+        </div>
+        <div class="dest">
+          <div class="ic"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM20 14h1M14 20h1M18 18h3v3h-3z"/></svg></div>
+          <b>Acceso</b>
+          <span>QR de Parquemet, ficha médica y bicicleta</span>
+        </div>
+      </div>
+    </div>
+    <div class="panel">
+      <h3>Menú lateral · jerarquía clara</h3>
+      <div class="grp">
+        <div class="gt">Cumbre30 Pro <span class="pro">PRO</span></div>
+        <div class="items">Tarjeta destacada + comparación de planes + contratar</div>
+      </div>
+      <div class="grp">
+        <div class="gt">Mi actividad</div>
+        <div class="items">Historial de viajes · Estadísticas generales <i>(+ Desafíos)</i></div>
+      </div>
+      <div class="grp">
+        <div class="gt">Cuenta</div>
+        <div class="items">Perfil · Configuración <i>(Demo/GPS, sonido, voz, tema)</i> · Ayuda</div>
+      </div>
+      <div class="grp">
+        <div class="gt">Plan actual</div>
+        <div class="items">Indicador FREE / PRO + acceso a la suscripción</div>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><span>El QR permanece como destino inferior por su frecuencia antes de ingresar al parque.</span></div>
+</body>
+</html>

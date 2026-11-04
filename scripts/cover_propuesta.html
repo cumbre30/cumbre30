@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800;900&display=swap" rel="stylesheet">
+<style>
+  @page { size: 794px 1123px; margin: 0; }
+  :root{
+    --c-bg:#f4f6f5; --c-accent:#1d9559; --c-text:#1f2321; --c-muted:#828b87;
+    --c-mid:#445f51; --c-surface:#edf0ef;
+  }
+  html, body { margin:0; padding:0; width:794px; height:1123px; background:var(--c-bg);
+    font-family:'Inter',sans-serif; color:var(--c-text); }
+  @media screen {
+    html { height:auto; display:flex; justify-content:center; min-height:100vh; background:var(--c-bg); }
+    body { transform-origin:top center; scale:min(1, calc(100vw / 794), calc(100vh / 1123)); margin:0 auto; box-shadow:0 0 60px rgba(0,0,0,.12); }
+  }
+  .cover{ position:relative; width:794px; height:1123px; border:none; outline:none; box-shadow:none; }
+
+  /* Layer 1: grilla de fondo (recortada) */
+  .layer1{ position:absolute; inset:0; overflow:hidden; z-index:1; }
+  .grid{
+    position:absolute; inset:0;
+    background-image:
+      linear-gradient(to right, rgba(29,149,89,.05) .5px, transparent .5px),
+      linear-gradient(to bottom, rgba(29,149,89,.05) .5px, transparent .5px);
+    background-size:50px 50px;
+  }
+  /* Layer 2: línea ancla vertical gruesa */
+  .layer2{ position:absolute; inset:0; z-index:2; }
+  .anchor{ position:absolute; left:95px; top:112px; bottom:112px; width:8px; background:var(--c-accent); }
+
+  /* Layer 3: contenido */
+  .layer3{ position:absolute; inset:0; z-index:3; }
+  .kicker{
+    position:absolute; left:145px; top:168px; max-width:560px;
+    font-size:15px; font-weight:400; letter-spacing:4px; text-transform:uppercase;
+    color:var(--c-text); opacity:.6;
+  }
+  .hero{
+    position:absolute; left:145px; top:300px; max-width:600px;
+    font-size:64pt; font-weight:900; line-height:1.15; letter-spacing:-1px;
+    color:var(--c-text);
+  }
+  .hero b{ color:var(--c-accent); font-weight:900; }
+  .hero .l2{ display:block; font-size:30pt; font-weight:600; letter-spacing:.5px; color:var(--c-mid); margin-top:10px; }
+  .summary{
+    position:absolute; left:145px; top:600px; max-width:470px;
+    font-size:13.5pt; font-weight:400; line-height:1.6; color:var(--c-text); opacity:.85;
+  }
+  .meta{
+    position:absolute; left:145px; top:840px; max-width:520px;
+    font-size:12.5pt; font-weight:400; line-height:1.7; color:var(--c-muted);
+  }
+  .meta b{ color:var(--c-text); font-weight:600; }
+  .footer{
+    position:absolute; left:145px; bottom:96px; max-width:560px;
+    font-size:12px; font-weight:400; letter-spacing:3px; text-transform:uppercase;
+    color:var(--c-text); opacity:.6;
+  }
+</style>
+</head>
+<body>
+  <div class="cover">
+    <div class="layer1"><div class="grid"></div></div>
+    <div class="layer2"><div class="anchor"></div></div>
+    <div class="layer3">
+      <div class="kicker">Propuesta de rediseño UX/UI · Fases 1-2</div>
+      <div class="hero">CUMBRE<b>30</b><span class="l2">Rediseño UX/UI y Navegación</span></div>
+      <div class="summary">Arquitectura de navegación, sistema de diseño y prototipo navegable para
+      simplificar la app en tres destinos, priorizar la información de conducción y hacer visible el
+      valor de PRO sin perjudicar la experiencia FREE.</div>
+      <div class="meta"><b>Contenido:</b> auditoría del estado actual · arquitectura propuesta ·
+      sistema de diseño · prototipo · comparación FREE/PRO · plan por etapas y riesgos.<br>
+      <b>Versión de la app:</b> 1.5.0 (build 21) · <b>Fecha:</b> noviembre de 2026</div>
+      <div class="footer">Ciclocomputador · Cerro San Cristóbal · Parquemet</div>
+    </div>
+  </div>
+</body>
+</html>
