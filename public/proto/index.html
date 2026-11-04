@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Cumbre30 · Prototipo rediseño UX/UI</title>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<!-- sprite de iconos (estilo lucide, inline, sin dependencias) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden>
+  <symbol id="i-bike" viewBox="0 0 24 24"><circle cx="18.5" cy="17.5" r="3.5"/><circle cx="5.5" cy="17.5" r="3.5"/><circle cx="15" cy="5" r="1"/><path d="M12 17.5V14l-3-3 4-3 2 3h2"/></symbol>
+  <symbol id="i-map" viewBox="0 0 24 24"><path d="M14.1 5.5 9.9 3.7a2 2 0 0 0-1.6 0L4 5.6a1 1 0 0 0-.6.9v12a1 1 0 0 0 1.4.9l4.3-1.9a2 2 0 0 1 1.6 0l4.2 1.8a2 2 0 0 0 1.6 0l4.3-1.9a1 1 0 0 0 .6-.9v-12a1 1 0 0 0-1.4-.9L16 5.5a2 2 0 0 1-1.9 0Z"/><path d="M9 3.6v13M15 5.4v13"/></symbol>
+  <symbol id="i-qr" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><path d="M7 7h.01"/><rect x="14" y="3" width="7" height="7" rx="1"/><path d="M18 7h.01"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M7 18h.01"/><path d="M14 14h3v3h-3zM19 19h2M14 19h2M19 14h2"/></symbol>
+  <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></symbol>
+  <symbol id="i-locate" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="8"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4.5v15l12-7.5Z" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-pause" viewBox="0 0 24 24"><rect x="6" y="4.5" width="4" height="15" rx="1.2" fill="currentColor" stroke="none"/><rect x="14" y="4.5" width="4" height="15" rx="1.2" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-stop" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 22s8-3.5 8-10V5l-8-3-8 3v7c0 6.5 8 10 8 10Z"/></symbol>
+  <symbol id="i-mount" viewBox="0 0 24 24"><path d="m8 3 4 8 5-5 5 15H2L8 3Z"/></symbol>
+  <symbol id="i-gauge" viewBox="0 0 24 24"><path d="M12 15l3.5-3.5"/><path d="M20.5 15A8.5 8.5 0 1 0 3.5 15"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="i-trend" viewBox="0 0 24 24"><path d="m3 17 6-6 4 4 8-8"/><path d="M14 7h7v7"/></symbol>
+  <symbol id="i-chev" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+  <symbol id="i-left" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="m4 12.5 5 5L20 6.5"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-3.5 4.5-5 8-5s6.5 1.5 8 5"/></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1.2l2-1.6-2-3.4-2.4 1a7 7 0 0 0-2-1.2L14 3h-4l-.5 2.6a7 7 0 0 0-2 1.2l-2.4-1-2 3.4 2 1.6a7 7 0 0 0 0 2.4l-2 1.6 2 3.4 2.4-1a7 7 0 0 0 2 1.2L10 21h4l.5-2.6a7 7 0 0 0 2-1.2l2.4 1 2-3.4-2-1.6c.06-.4.1-.8.1-1.2Z"/></symbol>
+  <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.6 2.6 0 0 1 5 1c0 1.8-2.5 2-2.5 3.6"/><path d="M12 17h.01"/></symbol>
+  <symbol id="i-hist" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l3 3"/></symbol>
+  <symbol id="i-chart" viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M8 17v-6M13 17V7M18 17v-3"/></symbol>
+  <symbol id="i-trophy" viewBox="0 0 24 24"><path d="M8 21h8M12 17v4"/><path d="M7 4h10v6a5 5 0 0 1-10 0Z"/><path d="M7 6H4a2 2 0 0 0 2 5h1M17 6h3a2 2 0 0 1-2 5h-1"/></symbol>
+  <symbol id="i-route" viewBox="0 0 24 24"><circle cx="6" cy="19" r="2.5"/><circle cx="18" cy="5" r="2.5"/><path d="M8.5 19H15a3.5 3.5 0 0 0 0-7H9a3.5 3.5 0 0 1 0-7h6.5"/></symbol>
+  <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 16V4m0 0 -4 4m4-4 4 4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></symbol>
+  <symbol id="i-sparkle" viewBox="0 0 24 24"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M5.6 5.6l2.8 2.8M15.6 15.6l2.8 2.8M18.4 5.6l-2.8 2.8M8.4 15.6l-2.8 2.8"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+  <symbol id="i-layers" viewBox="0 0 24 24"><path d="m12 2 9 5-9 5-9-5Z"/><path d="m3 12 9 5 9-5M3 17l9 5 9-5"/></symbol>
+</svg>
+
+<!-- barra de control del prototipo -->
+<div class="proto-bar">
+  <span class="tag">PROTOTIPO</span>
+  <span class="hint">Rediseño UX · Fase 2</span>
+  <span class="sep"></span>
+  <div class="seg" id="planSeg" title="Cambiar plan para probar ambos estados">
+    <button data-plan="free" class="on">FREE</button>
+    <button data-plan="pro">PRO</button>
+  </div>
+</div>
+
+<div class="phone">
+
+  <!-- ===== header compacto compartido ===== -->
+  <header class="app-header">
+    <div class="logo-badge"><svg class="ic"><use href="#i-bike"/></svg></div>
+    <div class="brand">
+      <b>Cumbre<em>30</em></b>
+      <small>Cerro San Cristóbal</small>
+    </div>
+    <div class="hdr-right">
+      <span class="gps-chip" id="gpsChip"><span class="dot"></span><span id="gpsTxt">Buscando GPS…</span></span>
+      <span class="plan-pill" id="hdrPlan">FREE</span>
+      <button class="icon-btn" id="btnMenu" aria-label="Abrir menú"><svg class="ic"><use href="#i-menu"/></svg></button>
+    </div>
+  </header>
+
+  <div class="screens">
+
+    <!-- ======================================================
+         RIDE
+    ======================================================= -->
+    <section class="screen on" id="screen-ride">
+      <div class="zone-banner park" id="zoneBanner">
+        <svg class="ic"><use href="#i-shield"/></svg><span id="zoneTxt">MODO PARQUEMET · límite 30 km/h</span>
+      </div>
+
+      <div class="minimap-wrap">
+        <div class="map-svg" id="miniMap"></div>
+        <span class="minimap-badge" id="miniBadge">Tu posición</span>
+        <div class="minimap-zoom">
+          <button aria-label="Acercar"><svg class="ic" style="width:15px;height:15px"><use href="#i-plus"/></svg></button>
+          <button aria-label="Alejar"><svg class="ic" style="width:15px;height:15px"><use href="#i-minus"/></svg></button>
+        </div>
+      </div>
+
+      <div class="speed-hero idle" id="speedHero">
+        <div class="speed-ring">
+          <svg class="ring" viewBox="0 0 218 218">
+            <circle class="arc" cx="109" cy="109" r="100" fill="none" stroke-width="7"/>
+            <circle class="arc-val" id="arcVal" cx="109" cy="109" r="100" fill="none" stroke-width="7" stroke-linecap="round" stroke-dasharray="628" stroke-dashoffset="628"/>
+          </svg>
+          <div>
+            <span class="limit" id="limitPill"><svg class="ic" style="width:11px;height:11px"><use href="#i-shield"/></svg> LÍMITE 30</span>
+            <div class="num"><span id="spdNum">0</span><span class="u">km/h</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="dist-time">
+        <div class="dt-cell"><label>Distancia</label><div class="v mono"><span id="distNum">0.00</span><small>km</small></div></div>
+        <div class="dt-cell"><label>Tiempo</label><div class="v mono" id="timeNum">00:00</div></div>
+      </div>
+
+      <div class="main-cta" id="mainCta">
+        <button class="btn btn-primary btn-start" id="btnStart"><svg class="ic"><use href="#i-play"/></svg> Iniciar ride</button>
+      </div>
+
+      <details class="stats" id="statsBox">
+        <summary>
+          <svg class="ic" style="width:16px;height:16px"><use href="#i-chart"/></svg>
+          Estadísticas del viaje
+          <svg class="ic chev" style="width:16px;height:16px"><use href="#i-chev"/></svg>
+        </summary>
+        <div class="stat-grid">
+          <div class="stat-cell"><label><svg class="ic"><use href="#i-trend"/></svg> Vel. máx</label><div class="v mono"><span id="stMax">0.0</span> <small>km/h</small></div></div>
+          <div class="stat-cell"><label><svg class="ic"><use href="#i-gauge"/></svg> Vel. prom</label><div class="v mono"><span id="stAvg">0.0</span> <small>km/h</small></div></div>
+          <div class="stat-cell"><label><svg class="ic"><use href="#i-mount"/></svg> Desnivel</label><div class="v mono">+<span id="stGain">0</span> <small>m</small></div></div>
+          <div class="stat-cell"><label><svg class="ic"><use href="#i-trend"/></svg> Pendiente</label><div class="v mono"><span id="stSlope">0.0</span> <small>%</small></div></div>
+          <div class="stat-cell"><label><svg class="ic"><use href="#i-locate"/></svg> Precisión</label><div class="v mono">±<span id="stAcc">—</span> <small>m</small></div></div>
+          <div class="stat-cell"><label><svg class="ic"><use href="#i-clock"/></svg> En parque</label><div class="v mono" id="stPark">—</div></div>
+        </div>
+      </details>
+
+      <div class="bitacora card" style="margin-left:14px;margin-right:14px">
+        <div class="sect-label" style="margin:0 0 4px">Bitácora del viaje</div>
+        <ul id="bitacora">
+          <li class="empty-note" style="border:0" id="bitEmpty">Sin eventos aún — los avisos de zona, geocercas y excesos aparecerán aquí.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ======================================================
+         EXPLORAR
+    ======================================================= -->
+    <section class="screen" id="screen-explorar">
+      <div class="exp-map">
+        <div class="map-svg" id="bigMap" style="position:absolute;inset:0"></div>
+
+        <button class="exp-search" id="btnSearch">
+          <svg class="ic" style="color:var(--verde)"><use href="#i-search"/></svg>
+          <span class="ph">¿A dónde quieres ir? Busca una dirección…</span>
+          <span class="lk" id="searchLock"><svg class="ic" style="width:10px;height:10px"><use href="#i-lock"/></svg> PRO</span>
+        </button>
+
+        <div class="route-chip" id="routeChip">
+          <span class="rc-dot"></span>
+          <div class="grow"><b id="rcName">—</b><div class="rc-meta mono" id="rcMeta">—</div></div>
+          <button class="x icon-btn" id="rcClose" style="width:30px;height:30px" aria-label="Quitar ruta"><svg class="ic" style="width:16px;height:16px"><use href="#i-x"/></svg></button>
+        </div>
+
+        <div class="exp-ctrl">
+          <button id="btnLocate" aria-label="Centrar en mi posición"><svg class="ic" style="width:19px;height:19px"><use href="#i-locate"/></svg></button>
+          <button id="btnLayers" aria-label="Capas del mapa"><svg class="ic" style="width:19px;height:19px"><use href="#i-layers"/></svg></button>
+        </div>
+      </div>
+
+      <div class="sheet">
+        <div class="grab"></div>
+        <h3><svg class="ic" style="width:15px;height:15px;color:var(--verde)"><use href="#i-mount"/></svg> Destinos en el cerro</h3>
+        <button class="poi" data-poi="Cumbre del Cerro" data-km="4.8" data-min="28"><span class="emoji">🏔️</span><span class="grow"><b>Cumbre del Cerro</b><small>Vía compartida · 4.8 km desde Pío Nono</small></span><span class="go"><svg class="ic" style="width:16px;height:16px"><use href="#i-route"/></svg></span></button>
+        <button class="poi" data-poi="Mirador Tupahue" data-km="3.6" data-min="21"><span class="emoji">👀</span><span class="grow"><b>Mirador Tupahue</b><small>Piscina Tupahue · 3.6 km</small></span><span class="go"><svg class="ic" style="width:16px;height:16px"><use href="#i-route"/></svg></span></button>
+        <button class="poi" data-poi="Jardín Japonés" data-km="3.9" data-min="23"><span class="emoji">🌸</span><span class="grow"><b>Jardín Japonés</b><small>3.9 km</small></span><span class="go"><svg class="ic" style="width:16px;height:16px"><use href="#i-route"/></svg></span></button>
+        <button class="poi" data-poi="Zoológico Nacional" data-km="1.8" data-min="9"><span class="emoji">🦙</span><span class="grow"><b>Zoológico Nacional</b><small>1.8 km · Pío Nono</small></span><span class="go"><svg class="ic" style="width:16px;height:16px"><use href="#i-route"/></svg></span></button>
+        <h3 style="margin-top:14px"><svg class="ic" style="width:15px;height:15px;color:var(--verde)"><use href="#i-plus"/></svg> Mis lugares</h3>
+        <button class="poi" data-poi="Casa" data-km="2.1" data-min="11"><span class="emoji">🏠</span><span class="grow"><b>Casa</b><small>Marcador guardado</small></span><span class="go"><svg class="ic" style="width:16px;height:16px"><use href="#i-route"/></svg></span></button>
+      </div>
+
+      <!-- panel buscador universal (PRO) -->
+      <div class="search-panel" id="searchPanel">
+        <div class="sp-head">
+          <button class="icon-btn" id="spBack" aria-label="Volver"><svg class="ic"><use href="#i-left"/></svg></button>
+          <input id="spInput" placeholder="Calle y número, o lugar…" autocomplete="off" />
+        </div>
+        <div class="sp-list" id="spList">
+          <div class="empty-note">Escribe al menos 4 caracteres.<br/>Ej: <b>Av Providencia 1234</b></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================================================
+         ACCESO (QR)
+    ======================================================= -->
+    <section class="screen" id="screen-acceso">
+      <div class="sub-head"><h2>Acceso al parque</h2></div>
+      <div class="prose" style="margin:2px 16px 0">Tu QR de Parquemet guardado en el teléfono. Funciona <b>sin señal</b> en la portada.</div>
+
+      <div class="qr-stage">
+        <div class="qr-frame" id="qrFrame">
+          <svg viewBox="0 0 29 29" id="qrSvg"></svg>
+        </div>
+        <p class="tiny dim" style="margin-top:10px" id="qrSaved">QR oficial Parquemet · guardado 12 oct 2026</p>
+      </div>
+
+      <div style="display:flex;gap:10px;margin:14px 14px 0">
+        <button class="btn btn-outline btn-sm grow" id="btnQrLoad"><svg class="ic" style="width:16px;height:16px"><use href="#i-upload"/></svg> Cambiar QR</button>
+        <button class="btn btn-outline btn-sm grow" id="btnQrBig"><svg class="ic" style="width:16px;height:16px"><use href="#i-plus"/></svg> Pantalla completa</button>
+      </div>
+
+      <div class="sect-label" style="margin-left:16px">Ficha médica de emergencia</div>
+      <div class="card" style="margin:0 14px">
+        <div class="med-row"><span class="k">Nombre</span><span class="v">Martín Rojas</span></div>
+        <div class="med-row"><span class="k">Sangre</span><span class="v">O+</span></div>
+        <div class="med-row"><span class="k">Alergias</span><span class="v">Penicilina</span></div>
+        <div class="med-row"><span class="k">Emergencia</span><span class="v mono">+56 9 6123 4567</span></div>
+      </div>
+      <button class="btn btn-ghost btn-sm" style="margin:6px 14px" id="btnMedEdit">Editar ficha médica</button>
+
+      <div class="prose" style="margin:10px 16px 0;font-size:12px">
+        El QR de ingreso lo emite Parquemet con tu ClaveÚnica en parquemet.cl. Esta app solo lo guarda y lo muestra — la imagen nunca sale de tu teléfono.
+      </div>
+    </section>
+
+    <!-- ======================================================
+         PLANES (FREE vs PRO)
+    ======================================================= -->
+    <section class="screen" id="screen-planes">
+      <div class="sub-head"><h2>Planes</h2></div>
+
+      <div class="plans-hero" id="plansHero">
+        <span class="tag-pro" style="margin-bottom:8px"><svg class="ic"><use href="#i-sparkle"/></svg> CUMBRE30 PRO</span>
+        <div class="price">$6.500 <small>· pago único</small></div>
+        <p class="prose" style="margin-top:6px">Un solo pago, para siempre. Sin suscripción.</p>
+        <button class="btn btn-primary btn-block" id="btnBuy" style="margin-top:14px">Obtener PRO</button>
+        <p class="tiny dim" style="margin-top:8px">Demo: en la app abre el pago de Mercado Pago</p>
+      </div>
+      <div class="card row" id="plansActive" style="margin:14px;display:none">
+        <svg class="ic" style="color:var(--ok)"><use href="#i-check"/></svg>
+        <div class="grow"><b>Cumbre30 Pro activo</b><div class="tiny muted">Gracias por apoyar el proyecto 🙌</div></div>
+      </div>
+
+      <div class="cmp">
+        <table>
+          <thead><tr><th>Función</th><th>FREE</th><th>PRO</th></tr></thead>
+          <tbody>
+            <tr><td>Ciclocomputador y límite 30 km/h</td><td class="yes">Sí</td><td class="yes">Sí</td></tr>
+            <tr><td>GPS real y registro de viajes</td><td class="yes">Sí</td><td class="yes">Sí</td></tr>
+            <tr><td>Mapa del cerro y rutas a destinos</td><td class="yes">Sí</td><td class="yes">Sí</td></tr>
+            <tr><td>Acceso QR y ficha médica</td><td class="yes">Sí</td><td class="yes">Sí</td></tr>
+            <tr><td>Premios y desafíos</td><td class="yes">Sí</td><td class="yes">Sí</td></tr>
+            <tr><td>Constancias PDF</td><td class="lim">3 al mes</td><td class="yes">Ilimitadas</td></tr>
+            <tr><td>Buscador universal de direcciones</td><td class="no">—</td><td class="yes">Sí</td></tr>
+            <tr><td>Segmentos del cerro con récords</td><td class="no">—</td><td class="yes">Sí</td></tr>
+            <tr><td>Export GPX (Strava, Garmin, Komoot)</td><td class="no">—</td><td class="yes">Sí</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="tiny dim" style="margin:10px 16px">Tabla validada contra las funciones reales de la app (proConfig). Nada inventado.</p>
+    </section>
+
+    <!-- ======================================================
+         HISTORIAL
+    ======================================================= -->
+    <section class="screen" id="screen-historial">
+      <div class="sub-head"><h2>Historial de viajes</h2><span class="plan-pill" style="margin-left:auto" id="histQuota">PDF: 2/3 este mes</span></div>
+      <div class="list-card card" style="padding:6px 14px">
+        <div class="ride-item"><span class="d">O4</span><span class="grow"><b>Subida a la cumbre</b><small>dom 2 nov · 9.4 km · 48:12 · máx 27.8</small></span><span class="act"><button class="btn btn-ghost btn-sm">GPX</button></span></div>
+        <div class="ride-item"><span class="d">N1</span><span class="grow"><b>Vuelta al cerro</b><small>sáb 1 nov · 12.1 km · 55:03 · máx 24.1</small></span><span class="act"><button class="btn btn-ghost btn-sm">PDF</button></span></div>
+        <div class="ride-item" style="border:0"><span class="d">O6</span><span class="grow"><b>Entrenamiento Pío Nono</b><small>lun 27 oct · 6.2 km · 31:47 · máx 29.3</small></span><span class="act"><button class="btn btn-ghost btn-sm">PDF</button></span></div>
+      </div>
+      <p class="tiny dim" style="margin:10px 16px" id="histNote">Las constancias PDF son 3 al mes en FREE. Con PRO: ilimitadas + export GPX de viajes con GPS.</p>
+    </section>
+
+    <!-- ======================================================
+         ESTADÍSTICAS
+    ======================================================= -->
+    <section class="screen" id="screen-stats">
+      <div class="sub-head"><h2>Estadísticas generales</h2></div>
+      <div class="kpis" style="margin:8px 14px 0">
+        <div class="kpi"><label>Distancia total</label><div class="v mono">27.7 <small>km</small></div></div>
+        <div class="kpi"><label>Viajes</label><div class="v mono">3</div></div>
+        <div class="kpi"><label>Tiempo total</label><div class="v mono">2:15 <small>h</small></div></div>
+        <div class="kpi"><label>Desnivel total</label><div class="v mono">+512 <small>m</small></div></div>
+      </div>
+      <div class="card row" style="margin:12px 14px 0" id="segTeaser">
+        <span class="emoji" style="font-size:20px">🏁</span>
+        <div class="grow"><b style="font-size:13.5px">Segmentos del cerro</b><div class="tiny muted">Pío Nono → Cumbre · tu récord personal e historial</div></div>
+        <span class="tag-pro"><svg class="ic"><use href="#i-lock"/></svg> PRO</span>
+      </div>
+    </section>
+
+    <!-- ======================================================
+         PERFIL
+    ======================================================= -->
+    <section class="screen" id="screen-perfil">
+      <div class="sub-head"><h2>Perfil</h2></div>
+      <div class="card row" style="margin:8px 14px 0">
+        <div class="avatar">MR</div>
+        <div class="grow"><b>Martín Rojas</b><div class="tiny muted">martin.rojas@email.cl</div></div>
+        <span class="plan-pill" id="perfilPlan">FREE</span>
+      </div>
+      <div class="sect-label" style="margin-left:16px">Cumbre30 Pro</div>
+      <div class="card" style="margin:0 14px" id="perfilPro">
+        <p class="prose" style="margin-bottom:10px" id="perfilProTxt">Activa tu licencia con el código que recibiste al comprar. Funciona 100% sin conexión.</p>
+        <div class="row" id="perfilProForm">
+          <input class="grow" id="proCode" placeholder="C30P-XXXX-XXXX-XXXX-XXXX" style="background:var(--card-2);border:1px solid var(--line);border-radius:11px;color:var(--tx);padding:11px 12px;font:inherit;font-size:13px;outline:none" />
+          <button class="btn btn-primary btn-sm" id="proActivate">Activar</button>
+        </div>
+        <button class="btn btn-primary btn-sm" id="proBuy2" style="margin-top:10px">No tengo código · Ver planes</button>
+      </div>
+      <div class="sect-label" style="margin-left:16px">Más</div>
+      <div class="card" style="margin:0 14px;padding:4px 14px">
+        <button class="mi"><svg class="ic"><use href="#i-map"/></svg> Pins guardados <span class="cnt">2</span></button>
+        <button class="mi" style="border-top:1px solid var(--line)"><svg class="ic"><use href="#i-sparkle"/></svg> Cumbre30 para otro parque <span class="cnt">›</span></button>
+      </div>
+    </section>
+
+    <!-- ======================================================
+         CONFIGURACIÓN
+    ======================================================= -->
+    <section class="screen" id="screen-config">
+      <div class="sub-head"><h2>Configuración</h2></div>
+      <div class="sect-label" style="margin-left:16px">Fuente de datos (herramienta de prueba)</div>
+      <div class="card row" style="margin:0 14px">
+        <div class="grow"><b style="font-size:13.5px">Demo / GPS real</b><div class="tiny muted">Demo simula el viaje; GPS real usa tu ubicación</div></div>
+        <div class="seg-sm" id="srcSeg"><button data-src="demo" class="on">Demo</button><button data-src="gps">GPS real</button></div>
+      </div>
+      <div class="sect-label" style="margin-left:16px">Avisos</div>
+      <div class="card" style="margin:0 14px;padding:4px 14px">
+        <div class="setting"><svg class="ic" style="color:var(--tx-2)"><use href="#i-gauge"/></svg><span><b>Pitidos de velocidad</b><small>Suena al acercarte al límite</small></span><button class="sw on" data-sw="beep" aria-label="Pitidos"></button></div>
+        <div class="setting" style="border:0"><svg class="ic" style="color:var(--tx-2)"><use href="#i-sparkle"/></svg><span><b>Avisos de voz</b><small>Zonas, geocercas y excesos</small></span><button class="sw on" data-sw="voice" aria-label="Voz"></button></div>
+      </div>
+      <div class="sect-label" style="margin-left:16px">Apariencia</div>
+      <div class="card row" style="margin:0 14px">
+        <div class="grow"><b style="font-size:13.5px">Tema</b><div class="tiny muted">Oscuro — optimizado para el sol fuerte del cerro</div></div>
+        <span class="plan-pill">SIEMPRE OSCURO</span>
+      </div>
+    </section>
+
+    <!-- ======================================================
+         AYUDA
+    ======================================================= -->
+    <section class="screen" id="screen-ayuda">
+      <div class="sub-head"><h2>Ayuda y contacto</h2></div>
+      <div class="card" style="margin:8px 14px;padding:4px 14px">
+        <a class="mi" href="#" id="ayudaWsp"><svg class="ic"><use href="#i-help"/></svg> WhatsApp <span class="cnt">+56 9 4296 1619</span></a>
+        <a class="mi" href="#" style="border-top:1px solid var(--line)" id="ayudaMail"><svg class="ic"><use href="#i-help"/></svg> Correo <span class="cnt">contacto.cumbre30@gmail.com</span></a>
+      </div>
+      <div class="card" style="margin:12px 14px">
+        <b style="font-size:13.5px">¿Problemas con el GPS?</b>
+        <p class="prose" style="margin-top:6px">Sal a la vista del cielo unos segundos, mantén la app abierta y verifica que los permisos de ubicación del teléfono estén en “Permitir siempre”.</p>
+      </div>
+      <p class="tiny dim" style="text-align:center;margin-top:14px">Cumbre30 v1.6.0 · prototipo de rediseño</p>
+    </section>
+
+  </div><!-- /screens -->
+
+  <!-- ===== bottom nav 3 destinos ===== -->
+  <nav class="bottom-nav">
+    <button class="bn on" data-go="ride"><span class="bn-ic"><svg class="ic"><use href="#i-bike"/></svg></span>Ride</button>
+    <button class="bn" data-go="explorar"><span class="bn-ic"><svg class="ic"><use href="#i-map"/></svg></span>Explorar</button>
+    <button class="bn" data-go="acceso"><span class="bn-ic"><svg class="ic"><use href="#i-qr"/></svg></span>Acceso</button>
+  </nav>
+
+  <!-- ===== drawer ===== -->
+  <div class="backdrop" id="backdrop"></div>
+  <aside class="drawer" id="drawer">
+    <div class="row" style="justify-content:space-between">
+      <div class="me" style="padding:0">
+        <div class="avatar">MR</div>
+        <div class="grow"><b>Martín Rojas</b><div class="tiny muted">martin.rojas@email.cl</div></div>
+      </div>
+      <button class="icon-btn" id="drawerX" aria-label="Cerrar menú"><svg class="ic"><use href="#i-x"/></svg></button>
+    </div>
+
+    <div id="menuProCard">
+      <div class="pro-card">
+        <span class="pro-badge">CUMBRE30 PRO</span>
+        <p>Planifica mejor tus rutas y desbloquea herramientas avanzadas para tus subidas.</p>
+        <button class="btn btn-primary btn-sm btn-block" id="menuDiscoverPro">Descubrir PRO</button>
+      </div>
+    </div>
+
+    <div class="menu-sect">
+      <div class="sect-label">Mi actividad</div>
+      <button class="mi" data-go="historial"><svg class="ic"><use href="#i-hist"/></svg> Historial de viajes</button>
+      <button class="mi" data-go="stats"><svg class="ic"><use href="#i-chart"/></svg> Estadísticas generales</button>
+      <button class="mi" data-go="premios-toast"><svg class="ic"><use href="#i-trophy"/></svg> Premios y desafíos</button>
+    </div>
+
+    <div class="menu-sect">
+      <div class="sect-label">Cuenta</div>
+      <button class="mi" data-go="perfil"><svg class="ic"><use href="#i-user"/></svg> Perfil</button>
+      <button class="mi" data-go="config"><svg class="ic"><use href="#i-gear"/></svg> Configuración</button>
+      <button class="mi" data-go="ayuda"><svg class="ic"><use href="#i-help"/></svg> Ayuda</button>
+    </div>
+
+    <div class="menu-sect">
+      <div class="sect-label">Plan actual</div>
+      <button class="plan-row" data-go="planes">
+        <span class="plan-pill" id="menuPlan">FREE</span>
+        <span class="grow tiny muted" id="menuPlanTxt">Funciones básicas · toca para ver planes</span>
+        <svg class="ic" style="width:16px;height:16px;color:var(--tx-3)"><use href="#i-chev"/></svg>
+      </button>
+    </div>
+
+    <div class="drawer-foot">Cumbre30 v1.6.0 · prototipo Fase 2<br/>Hecho en Santiago 🇨🇱</div>
+  </aside>
+
+  <!-- ===== modal PRO contextual ===== -->
+  <div class="modal-wrap" id="proModal">
+    <div class="modal">
+      <div class="m-head">
+        <span class="m-ic"><svg class="ic" style="width:19px;height:19px"><use href="#i-search"/></svg></span>
+        <div class="grow">
+          <h2>Buscador universal de direcciones</h2>
+          <div class="m-sub">Función de Cumbre30 Pro</div>
+        </div>
+        <button class="m-x icon-btn" id="proModalX" aria-label="Cerrar"><svg class="ic"><use href="#i-x"/></svg></button>
+      </div>
+      <p class="m-body">Escribe <b>cualquier dirección de Santiago</b> — tu casa, el trabajo, la ciclovía que quieras probar — y el mapa traza la ruta ciclable hasta ahí, sola.</p>
+      <div class="m-diff">
+        <svg class="ic" style="width:17px;height:17px;color:var(--verde-luz);flex:none;margin-top:1px"><use href="#i-route"/></svg>
+        <span><b>En FREE</b> igual puedes navegar al cerro: usa los destinos del bottom sheet, funcionan igual. El buscador de texto libre es la parte Pro.</span>
+      </div>
+      <button class="btn btn-primary btn-block" id="proModalCta"><svg class="ic"><use href="#i-sparkle"/></svg> Descubrir PRO · $6.500</button>
+      <button class="btn btn-ghost btn-block" id="proModalNo" style="margin-top:4px">Ahora no, seguir explorando</button>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+</div><!-- /phone -->
+
+<script src="app.js"></script>
+</body>
+</html>
