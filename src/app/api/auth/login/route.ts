@@ -17,7 +17,8 @@ export async function POST(req: Request) {
     const res = NextResponse.json({ username: user.username, email: user.email });
     res.cookies.set(SESSION_COOKIE, token, { httpOnly: true, sameSite: "lax", path: "/", expires: expiresAt });
     return res;
-  } catch {
+  } catch (e) {
+    console.error("[login] error real:", e);
     return NextResponse.json({ error: "No pudimos iniciar sesión. Intenta de nuevo." }, { status: 500 });
   }
 }

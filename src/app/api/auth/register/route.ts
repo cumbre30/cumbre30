@@ -39,7 +39,8 @@ export async function POST(req: Request) {
     const res = NextResponse.json({ username: user.username, email: user.email });
     res.cookies.set(SESSION_COOKIE, token, { httpOnly: true, sameSite: "lax", path: "/", expires: expiresAt });
     return res;
-  } catch {
+  } catch (e) {
+    console.error("[register] error real:", e);
     return NextResponse.json({ error: "No pudimos crear tu cuenta. Intenta de nuevo." }, { status: 500 });
   }
 }
