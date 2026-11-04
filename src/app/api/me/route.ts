@@ -41,8 +41,10 @@ export async function GET() {
       distanceKm: r.distanceKm,
       maxKmh: r.maxKmh,
       maxInParkKmh: r.maxInParkKmh,
+      inParkKm: r.inParkKm,
       gainM: r.gainM,
       overLimitSec: r.overLimitSec,
+      elapsedSec: r.elapsedSec,
       dateISO: r.dateISO,
     })),
     incidentCount
@@ -84,6 +86,7 @@ export async function GET() {
       dawnRides: stats.dawnRides,
       maxRideKm: Number(stats.maxRideKm.toFixed(1)),
       weekendRides: stats.weekendRides,
+      totalHours: Number(stats.totalHours.toFixed(1)),
       lastRideDate: rides[0]?.dateISO.toISOString() ?? null,
       incidentCount,
     },

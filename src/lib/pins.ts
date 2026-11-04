@@ -12,7 +12,8 @@ export type PinId =
   | "estrella" | "campana"
   | "luna" | "rayo" | "cohete"
   | "brote" | "dorsal" | "zorro" | "bosque"
-  | "medalla" | "picnic" | "zen";
+  | "medalla" | "picnic" | "zen"
+  | "reloj" | "amanecer" | "atardecer" | "cronista";
 
 export type PinDef = {
   id: PinId;
@@ -54,6 +55,11 @@ export const PINS: Record<PinId, PinDef> = {
   medalla: { id: "medalla", name: "Medalla", emoji: "🏅", color: "#fbbf24", desc: "Reto: un solo ride de 21 km o más (media maratón)." },
   picnic: { id: "picnic", name: "Picnic", emoji: "🧺", color: "#d6d3d1", desc: "Reto: 8 rides en sábado o domingo." },
   zen: { id: "zen", name: "Zen", emoji: "🧘", color: "#2dd4bf", desc: "Reto: 5 rides dentro del parque sin exceder los 30 km/h." },
+  // Serie Horas
+  reloj: { id: "reloj", name: "Reloj de arena", emoji: "⏳", color: "#a78bfa", desc: "Serie Horas · 10 horas pedaleando." },
+  amanecer: { id: "amanecer", name: "Amanecer", emoji: "🌅", color: "#f472b6", desc: "Serie Horas · 25 horas pedaleando." },
+  atardecer: { id: "atardecer", name: "Atardecer", emoji: "🌇", color: "#fb923c", desc: "Serie Horas · 50 horas pedaleando." },
+  cronista: { id: "cronista", name: "Cronista", emoji: "🕰️", color: "#c4b5fd", desc: "Serie Horas · 100 horas pedaleando." },
 };
 
 export const DEFAULT_PIN: PinId = "clasico";
@@ -75,7 +81,8 @@ export type MetricKey =
   | "dawnRides"
   | "maxKmh"
   | "maxRideKm"
-  | "weekendRides";
+  | "weekendRides"
+  | "totalHours";
 
 // ---- Niveles del ciclista (km acumulados con GPS real) ----
 
@@ -84,17 +91,20 @@ export type RiderLevel = { name: string; emoji: string; min: number; max: number
 /**
  * Umbrales pensados para la escala del cerro: una vuelta al San
  * Cristóbal ida y vuelta son ≈ 10 km, así que el nivel 2 llega con
- * ≈ 5 vueltas, el 3 con ≈ 15 y Desafiante con ≈ 40. Queda alineado
- * con la Serie Kilómetros (10/50/100/250/500): el umbral de Ciclista
- * coincide con el tier de 50 km y el rango Desafiante contiene al
- * tier de 500 km.
+ * ≈ 5 vueltas, el 3 con ≈ 15 y Desafiante arranca en 500 km —
+ * coincidiendo con el tier Diamante (500 km) de la Serie Kilómetros.
+ * Sobre los 500 km el título es 🌟 Leyenda, exclusivo de la tarjeta
+ * "Tu progreso" (no aparece en la grilla de niveles).
  */
 export const RIDER_LEVELS: RiderLevel[] = [
   { name: "Explorador", emoji: "🧭", min: 0, max: 50 },
   { name: "Ciclista", emoji: "🚴", min: 50, max: 150 },
-  { name: "Montañero", emoji: "⛰️", min: 150, max: 400 },
-  { name: "Desafiante", emoji: "🏔️", min: 400, max: null },
+  { name: "Montañero", emoji: "⛰️", min: 150, max: 500 },
+  { name: "Desafiante", emoji: "🏔️", min: 500, max: null },
 ];
+
+/** Km a partir de los cuales el título es 🌟 Leyenda (exclusivo del progreso). */
+export const LEYENDA_KM = 500;
 
 export type RiderLevelInfo = {
   /** Índice del nivel actual (0-based). */
@@ -138,6 +148,7 @@ export type Series = {
 
 const kmFmt = (n: number) => (n >= 1000 ? `${n.toLocaleString("es-CL")} km` : `${n} km`);
 const mFmt = (n: number) => `${n.toLocaleString("es-CL")} m`;
+const hFmt = (n: number) => `${n} h`;
 
 export const SERIES: Series[] = [
   {
@@ -196,6 +207,18 @@ export const SERIES: Series[] = [
       { code: "const_10", name: "Ya es rutina", desc: "Completa 10 rides registrados con GPS.", metric: "rideCount", goal: 10, reward: "dorsal" },
       { code: "const_25", name: "Rueda fiel", desc: "Completa 25 rides. El cerro ya te conoce.", metric: "rideCount", goal: 25, reward: "zorro" },
       { code: "const_50", name: "Cincuenta vueltas", desc: "Completa 50 rides. Hábito de hierro.", metric: "rideCount", goal: 50, reward: "bosque" },
+    ],
+  },
+  {
+    id: "horas",
+    name: "Serie Horas",
+    emoji: "⏱️",
+    accent: "violet",
+    tiers: [
+      { code: "hrs_10", name: "Primeras horas", desc: `Acumula ${hFmt(10)} pedaleando (≈ 12 vueltas al cerro).`, metric: "totalHours", goal: 10, reward: "reloj" },
+      { code: "hrs_25", name: "Tiempo al aire", desc: `Acumula ${hFmt(25)} pedaleando.`, metric: "totalHours", goal: 25, reward: "amanecer" },
+      { code: "hrs_50", name: "Media jornada", desc: `Acumula ${hFmt(50)} pedaleando. Un día entero en dos ruedas.`, metric: "totalHours", goal: 50, reward: "atardecer" },
+      { code: "hrs_100", name: "Cien horas", desc: `Acumula ${hFmt(100)} pedaleando. Crónica del cerro.`, metric: "totalHours", goal: 100, reward: "cronista" },
     ],
   },
 ];
@@ -260,6 +283,8 @@ export type AchievementStats = {
   maxRideKm: number;
   /** Rides de sábado o domingo (hora local aprox. UTC-3). */
   weekendRides: number;
+  /** Horas totales pedaleadas (suma de elapsedSec / 3600). */
+  totalHours: number;
   incidentCount: number;
 };
 
@@ -272,8 +297,12 @@ export function statsFromRides(
     distanceKm: number;
     maxKmh: number;
     maxInParkKmh: number | null;
+    /** Km dentro de la geocerca del parque (null/undefined en rides
+     *  antiguos: para esos se usa la regla anterior, total del ride). */
+    inParkKm?: number | null;
     gainM: number;
     overLimitSec: number;
+    elapsedSec?: number;
     dateISO: string | Date;
   }>,
   incidentCount = 0
@@ -282,6 +311,7 @@ export function statsFromRides(
   let maxKmh = 0;
   let maxRideKm = 0;
   let totalGainM = 0;
+  let totalHours = 0;
   let parkRides = 0;
   let cleanParkRides = 0;
   let nightRides = 0;
@@ -292,10 +322,17 @@ export function statsFromRides(
     maxKmh = Math.max(maxKmh, r.maxKmh ?? 0);
     maxRideKm = Math.max(maxRideKm, r.distanceKm ?? 0);
     totalGainM += Math.max(0, r.gainM ?? 0);
-    const touchedPark = r.maxInParkKmh != null;
-    if (touchedPark) {
+    totalHours += (r.elapsedSec ?? 0) / 3600;
+    // Desafíos del parque: SOLO cuenta lo pedaleado dentro de la geocerca.
+    // Rides nuevos (inParkKm medido): entró si recorrió ≥ 500 m dentro y el
+    // ride es "limpio" con ≥ 2 km dentro sin exceso. Rides antiguos (sin
+    // medición) conservan la regla anterior para no borrar logros ya dados.
+    const parkKm = r.inParkKm ?? null;
+    const enteredPark = parkKm != null ? parkKm >= 0.5 : r.maxInParkKmh != null;
+    if (enteredPark) {
       parkRides++;
-      if ((r.overLimitSec ?? 0) === 0 && (r.distanceKm ?? 0) >= 2) cleanParkRides++;
+      const enoughKm = parkKm != null ? parkKm >= 2 : (r.distanceKm ?? 0) >= 2;
+      if ((r.overLimitSec ?? 0) === 0 && enoughKm) cleanParkRides++;
     }
     const d = new Date(r.dateISO);
     // Hora local de Chile (aprox. UTC-3)
@@ -305,7 +342,7 @@ export function statsFromRides(
     const clDay = new Date(d.getTime() - 3 * 3600_000).getUTCDay(); // 0 dom, 6 sáb
     if (clDay === 0 || clDay === 6) weekendRides++;
   }
-  return { totalKm, rideCount: rides.length, maxKmh, totalGainM, parkRides, cleanParkRides, nightRides, dawnRides, maxRideKm, weekendRides, incidentCount };
+  return { totalKm, rideCount: rides.length, maxKmh, totalGainM, parkRides, cleanParkRides, nightRides, dawnRides, maxRideKm, weekendRides, totalHours, incidentCount };
 }
 
 /**

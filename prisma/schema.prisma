@@ -54,6 +54,10 @@ model Ride {
   distanceKm   Float
   maxKmh       Float
   maxInParkKmh Float?
+  // Kilómetros recorridos DENTRO de la geocerca del parque (null en
+  // rides antiguos o que nunca entraron). Los desafíos del parque usan
+  // este valor, no la distancia total del ride.
+  inParkKm     Float?
   avgKmh       Float
   elapsedSec   Float
   gainM        Float

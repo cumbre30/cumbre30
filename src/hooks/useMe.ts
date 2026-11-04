@@ -34,6 +34,8 @@ export type MeStats = {
   maxRideKm: number;
   /** Rides de sábado o domingo. */
   weekendRides: number;
+  /** Horas totales pedaleadas. */
+  totalHours: number;
   lastRideDate: string | null;
   incidentCount: number;
 };

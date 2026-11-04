@@ -38,6 +38,7 @@ export async function POST(req: Request) {
         distanceKm: num(b.distanceKm, 0, 500),
         maxKmh: num(b.maxKmh, 0, 150),
         maxInParkKmh: b.maxInParkKmh == null ? null : num(b.maxInParkKmh, 0, 150),
+        inParkKm: b.inParkKm == null ? null : num(b.inParkKm, 0, 500),
         avgKmh: num(b.avgKmh, 0, 100),
         elapsedSec: num(b.elapsedSec, 0, 24 * 3600),
         gainM: num(b.gainM, -1000, 5000),

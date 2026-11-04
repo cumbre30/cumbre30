@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import {
   ACHIEVEMENT_BY_CODE,
   DEFAULT_PIN,
+  LEYENDA_KM,
   PINS,
   RETOS,
   RIDER_LEVELS,
@@ -47,10 +48,11 @@ const ACCENT_BAR: Record<string, string> = {
   sky: "bg-sky-500",
   teal: "bg-teal-500",
   amber: "bg-amber-500",
+  violet: "bg-violet-500",
 };
 
 /** Anillo de progreso del nivel actual, con los km acumulados al centro. */
-function LevelRing({ pct, km }: { pct: number; km: number }) {
+function LevelRing({ pct, km, gold = false }: { pct: number; km: number; gold?: boolean }) {
   const r = 33;
   const c = 2 * Math.PI * r;
   const clamped = Math.max(0, Math.min(100, pct));
@@ -62,11 +64,11 @@ function LevelRing({ pct, km }: { pct: number; km: number }) {
           cx="42" cy="42" r={r} fill="none" strokeWidth="7" strokeLinecap="round"
           strokeDasharray={c}
           strokeDashoffset={c * (1 - clamped / 100)}
-          className="stroke-emerald-500 transition-[stroke-dashoffset] duration-500"
+          className={`${gold ? "stroke-amber-400" : "stroke-emerald-500"} transition-[stroke-dashoffset] duration-500`}
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="font-mono text-lg font-bold leading-none tabular-nums text-foreground">{km.toFixed(1)}</span>
+        <span className={`font-mono text-lg font-bold leading-none tabular-nums ${gold ? "text-amber-500 dark:text-amber-300" : "text-foreground"}`}>{km.toFixed(1)}</span>
         <span className="mt-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">km</span>
       </div>
     </div>
@@ -115,6 +117,7 @@ export default function ChallengesTab({ onGoPerfil }: { onGoPerfil: () => void }
     dawnRides: me.stats.dawnRides,
     maxRideKm: me.stats.maxRideKm,
     weekendRides: me.stats.weekendRides,
+    totalHours: me.stats.totalHours,
     incidentCount: me.stats.incidentCount,
   };
   const unlocked = normalizeCodes(me.achievements.map((a) => a.code));
@@ -170,7 +173,7 @@ export default function ChallengesTab({ onGoPerfil }: { onGoPerfil: () => void }
             <div className="mt-1.5">
               <ProgressBar pct={pct} accent={ACCENT_BAR[accent] ?? "bg-emerald-500"} />
               <p className="text-[10px] text-muted-foreground/80 mt-1">
-                {pct}% · {t.metric === "totalGainM" || t.metric === "totalKm" ? `${Math.round(val).toLocaleString("es-CL")}` : val.toLocaleString("es-CL")} / {t.goal.toLocaleString("es-CL")}
+                {pct}% · {t.metric === "totalGainM" || t.metric === "totalKm" || t.metric === "totalHours" ? `${Math.round(val).toLocaleString("es-CL")}` : val.toLocaleString("es-CL")} / {t.goal.toLocaleString("es-CL")}
               </p>
             </div>
           )}
@@ -182,31 +185,50 @@ export default function ChallengesTab({ onGoPerfil }: { onGoPerfil: () => void }
   // ---- Nivel actual según km acumulados (helper compartido con Perfil) ----
   const km = stats.totalKm;
   const { index: lvlIdx, level: lvl, next, pct: lvlPct, toNext } = riderLevelForKm(km);
+  // 🌟 Leyenda: título exclusivo de esta tarjeta al superar los 500 km
+  // (el umbral coincide con el Diamante de la Serie Kilómetros).
+  const isLeyenda = km >= LEYENDA_KM;
 
   return (
     <div className="flex flex-col gap-4">
       {/* ---- Tu progreso ---- */}
-      <Card className="bg-card/80 border-border p-4">
+      <Card className={`bg-card/80 border-border p-4 ${isLeyenda ? "border-amber-500/50 bg-gradient-to-br from-amber-950/30 to-card" : ""}`}>
         <p className="text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground">Tu progreso</p>
         <div className="mt-3 flex items-center gap-4">
-          <LevelRing pct={lvlPct} km={km} />
+          <LevelRing pct={lvlPct} km={km} gold={isLeyenda} />
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-bold text-foreground">
-              Nivel {lvlIdx + 1} · {lvl.emoji} {lvl.name}
-            </p>
-            {next ? (
+            {isLeyenda ? (
               <>
-                <div className="mt-2">
-                  <ProgressBar pct={lvlPct} />
-                </div>
-                <p className="mt-1.5 text-[11px] leading-snug text-muted-foreground">
-                  Te faltan <span className="font-semibold text-foreground">{toNext.toFixed(1)} km</span> para {next.name} · {next.min} km
+                <p className="flex items-center gap-1.5 text-base font-extrabold text-amber-500 dark:text-amber-300">
+                  <span aria-hidden>🌟</span> Leyenda
+                </p>
+                <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">
+                  Nivel {lvlIdx + 1} · {lvl.emoji} {lvl.name} · +{km.toFixed(0)} km acumulados
+                </p>
+                <p className="mt-2 text-[11px] leading-snug text-muted-foreground">
+                  Superaste los {LEYENDA_KM} km del Diamante. Título exclusivo de tu progreso — sigue haciendo historia en el cerro 🏔️
                 </p>
               </>
             ) : (
-              <p className="mt-2 text-[11px] leading-snug text-muted-foreground">
-                ¡Nivel máximo alcanzado! Sigue sumando km en el cerro 🏔️
-              </p>
+              <>
+                <p className="text-sm font-bold text-foreground">
+                  Nivel {lvlIdx + 1} · {lvl.emoji} {lvl.name}
+                </p>
+                {next ? (
+                  <>
+                    <div className="mt-2">
+                      <ProgressBar pct={lvlPct} />
+                    </div>
+                    <p className="mt-1.5 text-[11px] leading-snug text-muted-foreground">
+                      Te faltan <span className="font-semibold text-foreground">{toNext.toFixed(1)} km</span> para {next.name} · {next.min} km
+                    </p>
+                  </>
+                ) : (
+                  <p className="mt-2 text-[11px] leading-snug text-muted-foreground">
+                    ¡Nivel máximo alcanzado! Sigue sumando km en el cerro 🏔️
+                  </p>
+                )}
+              </>
             )}
             <p className="mt-1 text-[10.5px] leading-snug text-muted-foreground/80">
               Km acumulados con GPS real, asociados a tu cuenta.

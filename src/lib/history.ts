@@ -12,6 +12,9 @@ export type RideSummary = {
   distanceKm: number;
   maxKmh: number;
   maxInParkKmh: number | null;
+  /** Km recorridos DENTRO de la geocerca del parque (null: ride antiguo
+   *  sin medición o que nunca entró). Base de los desafíos del parque. */
+  inParkKm?: number | null;
   avgKmh: number;
   elapsedSec: number;
   gainM: number;

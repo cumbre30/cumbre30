@@ -64,6 +64,7 @@ export function useRideEngine() {
     prevAltS: null as number | null,
     startRealTime: 0,
     distanceM: 0,
+    parkDistanceM: 0, // km dentro de la geocerca (desafíos del parque)
     movingSec: 0,
     elapsed: 0,
     gain: 0,
@@ -120,9 +121,13 @@ export function useRideEngine() {
       const vKmh = vPred * 3.6;
 
       // 2) Distancia (rechaza teleportes > 100 m o baja precisión)
+      let dValid = 0; // metros válidos de este paso (se reutilizan para el parque)
       if (e.lastFix) {
         const d = haversineM(e.lastFix, fix);
-        if (d < 100 && fix.accuracyM < 60) e.distanceM += d;
+        if (d < 100 && fix.accuracyM < 60) {
+          e.distanceM += d;
+          dValid = d;
+        }
       }
 
       // 3) Desnivel y pendiente (sobre altitud suavizada)
@@ -155,6 +160,9 @@ export function useRideEngine() {
           alerts.speak("park-out", "Saliendo del parque. Modo libre.", 4);
         }
       }
+      // Km efectivamente pedaleados DENTRO de la geocerca: es la base de
+      // los desafíos del parque (un ride de ruta que roza el borde no cuenta).
+      if (inside) e.parkDistanceM += dValid;
 
       // 6) Accesos (cercanía < 80 m)
       for (const gate of GATES) {
@@ -364,6 +372,7 @@ export function useRideEngine() {
       e.lastFix = null;
       e.prevSpeed = null;
       e.distanceM = 0;
+      e.parkDistanceM = 0;
       e.movingSec = 0;
       e.elapsed = 0;
       e.gain = 0;
@@ -462,6 +471,7 @@ export function useRideEngine() {
         distanceKm: e.distanceM / 1000,
         maxKmh: maxRef.current,
         maxInParkKmh: maxInParkRef.current,
+        inParkKm: Number((e.parkDistanceM / 1000).toFixed(2)),
         avgKmh: e.movingSec > 2 ? (e.distanceM / e.movingSec) * 3.6 : 0,
         elapsedSec: e.elapsed,
         gainM: e.gain,
