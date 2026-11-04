@@ -68,19 +68,10 @@ const ChallengesTab = dynamic(() => import("@/components/ChallengesTab"), {
   ),
 });
 
-const AmigosTab = dynamic(() => import("@/components/AmigosTab").then((m) => m.AmigosTab), {
-  ssr: false,
-  loading: () => (
-    <div className="h-40 rounded-xl border border-border bg-card flex items-center justify-center text-sm text-muted-foreground">
-      Cargando amigos…
-    </div>
-  ),
-});
-
 /** Destinos de la barra inferior (los 3 del brief). */
 type TabScreen = "ride" | "explorar" | "acceso";
 /** Sub-pantallas accesibles desde el menú lateral. */
-type SubScreen = MenuScreen; // historial | stats | premios | perfil | config | ayuda | amigos | planes
+type SubScreen = MenuScreen; // historial | stats | premios | perfil | config | ayuda | planes
 type Screen = TabScreen | SubScreen;
 
 const SUB_TITLES: Record<SubScreen, string> = {
@@ -90,7 +81,6 @@ const SUB_TITLES: Record<SubScreen, string> = {
   perfil: "Perfil",
   config: "Configuración",
   ayuda: "Ayuda y contacto",
-  amigos: "Amigos",
   planes: "Planes",
 };
 
@@ -273,7 +263,6 @@ export default function Home() {
             {screen === "stats" && <StatsTab onGoPro={() => go("planes")} />}
             {screen === "premios" && <ChallengesTab />}
             {screen === "perfil" && <ProfileTab />}
-            {screen === "amigos" && <AmigosTab onGoPerfil={() => go("perfil")} />}
             {screen === "config" && (
               <ConfigTab
                 source={source}

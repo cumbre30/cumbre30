@@ -1,26 +1,29 @@
 "use client";
 
 // ============================================================
-// Pagos y suscripciones — sección dentro de Perfil (PerfilTab),
+// Pagos y suscripciones — subsección dentro de Perfil (PerfilTab),
 // porque la licencia Pro va atada al correo de la cuenta.
 // Dentro vive únicamente:
 //   · La casilla para habilitar el modo Pro: ingresar código + validar.
+//     Con sesión iniciada NO se pide correo: se usa el correo logeado.
 //   · El aporte voluntario (Mercado Pago).
 // La comparativa de planes sigue en "Planes"; comprar es parte de
 // Planes y del menú lateral (tarjeta PRO).
 // ============================================================
 
 import { useState } from "react";
-import { BadgeCheck, ChevronDown, Crown, HeartHandshake, KeyRound } from "lucide-react";
+import { AtSign, BadgeCheck, ChevronDown, Crown, HeartHandshake, KeyRound } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { useMe } from "@/hooks/useMe";
 import { useProLicense } from "@/lib/proLicense";
 import { DONATE_OPTIONS, PRO_PRICE_LABEL, openExternal } from "@/lib/proConfig";
 
 export function PagosTab() {
   const { pro, activate, deactivate } = useProLicense();
+  const { me } = useMe(); // con sesión, el correo de validación es el de la cuenta
   const [enabled, setEnabled] = useState(false); // casilla "Habilitar modo Pro"
   const [proEmail, setProEmail] = useState("");
   const [proCode, setProCode] = useState("");
@@ -30,7 +33,7 @@ export function PagosTab() {
   const activatePro = async () => {
     setProBusy(true);
     setProMsg(null);
-    const res = await activate(proEmail, proCode);
+    const res = await activate(me?.user.email ?? proEmail, proCode);
     setProBusy(false);
     setProMsg(
       res.ok
@@ -109,14 +112,24 @@ export function PagosTab() {
 
                 {enabled && (
                   <div className="mt-3 grid gap-2">
-                    <Input
-                      type="email"
-                      placeholder="correo con el que pagaste"
-                      aria-label="Correo con el que pagaste"
-                      value={proEmail}
-                      onChange={(e) => setProEmail(e.target.value)}
-                      className="border-border bg-card"
-                    />
+                    {me ? (
+                      <p className="flex items-start gap-1.5 rounded-lg border border-border bg-background/60 px-3 py-2.5 text-[12px] leading-snug text-muted-foreground">
+                        <AtSign className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
+                        <span>
+                          Se validará con tu correo de la sesión:{" "}
+                          <span className="font-semibold text-foreground">{me.user.email}</span>
+                        </span>
+                      </p>
+                    ) : (
+                      <Input
+                        type="email"
+                        placeholder="correo con el que pagaste"
+                        aria-label="Correo con el que pagaste"
+                        value={proEmail}
+                        onChange={(e) => setProEmail(e.target.value)}
+                        className="border-border bg-card"
+                      />
+                    )}
                     <Input
                       placeholder="código C30P-XXXX-XXXX-XXXX-XXXX"
                       aria-label="Código de licencia"
@@ -126,7 +139,7 @@ export function PagosTab() {
                     />
                     <Button
                       onClick={activatePro}
-                      disabled={proBusy || !proEmail || !proCode}
+                      disabled={proBusy || !proCode || (!me && !proEmail)}
                       className="h-10 bg-emerald-600 font-semibold text-zinc-950 hover:bg-emerald-500"
                     >
                       {proBusy ? "Validando…" : "Validar código"}

@@ -3,9 +3,9 @@
 // ============================================================
 // Menú lateral del rediseño — 4 zonas (brief §1):
 //   CUMBRE30 PRO · Mi actividad · Cuenta · Plan actual
-// Cuenta consolida lo del ciclista: perfil (con pagos y
-// suscripciones dentro, porque la licencia va con el correo),
-// amigos, configuración y ayuda.
+// Cuenta consolida lo del ciclista: perfil (con subsecciones
+// mis datos / amigos / pagos y suscripciones, porque la licencia
+// va con el correo), configuración y ayuda.
 // Desliza desde la izquierda; el fondo cierra. Sin decoración
 // extra: jerarquía clara y agrupación por propósito.
 // ============================================================
@@ -22,7 +22,6 @@ import {
   Settings,
   Trophy,
   UserRound,
-  Users,
   X,
 } from "lucide-react";
 import { historyStore } from "@/lib/history";
@@ -35,7 +34,6 @@ export type MenuScreen =
   | "perfil"
   | "config"
   | "ayuda"
-  | "amigos"
   | "planes";
 
 function MenuItem({
@@ -151,18 +149,12 @@ export function AppDrawer({
           <MenuItem icon={<Trophy className="h-5 w-5" />} label="Premios y desafíos" onClick={() => go("premios")} />
         </div>
 
-        {/* Zona 3: Cuenta — pagos y suscripciones vive dentro de Perfil (licencia atada al correo) */}
+        {/* Zona 3: Cuenta — Perfil abre subsecciones (datos/amigos/pagos) */}
         <div className="mt-3 px-3">
           <p className="px-1 pb-1 pt-2 text-[10.5px] font-extrabold uppercase tracking-widest text-muted-foreground/70">Cuenta</p>
-          <MenuItem icon={<UserRound className="h-5 w-5" />} label="Perfil" onClick={() => go("perfil")} />
-          <MenuItem
-            icon={<Users className="h-5 w-5" />}
-            label="Amigos"
-            hint="Km y logros de tu grupo"
-            onClick={() => go("amigos")}
-          />
+          <MenuItem icon={<UserRound className="h-5 w-5" />} label="Perfil" hint="Datos, amigos y pagos" onClick={() => go("perfil")} />
           <MenuItem icon={<Settings className="h-5 w-5" />} label="Configuración" hint="Demo / GPS, sonido y voz" onClick={() => go("config")} />
-          <MenuItem icon={<HelpCircle className="h-5 w-5" />} label="Ayuda y contacto" onClick={() => go("ayuda")} />
+          <MenuItem icon={<HelpCircle className="h-5 w-5" />} label="Ayuda y contacto" hint="Consultas y prototipos" onClick={() => go("ayuda")} />
         </div>
 
         {/* Zona 4: Plan actual */}

@@ -1,23 +1,28 @@
 "use client";
 
 // ============================================================
-// Ayuda y contacto — datos reales de proConfig (WhatsApp y
-// correo del proyecto) + consejos rápidos de GPS + formulario
-// "¿Gestionas un parque o ciclovía?" (movido desde Perfil).
+// Ayuda y contacto — con subsecciones:
+//   · "Ayuda": contacto (correo; sin WhatsApp a pedido del
+//     proyecto), consejos rápidos de GPS e info de constancias.
+//   · "Prototipo": formulario "¿Gestionas un parque o ciclovía?"
+//     para armar un prototipo white-label del motor Cumbre30.
 // ============================================================
 
 import { useState } from "react";
-import { MessageCircle, Mail, Mountain } from "lucide-react";
+import { Mail, Mountain } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { CONTACT_EMAIL, CONTACT_WHATSAPP, openExternal } from "@/lib/proConfig";
+import { SubTabs } from "@/components/SubTabs";
 
 export function HelpTab() {
-  const wa = `https://wa.me/${CONTACT_WHATSAPP}`;
   const mail = `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent("Cumbre30 — consulta")}`;
+
+  // Subsecciones: Ayuda (contacto + consejos) | Prototipo (parques)
+  const [sub, setSub] = useState<"ayuda" | "prototipo">("ayuda");
 
   // Formulario parques / ciclovías (prototipo white-label)
   const [showContact, setShowContact] = useState(false);
@@ -60,18 +65,19 @@ export function HelpTab() {
 
   return (
     <div className="flex flex-col gap-4">
+      <SubTabs
+        ariaLabel="Subsecciones de Ayuda y contacto"
+        value={sub}
+        onChange={(k) => setSub(k as "ayuda" | "prototipo")}
+        tabs={[
+          { key: "ayuda", label: "Ayuda" },
+          { key: "prototipo", label: "Prototipo" },
+        ]}
+      />
+
+      {sub === "ayuda" && (
+      <>
       <div className="grid grid-cols-1 gap-2.5">
-        <Button
-          onClick={() => void openExternal(wa)}
-          className="h-14 justify-start gap-3 rounded-xl border border-border bg-card text-foreground hover:bg-accent"
-          variant="outline"
-        >
-          <MessageCircle className="h-5 w-5 text-emerald-500" />
-          <span className="flex flex-col items-start">
-            <span className="text-[14px] font-bold">WhatsApp</span>
-            <span className="text-[12px] font-medium text-muted-foreground">+56 9 4296 1619</span>
-          </span>
-        </Button>
         <Button
           onClick={() => void openExternal(mail)}
           className="h-14 justify-start gap-3 rounded-xl border border-border bg-card text-foreground hover:bg-accent"
@@ -103,8 +109,12 @@ export function HelpTab() {
           (3 al mes en FREE, ilimitadas con Pro). El export GPX de viajes con GPS es parte de Cumbre30 Pro.
         </p>
       </Card>
+      </>
+      )}
 
-      {/* ---- ¿Gestionas un parque o ciclovía? (movido desde Perfil) ---- */}
+      {sub === "prototipo" && (
+      <>
+      {/* ---- ¿Gestionas un parque o ciclovía? — prototipo white-label ---- */}
       <Card className="p-4">
         <div className="mb-1.5 flex items-center gap-2 font-bold text-foreground">
           <Mountain className="h-4 w-4 text-emerald-500" /> ¿Gestionas un parque o ciclovía?
@@ -179,6 +189,8 @@ export function HelpTab() {
           </div>
         )}
       </Card>
+      </>
+      )}
 
       <p className="text-center text-[10.5px] text-muted-foreground/60">
         Cumbre30 · Ciclocomputador del Cerro San Cristóbal · Parque Metropolitano de Santiago

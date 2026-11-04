@@ -1,14 +1,12 @@
 "use client";
 
 // ============================================================
-// Mis viajes (antes "Historial de viajes"):
-//   · Segmentos del cerro al principio — solo aplican a viajes GPS.
-//   · Resumen semanal con botón compartir (Instagram).
-//   · Viajes de la semana por defecto + filtro de fecha
-//     (semana / mes / día con calendario / todos) y desplegable
-//     de modo: demo o GPS.
-//   · Contador visual de constancias: al tocar muestra la cuota.
-//   · Viajes enlazados al correo de la cuenta; sin correo son locales.
+// Mis viajes (antes "Historial de viajes") — con subsecciones:
+//   · "Viajes": contador de constancias, resumen semanal con
+//     compartir (Instagram), filtros de fecha y modo (demo/GPS)
+//     y la lista de viajes enlazada al correo de la cuenta.
+//   · "Pro": segmentos del cerro — cronometraje de subidas,
+//     solo aplican a viajes GPS (función Cumbre30 Pro).
 // ============================================================
 
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
@@ -47,6 +45,7 @@ import {
   incrConstancia,
   useProLicense,
 } from "@/lib/proLicense";
+import { SubTabs } from "@/components/SubTabs";
 
 function fmtDate(iso: string): string {
   return new Date(iso).toLocaleString("es-CL", {
@@ -93,6 +92,9 @@ export function HistoryTab({
   const [range, setRange] = useState<RangeKey>("week");
   const [dayISO, setDayISO] = useState(() => new Date().toISOString().slice(0, 10));
   const [mode, setMode] = useState<ModeKey>("all");
+
+  // Subsecciones: Viajes (lista) | Pro (segmentos del cerro)
+  const [sub, setSub] = useState<"viajes" | "pro">("viajes");
 
   // Segmentos: se calculan solo con Pro (función Pro); para nivel
   // gratis basta el teaser. Solo viajes GPS: los demo no guardan pista.
@@ -270,6 +272,18 @@ export function HistoryTab({
 
   return (
     <div className="flex flex-col gap-4">
+      <SubTabs
+        ariaLabel="Subsecciones de Mis viajes"
+        value={sub}
+        onChange={(k) => setSub(k as "viajes" | "pro")}
+        tabs={[
+          { key: "viajes", label: "Viajes" },
+          { key: "pro", label: "Pro", crown: true },
+        ]}
+      />
+
+      {sub === "viajes" && (
+      <>
       {/* ---- Contador visual de constancias ---- */}
       <Card className="bg-card/80 border-border p-4">
         <button
@@ -330,74 +344,6 @@ export function HistoryTab({
               </Button>
             )}
           </div>
-        )}
-      </Card>
-
-      {/* ---- Segmentos del cerro (función Cumbre30 Pro, solo GPS) ---- */}
-      <Card className="bg-card/80 border-border p-4">
-        <div className="flex items-center gap-2">
-          <Mountain className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-          <p className="text-sm font-medium text-foreground">Segmentos del cerro</p>
-          {pro.active && (
-            <Badge className="bg-amber-500 font-bold text-zinc-950 text-[10px]">PRO</Badge>
-          )}
-          <Badge variant="outline" className="ml-auto border-border text-[10px] uppercase text-muted-foreground">
-            solo viajes GPS
-          </Badge>
-        </div>
-        {pro.active ? (
-          <>
-            <ul className="mt-2 flex flex-col gap-2">
-              {segStats.map((s) => (
-                <li key={s.def.id} className="rounded-lg border border-border bg-background/60 p-3">
-                  <div className="flex items-baseline justify-between gap-2 flex-wrap">
-                    <span className="text-sm font-medium text-foreground">{s.def.name}</span>
-                    {s.pb ? (
-                      <span className="flex items-center gap-1 font-mono text-base font-semibold text-amber-600 dark:text-amber-300">
-                        <Trophy className="h-4 w-4" /> {fmtEffort(s.pb.timeSec)}
-                      </span>
-                    ) : (
-                      <span className="text-[11px] text-muted-foreground">aún sin intentos</span>
-                    )}
-                  </div>
-                  <p className="mt-0.5 text-[11px] text-muted-foreground">{s.def.detail}</p>
-                  {s.pb && (
-                    <p className="mt-1 text-[11px] text-muted-foreground">
-                      Récord: {fmtDate(s.pb.dateISO)} · prom {s.pb.avgKmh.toFixed(1)} km/h · +{Math.round(s.pb.gainM)} m
-                    </p>
-                  )}
-                  {s.count > 0 && s.last && (
-                    <p className="mt-0.5 text-[11px] text-muted-foreground">
-                      {s.count} {s.count === 1 ? "intento" : "intentos"} · último: {fmtEffort(s.last.timeSec)} — {fmtDate(s.last.dateISO)}
-                    </p>
-                  )}
-                  {s.top.length > 1 && (
-                    <p className="mt-0.5 text-[11px] text-muted-foreground">
-                      Top: {s.top.map((e, i) => `${i + 1}) ${fmtEffort(e.timeSec)}`).join("  ")}
-                    </p>
-                  )}
-                </li>
-              ))}
-            </ul>
-            <p className="mt-2 text-[11px] text-muted-foreground">
-              Se detectan solos: graba tu viaje con GPS y si pasas por el acceso del segmento
-              hasta la meta, queda cronometrado con récord personal e historial.
-            </p>
-          </>
-        ) : (
-          <>
-            <p className="mt-1 leading-relaxed text-muted-foreground">
-              Cronometraje oficial de tus subidas — Pío Nono → Cumbre, Pedro de Valdivia Norte
-              → Cumbre y el tramo final Antilén → Cumbre — con récord personal, contador de
-              intentos e historial de tiempos. Aplican solo a viajes grabados con GPS.
-            </p>
-            <Button
-              onClick={onGoPro}
-              className="mt-3 h-9 bg-amber-500 font-bold text-zinc-950 hover:bg-amber-400"
-            >
-              <Crown className="mr-2 h-4 w-4" /> Es parte de Cumbre30 Pro
-            </Button>
-          </>
         )}
       </Card>
 
@@ -616,6 +562,80 @@ export function HistoryTab({
           Estos viajes son locales del dispositivo. Inicia sesión en Perfil y quedarán enlazados a tu
           correo automáticamente.
         </p>
+      )}
+      </>
+      )}
+
+      {sub === "pro" && (
+        <>
+          {/* ---- Segmentos del cerro (función Cumbre30 Pro, solo GPS) ---- */}
+          <Card className="bg-card/80 border-border p-4">
+            <div className="flex items-center gap-2">
+              <Mountain className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+              <p className="text-sm font-medium text-foreground">Segmentos del cerro</p>
+              {pro.active && (
+                <Badge className="bg-amber-500 font-bold text-zinc-950 text-[10px]">PRO</Badge>
+              )}
+              <Badge variant="outline" className="ml-auto border-border text-[10px] uppercase text-muted-foreground">
+                solo viajes GPS
+              </Badge>
+            </div>
+            {pro.active ? (
+              <>
+                <ul className="mt-2 flex flex-col gap-2">
+                  {segStats.map((s) => (
+                    <li key={s.def.id} className="rounded-lg border border-border bg-background/60 p-3">
+                      <div className="flex items-baseline justify-between gap-2 flex-wrap">
+                        <span className="text-sm font-medium text-foreground">{s.def.name}</span>
+                        {s.pb ? (
+                          <span className="flex items-center gap-1 font-mono text-base font-semibold text-amber-600 dark:text-amber-300">
+                            <Trophy className="h-4 w-4" /> {fmtEffort(s.pb.timeSec)}
+                          </span>
+                        ) : (
+                          <span className="text-[11px] text-muted-foreground">aún sin intentos</span>
+                        )}
+                      </div>
+                      <p className="mt-0.5 text-[11px] text-muted-foreground">{s.def.detail}</p>
+                      {s.pb && (
+                        <p className="mt-1 text-[11px] text-muted-foreground">
+                          Récord: {fmtDate(s.pb.dateISO)} · prom {s.pb.avgKmh.toFixed(1)} km/h · +{Math.round(s.pb.gainM)} m
+                        </p>
+                      )}
+                      {s.count > 0 && s.last && (
+                        <p className="mt-0.5 text-[11px] text-muted-foreground">
+                          {s.count} {s.count === 1 ? "intento" : "intentos"} · último: {fmtEffort(s.last.timeSec)} — {fmtDate(s.last.dateISO)}
+                        </p>
+                      )}
+                      {s.top.length > 1 && (
+                        <p className="mt-0.5 text-[11px] text-muted-foreground">
+                          Top: {s.top.map((e, i) => `${i + 1}) ${fmtEffort(e.timeSec)}`).join("  ")}
+                        </p>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+                <p className="mt-2 text-[11px] text-muted-foreground">
+                  Se detectan solos: graba tu viaje con GPS y si pasas por el acceso del segmento
+                  hasta la meta, queda cronometrado con récord personal e historial.
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="mt-1 leading-relaxed text-muted-foreground">
+                  Cronometraje oficial de tus subidas — Pío Nono → Cumbre, Pedro de Valdivia Norte
+                  → Cumbre y el tramo final Antilén → Cumbre — con récord personal, contador de
+                  intentos e historial de tiempos. Aplican solo a viajes grabados con GPS.
+                </p>
+                <Button
+                  onClick={onGoPro}
+                  className="mt-3 h-9 bg-amber-500 font-bold text-zinc-950 hover:bg-amber-400"
+                >
+                  <Crown className="mr-2 h-4 w-4" /> Es parte de Cumbre30 Pro
+                </Button>
+              </>
+            )}
+          </Card>
+        </>
       )}
     </div>
   );

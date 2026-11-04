@@ -1,10 +1,12 @@
 "use client";
 
 // ============================================================
-// Pestaña Perfil: sesión (correo + usuario), resumen de cuenta,
-// datos de la bici, amigos y compartir resumen para Instagram.
-// Incluye la sección "Pagos y suscripciones" (modo Pro + aporte
-// voluntario): la licencia va atada al correo de la cuenta.
+// Pestaña Perfil — con subsecciones (solo se ve la activa):
+//   · "Mis datos": sesión (correo + usuario), resumen de cuenta,
+//     bici, pin y compartir resumen para Instagram.
+//   · "Amigos": listado de amigos (requiere sesión).
+//   · "Pagos y suscripciones": modo Pro + aporte voluntario —
+//     la licencia va atada al correo de la cuenta.
 // ============================================================
 
 import { useCallback, useState } from "react";
@@ -36,15 +38,16 @@ import { PINS, DEFAULT_PIN, type PinId } from "@/lib/pins";
 import { APP_VERSION, APP_VERSION_CODE, APK_SIZE_MB } from "@/lib/appVersion";
 import { buildShareImage, sharePngBlob } from "@/lib/shareImage";
 import { PagosTab } from "@/components/PagosTab";
+import { AmigosTab } from "@/components/AmigosTab";
+import { SubTabs, type SubTabDef } from "@/components/SubTabs";
 
-/** Micro-encabezado de sección, mismo estilo que las zonas del menú lateral. */
-function SectionLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <p className="px-1 pt-1 text-[10.5px] font-extrabold uppercase tracking-widest text-muted-foreground/70">
-      {children}
-    </p>
-  );
-}
+/** Subsecciones de Perfil: se muestran al entrar y solo se ve la activa. */
+type SubKey = "datos" | "amigos" | "pagos";
+const PROFILE_SUBS: SubTabDef[] = [
+  { key: "datos", label: "Mis datos" },
+  { key: "amigos", label: "Amigos" },
+  { key: "pagos", label: "Pagos y suscripciones" },
+];
 
 function StatBox({ label, value, unit }: { label: string; value: string | number; unit?: string }) {
   return (
@@ -83,6 +86,9 @@ export default function ProfileTab() {
   const [newUsername, setNewUsername] = useState("");
   const [userBusy, setUserBusy] = useState(false);
   const [userMsg, setUserMsg] = useState<{ ok: boolean; text: string } | null>(null);
+
+  // Subsección activa de Perfil (se mantiene al iniciar sesión)
+  const [sub, setSub] = useState<SubKey>("datos");
 
   const submit = async () => {
     setBusy(true);
@@ -148,10 +154,19 @@ export default function ProfileTab() {
     setTimeout(() => setUserMsg(null), 8000);
   };
 
-  // ---------- Sin sesión: login / registro ----------
+  // ---------- Sin sesión: subsecciones con login en "Mis datos" ----------
   if (ready && !me) {
     return (
       <div className="flex flex-col gap-4">
+        <SubTabs
+          ariaLabel="Subsecciones de Perfil"
+          value={sub}
+          onChange={(k) => setSub(k as SubKey)}
+          tabs={PROFILE_SUBS}
+        />
+
+        {sub === "datos" && (
+        <>
         <Card className="bg-card/80 border-border p-4">
           <div className="flex items-start gap-3">
             <Users className="h-5 w-5 text-emerald-600 dark:text-emerald-400 mt-0.5" />
@@ -221,10 +236,11 @@ export default function ProfileTab() {
             con el mismo correo, se enlaza y conservas tus km, logros y pines.
           </p>
         </div>
+        </>
+        )}
 
-        {/* Pagos y suscripciones: visible también sin sesión — el código Pro se valida con el correo de pago */}
-        <SectionLabel>Pagos y suscripciones</SectionLabel>
-        <PagosTab />
+        {sub === "amigos" && <AmigosTab onGoPerfil={() => setSub("datos")} />}
+        {sub === "pagos" && <PagosTab />}
       </div>
     );
   }
@@ -239,6 +255,15 @@ export default function ProfileTab() {
 
   return (
     <div className="flex flex-col gap-4">
+      <SubTabs
+        ariaLabel="Subsecciones de Perfil"
+        value={sub}
+        onChange={(k) => setSub(k as SubKey)}
+        tabs={PROFILE_SUBS}
+      />
+
+      {sub === "datos" && (
+      <>
       {/* Cabecera de cuenta */}
       <Card className="bg-card/80 border-border p-4">
         <div className="flex items-center gap-3">
@@ -339,10 +364,6 @@ export default function ProfileTab() {
         )}
       </Card>
 
-      {/* Pagos y suscripciones: modo Pro + aporte voluntario (licencia atada al correo) */}
-      <SectionLabel>Pagos y suscripciones</SectionLabel>
-      <PagosTab />
-
       {/* Descarga app Android */}
       <Card className="bg-card/80 border-border p-4">
         <div className="flex items-start gap-3 mb-3">
@@ -401,7 +422,11 @@ export default function ProfileTab() {
           <KeyRound className="h-3.5 w-3.5" /> Tus rides del dispositivo se sincronizan automáticamente al tener sesión.
         </p>
       </Card>
+      </>
+      )}
 
+      {sub === "amigos" && <AmigosTab onGoPerfil={() => setSub("datos")} />}
+      {sub === "pagos" && <PagosTab />}
     </div>
   );
 }
