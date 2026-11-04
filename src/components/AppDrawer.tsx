@@ -152,7 +152,7 @@ export function AppDrawer({
           <p className="px-1 pb-1 pt-2 text-[10.5px] font-extrabold uppercase tracking-widest text-muted-foreground/70">Mi actividad</p>
           <MenuItem icon={<History className="h-5 w-5" />} label="Mis viajes" onClick={() => go("historial")} />
           <MenuItem icon={<ChartLine className="h-5 w-5" />} label="Estadísticas generales" onClick={() => go("stats")} />
-          <MenuItem icon={<Trophy className="h-5 w-5" />} label="Premios y desafíos" onClick={() => go("premios")} />
+          <MenuItem icon={<Trophy className="h-5 w-5" />} label="Desafíos y recompensas" onClick={() => go("premios")} />
         </div>
 
         {/* Zona 3: Cuenta — Perfil abre subsecciones (datos/amigos/pagos) */}

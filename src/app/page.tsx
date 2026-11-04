@@ -77,7 +77,7 @@ type Screen = TabScreen | SubScreen;
 const SUB_TITLES: Record<SubScreen, string> = {
   historial: "Mis viajes",
   stats: "Estadísticas generales",
-  premios: "Premios y desafíos",
+  premios: "Desafíos y recompensas",
   perfil: "Perfil",
   config: "Configuración",
   ayuda: "Ayuda y contacto",
@@ -261,7 +261,7 @@ export default function Home() {
               />
             )}
             {screen === "stats" && <StatsTab onGoPro={() => go("planes")} />}
-            {screen === "premios" && <ChallengesTab />}
+            {screen === "premios" && <ChallengesTab onGoPerfil={() => go("perfil")} />}
             {screen === "perfil" && <ProfileTab />}
             {screen === "config" && (
               <ConfigTab

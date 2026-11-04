@@ -17,7 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { gpsOnly, historyStore, ridesForAccount } from "@/lib/history";
 import { formatClock } from "@/lib/geo";
-import { computeSegmentStats, fmtEffort } from "@/lib/segments";
+import { computeSegmentStats, fmtEffort, SEGMENTS } from "@/lib/segments";
 import { useProLicense } from "@/lib/proLicense";
 import { useMe } from "@/hooks/useMe";
 import { ProTag } from "@/components/ProUI";
@@ -127,18 +127,24 @@ export function StatsTab({ onGoPro }: { onGoPro: () => void }) {
                 </Card>
               )
             ) : (
-              <Card className="flex items-center gap-3 p-4">
-                <span className="text-xl">🏁</span>
-                <div className="min-w-0 flex-1">
-                  <p className="text-[13.5px] font-bold text-foreground">Pío Nono → Cumbre</p>
-                  <p className="text-[11.5px] leading-snug text-muted-foreground">
-                    Tu récord personal e historial de intentos por segmento.
-                  </p>
+              <>
+                {/* Los 3 segmentos existen: el nivel gratis los ve bloqueados */}
+                <div className="flex flex-col gap-2">
+                  {SEGMENTS.map((def) => (
+                    <Card key={def.id} className="flex items-center gap-3 p-3.5">
+                      <span className="text-xl">🏁</span>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-[13.5px] font-bold text-foreground">{def.name}</p>
+                        <p className="text-[11px] leading-snug text-muted-foreground">{def.detail}</p>
+                      </div>
+                      <Lock className="h-4 w-4 shrink-0 text-muted-foreground/70" />
+                    </Card>
+                  ))}
                 </div>
-                <Button onClick={onGoPro} size="sm" className="h-9 shrink-0 rounded-lg bg-emerald-600 px-3 text-xs font-bold text-zinc-950 hover:bg-emerald-500">
+                <Button onClick={onGoPro} size="sm" className="h-9 shrink-0 self-center rounded-lg bg-emerald-600 px-3 text-xs font-bold text-zinc-950 hover:bg-emerald-500">
                   <Lock className="mr-1 h-3 w-3" /> Con PRO
                 </Button>
-              </Card>
+              </>
             )}
           </div>
         </>

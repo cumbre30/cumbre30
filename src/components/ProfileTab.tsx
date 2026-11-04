@@ -41,13 +41,16 @@ import { PagosTab } from "@/components/PagosTab";
 import { AmigosTab } from "@/components/AmigosTab";
 import { SubTabs, type SubTabDef } from "@/components/SubTabs";
 
-/** Subsecciones de Perfil: se muestran al entrar y solo se ve la activa. */
+/** Subsecciones de Perfil: se muestran al entrar y solo se ve la activa.
+ *  "Pagos y suscripciones" aparece solo con sesión: la licencia Pro va
+ *  atada al correo de la cuenta. Amigos indica iniciar sesión igual. */
 type SubKey = "datos" | "amigos" | "pagos";
 const PROFILE_SUBS: SubTabDef[] = [
   { key: "datos", label: "Mis datos" },
   { key: "amigos", label: "Amigos" },
   { key: "pagos", label: "Pagos y suscripciones" },
 ];
+const PROFILE_SUBS_SIN_SESION: SubTabDef[] = PROFILE_SUBS.filter((t) => t.key !== "pagos");
 
 function StatBox({ label, value, unit }: { label: string; value: string | number; unit?: string }) {
   return (
@@ -87,8 +90,10 @@ export default function ProfileTab() {
   const [userBusy, setUserBusy] = useState(false);
   const [userMsg, setUserMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
-  // Subsección activa de Perfil (se mantiene al iniciar sesión)
+  // Subsección activa de Perfil (se mantiene al iniciar sesión).
+  // Sin sesión "pagos" no existe: cae a "datos".
   const [sub, setSub] = useState<SubKey>("datos");
+  const activeSub: SubKey = sub === "pagos" && !me ? "datos" : sub;
 
   const submit = async () => {
     setBusy(true);
@@ -160,12 +165,12 @@ export default function ProfileTab() {
       <div className="flex flex-col gap-4">
         <SubTabs
           ariaLabel="Subsecciones de Perfil"
-          value={sub}
+          value={activeSub}
           onChange={(k) => setSub(k as SubKey)}
-          tabs={PROFILE_SUBS}
+          tabs={PROFILE_SUBS_SIN_SESION}
         />
 
-        {sub === "datos" && (
+        {activeSub === "datos" && (
         <>
         <Card className="bg-card/80 border-border p-4">
           <div className="flex items-start gap-3">
@@ -239,8 +244,7 @@ export default function ProfileTab() {
         </>
         )}
 
-        {sub === "amigos" && <AmigosTab onGoPerfil={() => setSub("datos")} />}
-        {sub === "pagos" && <PagosTab />}
+        {activeSub === "amigos" && <AmigosTab onGoPerfil={() => setSub("datos")} />}
       </div>
     );
   }
@@ -257,7 +261,7 @@ export default function ProfileTab() {
     <div className="flex flex-col gap-4">
       <SubTabs
         ariaLabel="Subsecciones de Perfil"
-        value={sub}
+        value={activeSub}
         onChange={(k) => setSub(k as SubKey)}
         tabs={PROFILE_SUBS}
       />

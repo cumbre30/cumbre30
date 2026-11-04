@@ -23,7 +23,7 @@ export const PLAN_ROWS: PlanRow[] = [
   { feature: "GPS real y registro de viajes", free: true, pro: true },
   { feature: "Mapa del cerro y rutas a destinos", free: true, pro: true },
   { feature: "Acceso QR y ficha médica", free: true, pro: true },
-  { feature: "Premios y desafíos", free: true, pro: true },
+  { feature: "Desafíos y recompensas", free: true, pro: true },
   { feature: "Constancias PDF", free: "3 al mes", pro: "Ilimitadas" },
   { feature: "Buscador universal de direcciones", free: false, pro: true },
   { feature: "Segmentos del cerro con récords", free: false, pro: true },
