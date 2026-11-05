@@ -8,7 +8,7 @@
 // Se activa con NEXT_PUBLIC_STATIC=1 en tiempo de build.
 // ============================================================
 
-import { bikeOnly, historyStore, ridesForAccount, type RideSummary } from "@/lib/history";
+import { bikeOnly, historyStore, removeRidesForAccount, ridesForAccount, type RideSummary } from "@/lib/history";
 import { ACHIEVEMENT_BY_CODE, evaluateAchievements, isPinId, normalizeCodes, statsFromRides, type PinId } from "@/lib/pins";
 import { isProActive } from "@/lib/proLicense";
 import { validateUsername, usernameLocked } from "@/lib/username";
@@ -317,6 +317,28 @@ function uniqueUsernameFrom(email: string, users: Record<string, OfflineUser>): 
 export function offlineLogout(): void {
   if (typeof window === "undefined") return;
   localStorage.removeItem(SESSION_KEY);
+}
+
+/**
+ * Baja definitiva de la cuenta local (Perfil → Mis datos → Eliminar cuenta):
+ * borra la cuenta, su sesión y sus viajes enlazados. Los logros y la licencia
+ * Pro viven a nivel de dispositivo, así que solo se eliminan si este era el
+ * último usuario del teléfono. Es irreversible.
+ */
+export function offlineDeleteAccount(): void {
+  if (typeof window === "undefined") return;
+  const email = getSession()?.email ?? null;
+  if (email) {
+    const users = readUsers();
+    delete users[email];
+    writeJSON(USERS_KEY, users);
+    removeRidesForAccount(email);
+  }
+  localStorage.removeItem(SESSION_KEY);
+  if (Object.keys(readUsers()).length === 0) {
+    localStorage.removeItem(ACH_KEY);
+    localStorage.removeItem("cumbre30-pro-v1"); // licencia Pro del dispositivo
+  }
 }
 
 // ---------- cambio de nombre de usuario (1 vez cada 30 días) ----------

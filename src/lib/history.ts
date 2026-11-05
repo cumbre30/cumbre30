@@ -143,6 +143,29 @@ export function linkRidesToAccount(email: string): number {
   return n;
 }
 
+/**
+ * Elimina todos los viajes enlazados a una cuenta (baja de cuenta).
+ * Los rides locales sin enlazar y los de otras cuentas se conservan.
+ * Devuelve cuántos viajes se borraron.
+ */
+export function removeRidesForAccount(email: string): number {
+  if (typeof window === "undefined") return 0;
+  const mail = email.trim().toLowerCase();
+  if (!mail) return 0;
+  const list = readFromStorage();
+  const rest = list.filter((r) => r.account?.toLowerCase() !== mail);
+  const removed = list.length - rest.length;
+  if (removed) {
+    try {
+      localStorage.setItem(KEY, JSON.stringify(rest));
+      historyStore.refresh();
+    } catch {
+      // almacenamiento lleno/bloqueado
+    }
+  }
+  return removed;
+}
+
 export function saveRide(s: RideSummary): void {
   if (typeof window === "undefined") return;
   const list = readFromStorage();

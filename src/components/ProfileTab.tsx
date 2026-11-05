@@ -21,12 +21,13 @@ import {
   KeyRound,
   Smartphone,
   PenLine,
+  Trash2,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { authAction, forgotPassword, googleAuthAction, changeUsername, logout, resetPassword, useMe } from "@/hooks/useMe";
+import { authAction, deleteAccount, forgotPassword, googleAuthAction, changeUsername, logout, resetPassword, useMe } from "@/hooks/useMe";
 import { isOfflineMode } from "@/lib/offlineAuth";
 import { CONTACT_WHATSAPP } from "@/lib/proConfig";
 import { nativeGoogleSignIn, nativeGoogleSignOut } from "@/lib/googleAuth";
@@ -86,6 +87,7 @@ export default function ProfileTab() {
   const [newUsername, setNewUsername] = useState("");
   const [userBusy, setUserBusy] = useState(false);
   const [userMsg, setUserMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [delStage, setDelStage] = useState<"idle" | "confirm" | "busy">("idle");
 
   // --- Olvidé mi contraseña ---
   // Server: paso 1 pide el código (lo entrega soporte por WhatsApp tras
@@ -649,6 +651,63 @@ export default function ProfileTab() {
         <p className="mt-2 text-xs text-muted-foreground flex items-center gap-1">
           <KeyRound className="h-3.5 w-3.5" /> Tus rides del dispositivo se sincronizan automáticamente al tener sesión.
         </p>
+      </Card>
+
+      {/* Zona de cuenta — baja definitiva (Google Play exige eliminación in-app) */}
+      <Card className="border-red-900/40 bg-red-950/10 p-4">
+        <div className="flex items-start gap-3">
+          <Trash2 className="h-5 w-5 text-red-600 dark:text-red-400 mt-0.5 shrink-0" />
+          <div className="text-sm flex-1 min-w-0">
+            <p className="font-medium text-foreground">Eliminar cuenta</p>
+            {delStage === "idle" ? (
+              <>
+                <p className="mt-1 leading-relaxed text-muted-foreground">
+                  Borra definitivamente tu cuenta: correo, usuario, kilómetros, logros, pines y todo tu historial de
+                  viajes. Si este era el único usuario del teléfono, también se elimina tu licencia Pro local. La
+                  acción es irreversible.
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setDelStage("confirm")}
+                  className="mt-3 h-8 border-red-900/50 px-3 text-[12px] text-red-600 hover:border-red-600 hover:text-red-500 dark:text-red-400"
+                >
+                  <Trash2 className="mr-1 h-3.5 w-3.5" /> Eliminar mi cuenta
+                </Button>
+              </>
+            ) : delStage === "confirm" ? (
+              <>
+                <p className="mt-1 leading-relaxed text-foreground/90">
+                  ¿Seguro? Esta acción <span className="font-semibold">no se puede deshacer</span> y perderás todo lo
+                  asociado a <span className="font-semibold">{me.user.email}</span>.
+                </p>
+                <div className="mt-3 flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setDelStage("idle")}
+                    className="h-8 border-border px-3 text-[12px] text-muted-foreground"
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => {
+                      setDelStage("busy");
+                      void deleteAccount().finally(() => setDelStage("idle"));
+                    }}
+                    className="h-8 bg-red-600 px-3 text-[12px] font-semibold text-white hover:bg-red-500"
+                  >
+                    Eliminar definitivamente
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <p className="mt-1 text-red-600 dark:text-red-400">Eliminando tu cuenta…</p>
+            )}
+          </div>
+        </div>
       </Card>
       </>
       )}

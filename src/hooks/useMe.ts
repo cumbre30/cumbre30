@@ -5,7 +5,7 @@
 // En el APK (export estático) todo va por offlineAuth (localStorage).
 
 import { useSyncExternalStore } from "react";
-import { isOfflineMode, offlineChangeUsername, offlineForgotReset, offlineGoogleSignIn, offlineLogin, offlineLogout, offlineMe, offlineRegister } from "@/lib/offlineAuth";
+import { isOfflineMode, offlineChangeUsername, offlineDeleteAccount, offlineForgotReset, offlineGoogleSignIn, offlineLogin, offlineLogout, offlineMe, offlineRegister } from "@/lib/offlineAuth";
 
 export type MeUser = {
   id: string;
@@ -207,6 +207,27 @@ export async function logout(): Promise<void> {
       offlineLogout();
     } else {
       await fetch("/api/auth/logout", { method: "POST" });
+    }
+  } catch {
+    // sin conexión
+  }
+  cache = null;
+  ready = true;
+  notify();
+}
+
+/**
+ * Baja definitiva de la cuenta (Google Play exige eliminación in-app).
+ * Servidor: DELETE /api/auth/account (cascade en el schema). APK:
+ * offlineDeleteAccount borra cuenta, sesión, rides y —si es la última
+ * cuenta del dispositivo— logros y licencia Pro locales.
+ */
+export async function deleteAccount(): Promise<void> {
+  try {
+    if (isOfflineMode()) {
+      offlineDeleteAccount();
+    } else {
+      await fetch("/api/auth/account", { method: "DELETE" });
     }
   } catch {
     // sin conexión
