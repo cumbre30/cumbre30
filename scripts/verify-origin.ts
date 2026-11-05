@@ -21,7 +21,7 @@ import { computeRoute } from "../src/lib/routingService";
 async function main() {
   // usuario a ~60 m del Acceso Pío Nono (no sobre un nodo)
   const from = { lat: -33.4303, lon: -70.6355 };
-  const to = { lat: -33.404, lon: -70.617 }; // Cumbre
+  const to = { lat: -33.42527, lon: -70.63324 }; // Cumbre
 
   const res = await computeRoute(from, to);
   if (!res.route) throw new Error("sin ruta: " + res.error);

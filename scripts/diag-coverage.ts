@@ -111,7 +111,7 @@ for (const c of userCandidates) {
 
 // --- 3) ¿Dónde parte la ruta hacia cada destino típico? ---
 const dests: { label: string; p: LatLng }[] = [
-  { label: "Cumbre", p: { lat: -33.404, lon: -70.617 } },
+  { label: "Cumbre", p: { lat: -33.42527, lon: -70.63324 } },
   { label: "Zoológico", p: { lat: -33.429636, lon: -70.633963 } },
   { label: "Piscina Antilén", p: { lat: -33.409051, lon: -70.61374 } },
   { label: "Acceso Pío Nono", p: { lat: -33.430691, lon: -70.63592 } },

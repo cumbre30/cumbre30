@@ -20,7 +20,7 @@ function nearest(p, maxM = 800) {
   return { idx: bd <= maxM ? best : null, d: bd };
 }
 const ORIGIN = [-33.430691, -70.63592]; // Pío Nono
-const DEST = [-33.404, -70.617]; // Cumbre
+const DEST = [-33.42527, -70.63324]; // Cumbre
 const so = nearest(ORIGIN), sd = nearest(DEST);
 console.log("origen → nodo", so.idx, "a", Math.round(so.d), "m — coord", nodes[so.idx]);
 console.log("destino → nodo", sd.idx, "a", Math.round(sd.d), "m — coord", nodes[sd.idx]);

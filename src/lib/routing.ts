@@ -339,6 +339,16 @@ export function findRoute(net: Network, from: LatLng, to: LatLng): NavRoute | nu
     void u;
   }
 
+  // --- resguardo: origen anclado a una ISLA del grafo ---
+  // Si el pin del ciclista cayó sobre un fragmento aislado (p. ej. el
+  // mirador de la Virgen, un sendero sin conexión), la búsqueda no puede
+  // avanzar y la "ruta" terminaría a metros del inicio sin acercarse al
+  // destino. En ese caso devolvemos null para caer al respaldo (OSRM en
+  // web; aviso de sin cobertura en el APK), como con orígenes lejanos.
+  const endToM = haversineM(coords[coords.length - 1], to);
+  const startToM = haversineM(coords[0], to);
+  if (!done[t] && endToM > startToM - 50) return null;
+
   // --- instrucciones paso a paso ---
   const steps: RouteStep[] = [];
   const fmt = (m: number) => (m >= 950 ? `${(m / 1000).toFixed(1)} km` : `${Math.round(m / 10) * 10} m`);

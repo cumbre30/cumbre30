@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
-"""Genera src/lib/park.ts con el polígono real del parque (OSM) y POIs calibrados."""
+"""Genera src/lib/park.ts con el polígono real del parque (OSM) y POIs calibrados.
+
+⚠️ park.ts ahora incluye secciones mantenidas A MANO (NAV_DESTINATIONS con
+Plaza México y la Cumbre corregida 2026-11-05, y los comentarios con fuentes).
+Re-ejecutar este script PISARÍA esas secciones: si regeneras, vuelve a
+agregarlas desde el park.ts vigente en git.
+"""
 import json, math
 
 d = json.load(open("/home/z/my-project/scripts/osm-calibrated.json"))
@@ -50,24 +56,24 @@ def fmt_poly(points, per_line=3):
 poly_txt = fmt_poly(park)
 
 route = [
-    # (lat, lon, kmh, alt, comentario)
+    # (lat, lon, kmh, alt, comentario) — geografía real: la cumbre es el
+    # Santuario de la Virgen (863 m, Wikipedia), NO el sector Tupahue.
     (-33.4343, -70.6360, 10, 700, "Bellavista (fuera del parque)"),
     (-33.4300, -70.6350, 12, 706, "ingreso por Pío Nono"),
     (-33.4296, -70.6340, 11, 722, "Zoológico Nacional"),
-    (-33.4250, -70.6315, 14, 745, "camino interior"),
-    (-33.4200, -70.6280, 15, 768, ""),
+    (-33.4277, -70.6337, 12, 758, "camino a la cumbre (lado del Funicular)"),
+    (-33.4262, -70.6334, 10, 812, "recta final junto al Santuario"),
+    (-33.42527, -70.63324, 8, 863, "Cumbre — Virgen de la Inmaculada"),
+    (-33.4234, -70.6327, 14, 848, "Plaza México (fuente, buses panorámicos)"),
+    (-33.4195, -70.6280, 16, 822, "Av. Pedro Bannen hacia Tupahue"),
     (-33.4171, -70.6235, 12, 785, "Casa de la Cultura Anáhuac (curva)"),
-    (-33.4100, -70.6215, 16, 830, "tramo a la cumbre"),
-    (-33.4040, -70.6170, 8, 875, "Cumbre"),
-    (-33.4050, -70.6150, 24, 848, "inicio bajada"),
-    (-33.4075, -70.6135, 28, 815, "bajada"),
-    (-33.4091, -70.6137, 35, 795, "cruce Piscina Antilén — pico sobre el límite"),
-    (-33.4112, -70.6142, 31, 788, ""),
-    (-33.4133, -70.6147, 32, 782, "Jardín Japonés"),
-    (-33.4130, -70.6130, 27, 772, ""),
-    (-33.4128, -70.6115, 25, 760, ""),
-    (-33.4122, -70.6095, 22, 748, ""),
-    (-33.4118, -70.6085, 16, 738, "salida Acceso Pedro de Valdivia Norte"),
+    (-33.4148, -70.6190, 18, 790, "tramo Tupahue → Jardín Japonés"),
+    (-33.4133, -70.6147, 20, 792, "Jardín Japonés"),
+    (-33.4112, -70.6138, 18, 798, "Av. Carlos Martner hacia Antilén"),
+    (-33.4091, -70.6137, 16, 802, "cruce Piscina Antilén (cumbre Chacarillas)"),
+    (-33.4112, -70.6135, 24, 794, "vuelta por Carlos Martner"),
+    (-33.4118, -70.6105, 35, 762, "bajada a PdV Norte — pico sobre el límite"),
+    (-33.4118, -70.6080, 16, 738, "salida Acceso Pedro de Valdivia Norte"),
     (-33.4113, -70.6068, 12, 730, "Av. Pedro de Valdivia (fuera)"),
 ]
 
@@ -170,3 +176,5 @@ export const SIM_ROUTE: SimWaypoint[] = [
 
 open("/home/z/my-project/src/lib/park.ts", "w").write(ts)
 print("park.ts generado:", len(park), "vértices,", len(route), "waypoints")
+print("⚠️  RECUERDA: park.ts lleva NAV_DESTINATIONS y comentarios a mano —")
+print("     este script los borra; restáuralos desde git si regeneraste.")

@@ -232,11 +232,11 @@ casos.push({ label: "Bellavista + ruido GPS 12 m", from: jitter(baseBell, 12), t
 casos.push({ label: "Bellavista + ruido GPS 25 m", from: jitter(baseBell, 25), to: PIO_ENTRADA, grid: true });
 casos.push({ label: "Bellavista + ruido GPS 40 m", from: jitter(baseBell, 40), to: PIO_ENTRADA, grid: true });
 const basePio = nodeOfStreet("Pío Nono") ?? PIO_SUR;
-casos.push({ label: "Pío Nono + ruido GPS 25 m (→ Cumbre)", from: jitter(basePio, 25), to: { lat: -33.404, lon: -70.617 }, grid: true });
+casos.push({ label: "Pío Nono + ruido GPS 25 m (→ Cumbre)", from: jitter(basePio, 25), to: { lat: -33.42527, lon: -70.63324 }, grid: true });
 
 // 3) Pines dentro de una cuadra / zona peatonal (Patio Bellavista)
 casos.push({ label: "interior de cuadra Bellavista (+45 m diagonal)", from: { lat: baseBell.lat + 0.00035, lon: baseBell.lon + 0.00042 }, to: PIO_ENTRADA, grid: true });
-casos.push({ label: "interior de cuadra Pío Nono (+45 m diagonal, → Cumbre)", from: { lat: basePio.lat + 0.00035, lon: basePio.lon + 0.00042 }, to: { lat: -33.404, lon: -70.617 }, grid: true });
+casos.push({ label: "interior de cuadra Pío Nono (+45 m diagonal, → Cumbre)", from: { lat: basePio.lat + 0.00035, lon: basePio.lon + 0.00042 }, to: { lat: -33.42527, lon: -70.63324 }, grid: true });
 const patio = nodeOfStreet("Patio Bellavista");
 if (patio) casos.push({ label: "pin sobre pasaje Patio Bellavista", from: jitter(patio, 10), to: PIO_ENTRADA, grid: true });
 
@@ -247,7 +247,7 @@ casos.push({ label: "Plaza Ñuñoa → Pío Nono", from: { lat: -33.44980, lon: 
 casos.push({ label: "Barrio Italia → Pío Nono", from: { lat: -33.45200, lon: -70.63800 }, to: PIO_SUR, grid: false });
 
 // 5) Control clásico: acceso Pío Nono → Cumbre (origen provisional de la app)
-casos.push({ label: "Acceso Pío Nono → Cumbre (control)", from: { lat: -33.430691, lon: -70.63592 }, to: { lat: -33.404, lon: -70.617 }, grid: true });
+casos.push({ label: "Acceso Pío Nono → Cumbre (control)", from: { lat: -33.430691, lon: -70.63592 }, to: { lat: -33.42527, lon: -70.63324 }, grid: true });
 
 // ---------------------------------------------------------------
 let failures = 0;

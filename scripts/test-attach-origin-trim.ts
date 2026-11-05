@@ -157,10 +157,10 @@ console.log("\n2) Recorte cercano (<150 m) mantiene el pin como inicio:");
 // ---------------------------------------------------------------
 console.log("\n3) Casos reales (grafo local):");
 const cases: { label: string; from: LatLng; to: LatLng }[] = [
-  { label: "Pío Nono → Cumbre", from: { lat: -33.430691, lon: -70.63592 }, to: { lat: -33.404, lon: -70.617 } },
+  { label: "Pío Nono → Cumbre", from: { lat: -33.430691, lon: -70.63592 }, to: { lat: -33.42527, lon: -70.63324 } },
   { label: "Bellavista (Dardignac) → Zoológico", from: { lat: -33.4292, lon: -70.6385 }, to: { lat: -33.429636, lon: -70.633963 } },
   { label: "Pedro de Valdivia Norte → Piscina Antilén", from: { lat: -33.411769, lon: -70.607988 }, to: { lat: -33.409051, lon: -70.61374 } },
-  { label: "Mitad de cuadra Bellavista → Cumbre", from: { lat: -33.4315, lon: -70.6375 }, to: { lat: -33.404, lon: -70.617 } },
+  { label: "Mitad de cuadra Bellavista → Cumbre", from: { lat: -33.4315, lon: -70.6375 }, to: { lat: -33.42527, lon: -70.63324 } },
 ];
 for (const c of cases) {
   const r0 = findRoute(net, c.from, c.to);
@@ -208,13 +208,13 @@ console.log("\n4) Origen fuera del grafo (caso del respaldo):");
     const dist = snapDist(c);
     if (dist <= 250) continue; // el grafo cubre ese punto: no es el caso buscado
     tested++;
-    const r = findRoute(net, c, { lat: -33.404, lon: -70.617 }); // destino Cumbre
+    const r = findRoute(net, c, { lat: -33.42527, lon: -70.63324 }); // destino Cumbre
     console.log(`  pin a ${Math.round(dist)} m del grafo → findRoute: ${r ? "RUTA LOCAL (❌ debe ser null)" : "null (cae a OSRM ✅)"}`);
     check(r === null, `origen a ${Math.round(dist)} m del grafo: findRoute devuelve null (→ OSRM por calles)`);
   }
   check(tested > 0, "se probó al menos un punto fuera del grafo en ese sector");
   // Y los orígenes sobre el grafo siguen funcionando con el motor local:
-  const pio = findRoute(net, { lat: -33.430691, lon: -70.63592 }, { lat: -33.404, lon: -70.617 });
+  const pio = findRoute(net, { lat: -33.430691, lon: -70.63592 }, { lat: -33.42527, lon: -70.63324 });
   check(!!pio, "Pío Nono (sobre el grafo) sigue produciendo ruta local");
 }
 

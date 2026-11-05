@@ -31,14 +31,16 @@ export type SegmentDef = {
   maxTimeSec: number;
 };
 
-/** La Cumbre (plaza/mirador), meta común de las subidas. */
-const CUMBRE: LatLng = { lat: -33.404, lon: -70.617 };
+/** La Cumbre: la Virgen de la Inmaculada Concepción, en la cima del
+ *  cerro (863 m, sobre el arrival del Funicular). Verificación y fuentes
+ *  en NAV_DESTINATIONS de park.ts. */
+const CUMBRE: LatLng = { lat: -33.42527, lon: -70.63324 };
 
 export const SEGMENTS: SegmentDef[] = [
   {
     id: "pio-nono-cumbre",
     name: "Pío Nono → Cumbre",
-    detail: "La subida completa desde Bellavista: ~4,5 km y +170 m.",
+    detail: "La subida completa desde Bellavista: ~2,2 km y +160 m.",
     start: { lat: -33.430691, lon: -70.63592 }, // Acceso Pío Nono
     end: CUMBRE,
     radiusStartM: 160,
@@ -50,7 +52,7 @@ export const SEGMENTS: SegmentDef[] = [
   {
     id: "pv-norte-cumbre",
     name: "Pedro de Valdivia Norte → Cumbre",
-    detail: "Subida corta por el lado oriente: ~2,8 km y +145 m.",
+    detail: "Subida por el lado oriente: ~3,8 km y +125 m.",
     start: { lat: -33.411769, lon: -70.607988 }, // Acceso Pedro de Valdivia Norte
     end: CUMBRE,
     radiusStartM: 150,
@@ -62,7 +64,7 @@ export const SEGMENTS: SegmentDef[] = [
   {
     id: "antiluen-cumbre",
     name: "Antilén → Cumbre",
-    detail: "Tramo final, donde se decide el récord: ~1,5 km y +80 m.",
+    detail: "Desde la piscina por Av. Carlos Martner y Bannen: ~4,4 km y +60 m.",
     start: { lat: -33.409051, lon: -70.61374 }, // Piscina Antilén
     end: CUMBRE,
     radiusStartM: 140,

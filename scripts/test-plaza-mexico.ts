@@ -34,16 +34,24 @@ const plaza = D["plaza-mexico"], cumbre = D["cumbre"];
 
 console.log(`destino plaza-mexico: ${plaza.lat}, ${plaza.lon} · Δ a cumbre ${Math.round(haversineM(plaza, cumbre))} m`);
 
-const cases: [string, LatLng][] = [
-  ["Acceso Pío Nono → Plaza México", D["pio-nono"]],
-  ["Acceso PdV Norte → Plaza México", D["pv-norte"]],
-  ["Cumbre → Plaza México", cumbre],
-  ["Acceso Pío Nono → Cumbre (referencia)", D["pio-nono"]],
+const cases: [string, LatLng, "ruta" | "nulo"][] = [
+  ["Acceso Pío Nono → Plaza México", D["pio-nono"], "ruta"],
+  ["Acceso PdV Norte → Plaza México", D["pv-norte"], "ruta"],
+  // Desde el pin exacto de la Virgen el origen cae en la islita del
+  // mirador (footway aislado del grafo): findRoute devuelve null a propósito
+  // (resguardo anti-isla) y computeRoute cae a OSRM — comportamiento esperado.
+  ["Cumbre → Plaza México (origen en isla del mirador)", cumbre, "nulo"],
+  ["Acceso Pío Nono → Cumbre (referencia)", D["pio-nono"], "ruta"],
 ];
 let fails = 0;
-for (const [label, from] of cases) {
+for (const [label, from, expect] of cases) {
   const to = label.includes("referencia") ? cumbre : plaza;
   const r = findRoute(net, from, to);
+  if (expect === "nulo") {
+    if (r) { console.log(`✗ ${label}: esperábamos null (isla → OSRM) y llegó ruta`); fails++; }
+    else console.log(`✓ ${label}: null (origen en isla → cae a OSRM, correcto)`);
+    continue;
+  }
   if (!r) { console.log(`✗ ${label}: SIN RUTA`); fails++; continue; }
   const km = (r.distanceM / 1000).toFixed(2);
   const nNames = r.segNames?.length ?? 0;

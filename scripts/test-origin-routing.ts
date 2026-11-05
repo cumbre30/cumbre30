@@ -61,7 +61,7 @@ const cases: { label: string; from: LatLng; to: LatLng }[] = [
   {
     label: "Pío Nono → Cumbre",
     from: { lat: -33.430691, lon: -70.63592 },   // Acceso Pío Nono
-    to: { lat: -33.404, lon: -70.617 },          // Cumbre
+    to: { lat: -33.42527, lon: -70.63324 },          // Cumbre
   },
   {
     label: "Bellavista (Dardignac) → Zoológico",
@@ -76,7 +76,7 @@ const cases: { label: string; from: LatLng; to: LatLng }[] = [
   {
     label: "Punto mitad de cuadra (elaborado) → Cumbre",
     from: { lat: -33.4315, lon: -70.6375 },      // a mitad de cuadra en Bellavista
-    to: { lat: -33.404, lon: -70.617 },
+    to: { lat: -33.42527, lon: -70.63324 },
   },
 ];
 

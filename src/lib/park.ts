@@ -4,6 +4,10 @@
 // OpenStreetMap way/168227059 (147 vértices, tolerancia ~13 m)
 // y POIs geocodificados con Nominatim.
 // El límite vigente al interior del parque es 30 km/h (Parquemet).
+// Cumbre y Plaza México re-verificadas el 2026-11-05 contra
+// Wikipedia (Santuario de la Inmaculada Concepción) y el grafo
+// OSM propio: la cima real está junto al Santuario, sobre el
+// Funicular (ver nota en NAV_DESTINATIONS).
 // ============================================================
 
 export const LIMIT_KMH = 30;
@@ -132,39 +136,50 @@ export const RISK_ZONES: RiskZone[] = [
 
 export type SimWaypoint = LatLng & { kmh: number; alt: number };
 
+// Geografía real del parque: el Santuario de la Virgen (863 m) corona
+// la cima junto al arrival del Funicular; de ahí Av. Pedro Bannen baja a
+// Plaza México y continúa al sector Tupahue (Casa Anáhuac / Piscina
+// Tupahue), Jardín Japonés y, por Av. Carlos Martner, sube a la Piscina
+// Antilén (cumbre del cerro Chacarillas, 800 m). El retorno se baja por
+// la cara oriente hacia Pedro de Valdivia Norte.
 export const SIM_ROUTE: SimWaypoint[] = [
   { lat: -33.4343, lon: -70.636, kmh: 10, alt: 700 }, // Bellavista (fuera del parque)
   { lat: -33.43, lon: -70.635, kmh: 12, alt: 706 }, // ingreso por Pío Nono
   { lat: -33.4296, lon: -70.634, kmh: 11, alt: 722 }, // Zoológico Nacional
-  { lat: -33.425, lon: -70.6315, kmh: 14, alt: 745 }, // camino interior
-  { lat: -33.42, lon: -70.628, kmh: 15, alt: 768 },
+  { lat: -33.4277, lon: -70.6337, kmh: 12, alt: 758 }, // camino a la cumbre (lado del Funicular)
+  { lat: -33.4262, lon: -70.6334, kmh: 10, alt: 812 }, // recta final junto al Santuario
+  { lat: -33.42527, lon: -70.63324, kmh: 8, alt: 863 }, // Cumbre — Virgen de la Inmaculada
+  { lat: -33.4234, lon: -70.6327, kmh: 14, alt: 848 }, // Plaza México (fuente, buses panorámicos)
+  { lat: -33.4195, lon: -70.628, kmh: 16, alt: 822 }, // Av. Pedro Bannen hacia Tupahue
   { lat: -33.4171, lon: -70.6235, kmh: 12, alt: 785 }, // Casa de la Cultura Anáhuac (curva)
-  { lat: -33.41, lon: -70.6215, kmh: 16, alt: 830 }, // tramo a la cumbre
-  { lat: -33.404, lon: -70.617, kmh: 8, alt: 875 }, // Cumbre
-  { lat: -33.405, lon: -70.615, kmh: 24, alt: 848 }, // inicio bajada
-  { lat: -33.4075, lon: -70.6135, kmh: 28, alt: 815 }, // bajada
-  { lat: -33.4091, lon: -70.6137, kmh: 35, alt: 795 }, // cruce Piscina Antilén — pico sobre el límite
-  { lat: -33.4112, lon: -70.6142, kmh: 31, alt: 788 },
-  { lat: -33.4133, lon: -70.6147, kmh: 32, alt: 782 }, // Jardín Japonés
-  { lat: -33.413, lon: -70.613, kmh: 27, alt: 772 },
-  { lat: -33.4128, lon: -70.6115, kmh: 25, alt: 760 },
-  { lat: -33.4122, lon: -70.6095, kmh: 22, alt: 748 },
-  { lat: -33.4118, lon: -70.6085, kmh: 16, alt: 738 }, // salida Acceso Pedro de Valdivia Norte
+  { lat: -33.4148, lon: -70.619, kmh: 18, alt: 790 }, // tramo Tupahue → Jardín Japonés
+  { lat: -33.4133, lon: -70.6147, kmh: 20, alt: 792 }, // Jardín Japonés
+  { lat: -33.4112, lon: -70.6138, kmh: 18, alt: 798 }, // Av. Carlos Martner hacia Antilén
+  { lat: -33.409051, lon: -70.61374, kmh: 16, alt: 802 }, // cruce Piscina Antilén (cumbre Chacarillas)
+  { lat: -33.4112, lon: -70.6135, kmh: 24, alt: 794 }, // vuelta por Carlos Martner
+  { lat: -33.4118, lon: -70.6105, kmh: 35, alt: 762 }, // bajada a PdV Norte — pico sobre el límite
+  { lat: -33.411769, lon: -70.607988, kmh: 16, alt: 738 }, // salida Acceso Pedro de Valdivia Norte
   { lat: -33.4113, lon: -70.6068, kmh: 12, alt: 730 }, // Av. Pedro de Valdivia (fuera)
 ];
 
 /** Destinos frecuentes para la navegación tipo Waze. */
 export const NAV_DESTINATIONS: { id: string; name: string; position: LatLng }[] = [
-  { id: "cumbre", name: "🏔️ Cumbre del Cerro", position: { lat: -33.404, lon: -70.617 } },
+  // Cumbre: el Santuario de la Inmaculada Concepción (la Virgen) en la
+  // cima del cerro, 863 m. Coordenadas de Wikipedia (artículos "Cerro
+  // San Cristóbal (Chile)" y "Santuario del Cerro San Cristóbal",
+  // -33.42527, -70.63324) — coinciden con el nodo del grafo OSM propio
+  // a 5 m y con el polígono del parque. ⚠️ La cima NO está en el sector
+  // Tupahue/Pirámide (-33.404, -70.617): está sobre el Funicular, 650 m
+  // al norte del acceso Pío Nono (corregido el 2026-11-05).
+  { id: "cumbre", name: "🏔️ Cumbre del Cerro", position: { lat: -33.42527, lon: -70.63324 } },
   // Plaza México: la plaza con la gran fuente del sector Cumbre (parada
-  // final de los buses panorámicos), ~190 m al NE del mirador de la
-  // Virgen. ⚠️ NO copiar la posición de Nominatim/OSM: los nodos OSM
-  // "Plaza México", "Virgen de la Inmaculada Concepción", "Terraza
-  // Bellavista" y "PICO Cerro San Cristóbal" están ~2,9 km corridos al
-  // SO (a 480 m del Zoológico, imposible físicamente; verificado con
-  // satélite + polígono del parque, 2026-11-05). Esta posición usa el
-  // mismo marco de la Cumbre del código, corrigiendo ese offset.
-  { id: "plaza-mexico", name: "⛲ Plaza México", position: { lat: -33.4026, lon: -70.6164 } },
+  // final de los buses panorámicos), en Av. Pedro Bannen, ~210 m al
+  // NORTE del Santuario de la Virgen (Mapcarta/OSM way 496989814), a
+  // pasos de la estación Manuel Foster del Teleférico Pío Nono
+  // (-33.42277, -70.63103, Wikipedia) y del Observatorio Manuel Foster
+  // (-33.42206, -70.63237, Wikipedia). El grafo OSM propio tiene un
+  // nodo de camino a 11 m de esta posición (2026-11-05).
+  { id: "plaza-mexico", name: "⛲ Plaza México", position: { lat: -33.4234, lon: -70.6327 } },
   { id: "pio-nono", name: "🚪 Acceso Pío Nono", position: { lat: -33.430691, lon: -70.63592 } },
   { id: "pv-norte", name: "🚪 Acceso Pedro de Valdivia Norte", position: { lat: -33.411769, lon: -70.607988 } },
   { id: "antiluen", name: "🏊 Piscina Antilén", position: { lat: -33.409051, lon: -70.61374 } },
