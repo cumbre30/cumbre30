@@ -65,7 +65,7 @@ export function ConfigTab({
         <Row
           icon={<FlaskConical className="h-5 w-5" />}
           title="Fuente de datos"
-          sub="Demo simula la subida Pío Nono → Cumbre. GPS real usa tu ubicación. Herramienta de prueba: ya no compite con el botón Iniciar."
+          sub="Demo simula la subida Pío Nono → Plaza México. GPS real usa tu ubicación. Herramienta de prueba: ya no compite con el botón Iniciar."
         >
           <div className="flex shrink-0 overflow-hidden rounded-lg border border-border">
             {(["sim", "gps"] as Source[]).map((s) => (

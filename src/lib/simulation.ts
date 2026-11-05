@@ -9,8 +9,8 @@ export type SimFix = LatLng & {
 };
 
 /**
- * Simulador de un recorrido real: subida por Pío Nono hasta la
- * cumbre y bajada por Antilén hasta la salida Pedro de Valdivia.
+ * Simulador de un recorrido real: subida por Pío Nono hasta
+ * Plaza México y bajada por Antilén hasta la salida Pedro de Valdivia.
  * Reproduce las velocidades típicas de cada tramo (incluido el
  * pico sobre 30 km/h en la bajada) para probar todas las alertas
  * sin necesitar GPS. Avanza `speedScale` veces el tiempo real.

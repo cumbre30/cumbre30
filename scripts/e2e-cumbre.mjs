@@ -1,15 +1,14 @@
-// E2E navegador — Corrección de la Cumbre (Virgen, no Tupahue/Pirámide).
-//   1) El destino "🏔️ Cumbre del Cerro" está en el select "Ir a…".
-//   2) Al elegirlo se traza la ruta (ETA + "Ruta lista").
-//   3) La ruta termina junto al Santuario de la Virgen:
-//      el último vértice de la polilínea debe quedar a <120 m de
-//      (-33.42527, -70.63324) — se verifica leyendo Leaflet en la página.
-//   4) Sin errores de consola (filtro: 401 de sesiones).
+// E2E navegador — Cumbre reemplazada: acceso La Pirámide + Plaza México.
+//   1) El destino "🏔️ Cumbre del Cerro" YA NO está en el select "Ir a…"
+//      (el Santuario de la Virgen es solo peatonal).
+//   2) El acceso "🚪 Acceso La Pirámide" SÍ está en el select.
+//   3) Al elegirlo se traza la ruta (ETA + "Ruta lista").
+//   4) "⛲ Plaza México" sigue disponible (reemplaza a la cumbre).
+//   5) Sin errores de consola (filtro: 401 de sesiones).
 // Correr con el server arriba: node scripts/e2e-cumbre.mjs [BASE]
 import { chromium } from "playwright";
 
 const BASE = process.argv[2] || "http://localhost:81";
-const CUMBRE = { lat: -33.42527, lon: -70.63324 };
 
 let fails = 0;
 function chk(label, ok, extra = "") {
@@ -33,37 +32,24 @@ async function main() {
   await page.getByText("Cumbre").first().waitFor({ timeout: 60_000 });
   await page.waitForTimeout(1_500);
 
-  // 1) el select "Ir a…" contiene la Cumbre
+  // 1+2) el select "Ir a…" contiene La Pirámide y ya no la Cumbre
   const sel = page.getByRole("combobox", { name: "Ir a" });
   await sel.waitFor({ timeout: 15_000 });
   const options = await sel.locator("option").allTextContents();
   const cumbreOpt = options.find((o) => o.includes("Cumbre del Cerro"));
-  chk("destino 🏔️ Cumbre del Cerro en el selector 'Ir a…'", Boolean(cumbreOpt), JSON.stringify(options));
+  chk("destino 🏔️ Cumbre del Cerro ELIMINADO del selector", !cumbreOpt, JSON.stringify(options));
+  const piramideOpt = options.find((o) => o.includes("Acceso La Pirámide"));
+  chk("acceso 🚪 Acceso La Pirámide en el selector", Boolean(piramideOpt), JSON.stringify(options));
+  chk("destino ⛲ Plaza México sigue disponible", options.some((o) => o.includes("Plaza México")));
 
-  // 2) elegirlo traza la ruta
-  await sel.selectOption({ label: cumbreOpt });
+  // 3) elegir La Pirámide traza la ruta
+  await sel.selectOption({ label: piramideOpt });
   await page.waitForTimeout(3_000);
   const bar = await page.getByText(/Ruta lista|min/).first().isVisible().catch(() => false);
-  chk("ruta trazada al elegir la Cumbre", bar);
-  await page.screenshot({ path: "/tmp/render/cumbre-nav.png" });
+  chk("ruta trazada al elegir Acceso La Pirámide", bar);
+  await page.screenshot({ path: "/tmp/render/piramide-nav.png" });
 
-  // 3) la ruta dibujada termina junto a la Virgen (Leaflet: última
-  //    polilínea de ruta; fallback: el centro del mapa tras el vuelo)
-  const geo = await page.evaluate(() => {
-    const out = { lastPoint: null, center: null, markerNearCumbre: null };
-    window.dispatchEvent(new Event("resize"));
-    const containers = document.querySelectorAll(".leaflet-container");
-    if (!containers.length) return out;
-    // react-leaflet no expone la instancia; leemos el DOM de rutas SVG/Canvas
-    // → en su lugar usamos la posición del marcador de destino si existe.
-    const imgs = [...document.querySelectorAll("img.leaflet-marker-icon")];
-    out.markerAlt = imgs.map((i) => i.alt || i.title || "").filter(Boolean).slice(0, 12);
-    return out;
-  }).catch(() => ({}));
-  console.log("  marcadores en mapa:", JSON.stringify(geo.markerAlt ?? geo ?? {}));
-
-  // 3b) verificación dura vía estado de la app: la pill de ruta muestra
-  //     la distancia; con origen por defecto (Pío Nono) debe ser ~2-3 km.
+  // 3b) la pill de ruta muestra la distancia (referencia)
   const pill = await page.getByText(/\d+([.,]\d+)?\s?km/).first().textContent().catch(() => null);
   if (pill) console.log("  pill de ruta:", pill.trim());
 

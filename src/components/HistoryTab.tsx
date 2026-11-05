@@ -637,8 +637,8 @@ export function HistoryTab({
             ) : (
               <>
                 <p className="mt-1 leading-relaxed text-muted-foreground">
-                  Cronometraje oficial de tus subidas — Pío Nono → Cumbre, Pedro de Valdivia Norte
-                  → Cumbre y el tramo final Antilén → Cumbre — con récord personal, contador de
+                  Cronometraje oficial de tus subidas — Pío Nono → Plaza México, Pedro de Valdivia
+                  Norte → Plaza México y el tramo Antilén → Plaza México — con récord personal, contador de
                   intentos e historial de tiempos. Aplican solo a viajes grabados con GPS.
                 </p>
                 <Button

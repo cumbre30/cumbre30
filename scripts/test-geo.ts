@@ -16,11 +16,29 @@ check("Inicio (Bellavista) fuera del parque", !pointInPolygon(p0, PARK_POLYGON))
 check("Ingreso Pío Nono dentro del parque", pointInPolygon(p1, PARK_POLYGON));
 
 // 2. Todos los puntos intermedios (hasta la salida) dentro del parque
+// Tolera puntos SOBRE el borde: el polígono simplificado tiene ~13 m de
+// tolerancia (ver cabecera de park.ts) y el waypoint de salida PdV Norte
+// cae exactamente en un vértice del polígono (ray-casting estricto da
+// falso en vértices). Un punto a < 20 m del borde cuenta como interior.
+function distToPolygonBoundaryM(p: LatLng, poly: LatLng[]): number {
+  let min = Infinity;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const a = poly[j], b = poly[i];
+    const d = haversineM(a, b);
+    const steps = Math.max(1, Math.ceil(d / 15));
+    for (let s = 0; s <= steps; s++) {
+      const f = s / steps;
+      const pt = { lat: a.lat + (b.lat - a.lat) * f, lon: a.lon + (b.lon - a.lon) * f };
+      min = Math.min(min, haversineM(p, pt));
+    }
+  }
+  return min;
+}
 let allInside = true;
 const outside: string[] = [];
 for (let i = 1; i < SIM_ROUTE.length - 1; i++) {
   const p = SIM_ROUTE[i];
-  if (!pointInPolygon(p, PARK_POLYGON)) {
+  if (!pointInPolygon(p, PARK_POLYGON) && distToPolygonBoundaryM(p, PARK_POLYGON) > 20) {
     allInside = false;
     outside.push(`#${i} (${p.lat},${p.lon})`);
   }

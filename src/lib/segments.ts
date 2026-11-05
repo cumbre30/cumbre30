@@ -8,6 +8,9 @@
 // intentos e historial por segmento.
 // Las pistas se guardan desde la v1.5.0 (GPS únicamente), así
 // que los viajes anteriores y los demo no generan intentos.
+// 2026-11-05: la meta de los 3 segmentos pasa de la Cumbre a
+// PLAZA MÉXICO — el Santuario de la Virgen es solo peatonal y no
+// se puede subir en bici (misma ruta, ~210 m antes de la cima).
 // ============================================================
 
 import { haversineM } from "./geo";
@@ -31,18 +34,19 @@ export type SegmentDef = {
   maxTimeSec: number;
 };
 
-/** La Cumbre: la Virgen de la Inmaculada Concepción, en la cima del
- *  cerro (863 m, sobre el arrival del Funicular). Verificación y fuentes
- *  en NAV_DESTINATIONS de park.ts. */
-const CUMBRE: LatLng = { lat: -33.42527, lon: -70.63324 };
+/** Plaza México: la meta en bici más alta de la ruta de la cumbre
+ *  (848 m, junto a la fuente y la parada de los buses panorámicos).
+ *  El Santuario de la Virgen (863 m) es solo peatonal. Verificación
+ *  y fuentes en NAV_DESTINATIONS de park.ts. */
+const PLAZA_MEXICO: LatLng = { lat: -33.4234, lon: -70.6327 };
 
 export const SEGMENTS: SegmentDef[] = [
   {
-    id: "pio-nono-cumbre",
-    name: "Pío Nono → Cumbre",
-    detail: "La subida completa desde Bellavista: ~2,2 km y +160 m.",
+    id: "pio-nono-plaza-mexico",
+    name: "Pío Nono → Plaza México",
+    detail: "La subida completa desde Bellavista: ~1,9 km y +140 m.",
     start: { lat: -33.430691, lon: -70.63592 }, // Acceso Pío Nono
-    end: CUMBRE,
+    end: PLAZA_MEXICO,
     radiusStartM: 160,
     radiusEndM: 180,
     minGainM: 100,
@@ -50,11 +54,11 @@ export const SEGMENTS: SegmentDef[] = [
     maxTimeSec: 5400, // > 90 min ya no es "intento"
   },
   {
-    id: "pv-norte-cumbre",
-    name: "Pedro de Valdivia Norte → Cumbre",
-    detail: "Subida por el lado oriente: ~3,8 km y +125 m.",
+    id: "pv-norte-plaza-mexico",
+    name: "Pedro de Valdivia Norte → Plaza México",
+    detail: "Subida por el lado oriente: ~3,8 km y +110 m.",
     start: { lat: -33.411769, lon: -70.607988 }, // Acceso Pedro de Valdivia Norte
-    end: CUMBRE,
+    end: PLAZA_MEXICO,
     radiusStartM: 150,
     radiusEndM: 180,
     minGainM: 80,
@@ -62,14 +66,14 @@ export const SEGMENTS: SegmentDef[] = [
     maxTimeSec: 3600,
   },
   {
-    id: "antiluen-cumbre",
-    name: "Antilén → Cumbre",
-    detail: "Desde la piscina por Av. Carlos Martner y Bannen: ~4,4 km y +60 m.",
+    id: "antiluen-plaza-mexico",
+    name: "Antilén → Plaza México",
+    detail: "Desde la piscina por Av. Carlos Martner y Bannen: ~3,1 km y +45 m.",
     start: { lat: -33.409051, lon: -70.61374 }, // Piscina Antilén
-    end: CUMBRE,
+    end: PLAZA_MEXICO,
     radiusStartM: 140,
     radiusEndM: 180,
-    minGainM: 40,
+    minGainM: 30,
     minTimeSec: 150,
     maxTimeSec: 2400,
   },

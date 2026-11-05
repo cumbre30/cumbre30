@@ -1,6 +1,6 @@
-// Verifica que "⛲ Plaza México" (nuevo destino de park.ts) es alcanzable
-// con la red ciclista offline: findRoute desde los 3 puntos de partida
-// típicos (Pío Nono, PdV Norte y la Cumbre) + comparación con la Cumbre.
+// Verifica que "⛲ Plaza México" y "🚪 Acceso La Pirámide" (park.ts) son
+// alcanzables con la red ciclista offline: findRoute desde los accesos
+// típicos (Pío Nono y PdV Norte). La Cumbre ya no es destino (solo peatonal).
 import * as fs from "fs";
 import { findRoute, haversineM, type Network, type NetEdge, type LatLng } from "../src/lib/routing";
 import { NAV_DESTINATIONS } from "../src/lib/park";
@@ -30,40 +30,31 @@ for (const [a, b, clsIdx, nameIdx, ciclo] of raw.edges) {
 const net: Network = { ...raw, adj };
 
 const D = Object.fromEntries(NAV_DESTINATIONS.map((d) => [d.id, d.position]));
-const plaza = D["plaza-mexico"], cumbre = D["cumbre"];
+const plaza = D["plaza-mexico"], piramide = D["la-piramide"];
 
-console.log(`destino plaza-mexico: ${plaza.lat}, ${plaza.lon} · Δ a cumbre ${Math.round(haversineM(plaza, cumbre))} m`);
+console.log(`destino plaza-mexico: ${plaza.lat}, ${plaza.lon} · Δ a acceso la-piramide ${Math.round(haversineM(plaza, piramide))} m`);
 
-const cases: [string, LatLng, "ruta" | "nulo"][] = [
-  ["Acceso Pío Nono → Plaza México", D["pio-nono"], "ruta"],
-  ["Acceso PdV Norte → Plaza México", D["pv-norte"], "ruta"],
-  // Desde el pin exacto de la Virgen el origen cae en la islita del
-  // mirador (footway aislado del grafo): findRoute devuelve null a propósito
-  // (resguardo anti-isla) y computeRoute cae a OSRM — comportamiento esperado.
-  ["Cumbre → Plaza México (origen en isla del mirador)", cumbre, "nulo"],
-  ["Acceso Pío Nono → Cumbre (referencia)", D["pio-nono"], "ruta"],
+const cases: [string, LatLng, LatLng][] = [
+  ["Acceso Pío Nono → Plaza México", D["pio-nono"], plaza],
+  ["Acceso PdV Norte → Plaza México", D["pv-norte"], plaza],
+  ["Acceso Pío Nono → Acceso La Pirámide", D["pio-nono"], piramide],
+  ["Acceso PdV Norte → Acceso La Pirámide", D["pv-norte"], piramide],
 ];
 let fails = 0;
-for (const [label, from, expect] of cases) {
-  const to = label.includes("referencia") ? cumbre : plaza;
+for (const [label, from, to] of cases) {
   const r = findRoute(net, from, to);
-  if (expect === "nulo") {
-    if (r) { console.log(`✗ ${label}: esperábamos null (isla → OSRM) y llegó ruta`); fails++; }
-    else console.log(`✓ ${label}: null (origen en isla → cae a OSRM, correcto)`);
-    continue;
-  }
   if (!r) { console.log(`✗ ${label}: SIN RUTA`); fails++; continue; }
   const km = (r.distanceM / 1000).toFixed(2);
   const nNames = r.segNames?.length ?? 0;
   const first = r.segNames?.[0] ?? "";
   console.log(`✓ ${label}: ${km} km · ${nNames} tramos con nombre · empieza en "${first}"`);
 }
-// sanity: la ruta a la plaza no debe ser idéntica en distancia a la de la cumbre
+// sanity: Plaza México y La Pirámide son destinos claramente distintos
 const rPlaza = findRoute(net, D["pio-nono"], plaza);
-const rCumbre = findRoute(net, D["pio-nono"], cumbre);
-if (rPlaza && rCumbre) {
-  const d = Math.abs(rPlaza.distanceM - rCumbre.distanceM);
-  console.log(`Δ distancia plaza vs cumbre desde Pío Nono: ${Math.round(d)} m (debe ser > 100 m para que sean destinos distintos pero cercanos)`);
-  if (d < 100) fails++;
+const rPiramide = findRoute(net, D["pio-nono"], piramide);
+if (rPlaza && rPiramide) {
+  const d = Math.abs(rPlaza.distanceM - rPiramide.distanceM);
+  console.log(`Δ distancia plaza vs pirámide desde Pío Nono: ${Math.round(d)} m (debe ser > 1 km: sectores opuestos del parque)`);
+  if (d < 1000) fails++;
 }
 process.exit(fails ? 1 : 0);

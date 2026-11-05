@@ -286,12 +286,16 @@ export function findRoute(net: Network, from: LatLng, to: LatLng): NavRoute | nu
   // Antilén), terminamos en el punto alcanzable más cercano.
   let bestNode = -1;
   let bestDist = Infinity;
+  // Nodos asentados: si al terminar es un puñado, el origen quedó en
+  // una isla del grafo (resguardo de ruta falsa más abajo).
+  let explored = 0;
 
   while (heap.size > 0) {
     const cur = heap.pop()!;
     const u = cur.i;
     if (done[u]) continue;
     done[u] = 1;
+    explored++;
     const du = haversineM({ lat: runNet.nodes[u][0], lon: runNet.nodes[u][1] }, to);
     if (du < bestDist) {
       bestDist = du;
@@ -347,6 +351,11 @@ export function findRoute(net: Network, from: LatLng, to: LatLng): NavRoute | nu
   // web; aviso de sin cobertura en el APK), como con orígenes lejanos.
   const endToM = haversineM(coords[coords.length - 1], to);
   const startToM = haversineM(coords[0], to);
+  // Resguardo 2: si la búsqueda solo alcanzó un puñado de nodos, el
+  // origen quedó anclado a un FRAGMENTO aislado (isla) aunque "avance"
+  // unos metros hacia el destino (pasa el umbral de progreso pero la
+  // ruta es falsa: termina a 2+ km del destino pedido).
+  if (!done[t] && explored < 500) return null;
   if (!done[t] && endToM > startToM - 50) return null;
 
   // --- instrucciones paso a paso ---

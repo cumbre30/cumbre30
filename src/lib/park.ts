@@ -4,10 +4,10 @@
 // OpenStreetMap way/168227059 (147 vértices, tolerancia ~13 m)
 // y POIs geocodificados con Nominatim.
 // El límite vigente al interior del parque es 30 km/h (Parquemet).
-// Cumbre y Plaza México re-verificadas el 2026-11-05 contra
-// Wikipedia (Santuario de la Inmaculada Concepción) y el grafo
-// OSM propio: la cima real está junto al Santuario, sobre el
-// Funicular (ver nota en NAV_DESTINATIONS).
+// 2026-11-05: la CUMBRE deja de ser destino (el Santuario de la
+// Virgen es solo peatonal, no se puede subir en bici); Plaza México
+// la reemplaza como meta de esa ruta. Se agrega el ACCESO LA
+// PIRÁMIDE (Parquemet, Vitacura) como acceso oficial (ver GATES).
 // ============================================================
 
 export const LIMIT_KMH = 30;
@@ -78,6 +78,14 @@ export type Gate = {
 export const GATES: Gate[] = [
   { id: "pio-nono", name: "Acceso Pío Nono", position: { lat: -33.430691, lon: -70.63592 } },
   { id: "pv-norte", name: "Acceso Pedro de Valdivia Norte", position: { lat: -33.411769, lon: -70.607988 } },
+  // Acceso La Pirámide (Vitacura): portería al final de Camino La
+  // Pirámide, borde nororiente del parque, el acceso más cercano a
+  // Bosque Santiago y al Paseo Metropolitano (parquemet.cl,
+  // "Acceso La Pirámide", abierto 06:00–20:30). Posición = punto
+  // final del way OSM 445801999 "Camino La Pirámide"
+  // (-33.38642, -70.60179, verificado el 2026-11-05), a ~40 m de la
+  // punta nororiente del polígono del parque.
+  { id: "la-piramide", name: "Acceso La Pirámide", position: { lat: -33.38642, lon: -70.60179 } },
 ];
 
 export type RiskZone = {
@@ -129,27 +137,29 @@ export const RISK_ZONES: RiskZone[] = [
 ];
 
 // ============================================================
-// Ruta de simulación: Pío Nono → Cumbre → bajada por Antilén
-// → Jardín Japonés → salida Pedro de Valdivia Norte.
+// Ruta de simulación: Pío Nono → Plaza México → bajada por
+// Antilén → Jardín Japonés → salida Pedro de Valdivia Norte.
+// La cima (Santuario de la Virgen) es solo peatonal: en bici la
+// meta más alta de la ruta es Plaza México.
 // kmh = velocidad objetivo en el tramo; alt = altitud (m s.n.m.)
 // ============================================================
 
 export type SimWaypoint = LatLng & { kmh: number; alt: number };
 
-// Geografía real del parque: el Santuario de la Virgen (863 m) corona
-// la cima junto al arrival del Funicular; de ahí Av. Pedro Bannen baja a
-// Plaza México y continúa al sector Tupahue (Casa Anáhuac / Piscina
-// Tupahue), Jardín Japonés y, por Av. Carlos Martner, sube a la Piscina
-// Antilén (cumbre del cerro Chacarillas, 800 m). El retorno se baja por
-// la cara oriente hacia Pedro de Valdivia Norte.
+// Geografía real del parque: por el camino del lado del Funicular se
+// sube hasta Plaza México (848 m), la meta en bici más alta del sector
+// cumbre — el tramo final al Santuario de la Virgen (863 m) es solo
+// peatonal. De Plaza México Av. Pedro Bannen continúa al sector Tupahue
+// (Casa Anáhuac / Piscina Tupahue), Jardín Japonés y, por Av. Carlos
+// Martner, sube a la Piscina Antilén (cumbre del cerro Chacarillas,
+// 800 m). El retorno se baja por la cara oriente hacia Pedro de
+// Valdivia Norte.
 export const SIM_ROUTE: SimWaypoint[] = [
   { lat: -33.4343, lon: -70.636, kmh: 10, alt: 700 }, // Bellavista (fuera del parque)
   { lat: -33.43, lon: -70.635, kmh: 12, alt: 706 }, // ingreso por Pío Nono
   { lat: -33.4296, lon: -70.634, kmh: 11, alt: 722 }, // Zoológico Nacional
-  { lat: -33.4277, lon: -70.6337, kmh: 12, alt: 758 }, // camino a la cumbre (lado del Funicular)
-  { lat: -33.4262, lon: -70.6334, kmh: 10, alt: 812 }, // recta final junto al Santuario
-  { lat: -33.42527, lon: -70.63324, kmh: 8, alt: 863 }, // Cumbre — Virgen de la Inmaculada
-  { lat: -33.4234, lon: -70.6327, kmh: 14, alt: 848 }, // Plaza México (fuente, buses panorámicos)
+  { lat: -33.4277, lon: -70.6337, kmh: 12, alt: 758 }, // subida lado Funicular (camino a Plaza México)
+  { lat: -33.4234, lon: -70.6327, kmh: 8, alt: 848 }, // Plaza México — meta más alta en bici (fuente, buses panorámicos)
   { lat: -33.4195, lon: -70.628, kmh: 16, alt: 822 }, // Av. Pedro Bannen hacia Tupahue
   { lat: -33.4171, lon: -70.6235, kmh: 12, alt: 785 }, // Casa de la Cultura Anáhuac (curva)
   { lat: -33.4148, lon: -70.619, kmh: 18, alt: 790 }, // tramo Tupahue → Jardín Japonés
@@ -162,24 +172,23 @@ export const SIM_ROUTE: SimWaypoint[] = [
   { lat: -33.4113, lon: -70.6068, kmh: 12, alt: 730 }, // Av. Pedro de Valdivia (fuera)
 ];
 
-/** Destinos frecuentes para la navegación tipo Waze. */
+/** Destinos frecuentes para la navegación tipo Waze.
+ *  La CUMBRE (Santuario de la Virgen, 863 m) NO es destino: el
+ *  Parquemet la tiene reservada a peatones, no se puede subir en bici.
+ *  PLAZA MÉXICO la reemplaza (misma ruta, meta más alta alcanzable). */
 export const NAV_DESTINATIONS: { id: string; name: string; position: LatLng }[] = [
-  // Cumbre: el Santuario de la Inmaculada Concepción (la Virgen) en la
-  // cima del cerro, 863 m. Coordenadas de Wikipedia (artículos "Cerro
-  // San Cristóbal (Chile)" y "Santuario del Cerro San Cristóbal",
-  // -33.42527, -70.63324) — coinciden con el nodo del grafo OSM propio
-  // a 5 m y con el polígono del parque. ⚠️ La cima NO está en el sector
-  // Tupahue/Pirámide (-33.404, -70.617): está sobre el Funicular, 650 m
-  // al norte del acceso Pío Nono (corregido el 2026-11-05).
-  { id: "cumbre", name: "🏔️ Cumbre del Cerro", position: { lat: -33.42527, lon: -70.63324 } },
   // Plaza México: la plaza con la gran fuente del sector Cumbre (parada
   // final de los buses panorámicos), en Av. Pedro Bannen, ~210 m al
   // NORTE del Santuario de la Virgen (Mapcarta/OSM way 496989814), a
   // pasos de la estación Manuel Foster del Teleférico Pío Nono
   // (-33.42277, -70.63103, Wikipedia) y del Observatorio Manuel Foster
   // (-33.42206, -70.63237, Wikipedia). El grafo OSM propio tiene un
-  // nodo de camino a 11 m de esta posición (2026-11-05).
+  // nodo de camino a 11 m de esta posición (2026-11-05). Es la meta
+  // en bici más alta de la ruta de la cumbre.
   { id: "plaza-mexico", name: "⛲ Plaza México", position: { lat: -33.4234, lon: -70.6327 } },
+  // Acceso La Pirámide (Vitacura): misma posición que GATES — ver
+  // la nota con fuentes en GATES.
+  { id: "la-piramide", name: "🚪 Acceso La Pirámide", position: { lat: -33.38642, lon: -70.60179 } },
   { id: "pio-nono", name: "🚪 Acceso Pío Nono", position: { lat: -33.430691, lon: -70.63592 } },
   { id: "pv-norte", name: "🚪 Acceso Pedro de Valdivia Norte", position: { lat: -33.411769, lon: -70.607988 } },
   { id: "antiluen", name: "🏊 Piscina Antilén", position: { lat: -33.409051, lon: -70.61374 } },

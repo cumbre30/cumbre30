@@ -389,7 +389,7 @@ export function useRideEngine() {
       const fix = e.sim.tick(dt);
       processFix(fix);
     }, TICK_MS);
-    logEvent("info", "Modo demo activo: Pío Nono → Cumbre → Pedro de Valdivia (12× tiempo real)");
+    logEvent("info", "Modo demo activo: Pío Nono → Plaza México → Pedro de Valdivia (12× tiempo real)");
   }, [logEvent, processFix]);
 
   const start = useCallback(

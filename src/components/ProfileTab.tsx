@@ -4,7 +4,6 @@
 // Pestaña Perfil — con subsecciones (solo se ve la activa):
 //   · "Mis datos": sesión (correo + usuario), resumen de cuenta,
 //     bici, pin y compartir resumen para Instagram.
-//   · "Amigos": listado de amigos (requiere sesión).
 //   · "Pagos y suscripciones": modo Pro + aporte voluntario —
 //     la licencia va atada al correo de la cuenta.
 // ============================================================
@@ -13,7 +12,6 @@ import { useCallback, useState } from "react";
 import {
   AtSign,
   Bike as BikeIcon,
-  Download,
   Share2,
   LogOut,
   LogIn,
@@ -36,22 +34,19 @@ import { Capacitor } from "@capacitor/core";
 import { shareOrDownloadFile } from "@/lib/shareFile";
 import { usernameLocked } from "@/lib/username";
 import { PINS, DEFAULT_PIN, RIDER_LEVELS, riderLevelForKm, type PinId } from "@/lib/pins";
-import { APP_VERSION, APP_VERSION_CODE, APK_SIZE_MB } from "@/lib/appVersion";
+import { APP_VERSION, APP_VERSION_CODE } from "@/lib/appVersion";
 import { buildShareImage, sharePngBlob } from "@/lib/shareImage";
 import { PagosTab } from "@/components/PagosTab";
-import { AmigosTab } from "@/components/AmigosTab";
 import { SubTabs, type SubTabDef } from "@/components/SubTabs";
 
 /** Subsecciones de Perfil: se muestran al entrar y solo se ve la activa.
  *  "Pagos y suscripciones" aparece solo con sesión: la licencia Pro va
- *  atada al correo de la cuenta. Amigos indica iniciar sesión igual. */
-type SubKey = "datos" | "amigos" | "pagos";
+ *  atada al correo de la cuenta. */
+type SubKey = "datos" | "pagos";
 const PROFILE_SUBS: SubTabDef[] = [
   { key: "datos", label: "Mis datos" },
-  { key: "amigos", label: "Amigos" },
   { key: "pagos", label: "Pagos y suscripciones" },
 ];
-const PROFILE_SUBS_SIN_SESION: SubTabDef[] = PROFILE_SUBS.filter((t) => t.key !== "pagos");
 
 function StatBox({ label, value, unit }: { label: string; value: string | number; unit?: string }) {
   return (
@@ -219,17 +214,10 @@ export default function ProfileTab() {
     setTimeout(() => setUserMsg(null), 8000);
   };
 
-  // ---------- Sin sesión: subsecciones con login en "Mis datos" ----------
+  // ---------- Sin sesión: login en "Mis datos" ----------
   if (ready && !me) {
     return (
       <div className="flex flex-col gap-4">
-        <SubTabs
-          ariaLabel="Subsecciones de Perfil"
-          value={activeSub}
-          onChange={(k) => setSub(k as SubKey)}
-          tabs={PROFILE_SUBS_SIN_SESION}
-        />
-
         {activeSub === "datos" && (
         <>
         <Card className="bg-card/80 border-border p-4">
@@ -238,7 +226,7 @@ export default function ProfileTab() {
             <div className="text-sm text-muted-foreground">
               <p className="font-medium text-foreground">Tu cuenta Cumbre30</p>
               <p className="mt-1 leading-relaxed">
-                Crea tu sesión con correo y nombre de usuario para acumular kilómetros, sumar amigos,
+                Crea tu sesión con correo y nombre de usuario para acumular kilómetros,
                 desbloquear pines y reportar incidencias visibles para todos.
               </p>
             </div>
@@ -449,8 +437,6 @@ export default function ProfileTab() {
         )}
         </>
         )}
-
-        {activeSub === "amigos" && <AmigosTab onGoPerfil={() => setSub("datos")} />}
       </div>
     );
   }
@@ -616,27 +602,17 @@ export default function ProfileTab() {
         )}
       </Card>
 
-      {/* Descarga app Android */}
-      <Card className="bg-card/80 border-border p-4">
-        <div className="flex items-start gap-3 mb-3">
-          <Smartphone className="h-5 w-5 text-emerald-600 dark:text-emerald-400 mt-0.5" />
-          <div className="text-sm text-muted-foreground">
-            <p className="font-medium text-foreground">App Android (APK)</p>
-            <p className="mt-1 leading-relaxed">
-              Lleva Cumbre30 al teléfono con mapas nativos, GPS en segundo plano y avisos de voz
-              aunque la pantalla esté apagada. Al instalar, acepta “fuentes desconocidas”.
+      {/* Versión de la app (la descarga del APK se hace fuera de la app) */}
+      <Card className="bg-card/60 border-border p-3">
+        <div className="flex items-center gap-3">
+          <Smartphone className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+          <div className="min-w-0 flex-1">
+            <p className="text-[13px] font-medium text-foreground">App Android (APK)</p>
+            <p className="text-[11px] text-muted-foreground leading-snug">
+              Versión instalada en este teléfono: <span className="text-foreground/90 font-medium">v{APP_VERSION}</span> (build {APP_VERSION_CODE}).
             </p>
           </div>
         </div>
-        <a href="/api/apk" download className="block">
-          <Button className="w-full h-11 bg-emerald-600 hover:bg-emerald-500 text-zinc-950 font-semibold">
-            <Download className="h-4 w-4 mr-2" /> Descargar Cumbre30 v{APP_VERSION} ({APK_SIZE_MB} MB)
-          </Button>
-        </a>
-        <p className="mt-2 text-xs text-muted-foreground">
-          Versión instalada en este teléfono: <span className="text-foreground/90 font-medium">v{APP_VERSION}</span> (build {APP_VERSION_CODE}).
-          Si descargaste hace rato y algo no coincide, borra el APK viejo y vuelve a descargar.
-        </p>
       </Card>
 
       {/* Bicicleta */}
@@ -677,7 +653,6 @@ export default function ProfileTab() {
       </>
       )}
 
-      {sub === "amigos" && <AmigosTab onGoPerfil={() => setSub("datos")} />}
       {sub === "pagos" && <PagosTab />}
     </div>
   );
