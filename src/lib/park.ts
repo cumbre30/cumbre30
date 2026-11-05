@@ -156,6 +156,15 @@ export const SIM_ROUTE: SimWaypoint[] = [
 /** Destinos frecuentes para la navegación tipo Waze. */
 export const NAV_DESTINATIONS: { id: string; name: string; position: LatLng }[] = [
   { id: "cumbre", name: "🏔️ Cumbre del Cerro", position: { lat: -33.404, lon: -70.617 } },
+  // Plaza México: la plaza con la gran fuente del sector Cumbre (parada
+  // final de los buses panorámicos), ~190 m al NE del mirador de la
+  // Virgen. ⚠️ NO copiar la posición de Nominatim/OSM: los nodos OSM
+  // "Plaza México", "Virgen de la Inmaculada Concepción", "Terraza
+  // Bellavista" y "PICO Cerro San Cristóbal" están ~2,9 km corridos al
+  // SO (a 480 m del Zoológico, imposible físicamente; verificado con
+  // satélite + polígono del parque, 2026-11-05). Esta posición usa el
+  // mismo marco de la Cumbre del código, corrigiendo ese offset.
+  { id: "plaza-mexico", name: "⛲ Plaza México", position: { lat: -33.4026, lon: -70.6164 } },
   { id: "pio-nono", name: "🚪 Acceso Pío Nono", position: { lat: -33.430691, lon: -70.63592 } },
   { id: "pv-norte", name: "🚪 Acceso Pedro de Valdivia Norte", position: { lat: -33.411769, lon: -70.607988 } },
   { id: "antiluen", name: "🏊 Piscina Antilén", position: { lat: -33.409051, lon: -70.61374 } },
