@@ -1,0 +1,21 @@
+// ============================================================
+// Init-script de Gradle: inyecta los espejos de aliyun en todos
+// los proyectos (classpath de buildscript y dependencias).
+// Motivo: mavenCentral responde HTTP 429 (rate-limit) desde IPs
+// de infraestructura compartida; los espejos aliyun son accesibles.
+// Uso:
+//   ./gradlew assembleDebug --init-script ../scripts/gradle-mirror-init.gradle
+// ============================================================
+
+allprojects {
+    buildscript {
+        repositories {
+            maven { url 'https://maven.aliyun.com/repository/public' }
+            maven { url 'https://maven.aliyun.com/repository/google' }
+        }
+    }
+    repositories {
+        maven { url 'https://maven.aliyun.com/repository/public' }
+        maven { url 'https://maven.aliyun.com/repository/google' }
+    }
+}
