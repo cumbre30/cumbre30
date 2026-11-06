@@ -113,8 +113,8 @@ export function ConfigTab({
           <span />
         </Row>
         <Row
-          icon={<span className="text-base font-black tracking-tight text-foreground">CL</span>}
-          title="CumbreLabs"
+          icon={<span className="text-base font-black tracking-tight text-foreground">CG</span>}
+          title="Cumbre GEO"
           sub="Tecnología para descubrir. App independiente de apoyo al ciclista; no es oficial del Parque Metropolitano de Santiago."
         >
           <span />

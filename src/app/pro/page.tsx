@@ -19,13 +19,13 @@ import { CONTACT_EMAIL, CONTACT_WHATSAPP, DONATE_OPTIONS, PRO_BENEFITS, PRO_PAY_
 // solo activa códigos; esta página es el punto de compra web y el
 // destino del campo "sitio web" de la ficha de Play.
 //
-// Marca CumbreLabs (paleta del manual, sin CafinderCL):
+// Marca Cumbre GEO (paleta del manual, sin CafinderCL):
 //   espresso #241A11 · crema #F2EAD9 · verde Cumbre30 #35B85F
 //   cobre #8A6A4F
 // ============================================================
 
 export const metadata: Metadata = {
-  title: "Cumbre30 Pro — pago único | CumbreLabs",
+  title: "Cumbre30 Pro — pago único | Cumbre GEO",
   description:
     "Desbloquea Cumbre30 Pro con un pago único: export GPX, constancias ilimitadas, segmentos con récords, historial ilimitado y estadísticas avanzadas. Paga con Mercado Pago y activa tu código en la app.",
 };
@@ -78,9 +78,9 @@ export default function ProPage() {
   return (
     <main className="min-h-dvh w-full" style={{ background: C.bg, color: C.cream }}>
       <div className="mx-auto w-full max-w-xl px-5 py-10">
-      {/* Marca CumbreLabs */}
+      {/* Marca Cumbre GEO */}
       <p className="text-center text-[15px] font-black tracking-[0.35em]" style={{ color: C.cream }}>
-        CUMBRE<span className="font-light">LABS</span>
+        CUMBRE<span className="font-light">GEO</span>
       </p>
       <p className="mt-1 text-center text-[9.5px] font-semibold tracking-[0.45em]" style={{ color: C.copper }}>
         TECNOLOGÍA PARA DESCUBRIR
@@ -228,7 +228,7 @@ export default function ProPage() {
       {/* Footer */}
       <footer className="mt-12 border-t pt-6" style={{ borderColor: C.line }}>
         <p className="text-center text-[11px] leading-relaxed" style={{ color: C.creamDim }}>
-          CumbreLabs · Cumbre30 · App independiente de apoyo al ciclista; no es oficial del Parque Metropolitano de
+          Cumbre GEO · Cumbre30 · App independiente de apoyo al ciclista; no es oficial del Parque Metropolitano de
           Santiago.
         </p>
         <p className="mt-2 flex items-center justify-center gap-1.5 text-[11.5px]" style={{ color: C.creamDim }}>

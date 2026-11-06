@@ -76,3 +76,7 @@ Thumbs.db
 
 # zip temporal servido por el preview (no entra al repo)
 public/cumbre30-github.zip
+
+# Postgres embebido local: data dir vivo, no va al repo
+/db/pgdata/
+db/pg.log

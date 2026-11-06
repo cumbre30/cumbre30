@@ -1,5 +1,5 @@
 // ============================================================
-// Configuración de monetización de Cumbre30 (CumbreLabs).
+// Configuración de monetización de Cumbre30 (Cumbre GEO).
 //
 // Modelo de compra (decisión nov. 2026):
 //   · LA APP no contiene links de pago: solo activación por

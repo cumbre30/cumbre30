@@ -1,6 +1,6 @@
 // E2E página /pro — la web oficial de venta de Cumbre30 Pro (fuera de la app).
 // Verifica que la página concentre los pagos (link Mercado Pago del plan Pro
-// + botón de aporte voluntario) con la marca CumbreLabs, sin CafinderCL, y
+// + botón de aporte voluntario) con la marca Cumbre GEO, sin CafinderCL, y
 // con la guía de activación de código. Las rutas de soporte siguen vivas.
 // Correr con el server arriba: node scripts/e2e-pro-page.mjs [BASE]
 const BASE = process.argv[2] || "http://localhost:81";
@@ -26,9 +26,9 @@ async function main() {
   chk("ruta de activación in-app documentada", html.includes("Pagos y suscripciones"));
   chk("FAQ presente", html.includes("Preguntas frecuentes"));
 
-  // Marca CumbreLabs, sin CafinderCL
-  chk("marca CumbreLabs", /CUMBRE/.test(html) && html.includes("LABS"));
-  chk("paleta espresso de CumbreLabs", html.toLowerCase().includes("#241a11"));
+  // Marca Cumbre GEO, sin CafinderCL
+  chk("marca Cumbre GEO", /CUMBRE/.test(html) && html.includes(">GEO<"));
+  chk("paleta espresso de Cumbre GEO", html.toLowerCase().includes("#241a11"));
   chk("sin menciones de CafinderCL", !/cafinder/i.test(html));
 
   // Página de pago fuera de la app: la home no debe referenciar MP (SSR shell)

@@ -94,7 +94,7 @@ function transporter() {
 export function licenseEmailHtml(email: string, code: string): string {
   return `
   <div style="font-family:Arial,Helvetica,sans-serif;max-width:520px;margin:0 auto;color:#241A11">
-    <p style="text-align:center;letter-spacing:.35em;font-weight:900;margin:24px 0 2px">CUMBRE<span style="font-weight:300">LABS</span></p>
+    <p style="text-align:center;letter-spacing:.35em;font-weight:900;margin:24px 0 2px">CUMBRE<span style="font-weight:300">GEO</span></p>
     <h1 style="text-align:center;font-size:22px;margin:16px 0 6px">Tu código Cumbre30 Pro 🚴</h1>
     <p style="text-align:center;font-size:14px;color:#5a5248">¡Gracias por apoyar la app del cerro San Cristóbal!</p>
     <div style="background:#F2EAD9;border:1.5px solid #35B85F;border-radius:14px;padding:18px;text-align:center;margin:20px 0">
@@ -109,7 +109,7 @@ export function licenseEmailHtml(email: string, code: string): string {
       <li>Ingresa tu correo <b>${email}</b> y el código de arriba</li>
     </ol>
     <p style="font-size:12.5px;color:#5a5248;line-height:1.6">El código está ligado a este correo. Si cambias de teléfono, quita la licencia desde el teléfono antiguo (Pagos y suscripciones → Quitar licencia) y actívala en el nuevo con el mismo correo.</p>
-    <p style="font-size:12.5px;color:#5a5248">¿Dudas? Responde este correo o escríbenos por WhatsApp.<br/>— CumbreLabs · App independiente de apoyo al ciclista</p>
+    <p style="font-size:12.5px;color:#5a5248">¿Dudas? Responde este correo o escríbenos por WhatsApp.<br/>— Cumbre GEO · App independiente de apoyo al ciclista</p>
   </div>`;
 }
 
@@ -129,7 +129,7 @@ export function licenseEmailText(email: string, code: string): string {
     "El código está ligado a este correo. Si cambias de teléfono,",
     "quita la licencia desde el antiguo y actívala en el nuevo.",
     "",
-    "— CumbreLabs",
+    "— Cumbre GEO",
   ].join("\n");
 }
 

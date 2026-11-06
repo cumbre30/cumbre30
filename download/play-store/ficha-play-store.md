@@ -16,8 +16,8 @@ están en esta misma carpeta (`capturas/`, `feature-graphic-1024x500.png`,
 | Etiquetas sugeridas | ciclismo, montaña, GPS, ciclocomputador |
 | Correo de contacto | contacto.cumbre30@gmail.com |
 | Teléfono | +56 9 4296 1619 (WhatsApp) |
-| Sitio web | la URL del preview (página de venta: misma URL + `/pro`) |
-| Versión a subir | v1.8.1 (versionCode 26) — `cumbre30-v1.8.1-code26.aab` |
+| Sitio web | **https://cumbregeo.cl** (redirige a `/pro`, la página de venta) |
+| Versión a subir | v1.8.2 (versionCode 27) — `cumbre30-v1.8.2-code27.aab` |
 
 ## Descripción corta (≤80 caracteres)
 
@@ -147,15 +147,31 @@ política de Google Play para funciones digitales):
    La compra se muestra solo en el AAB (export con `PLAY_BUILD=1`):
    Pagos y suscripciones → "Comprar con Google Play", con restauración.
 2. **Canje por código (web y APK directo)**: la venta con Mercado Pago
-   vive SOLO en la página web **`/pro`** (paleta CumbreLabs, link de cobro
+   vive SOLO en la página web **`/pro`** (paleta Cumbre GEO, link de cobro
    único mpago.la/2tghXUc — $6.500 precio fundador; el link anterior
    1WdyZaW era una suscripción anual y se reemplazó — + botón de aporte
    voluntario). El usuario paga allí,
    recibe el código C30P- por correo y lo activa en la app (validación
-   offline HMAC). Envío manual al inicio: notificación de MP →
-   `node scripts/gen-license.mjs correo` → responder con el código.
+   offline HMAC). Envío AUTOMÁTICO (nov. 2026): webhook de Mercado Pago
+   (`/api/mp/webhook`) + respaldo cron cada 15 min (`/api/mp/sync`) entregan
+   el código sin intervención manual; respaldo semiauto:
+   `POST /api/pro/send-code`; manual de última instancia: `gen-license.mjs`.
 3. **Nada de links de compra dentro de la app**: Planes muestra los pasos
    ("paga en la web oficial → recibe código → actívalo aquí") sin enlace;
    HelpTab conserva contacto de soporte (permitido). El AAB lo genera
    `PLAY_BUILD=1 bash scripts/export-web.sh` antes de `npx cap sync android`
    y `bundleRelease`; el APK directo va sin el flag (assembleDebug).
+
+## Notas de la versión (para el release de Play)
+
+v1.8.2 (versionCode 27):
+
+```
+• Nueva marca: Cumbre GEO — sitio oficial cumbregeo.cl
+• Compra Pro con entrega automática: tu código llega solo al correo tras pagar
+• Mejoras de estabilidad
+```
+
+(v1.8.1 / code 26: link de cobro único corregido y precio Play en app;
+v1.8.0 / code 25: monetización Pro — historial, estadísticas avanzadas,
+GPX, constancias y segmentos.)
