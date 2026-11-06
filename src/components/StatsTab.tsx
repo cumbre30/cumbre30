@@ -2,9 +2,11 @@
 
 // ============================================================
 // Estadísticas generales — con subsecciones:
-//   · "General": totales del historial local (FREE).
-//   · "Pro": estadísticas por segmento del cerro (función Pro,
-//     validada: HistoryTab ya las calcula solo con Pro).
+//   · "General": totales del historial local (FREE) + teaser del
+//     resumen mensual avanzado (PRO).
+//   · "Pro": resumen mes a mes (statsMonthly) y estadísticas por
+//     segmento del cerro (función Pro, validada: HistoryTab ya
+//     las calcula solo con Pro).
 //
 // Solo viajes con GPS real de la cuenta activa: los de demostración
 // (simulación, sin GPS) no cuentan en ninguna estadística y los de
@@ -12,12 +14,13 @@
 // ============================================================
 
 import { useMemo, useState, useSyncExternalStore } from "react";
-import { Gauge, Clock, Lock, Mountain, Route, Trophy } from "lucide-react";
+import { CalendarRange, Gauge, Clock, Lock, Mountain, Route, TrendingUp, Trophy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { bikeOnly, historyStore, ridesForAccount } from "@/lib/history";
 import { formatClock } from "@/lib/geo";
 import { computeSegmentStats, fmtEffort, SEGMENTS } from "@/lib/segments";
+import { bestMonth, deltaVsPrev, monthlyBuckets } from "@/lib/statsMonthly";
 import { useProLicense } from "@/lib/proLicense";
 import { useMe } from "@/hooks/useMe";
 import { ProTag } from "@/components/ProUI";
@@ -70,6 +73,11 @@ export function StatsTab({ onGoPro }: { onGoPro: () => void }) {
     [pro.active, gpsRides],
   );
 
+  // Estadísticas avanzadas (Pro): resumen de los últimos 6 meses.
+  const months = useMemo(() => monthlyBuckets(gpsRides, 6), [gpsRides]);
+  const best = useMemo(() => bestMonth(months), [months]);
+  const delta = useMemo(() => deltaVsPrev(months), [months]);
+
   return (
     <div className="flex flex-col gap-4">
       <SubTabs
@@ -93,13 +101,94 @@ export function StatsTab({ onGoPro }: { onGoPro: () => void }) {
             <Kpi icon={<Gauge className="h-3.5 w-3.5" />} label="Vel. prom" value={totals.avg.toFixed(1)} unit="km/h" />
           </div>
           <p className="-mt-1 text-center text-[11px] text-muted-foreground">
-            Solo cuentan viajes con GPS real en bici (los demo y los viajes en vehículo no) · se guardan en este teléfono (últimos 50).
+            Solo cuentan viajes con GPS real en bici (los demo y los viajes en vehículo no) · se guardan en este teléfono (gratis: últimos 20).
           </p>
+
+          {/* Teaser del resumen mensual avanzado (Pro) */}
+          {!pro.active && (
+            <Card className="border-amber-500/30 bg-amber-500/5 p-4">
+              <div className="flex items-start gap-3">
+                <CalendarRange className="h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400 mt-0.5" />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-semibold text-foreground">Resumen mensual avanzado</p>
+                    <ProTag />
+                  </div>
+                  <p className="mt-1 text-[12.5px] leading-relaxed text-muted-foreground">
+                    Tus kilómetros mes a mes con desnivel y horas en bici, comparación contra el mes anterior y tu
+                    récord de mejor mes.
+                  </p>
+                  <Button
+                    onClick={onGoPro}
+                    size="sm"
+                    className="mt-3 h-9 bg-amber-500 font-bold text-zinc-950 hover:bg-amber-400"
+                  >
+                    <Lock className="mr-1.5 h-3.5 w-3.5" /> Con PRO
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          )}
         </>
       )}
 
       {sub === "pro" && (
         <>
+          {/* Resumen mensual — estadísticas avanzadas (Pro) */}
+          <div>
+            <div className="mb-2 flex items-center gap-2">
+              <p className="text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground">Resumen mensual</p>
+              {!pro.active && <ProTag />}
+            </div>
+            {pro.active ? (
+              <div className="flex flex-col gap-2">
+                <div className="grid grid-cols-3 gap-2">
+                  <Kpi icon={<TrendingUp className="h-3.5 w-3.5" />} label="Este mes" value={(months[months.length - 1]?.km ?? 0).toFixed(1)} unit="km" />
+                  <Kpi icon={<CalendarRange className="h-3.5 w-3.5" />} label="Mes anterior" value={(months[months.length - 2]?.km ?? 0).toFixed(1)} unit="km" />
+                  <Kpi icon={<Trophy className="h-3.5 w-3.5" />} label="Mejor mes" value={(best?.km ?? 0).toFixed(1)} unit="km" />
+                </div>
+                {delta && (
+                  <p className="text-center text-[11.5px] text-muted-foreground">
+                    Variación vs mes anterior: <b className="text-foreground">{delta}</b>
+                    {best ? ` · récord: ${best.label} con ${best.km.toFixed(1)} km` : ""}
+                  </p>
+                )}
+                <Card className="overflow-hidden p-0">
+                  <table className="w-full border-collapse text-[12.5px]">
+                    <thead>
+                      <tr className="bg-muted/70">
+                        <th className="px-3 py-2 text-left text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground">Mes</th>
+                        <th className="px-2 py-2 text-right text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground">Km</th>
+                        <th className="px-2 py-2 text-right text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground">Viajes</th>
+                        <th className="px-3 py-2 text-right text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground">Desnivel</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {months.map((m) => (
+                        <tr key={m.ym} className={m.ym === best?.ym ? "bg-amber-500/10" : ""}>
+                          <td className="px-3 py-2 font-medium capitalize text-foreground">
+                            {m.label}{m.ym === best?.ym ? " 🏆" : ""}
+                          </td>
+                          <td className="px-2 py-2 text-right font-mono tabular-nums text-foreground">{m.km.toFixed(1)}</td>
+                          <td className="px-2 py-2 text-right font-mono tabular-nums text-muted-foreground">{m.rides}</td>
+                          <td className="px-3 py-2 text-right font-mono tabular-nums text-muted-foreground">+{Math.round(m.gainM)} m</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </Card>
+                <p className="text-center text-[11px] text-muted-foreground">Últimos 6 meses · solo viajes con GPS real en bici.</p>
+              </div>
+            ) : (
+              <Card className="p-4 text-center text-xs leading-relaxed text-muted-foreground">
+                Kilómetros mes a mes, desnivel, horas en bici y tu mejor mes.
+                <Button onClick={onGoPro} size="sm" className="mt-3 h-9 bg-amber-500 font-bold text-zinc-950 hover:bg-amber-400">
+                  <Lock className="mr-1.5 h-3.5 w-3.5" /> Desbloquear con PRO
+                </Button>
+              </Card>
+            )}
+          </div>
+
           {/* Segmentos del cerro — función Pro validada (lib/segments) */}
           <div>
             <div className="mb-2 flex items-center gap-2">

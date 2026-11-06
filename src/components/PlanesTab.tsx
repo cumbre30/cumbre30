@@ -1,17 +1,17 @@
 "use client";
 
 // ============================================================
-// Planes — comparación FREE vs PRO (brief §4-D).
-// Tabla validada contra el código (planData.ts). Pago único por
-// Mercado Pago; activación offline por código en Pagos y suscripciones.
+// Planes — comparación FREE vs PRO.
+// La compra NO ocurre desde aquí (Google Play lo prohíbe para
+// funciones digitales): el pago vive en la web oficial /pro o en
+// Google Play Billing (build Play, dentro de Pagos y suscripciones).
+// Tabla validada contra el código (planData.ts).
 // ============================================================
 
-import { useState } from "react";
 import { Check, Crown, Minus } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { PLAN_ROWS } from "@/lib/planData";
-import { PRO_PAY_URL, PRO_PRICE_LABEL, openExternal } from "@/lib/proConfig";
+import { IS_PLAY_BUILD, PRO_PLAY_PRICE_LABEL, PRO_PRICE_LABEL } from "@/lib/proConfig";
 import { useProLicense } from "@/lib/proLicense";
 
 function Cell({ v }: { v: string | boolean }) {
@@ -21,12 +21,8 @@ function Cell({ v }: { v: string | boolean }) {
 }
 
 export function PlanesTab() {
-  const { pro, deactivate } = useProLicense();
-  const [msg, setMsg] = useState<string | null>(null);
-
-  const buy = async () => {
-    await openExternal(PRO_PAY_URL);
-  };
+  const { pro } = useProLicense();
+  const priceLabel = (IS_PLAY_BUILD ? PRO_PLAY_PRICE_LABEL : PRO_PRICE_LABEL).split("·")[0].trim();
 
   return (
     <div className="flex flex-col gap-4">
@@ -42,19 +38,41 @@ export function PlanesTab() {
           </div>
         </Card>
       ) : (
-        <div className="rounded-2xl border border-emerald-600/40 bg-gradient-to-b from-emerald-600/15 to-emerald-800/25 p-5 text-center">
-          <div className="mb-2 inline-flex items-center gap-1.5 rounded bg-emerald-400 px-2.5 py-1 text-[10.5px] font-extrabold tracking-widest text-emerald-950">
-            <Crown className="h-3.5 w-3.5" /> CUMBRE30 PRO
-          </div>
-          <p className="text-4xl font-extrabold tracking-tight text-foreground">{PRO_PRICE_LABEL.split("·")[0].trim()}</p>
-          <p className="mt-1 text-sm text-muted-foreground">pago único · sin suscripción · para siempre</p>
-          <Button onClick={buy} className="mt-4 h-[52px] w-full rounded-xl bg-emerald-600 text-base font-bold text-zinc-950 hover:bg-emerald-500">
-            Obtener PRO
-          </Button>
-          <p className="mt-2 text-[11px] text-muted-foreground">
-            Pagas en Mercado Pago y recibes un código por correo. Lo activas en Pagos y suscripciones — funciona 100% sin internet.
-          </p>
+      <div className="rounded-2xl border border-emerald-600/40 bg-gradient-to-b from-emerald-600/15 to-emerald-800/25 p-5 text-center">
+        <div className="mb-2 inline-flex items-center gap-1.5 rounded bg-emerald-400 px-2.5 py-1 text-[10.5px] font-extrabold tracking-widest text-emerald-950">
+          <Crown className="h-3.5 w-3.5" /> CUMBRE30 PRO
         </div>
+        <p className="text-4xl font-extrabold tracking-tight text-foreground">{priceLabel}</p>
+        <p className="mt-1 text-sm text-muted-foreground">pago único · sin suscripción · para siempre</p>
+
+        {/* Cómo obtener PRO — sin links externos (requisito Play):
+            el pago ocurre en la web /pro o en Google Play Billing,
+            la activación del código es local y offline. */}
+        <div className="mt-4 rounded-xl border border-border bg-background/60 p-3 text-left text-[12.5px] leading-relaxed text-muted-foreground">
+          {IS_PLAY_BUILD ? (
+            <p>
+              Compra directo con <b className="text-foreground">Google Play</b> en{" "}
+              <b className="text-foreground">Perfil → Pagos y suscripciones</b>, o activa un{" "}
+              <b className="text-foreground">código de la web oficial</b> si pagaste allí.
+            </p>
+          ) : (
+            <>
+              <p>
+                <b className="text-foreground">1.</b> Paga tu licencia en la web oficial de Cumbre30 o consigue tu
+                código con la comunidad de WhatsApp.
+              </p>
+              <p className="mt-1">
+                <b className="text-foreground">2.</b> Recibes por correo tu código{" "}
+                <span className="font-mono text-foreground/90">C30P-XXXX-…</span>
+              </p>
+              <p className="mt-1">
+                <b className="text-foreground">3.</b> Actívalo en{" "}
+                <b className="text-foreground">Perfil → Pagos y suscripciones</b> — funciona 100% sin internet.
+              </p>
+            </>
+          )}
+        </div>
+      </div>
       )}
 
       {/* Tabla comparativa */}
@@ -79,26 +97,9 @@ export function PlanesTab() {
         </table>
       </Card>
 
-      {pro.active ? (
-        <div>
-          <Button
-            variant="outline"
-            onClick={() => {
-              deactivate();
-              setMsg("Licencia quitada de este teléfono. Puedes reactivarla con tu código en Pagos y suscripciones.");
-              setTimeout(() => setMsg(null), 8000);
-            }}
-            className="h-11 w-full rounded-xl border-border text-muted-foreground hover:text-foreground"
-          >
-            Quitar licencia de este teléfono
-          </Button>
-          {msg && <p className="mt-2 text-center text-xs text-emerald-600 dark:text-emerald-400">{msg}</p>}
-        </div>
-      ) : (
-        <p className="text-center text-[11.5px] leading-relaxed text-muted-foreground">
-          ¿Ya pagaste? Activa tu código en <b className="text-foreground">Pagos y suscripciones</b> (menú lateral).
-        </p>
-      )}
+      <p className="text-center text-[11.5px] leading-relaxed text-muted-foreground">
+        ¿Ya pagaste? Activa tu código en <b className="text-foreground">Pagos y suscripciones</b> (Perfil).
+      </p>
     </div>
   );
 }

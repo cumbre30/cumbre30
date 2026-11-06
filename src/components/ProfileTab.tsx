@@ -3,8 +3,9 @@
 // ============================================================
 // Pestaña Perfil — con subsecciones (solo se ve la activa):
 //   · "Mis datos": sesión (correo + usuario), resumen de cuenta,
-//     bici, pin y compartir resumen para Instagram.
-//   · "Pagos y suscripciones": modo Pro + aporte voluntario —
+//     bici, pin y compartir resumen para Instagram. La versión de
+//     la app vive en Configuración → Acerca de.
+//   · "Pagos y suscripciones": modo Pro (código / Play Billing) —
 //     la licencia va atada al correo de la cuenta.
 // ============================================================
 
@@ -19,7 +20,6 @@ import {
   Users,
   MapPin,
   KeyRound,
-  Smartphone,
   PenLine,
   Trash2,
 } from "lucide-react";
@@ -35,7 +35,6 @@ import { Capacitor } from "@capacitor/core";
 import { shareOrDownloadFile } from "@/lib/shareFile";
 import { usernameLocked } from "@/lib/username";
 import { PINS, DEFAULT_PIN, RIDER_LEVELS, riderLevelForKm, type PinId } from "@/lib/pins";
-import { APP_VERSION, APP_VERSION_CODE } from "@/lib/appVersion";
 import { buildShareImage, sharePngBlob } from "@/lib/shareImage";
 import { PagosTab } from "@/components/PagosTab";
 import { SubTabs, type SubTabDef } from "@/components/SubTabs";
@@ -602,19 +601,6 @@ export default function ProfileTab() {
             {userMsg.text}
           </p>
         )}
-      </Card>
-
-      {/* Versión de la app (la descarga del APK se hace fuera de la app) */}
-      <Card className="bg-card/60 border-border p-3">
-        <div className="flex items-center gap-3">
-          <Smartphone className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
-          <div className="min-w-0 flex-1">
-            <p className="text-[13px] font-medium text-foreground">App Android (APK)</p>
-            <p className="text-[11px] text-muted-foreground leading-snug">
-              Versión instalada en este teléfono: <span className="text-foreground/90 font-medium">v{APP_VERSION}</span> (build {APP_VERSION_CODE}).
-            </p>
-          </div>
-        </div>
       </Card>
 
       {/* Bicicleta */}

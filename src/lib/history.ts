@@ -5,6 +5,8 @@
  */
 export type TrackPt = [lat: number, lon: number, eleM: number, tsSec: number];
 
+import { isProActive } from "@/lib/proLicense";
+
 export type RideSummary = {
   id: string;
   dateISO: string;
@@ -166,13 +168,30 @@ export function removeRidesForAccount(email: string): number {
   return removed;
 }
 
+/**
+ * Límite del historial para el nivel gratis (Pro: ilimitado).
+ * Palanca freemium decidida en la reevaluación de planes v1.8.0.
+ */
+export const FREE_RIDE_LIMIT = 20;
+
+/**
+ * Aplica el tope freemium al historial. Convergencia amable: cada
+ * viaje NUEVO descarta solo el más antiguo, así quien venía con el
+ * tope anterior de 50 no pierde de golpe 30 registros; el historial
+ * baja gradualmente hasta los últimos 20. Pro: sin tope.
+ */
+export function applyFreeCap(list: RideSummary[], isPro: boolean): RideSummary[] {
+  if (isPro || list.length <= FREE_RIDE_LIMIT) return list;
+  return list.slice(0, list.length - 1);
+}
+
 export function saveRide(s: RideSummary): void {
   if (typeof window === "undefined") return;
   const list = readFromStorage();
   const rec: RideSummary = { ...s };
   if (!rec.account && rideOwner) rec.account = rideOwner;
   list.unshift(rec);
-  localStorage.setItem(KEY, JSON.stringify(list.slice(0, 50)));
+  localStorage.setItem(KEY, JSON.stringify(applyFreeCap(list, isProActive())));
   historyStore.refresh();
 }
 
@@ -196,7 +215,9 @@ export function setRideMotorized(id: string, motorized: boolean): void {
     }
   }
   if (changed) {
-    localStorage.setItem(KEY, JSON.stringify(list.slice(0, 50)));
+    // Sin recorte aquí: corregir el flag de un ride no debe costar
+    // datos viejos; el tope freemium solo aplica al guardar viajes.
+    localStorage.setItem(KEY, JSON.stringify(list));
     historyStore.refresh();
   }
 }

@@ -12,5 +12,7 @@ trap 'if [ -d /tmp/api-routes-apk-backup ] && [ ! -d src/app/api ]; then mv /tmp
 
 # NEXT_PUBLIC_STATIC=1: activa el modo offline en el bundle (auth y logros
 # por localStorage en vez de /api/*, que no existe dentro del APK).
-NEXT_PUBLIC_STATIC=1 STATIC_EXPORT=1 npx next build
+# PLAY_BUILD=1: build para Google Play (NEXT_PUBLIC_PLAY_BUILD=1) — muestra
+# la compra con Play Billing y oculta cualquier mención de pago externo.
+NEXT_PUBLIC_STATIC=1 STATIC_EXPORT=1 NEXT_PUBLIC_PLAY_BUILD=${PLAY_BUILD:-0} npx next build
 echo "EXPORT_OK: $(du -sh build-static | cut -f1)"

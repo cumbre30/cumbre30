@@ -1,12 +1,12 @@
 // ============================================================
 // Fuente ÚNICA de la versión de Cumbre30.
-// La UI (Perfil) y el endpoint /api/apk leen de aquí, así que
-// nunca puede quedar una versión vieja hardcodeada en pantalla
-// ni en la descarga. Al hacer release: actualizar este archivo
-// + android/app/build.gradle (versionCode/versionName) juntos.
+// La UI (Configuración → Acerca de) y el endpoint /api/apk leen de
+// aquí, así que nunca puede quedar una versión vieja hardcodeada
+// en pantalla ni en la descarga. Al hacer release: actualizar este
+// archivo + android/app/build.gradle (versionCode/versionName).
 // ============================================================
 
-export const APP_VERSION = "1.7.0";
-export const APP_VERSION_CODE = 24;
-export const APK_FILE_NAME = "cumbre30-v1.7.0-code24.apk";
-export const APK_SIZE_MB = 52;
+export const APP_VERSION = "1.8.0";
+export const APP_VERSION_CODE = 25;
+export const APK_FILE_NAME = "cumbre30-v1.8.0-code25.apk";
+export const APK_SIZE_MB = 54;

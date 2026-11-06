@@ -13,6 +13,7 @@ import {
   validateProCode,
   type ProLicensePublic,
 } from "./proLicenseCore";
+import { playProOwned, setPlayProOwned } from "./playBilling";
 
 const STORE_KEY = "cumbre30-pro-v1";
 
@@ -30,12 +31,13 @@ export {
 
 /**
  * ¿Licencia Pro activa? Lectura SÍNCRONA para módulos no-React
- * (sync/offlineAuth evalúan logros fuera de componentes). El código
- * solo se guarda en localStorage tras validar, así que si existe,
- * está activo; si el usuario lo borra, deactivate() lo elimina.
+ * (sync/offlineAuth evalúan logros fuera de componentes).
+ * Dos orígenes de Pro:
+ *   · Código de canje validado (STORE_KEY) — web y APK directo.
+ *   · Compra con Google Play Billing (flag de playBilling) — build Play.
  */
 export function isProActive(): boolean {
-  return readStored() != null;
+  return readStored() != null || playProOwned();
 }
 
 // --- store reactivo compartido (Perfil e Historial) ---
@@ -59,7 +61,8 @@ function notify(): void {
 async function recompute(): Promise<void> {
   const s = readStored();
   if (!s) {
-    snap = INITIAL_PRO;
+    // Sin código de canje: Pro solo si hay compra vigente en Google Play.
+    snap = playProOwned() ? { active: true, email: null, at: null } : INITIAL_PRO;
     notify();
     return;
   }
@@ -78,6 +81,11 @@ function subscribe(l: () => void): () => void {
 
 const getSnap = (): ProInfo => snap;
 const getServer = (): ProInfo => INITIAL_PRO;
+
+/** Reevalúa el estado Pro (p. ej. cuando Play Billing confirma una compra). */
+export function refreshPro(): void {
+  void recompute();
+}
 
 export function useProLicense() {
   const pro = useSyncExternalStore(subscribe, getSnap, getServer);
@@ -98,6 +106,9 @@ export function useProLicense() {
   };
   const deactivate = (): void => {
     localStorage.removeItem(STORE_KEY);
+    // También baja el flag de compra Play: en el próximo arranque
+    // initPlayBilling lo restaura si la compra sigue vigente en Play.
+    setPlayProOwned(false);
     void recompute();
   };
   return { pro, activate, deactivate };

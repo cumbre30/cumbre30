@@ -16,8 +16,8 @@ están en esta misma carpeta (`capturas/`, `feature-graphic-1024x500.png`,
 | Etiquetas sugeridas | ciclismo, montaña, GPS, ciclocomputador |
 | Correo de contacto | contacto.cumbre30@gmail.com |
 | Teléfono | +56 9 4296 1619 (WhatsApp) |
-| Sitio web | la URL del preview (o dominio propio cuando exista) |
-| Versión a subir | v1.7.0 (versionCode 24) — `cumbre30-v1.7.0-code24.aab` |
+| Sitio web | la URL del preview (página de venta: misma URL + `/pro`) |
+| Versión a subir | v1.8.0 (versionCode 25) — `cumbre30-v1.8.0-code25.aab` |
 
 ## Descripción corta (≤80 caracteres)
 
@@ -132,11 +132,28 @@ Mínimo requerido: 2 capturas — ya hay 4 listas.
 - Ruta recomendada: crear la app → pista **interna** con el AAB (validación
   técnica) → pista **cerrada** con 12+ testers → solicitar producción.
 
-## Pagos (Pro)
+## Pagos (Pro) — decisión v1.8.0: Play Billing + canje web
 
-El plan Pro se cobra por link de Mercado Pago fuera de la app. Google exige
-Play Billing para funciones digitales compradas dentro de la app; es el
-punto con más riesgo de rechazo. Estrategia prudente: describir PRO en la
-ficha sin mencionar precios, mantener el botón de la app apuntando al sitio
-web (no a un checkout in-app) y, si Play reclama, evaluar agregar Play
-Billing o el programa de External Offers.
+Decisión tomada (nov. 2026), la app **no contiene links de pago** (cumple
+política de Google Play para funciones digitales):
+
+1. **Google Play Billing (build Play, AAB)**: producto único
+   (non-consumable) con ID **`cumbre30_pro`**, precio recomendado
+   **CLP $7.650** → con la comisión del 15% (programa para desarrolladores
+   pequeños, primera mejora de US$1M/año) quedan **~$6.502 netos**.
+   En Play Console: Monetización → Productos → Crear producto único
+   `cumbre30_pro` → precio $7.650. Y en "Configuración de monetización"
+   inscribirse en el programa de desarrolladores pequeños.
+   La compra se muestra solo en el AAB (export con `PLAY_BUILD=1`):
+   Pagos y suscripciones → "Comprar con Google Play", con restauración.
+2. **Canje por código (web y APK directo)**: la venta con Mercado Pago
+   vive SOLO en la página web **`/pro`** (paleta CumbreLabs, link
+   mpago.la/1WdyZaW + botón de aporte voluntario). El usuario paga allí,
+   recibe el código C30P- por correo y lo activa en la app (validación
+   offline HMAC). Envío manual al inicio: notificación de MP →
+   `node scripts/gen-license.mjs correo` → responder con el código.
+3. **Nada de links de compra dentro de la app**: Planes muestra los pasos
+   ("paga en la web oficial → recibe código → actívalo aquí") sin enlace;
+   HelpTab conserva contacto de soporte (permitido). El AAB lo genera
+   `PLAY_BUILD=1 bash scripts/export-web.sh` antes de `npx cap sync android`
+   y `bundleRelease`; el APK directo va sin el flag (assembleDebug).

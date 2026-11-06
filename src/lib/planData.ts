@@ -1,7 +1,7 @@
 // ============================================================
-// Tabla FREE vs PRO — rediseño de planes.
+// Tabla FREE vs PRO — rediseño de planes (reevaluación v1.8.0).
 // ⚠️ Cada fila está validada contra el código real de la app:
-//   · Ciclocomputador, GPS, registro, mapa/destinos, QR:
+//   · Ciclocomputador, GPS, mapa/destinos, QR:
 //     funcionan completos en FREE (page.tsx, MapView, Wallet).
 //   · Desafíos con fecha (diarios/semanales/mensuales): gratis y
 //     sin recompensas (pins.ts TIME_SERIES + ChallengesTab).
@@ -13,6 +13,10 @@
 //   · Buscador universal + marcadores: solo Pro (MapView SearchCard).
 //   · Segmentos del cerro: solo Pro (HistoryTab → lib/segments).
 //   · Export GPX: solo Pro (HistoryTab, lib/gpx).
+//   · Historial: últimos 20 viajes en FREE (history.ts
+//     FREE_RIDE_LIMIT + applyFreeCap); Pro ilimitado.
+//   · Estadísticas avanzadas (resumen mensual): solo Pro
+//     (StatsTab → lib/statsMonthly).
 // Nada inventado: si cambia el gating, actualizar aquí también.
 // ============================================================
 
@@ -31,6 +35,8 @@ export const PLAN_ROWS: PlanRow[] = [
   { feature: "Desafíos del cerro", free: "1.º de cada serie", pro: "Todos" },
   { feature: "Pines de recompensa", free: "Los de retos gratis", pro: "Todos" },
   { feature: "Constancias PDF", free: "3 al mes", pro: "Ilimitadas" },
+  { feature: "Historial de viajes", free: "Últimos 20", pro: "Ilimitado" },
+  { feature: "Estadísticas avanzadas (mes a mes)", free: false, pro: true },
   { feature: "Buscador universal de direcciones", free: false, pro: true },
   { feature: "Segmentos del cerro con récords", free: false, pro: true },
   { feature: "Export GPX (Strava, Garmin, Komoot)", free: false, pro: true },

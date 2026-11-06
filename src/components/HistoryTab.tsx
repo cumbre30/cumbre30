@@ -11,6 +11,7 @@
 
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import {
+  Archive,
   CalendarClock,
   CalendarDays,
   Car,
@@ -20,6 +21,7 @@ import {
   FileDown,
   Gauge,
   Infinity as InfinityIcon,
+  Lock,
   Mountain,
   Route,
   Share2,
@@ -33,7 +35,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatClock } from "@/lib/geo";
-import { clearHistory, historyStore, ridesForAccount, type RideSummary } from "@/lib/history";
+import { clearHistory, FREE_RIDE_LIMIT, historyStore, ridesForAccount, type RideSummary } from "@/lib/history";
 import { buildRidePdf, type RideIdentity } from "@/lib/ridePdf";
 import { shareOrDownloadFile } from "@/lib/shareFile";
 import { buildRideGpxBlob } from "@/lib/gpx";
@@ -293,6 +295,33 @@ export function HistoryTab({
 
       {sub === "viajes" && (
       <>
+      {/* ---- Contador de historial: palanca freemium 20 / ilimitado ---- */}
+      <Card className="bg-card/80 border-border p-4">
+        <div className="flex items-center gap-3">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-600/15">
+            <Archive className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="flex items-center gap-2 font-mono text-xl font-bold leading-none tabular-nums text-foreground">
+              {linkedRides.length}
+              {pro.active ? (
+                <InfinityIcon className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+              ) : (
+                <span className="text-sm text-muted-foreground">/ {FREE_RIDE_LIMIT} gratis</span>
+              )}
+            </p>
+            <p className="mt-1 text-[11px] leading-snug text-muted-foreground">
+              {pro.active ? (
+                "Historial ilimitado con Cumbre30 Pro: nada se descarta."
+              ) : (
+                <>Viajes guardados en este teléfono. Gratis se conservan los últimos {FREE_RIDE_LIMIT}: al llenarse, cada viaje nuevo descarta al más antiguo. Con <b className="text-foreground">Pro</b> el historial es ilimitado.</>
+              )}
+            </p>
+          </div>
+          {!pro.active && <Lock className="h-4 w-4 shrink-0 text-muted-foreground/70" />}
+        </div>
+      </Card>
+
       {/* ---- Contador visual de constancias ---- */}
       <Card className="bg-card/80 border-border p-4">
         <button

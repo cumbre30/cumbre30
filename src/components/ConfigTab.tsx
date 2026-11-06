@@ -6,9 +6,10 @@
 // voz viven aquí; el header del ride queda compacto.
 // ============================================================
 
-import { Volume2, VolumeX, Mic, MicOff, FlaskConical, Moon } from "lucide-react";
+import { Volume2, VolumeX, Mic, MicOff, FlaskConical, Info, Mail, Moon } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { ThemeIconButton } from "@/components/ThemeToggle";
+import { APP_VERSION, APP_VERSION_CODE } from "@/lib/appVersion";
 import type { Source } from "@/hooks/useRideEngine";
 
 function Row({ icon, title, sub, children }: { icon: React.ReactNode; title: string; sub?: string; children: React.ReactNode }) {
@@ -94,6 +95,29 @@ export function ConfigTab({
       <Card className="p-0">
         <Row icon={<Moon className="h-5 w-5" />} title="Tema" sub="Recomendado: oscuro, legible bajo el sol del cerro">
           <ThemeIconButton />
+        </Row>
+      </Card>
+
+      {/* ---- Acerca de: versión y marca (movido desde Perfil) ---- */}
+      <Card className="p-0">
+        <Row
+          icon={<Info className="h-5 w-5" />}
+          title="Cumbre30"
+          sub={`Versión ${APP_VERSION} · build ${APP_VERSION_CODE}`}
+        >
+          <span className="shrink-0 rounded bg-emerald-600/15 px-2 py-1 text-[10px] font-extrabold tracking-widest text-emerald-700 dark:text-emerald-300">
+            v{APP_VERSION}
+          </span>
+        </Row>
+        <Row icon={<Mail className="h-5 w-5" />} title="Contacto" sub="contacto.cumbre30@gmail.com · WhatsApp +56 9 4296 1619">
+          <span />
+        </Row>
+        <Row
+          icon={<span className="text-base font-black tracking-tight text-foreground">CL</span>}
+          title="CumbreLabs"
+          sub="Tecnología para descubrir. App independiente de apoyo al ciclista; no es oficial del Parque Metropolitano de Santiago."
+        >
+          <span />
         </Row>
       </Card>
 

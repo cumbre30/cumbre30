@@ -81,10 +81,17 @@ async function main() {
 
   const apkLinks = await page.locator('a[href="/api/apk"]').count();
   chk("con sesión: sin enlace de descarga /api/apk en Perfil", apkLinks === 0, `enlaces=${apkLinks}`);
-  const versionInfo = await page.getByText(/Versión instalada en este teléfono/).first().isVisible().catch(() => false);
-  chk("con sesión: ficha muestra 'Versión instalada'", versionInfo);
+  const fichaApkEnPerfil = await page.getByText("App Android (APK)").first().isVisible().catch(() => false);
+  chk("con sesión: Perfil ya no muestra la ficha APK", !fichaApkEnPerfil);
 
-  await page.screenshot({ path: "/tmp/render/perfil-limpio.png" });
+  // La versión vive en Configuración → Acerca de (movida desde Perfil)
+  await page.getByRole("button", { name: "Abrir menú" }).click();
+  await page.getByRole("button", { name: /Configuraci/ }).click();
+  const acercaVersion = await page.getByText(/Versión 1\.8\.0 · build 25/).first().isVisible().catch(() => false);
+  chk("Configuración → Acerca de muestra la versión 1.8.0 (build 25)", acercaVersion);
+  const cumbrelabs = await page.getByText("CumbreLabs").first().isVisible().catch(() => false);
+  chk("Configuración muestra la marca CumbreLabs", cumbrelabs);
+  await page.screenshot({ path: "/tmp/render/config-acerca.png" });
 
   chk("sin errores de consola", consoleErrors.length === 0, consoleErrors.slice(0, 3).join(" | "));
 
