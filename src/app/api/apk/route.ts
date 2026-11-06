@@ -63,7 +63,20 @@ async function resolveApk(): Promise<{ file: string; p: string } | null> {
   return null;
 }
 
+/**
+ * En producción (Vercel) el APK de ~54 MB no viaja dentro de la función
+ * serverless: se hospeda en GitHub Releases y esta ruta redirige ahí
+ * (APK_DOWNLOAD_URL). Sin la variable, sirve el archivo local como
+ * siempre (dev/sandbox con apk-store/ o download/).
+ */
 export async function GET() {
+  const remote = process.env.APK_DOWNLOAD_URL;
+  if (remote) {
+    return new Response(null, {
+      status: 302,
+      headers: { Location: remote, "Cache-Control": "no-store" },
+    });
+  }
   const apk = await resolveApk();
   if (!apk) {
     return new Response(JSON.stringify({ error: "APK no disponible" }), {
