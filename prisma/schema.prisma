@@ -60,6 +60,21 @@ model PasswordReset {
   @@index([email])
 }
 
+// Entrega de códigos Cumbre30 Pro (auto-gestión de la venta web).
+// paymentId único = idempotencia: un pago de Mercado Pago entrega
+// exactamente UN código aunque el webhook o el sync se repitan.
+model ProDelivery {
+  id        String   @id @default(cuid())
+  paymentId String   @unique
+  email     String
+  code      String
+  amount    Int
+  via       String // webhook | sync | manual
+  createdAt DateTime @default(now())
+
+  @@index([email])
+}
+
 
 model Ride {
   id           String   @id @default(cuid())
