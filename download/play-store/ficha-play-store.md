@@ -17,7 +17,7 @@ están en esta misma carpeta (`capturas/`, `feature-graphic-1024x500.png`,
 | Correo de contacto | contacto.cumbre30@gmail.com |
 | Teléfono | +56 9 4296 1619 (WhatsApp) |
 | Sitio web | la URL del preview (página de venta: misma URL + `/pro`) |
-| Versión a subir | v1.8.0 (versionCode 25) — `cumbre30-v1.8.0-code25.aab` |
+| Versión a subir | v1.8.1 (versionCode 26) — `cumbre30-v1.8.1-code26.aab` |
 
 ## Descripción corta (≤80 caracteres)
 
@@ -147,8 +147,10 @@ política de Google Play para funciones digitales):
    La compra se muestra solo en el AAB (export con `PLAY_BUILD=1`):
    Pagos y suscripciones → "Comprar con Google Play", con restauración.
 2. **Canje por código (web y APK directo)**: la venta con Mercado Pago
-   vive SOLO en la página web **`/pro`** (paleta CumbreLabs, link
-   mpago.la/1WdyZaW + botón de aporte voluntario). El usuario paga allí,
+   vive SOLO en la página web **`/pro`** (paleta CumbreLabs, link de cobro
+   único mpago.la/2tghXUc — $6.500 precio fundador; el link anterior
+   1WdyZaW era una suscripción anual y se reemplazó — + botón de aporte
+   voluntario). El usuario paga allí,
    recibe el código C30P- por correo y lo activa en la app (validación
    offline HMAC). Envío manual al inicio: notificación de MP →
    `node scripts/gen-license.mjs correo` → responder con el código.

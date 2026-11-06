@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Cumbre30 Pro — pago único | CumbreLabs</title>
+<meta name="description" content="Desbloquea Cumbre30 Pro con un pago único: export GPX, constancias ilimitadas, segmentos con récords, historial ilimitado y estadísticas avanzadas. Paga con Mercado Pago y activa tu código en la app." />
+<meta name="theme-color" content="#241A11" />
+<style>
+  /* ============================================================
+     /pro — Página de venta de Cumbre30 Pro (web oficial CumbreLabs)
+     Autónoma: sin frameworks ni dependencias externas.
+     Paleta del manual: espresso #241A11 · crema #F2EAD9
+     verde Cumbre30 #35B85F · cobre #8A6A4F
+     ============================================================ */
+  :root{
+    --bg:#241A11; --cream:#F2EAD9; --dim:rgba(242,234,217,.66);
+    --green:#35B85F; --copper:#8A6A4F; --ink:#0E2214;
+    --card:rgba(242,234,217,.06); --line:rgba(242,234,217,.14);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:var(--bg);color:var(--cream);font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:36rem;margin:0 auto;padding:2.5rem 1.25rem}
+  .ic{display:inline-block;vertical-align:middle;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+  a{color:inherit;text-decoration:none}
+
+  /* Marca */
+  .brand{text-align:center;font-size:15px;font-weight:900;letter-spacing:.35em}
+  .brand span{font-weight:300}
+  .brand-sub{margin-top:.25rem;text-align:center;font-size:9.5px;font-weight:600;letter-spacing:.45em;color:var(--copper)}
+
+  /* Hero */
+  .hero{margin-top:2.5rem;text-align:center}
+  .hero-icon{margin:0 auto;width:4rem;height:4rem;border-radius:1.5rem;background:var(--green);color:var(--ink);display:flex;align-items:center;justify-content:center}
+  h1{margin-top:1rem;font-size:1.875rem;font-weight:800;letter-spacing:-.025em}
+  h1 em{font-style:normal;color:var(--green)}
+  .tagline{margin-top:.5rem;font-size:13.5px;line-height:1.6;color:var(--dim)}
+  .price{margin-top:1.5rem;font-size:3rem;font-weight:800;letter-spacing:-.025em}
+  .price-sub{margin-top:.25rem;font-size:12.5px;color:var(--copper)}
+  .buy{margin-top:1.5rem;height:3.5rem;width:100%;display:flex;align-items:center;justify-content:center;gap:.5rem;border-radius:1rem;background:var(--green);color:var(--ink);font-size:1rem;font-weight:700;transition:opacity .15s}
+  .buy:hover{opacity:.9}
+  .buy-note{margin-top:.75rem;font-size:11.5px;line-height:1.6;color:var(--dim)}
+  .buy-note code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--cream)}
+  .buy-note b{color:var(--cream)}
+
+  /* Secciones */
+  section{margin-top:2.5rem}
+  h2{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.25em;color:var(--copper)}
+
+  /* Beneficios */
+  .benefits{margin-top:.75rem;list-style:none;display:flex;flex-direction:column;gap:.625rem}
+  .benefits li{display:flex;align-items:flex-start;gap:.625rem;font-size:13.5px;line-height:1.6}
+  .benefits .ic{margin-top:.125rem;color:var(--green);width:1rem;height:1rem}
+
+  /* Pasos */
+  .steps{margin-top:1rem;display:flex;flex-direction:column;gap:1rem}
+  .step{display:flex;align-items:flex-start;gap:.75rem}
+  .step-n{width:1.75rem;height:1.75rem;flex-shrink:0;display:flex;align-items:center;justify-content:center;border-radius:999px;background:var(--green);color:var(--ink);font-size:12px;font-weight:900}
+  .step-t{font-size:13.5px;font-weight:700}
+  .step-b{margin-top:.125rem;font-size:12.5px;line-height:1.6;color:var(--dim)}
+  .offline{margin-top:1rem;display:flex;align-items:flex-start;gap:.5rem;border-radius:.75rem;padding:.75rem;background:var(--card);border:1px solid var(--line);font-size:11.5px;line-height:1.6;color:var(--dim)}
+  .offline .ic{margin-top:.125rem;color:var(--green);width:1rem;height:1rem}
+
+  /* Aporte */
+  .donate-card{margin-top:.75rem;border-radius:1rem;padding:1.25rem;background:var(--card);border:1px solid var(--line);display:flex;align-items:flex-start;gap:.75rem}
+  .donate-card>.ic{margin-top:.125rem;color:var(--green);width:1.5rem;height:1.5rem}
+  .donate-t{font-size:14px;font-weight:700}
+  .donate-b{margin-top:.25rem;font-size:12.5px;line-height:1.6;color:var(--dim)}
+  .donate-btn{margin-top:.75rem;display:inline-flex;height:2.75rem;align-items:center;gap:.5rem;border-radius:.75rem;padding:0 1rem;border:1.5px solid var(--green);color:var(--green);font-size:13.5px;font-weight:700;transition:opacity .15s}
+  .donate-btn:hover{opacity:.85}
+  .donate-btn .ic{width:1rem;height:1rem}
+
+  /* FAQ */
+  .faq{margin-top:.75rem;display:flex;flex-direction:column;gap:.625rem}
+  .faq-item{border-radius:.75rem;padding:1rem;background:var(--card);border:1px solid var(--line)}
+  .faq-q{font-size:13px;font-weight:700}
+  .faq-a{margin-top:.25rem;font-size:12.5px;line-height:1.6;color:var(--dim)}
+
+  /* Footer */
+  footer{margin-top:3rem;border-top:1px solid var(--line);padding-top:1.5rem;text-align:center}
+  .foot-1{font-size:11px;line-height:1.6;color:var(--dim)}
+  .foot-2{margin-top:.5rem;display:flex;align-items:center;justify-content:center;gap:.375rem;font-size:11.5px;color:var(--dim)}
+  .foot-2 .ic{width:.875rem;height:.875rem}
+  .foot-2 a{color:var(--green)}
+  .foot-3{margin-top:.75rem;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;column-gap:1rem;row-gap:.25rem;font-size:11.5px;color:var(--dim)}
+  .foot-3 a{text-decoration:underline;color:var(--copper)}
+  .foot-3 .arrow{display:inline-flex;align-items:center;gap:.25rem}
+  .foot-3 .arrow .ic{width:.75rem;height:.75rem}
+  .foot-4{margin-top:1rem;display:flex;align-items:center;justify-content:center;gap:.375rem;font-size:10px;color:var(--dim)}
+  .foot-4 .ic{width:.75rem;height:.75rem}
+</style>
+</head>
+<body>
+<main>
+  <div class="wrap">
+
+    <!-- Marca CumbreLabs -->
+    <p class="brand">CUMBRE<span>LABS</span></p>
+    <p class="brand-sub">TECNOLOGÍA PARA DESCUBRIR</p>
+
+    <!-- Hero -->
+    <div class="hero">
+      <div class="hero-icon">
+        <svg class="ic" width="32" height="32" viewBox="0 0 24 24" aria-hidden="true"><path d="M11.562 3.266a.5.5 0 0 1 .876 0L15.39 8.87a1 1 0 0 0 1.516.294L21.183 5.5a.5.5 0 0 1 .798.519l-2.834 10.246a1 1 0 0 1-.956.734H5.81a1 1 0 0 1-.957-.734L2.02 6.02a.5.5 0 0 1 .798-.519l4.276 3.664a1 1 0 0 0 1.516-.294z"/><path d="M5 21h14"/></svg>
+      </div>
+      <h1>Cumbre30 <em>Pro</em></h1>
+      <p class="tagline">El ciclocomputador del cerro San Cristóbal, con todo desbloqueado.</p>
+
+      <p class="price">$6.500</p>
+      <p class="price-sub">precio fundador · pago único · sin suscripción · para siempre</p>
+
+      <a class="buy" href="https://mpago.la/2tghXUc" target="_blank" rel="noopener noreferrer">
+        <svg class="ic" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M16 10a4 4 0 0 1-8 0"/><path d="M3.103 6.034h17.794"/><path d="M3.4 5.467a2 2 0 0 0-.4 1.2V20a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6.667a2 2 0 0 0-.4-1.2l-2-2.667A2 2 0 0 0 17 2H7a2 2 0 0 0-1.6.8z"/></svg>
+        Comprar Pro — $6.500
+      </a>
+      <p class="buy-note">Pagas con Mercado Pago y recibes tu código <code>C30P-XXXX-…</code> por correo. Después lo activas en la app: <b>Perfil → Pagos y suscripciones</b>.</p>
+    </div>
+
+    <!-- Beneficios -->
+    <section>
+      <h2>Qué desbloquea Pro</h2>
+      <ul class="benefits">
+        <li><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"/><path d="m9 12 2 2 4-4"/></svg><span>Export GPX de tus viajes con GPS (Strava, Garmin, Komoot)</span></li>
+        <li><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"/><path d="m9 12 2 2 4-4"/></svg><span>Constancias PDF ilimitadas (gratis: 3 al mes)</span></li>
+        <li><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"/><path d="m9 12 2 2 4-4"/></svg><span>Segmentos del cerro: Pío Nono → Plaza México con récord personal e historial</span></li>
+        <li><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"/><path d="m9 12 2 2 4-4"/></svg><span>Buscador universal: escribe cualquier dirección y la ruta ciclable se traza sola + marcadores en el mapa</span></li>
+        <li><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"/><path d="m9 12 2 2 4-4"/></svg><span>Historial ilimitado de viajes (gratis: los últimos 20)</span></li>
+        <li><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"/><path d="m9 12 2 2 4-4"/></svg><span>Estadísticas avanzadas: resumen mes a mes con desnivel y comparación</span></li>
+        <li><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"/><path d="m9 12 2 2 4-4"/></svg><span>Desafíos del cerro completos y todos los pines (gratis: el primero de cada serie)</span></li>
+        <li><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"/><path d="m9 12 2 2 4-4"/></svg><span>Apoyo directo al desarrollo de la app</span></li>
+      </ul>
+    </section>
+
+    <!-- Cómo activar -->
+    <section>
+      <h2>Cómo activar tu código</h2>
+      <div class="steps">
+        <div class="step">
+          <span class="step-n">1</span>
+          <div>
+            <p class="step-t">Paga con Mercado Pago</p>
+            <p class="step-b">Desde el botón verde de esta página: tarjeta, dinero en cuenta o efectivo en agentes.</p>
+          </div>
+        </div>
+        <div class="step">
+          <span class="step-n">2</span>
+          <div>
+            <p class="step-t">Recibe tu código por correo</p>
+            <p class="step-b">Te enviamos el código C30P- ligado a tu correo (normalmente en minutos; si demora, escríbenos con tu comprobante a contacto.cumbre30@gmail.com).</p>
+          </div>
+        </div>
+        <div class="step">
+          <span class="step-n">3</span>
+          <div>
+            <p class="step-t">Actívalo en la app</p>
+            <p class="step-b">Abre Cumbre30 → Perfil → Pagos y suscripciones → Habilitar modo Pro → ingresa tu correo y el código. La validación es local: no necesita internet.</p>
+          </div>
+        </div>
+      </div>
+      <p class="offline">
+        <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h.01"/><path d="M2 8.82a15 15 0 0 1 20 0"/><path d="M5 12.859a10 10 0 0 1 14 0"/><path d="M8.5 16.429a5 5 0 0 1 7 0"/></svg>
+        La app funciona 100% offline: una vez activado el código, Pro queda guardado en el teléfono.
+      </p>
+    </section>
+
+    <!-- Aporte voluntario -->
+    <section>
+      <h2>Aporte voluntario</h2>
+      <div class="donate-card">
+        <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/><path d="M12 5 9.04 7.96a2.17 2.17 0 0 0 0 3.08c.82.82 2.13.85 3 .07l2.07-1.9a2.82 2.82 0 0 1 3.79 0l2.96 2.66"/><path d="m18 15-2-2"/><path d="m15 18-2-2"/></svg>
+        <div>
+          <p class="donate-t">¿Quieres apoyar sin llevar Pro?</p>
+          <p class="donate-b">Cumbre30 es gratis, sin publicidad y hecha en Chile. Tu aporte financia los mapas, los avisos de voz y las próximas funciones. ¡Cualquier monto ayuda!</p>
+          <a class="donate-btn" href="https://link.mercadopago.cl/perfumatch" target="_blank" rel="noopener noreferrer">
+            <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/><path d="M12 5 9.04 7.96a2.17 2.17 0 0 0 0 3.08c.82.82 2.13.85 3 .07l2.07-1.9a2.82 2.82 0 0 1 3.79 0l2.96 2.66"/><path d="m18 15-2-2"/><path d="m15 18-2-2"/></svg>
+            Aportar — monto libre
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQ -->
+    <section>
+      <h2>Preguntas frecuentes</h2>
+      <div class="faq">
+        <div class="faq-item">
+          <p class="faq-q">¿Es un pago único o suscripción?</p>
+          <p class="faq-a">Pago único: activas Pro para siempre en ese teléfono, sin renovaciones ni cobros automáticos.</p>
+        </div>
+        <div class="faq-item">
+          <p class="faq-q">¿Puedo pasar mi Pro a otro teléfono?</p>
+          <p class="faq-a">Sí. Quita la licencia desde el teléfono antiguo (Pagos y suscripciones → Quitar licencia) y activa el mismo código en el nuevo con el mismo correo.</p>
+        </div>
+        <div class="faq-item">
+          <p class="faq-q">¿Compré Pro dentro de Google Play, qué hago?</p>
+          <p class="faq-a">Si compraste desde la app instalada por Google Play, Pro se activa solo con tu cuenta Google. El código de esta página es para quienes pagan por la web.</p>
+        </div>
+        <div class="faq-item">
+          <p class="faq-q">¿La app funciona sin señal en el cerro?</p>
+          <p class="faq-a">Sí: mapas, rutas, GPS y alertas funcionan sin datos móviles. El pago y la primera activación sí necesitan internet.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+      <p class="foot-1">CumbreLabs · Cumbre30 · App independiente de apoyo al ciclista; no es oficial del Parque Metropolitano de Santiago.</p>
+      <p class="foot-2">
+        <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.991 5.727a2 2 0 0 1-2.009 0L2 7"/></svg>
+        <a href="mailto:contacto.cumbre30@gmail.com">contacto.cumbre30@gmail.com</a>
+        <span aria-hidden="true">·</span>
+        <a href="https://wa.me/56942961619" target="_blank" rel="noopener noreferrer">WhatsApp</a>
+      </p>
+      <p class="foot-3">
+        <a href="/privacidad">Privacidad</a>
+        <a href="/eliminar-cuenta">Eliminar cuenta</a>
+        <a class="arrow" href="/">Abrir la app <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></a>
+      </p>
+      <p class="foot-4">
+        <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M2.586 17.414A2 2 0 0 0 2 18.828V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.172a2 2 0 0 0 1.414-.586l.814-.814a6.5 6.5 0 1 0-4-4z"/></svg>
+        Pago seguro procesado por Mercado Pago — Cumbre30 no almacena datos de tarjetas.
+      </p>
+    </footer>
+
+  </div>
+</main>
+</body>
+</html>

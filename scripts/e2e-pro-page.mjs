@@ -20,7 +20,7 @@ async function main() {
   chk("título Cumbre30 Pro", html.includes("Cumbre30") && html.includes("Pro"));
   chk("precio fundador $6.500", html.includes("$6.500"));
   chk("pago único / sin suscripción", html.includes("pago único") && html.includes("sin suscripción"));
-  chk("link de Mercado Pago del plan Pro", html.includes("mpago.la/1WdyZaW"));
+  chk("link de Mercado Pago del plan Pro (cobro único 2tghXUc)", html.includes("mpago.la/2tghXUc"));
   chk("botón de aporte voluntario (Mercado Pago)", html.includes("link.mercadopago.cl/perfumatch"));
   chk("guía de activación de código", html.includes("Cómo activar tu código") && html.includes("C30P-"));
   chk("ruta de activación in-app documentada", html.includes("Pagos y suscripciones"));

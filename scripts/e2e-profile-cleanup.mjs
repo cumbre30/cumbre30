@@ -87,8 +87,8 @@ async function main() {
   // La versión vive en Configuración → Acerca de (movida desde Perfil)
   await page.getByRole("button", { name: "Abrir menú" }).click();
   await page.getByRole("button", { name: /Configuraci/ }).click();
-  const acercaVersion = await page.getByText(/Versión 1\.8\.0 · build 25/).first().isVisible().catch(() => false);
-  chk("Configuración → Acerca de muestra la versión 1.8.0 (build 25)", acercaVersion);
+  const acercaVersion = await page.getByText(/Versión 1\.8\.1 · build 26/).first().isVisible().catch(() => false);
+  chk("Configuración → Acerca de muestra la versión 1.8.1 (build 26)", acercaVersion);
   const cumbrelabs = await page.getByText("CumbreLabs").first().isVisible().catch(() => false);
   chk("Configuración muestra la marca CumbreLabs", cumbrelabs);
   await page.screenshot({ path: "/tmp/render/config-acerca.png" });

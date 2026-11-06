@@ -15,11 +15,22 @@
 /** Build de Google Play (export con PLAY_BUILD=1): muestra compra Billing. */
 export const IS_PLAY_BUILD = process.env.NEXT_PUBLIC_PLAY_BUILD === "1";
 
-/** Enlace de pago de Cumbre30 Pro en Mercado Pago (solo página /pro). */
-export const PRO_PAY_URL = "https://mpago.la/1WdyZaW";
+/**
+ * Enlace de COBRO ÚNICO de Cumbre30 Pro en Mercado Pago ($6.500,
+ * precio fundador; solo página /pro — la app no lleva links de pago).
+ * v2 (2tghXUc): reemplaza al 1WdyZaW, que era una SUSCRIPCIÓN anual
+ * creada por error en la sección Suscripciones de Mercado Pago.
+ */
+export const PRO_PAY_URL = "https://mpago.la/2tghXUc";
 
-/** Precio en dinero real (web / Mercado Pago): precio fundador. */
-export const PRO_PRICE_LABEL = "$6.500 · pago único";
+/**
+ * Precio de referencia DENTRO de la app = precio de Google Play.
+ * El precio fundador $6.500 de la web vive SOLO en la página /pro
+ * (es un descuento de lanzamiento que se descubre en la web); la app
+ * nunca muestra un precio distinto al de Play para no generar
+ * expectativas de precio equivocadas frente a la ficha de Play.
+ */
+export const PRO_PRICE_LABEL = "$7.650 · pago único";
 
 /**
  * Google Play Billing — producto único (non-consumable).
