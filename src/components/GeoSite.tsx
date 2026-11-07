@@ -71,7 +71,7 @@ const PILARES = [
   },
 ];
 
-export default function GeoSite() {
+export default function GeoSite({ apkActivo = false }: { apkActivo?: boolean }) {
   const router = useRouter();
   const [appId, setAppId] = useState<string | null>(null);
   const carruselRef = useRef<HTMLDivElement>(null);
@@ -362,8 +362,9 @@ export default function GeoSite() {
 
             {/* Cuerpo */}
             <div className="max-h-[62dvh] overflow-y-auto p-6">
-              {/* APK (aún no disponible) */}
-              {app.apk.disponible ? (
+              {/* APK: se activa con el catálogo o cuando el APK está en
+                  GitHub Releases (APK_DOWNLOAD_URL → prop apkActivo) */}
+              {app.apk.disponible || (apkActivo && !!app.apk.url) ? (
                 <a
                   href={app.apk.url ?? "#"}
                   className="flex h-13 w-full items-center justify-center gap-2 rounded-2xl py-3.5 text-[15px] font-bold transition-opacity hover:opacity-90"

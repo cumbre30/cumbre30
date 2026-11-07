@@ -33,15 +33,23 @@ Cuando termine, refresca https://github.com/TU-USUARIO/cumbre30 y verás el proy
 
 ---
 
-## Paso 3 — Subir el APK v1.5.0 a "Releases" (opcional pero recomendado)
+## Paso 3 — Subir el APK v1.8.2 a "Releases" (necesario para el botón de descarga web)
 
-GitHub da gratis hasta 2 GB por release para binarios — es el lugar correcto para los APKs (mejor que dentro del código):
+GitHub da gratis hasta 2 GB por release para binarios — es el lugar correcto para los APKs (mejor que dentro del código). Al publicar el release y definir `APK_DOWNLOAD_URL` en Vercel, el botón **"Descargar APK"** del sitio `/geo` se activa solo (ver `download/DEPLOY.md` paso 6):
 
 1. En tu repo: **Releases → Create a new release** (o https://github.com/TU-USUARIO/cumbre30/releases/new).
-2. **Tag**: escribe `v1.5.0` y elige "Create new tag on publish".
-3. **Title**: `Cumbre30 v1.5.0 (build 21)`.
-4. Arrastra el archivo `cumbre30-v1.5.0-code21.apk` a la zona de adjuntos.
-5. **Publish release** ✅
+2. **Tag**: escribe `v1.8.2` y elige "Create new tag on publish".
+3. **Title**: `Cumbre30 v1.8.2 (build 27)`.
+4. Arrastra el archivo `cumbre30-v1.8.2-code27.apk` (está en `download/`) a la zona de adjuntos.
+5. En la descripción del release pega las notas de la versión (están listas en `download/play-store/ficha-play-store.md` → "Notas de la versión").
+6. **Publish release** ✅
+7. Copia la URL del asset subido (termina en `…/download/v1.8.2/cumbre30-v1.8.2-code27.apk`) y ponla en la variable `APK_DOWNLOAD_URL` en Vercel → Settings → Environment Variables → re-despliega.
+
+### Novedades v1.8.2 (build 27) — marca Cumbre GEO
+
+- 🏔️ **Nueva marca: Cumbre GEO** — sitio oficial cumbregeo.cl (redirige a `/geo`: qué hacemos, apps con detalles y planes).
+- 👑 **Compra Pro con entrega automática**: pagas en la web (`/pro`, Mercado Pago) y tu código `C30P-…` llega solo al correo; lo activas en la app (Perfil → Pagos y suscripciones).
+- 🔧 **Mejoras de estabilidad**.
 
 ### Novedades v1.5.0 (build 21) — monetización
 

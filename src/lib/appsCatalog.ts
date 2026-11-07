@@ -76,9 +76,12 @@ export const APPS: AppCatalogo[] = [
           "v1.8.2 (versionCode 27):\n• Nueva marca: Cumbre GEO — sitio oficial cumbregeo.cl\n• Compra Pro con entrega automática: tu código llega solo al correo tras pagar\n• Mejoras de estabilidad",
       },
     ],
-    // APK directo: aún no disponible (la distribución actual es Play Store).
-    // Cuando se publique: apk.disponible = true y /api/apk sirve el archivo
-    // (ya existe el endpoint, lee APK_FILE_NAME de src/lib/appVersion.ts).
+    // APK directo: deshabilitado por defecto. Se activa de dos formas:
+    //   1. Automática: define APK_DOWNLOAD_URL (URL del asset en GitHub
+    //      Releases, DEPLOY.md paso 6) → /api/apk redirige ahí y el botón
+    //      del modal se habilita solo.
+    //   2. Manual: apk.disponible = true (sirve el archivo local; solo
+    //      funciona en despliegue Node, no en Vercel serverless).
     apk: { disponible: false, url: "/api/apk", nota: "Disponible próximamente" },
     planes: { publicado: true, url: "/pro" },
   },

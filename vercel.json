@@ -2,6 +2,20 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "buildCommand": "prisma generate && next build",
   "regions": ["scl1"],
+  "redirects": [
+    {
+      "source": "/",
+      "has": [{ "type": "host", "value": "cumbregeo.cl" }],
+      "destination": "/geo",
+      "permanent": false
+    },
+    {
+      "source": "/",
+      "has": [{ "type": "host", "value": "www.cumbregeo.cl" }],
+      "destination": "/geo",
+      "permanent": false
+    }
+  ],
   "headers": [
     {
       "source": "/(.*)",

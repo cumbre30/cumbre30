@@ -14,5 +14,9 @@ export const metadata: Metadata = {
 };
 
 export default function GeoPage() {
-  return <GeoSite />;
+  // El botón "Descargar APK" se activa solo cuando el APK está publicado
+  // en GitHub Releases (DEPLOY.md · paso 6): basta con definir la variable
+  // APK_DOWNLOAD_URL — /api/apk redirige ahí y el sitio no cambia.
+  const apkActivo = Boolean(process.env.APK_DOWNLOAD_URL);
+  return <GeoSite apkActivo={apkActivo} />;
 }

@@ -16,7 +16,7 @@ están en esta misma carpeta (`capturas/`, `feature-graphic-1024x500.png`,
 | Etiquetas sugeridas | ciclismo, montaña, GPS, ciclocomputador |
 | Correo de contacto | contacto.cumbre30@gmail.com |
 | Teléfono | +56 9 4296 1619 (WhatsApp) |
-| Sitio web | **https://cumbregeo.cl** (redirige a `/pro`, la página de venta) |
+| Sitio web | **https://cumbregeo.cl** (redirige a `/geo`, el sitio de Cumbre GEO: apps, detalles y planes) |
 | Versión a subir | v1.8.2 (versionCode 27) — `cumbre30-v1.8.2-code27.aab` |
 
 ## Descripción corta (≤80 caracteres)
