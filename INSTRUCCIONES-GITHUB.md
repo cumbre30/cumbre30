@@ -18,7 +18,9 @@ Este paquete viene **limpio y listo**: no incluye bases de datos, APKs ni archiv
 
 ## Paso 2 — Descomprimir y subir (4 comandos)
 
-Descomprime `cumbre30-codigo.zip` en tu computadora, abre una terminal **dentro de la carpeta descomprimida** y ejecuta:
+Si tienes el zip completo (`cumbre30-codigo.zip`): descomprímelo en una carpeta y pasa directo a los comandos.
+
+Si te llegaron **por partes**, descomprime `cumbre30-parte1-codigo.zip` en una carpeta y luego descomprime `cumbre30-parte2-media.zip` (y `cumbre30-parte3-play-store.zip` si lo tienes) **dentro de esa misma carpeta** — se fusionan solos y queda el proyecto completo. Después ejecuta:
 
 ```bash
 git init
