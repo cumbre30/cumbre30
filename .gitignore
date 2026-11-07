@@ -81,3 +81,4 @@ public/cumbre30-github.zip
 /db/pgdata/
 db/pg.log
 public/cumbre30-codigo.zip
+.env*
