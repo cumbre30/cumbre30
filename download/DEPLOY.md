@@ -23,14 +23,15 @@ Tiempo total: ~30–45 min la primera vez.
 
 ## Paso 0 · Sube el repo a GitHub
 
-El código llega a tu computador en `cumbre30-github.zip` (código + historia
-de git limpia, sin `node_modules`, sin `.env`, sin APKs). Descomprime, abre
+El código llega a tu computador en `cumbre30-codigo.zip` (~7 MB: código
+completo, sin `node_modules`, sin `.env`, sin APKs). Descomprime, abre
 una terminal **dentro de la carpeta** y:
 
 ```bash
-git remote add origin https://github.com/TU-USUARIO/cumbre30.git
-git branch -M main
-git push -u origin main
+git init
+git add .
+git commit -m "Cumbre30 v1.8.2 (build 27)"
+git push --set-upstream https://github.com/TU-USUARIO/cumbre30.git main
 ```
 
 (Paso a paso con soluciones a problemas comunes: `INSTRUCCIONES-GITHUB.md`.)

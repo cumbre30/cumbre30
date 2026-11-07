@@ -16,18 +16,25 @@ Este paquete viene **limpio y listo**: no incluye bases de datos, APKs ni archiv
 
 ---
 
-## Paso 2 — Descomprimir y subir (3 comandos)
+## Paso 2 — Descomprimir y subir (4 comandos)
 
-Descomprime `cumbre30-github.zip` en tu computadora, abre una terminal **dentro de la carpeta descomprimida** y ejecuta:
+Descomprime `cumbre30-codigo.zip` en tu computadora, abre una terminal **dentro de la carpeta descomprimida** y ejecuta:
 
 ```bash
-git remote add origin https://github.com/TU-USUARIO/cumbre30.git
-git branch -M main
-git push -u origin main
+git init
+git add .
+git commit -m "Cumbre30 v1.8.2 (build 27)"
+git push --set-upstream https://github.com/TU-USUARIO/cumbre30.git main
 ```
 
 > 💡 En Windows: abre la carpeta, clic derecho → "Git Bash Here" (si instalaste Git para Windows).
 > 🔐 La primera vez, Git abrirá el navegador para que autorices tu cuenta de GitHub — inicia sesión y acepta. No necesitas crear tokens a mano.
+> 🆔 Si Git te pide tu identidad antes del commit (solo pasa la primera vez que usas Git en ese computador):
+> ```bash
+> git config --global user.name "Tu Nombre"
+> git config --global user.email tu@correo.cl
+> ```
+> y repite el `git commit`.
 
 Cuando termine, refresca https://github.com/TU-USUARIO/cumbre30 y verás el proyecto completo con su README.
 
