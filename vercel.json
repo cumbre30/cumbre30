@@ -1,7 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "buildCommand": "prisma generate && next build",
-  "regions": ["scl1"],
+  "regions": ["gru1"],
   "redirects": [
     {
       "source": "/",
