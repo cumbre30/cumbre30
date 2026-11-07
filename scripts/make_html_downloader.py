@@ -13,15 +13,15 @@ import pathlib
 import sys
 
 ROOT = pathlib.Path("/home/z/my-project")
-ZIP_PATH = ROOT / "download" / "cumbre30-codigo.zip"
-OUT_PATH = ROOT / "download" / "descargar-codigo-cumbre30.html"
+ZIP_PATH = ROOT / "download" / "cumbre30-codigo-code28.zip"
+OUT_PATH = ROOT / "download" / "descargar-codigo-cumbre30-code28.html"
 
 TEMPLATE = r"""<!DOCTYPE html>
 <html lang="es-CL">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Descargar código Cumbre30 — cumbre30-codigo.zip</title>
+<title>Descargar código Cumbre30 — cumbre30-codigo-code28.zip</title>
 <style>
   :root { --espresso:#241A11; --cream:#F2EAD9; --green:#35B85F; --copper:#8A6A4F; }
   * { box-sizing: border-box; }
@@ -61,22 +61,22 @@ TEMPLATE = r"""<!DOCTYPE html>
 <div class="card">
   <div class="brand">CUMBRE&nbsp;GEO</div>
   <h1>Código del proyecto <span>Cumbre30</span></h1>
-  <p class="meta">cumbre30-codigo.zip · v1.8.2 (build 27) · 467 archivos · listos para GitHub + Vercel</p>
+  <p class="meta">cumbre30-codigo-code28.zip · v1.8.2 (build 28) · página /geo + botón APK Google Drive · ACTUALIZADO 08-11</p>
 
-  <button id="dl">⬇ Descargar cumbre30-codigo.zip</button>
+  <button id="dl">⬇ Descargar cumbre30-codigo-code28.zip</button>
   <div class="ok" id="msg"></div>
 
   <ol>
-    <li>Presiona el botón de arriba: se descarga <b>cumbre30-codigo.zip</b> a tu carpeta de Descargas (el zip viene embebido dentro de esta página, no necesita internet).</li>
-    <li>Descomprime el zip en una carpeta (clic derecho → Extraer).</li>
-    <li>Abre una terminal <b>dentro de esa carpeta</b> y sube el código a tu repositorio de GitHub (crea el repo en <b>github.com/new</b> sin README, y reemplaza TU-USUARIO):</li>
+    <li>Presiona el botón de arriba: se descarga <b>cumbre30-codigo-code28.zip</b> a tu carpeta de Descargas (el zip viene embebido dentro de esta página, no necesita internet).</li>
+    <li>Descomprime el zip en una carpeta <b>nueva</b> (no la mezcles con la carpeta vieja del despliegue anterior).</li>
+    <li>Abre una terminal <b>dentro de esa carpeta</b> y vuelve a desplegar en Vercel (el proyecto ya existe; te va a preguntar a qué proyecto enlazar la primera vez):</li>
   </ol>
-  <pre>git init
-git add .
-git commit -m "Cumbre30 v1.8.2 (build 27)"
-git push --set-upstream https://github.com/TU-USUARIO/cumbre30.git main</pre>
-  <p class="nota">Después sigue la guía <b>DEPLOY.md</b> (viene dentro del zip) para Vercel + Neon.
-  Si el botón no reacciona, abre esta página con doble clic en Chrome o Firefox.
+  <pre>npx vercel login      (solo si te lo pide)
+npx vercel link       (elige tu proyecto existente)
+npx vercel --prod</pre>
+  <p class="nota">Al terminar, abre <b>cumbregeo.cl</b> con Ctrl+F5: debe entrar a la página /geo con el diseño nuevo.
+  Las variables de entorno ya quedaron configuradas en el proyecto de Vercel, no se tocan de nuevo.
+  Guía completa: <b>DEPLOY.md</b> (viene dentro del zip).
   Sha256 del zip para verificar: <code>__SHA__</code></p>
 </div>
 
@@ -92,10 +92,10 @@ document.getElementById("dl").addEventListener("click", function () {
       var blob = new Blob([bytes], { type: "application/zip" });
       var url = URL.createObjectURL(blob);
       var a = document.createElement("a");
-      a.href = url; a.download = "cumbre30-codigo.zip";
+      a.href = url; a.download = "cumbre30-codigo-code28.zip";
       document.body.appendChild(a); a.click(); a.remove();
       setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
-      msg.textContent = "✓ Descargado: cumbre30-codigo.zip (" + (n / 1048576).toFixed(1) + " MB)";
+      msg.textContent = "✓ Descargado: cumbre30-codigo-code28.zip (" + (n / 1048576).toFixed(1) + " MB)";
       btn.disabled = false;
     }, 30);
   } catch (e) {
