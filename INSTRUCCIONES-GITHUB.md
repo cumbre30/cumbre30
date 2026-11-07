@@ -25,7 +25,7 @@ Si te llegaron **por partes**, descomprime `cumbre30-parte1-codigo.zip` en una c
 ```bash
 git init
 git add .
-git commit -m "Cumbre30 v1.8.2 (build 27)"
+git commit -m "Cumbre30 v1.8.2 (build 28)"
 git push --set-upstream https://github.com/TU-USUARIO/cumbre30.git main
 ```
 
@@ -44,17 +44,17 @@ Cuando termine, refresca https://github.com/TU-USUARIO/cumbre30 y verás el proy
 
 ## Paso 3 — Subir el APK v1.8.2 a "Releases" (necesario para el botón de descarga web)
 
-GitHub da gratis hasta 2 GB por release para binarios — es el lugar correcto para los APKs (mejor que dentro del código). Al publicar el release y definir `APK_DOWNLOAD_URL` en Vercel, el botón **"Descargar APK"** del sitio `/geo` se activa solo (ver `download/DEPLOY.md` paso 6):
+GitHub da gratis hasta 2 GB por release para binarios — es el lugar correcto para los APKs (mejor que dentro del código). Publicar el release y definir `APK_DOWNLOAD_URL` en Vercel alimenta la descarga de actualizaciones **dentro de la app** (`/api/apk` redirige ahí); el botón de la web `/geo` ya está activo apuntando a Google Drive (ver `download/DEPLOY.md` paso 6):
 
 1. En tu repo: **Releases → Create a new release** (o https://github.com/TU-USUARIO/cumbre30/releases/new).
 2. **Tag**: escribe `v1.8.2` y elige "Create new tag on publish".
-3. **Title**: `Cumbre30 v1.8.2 (build 27)`.
-4. Arrastra el archivo `cumbre30-v1.8.2-code27.apk` (está en `download/`) a la zona de adjuntos.
+3. **Title**: `Cumbre30 v1.8.2 (build 28)`.
+4. Arrastra el archivo `cumbre30-v1.8.2-code28.apk` (el que está en Google Drive) a la zona de adjuntos.
 5. En la descripción del release pega las notas de la versión (están listas en `download/play-store/ficha-play-store.md` → "Notas de la versión").
 6. **Publish release** ✅
-7. Copia la URL del asset subido (termina en `…/download/v1.8.2/cumbre30-v1.8.2-code27.apk`) y ponla en la variable `APK_DOWNLOAD_URL` en Vercel → Settings → Environment Variables → re-despliega.
+7. Copia la URL del asset subido (termina en `…/download/v1.8.2/cumbre30-v1.8.2-code28.apk`) y ponla en la variable `APK_DOWNLOAD_URL` en Vercel → Settings → Environment Variables → re-despliega.
 
-### Novedades v1.8.2 (build 27) — marca Cumbre GEO
+### Novedades v1.8.2 (build 28) — marca Cumbre GEO
 
 - 🏔️ **Nueva marca: Cumbre GEO** — sitio oficial cumbregeo.cl (redirige a `/geo`: qué hacemos, apps con detalles y planes).
 - 👑 **Compra Pro con entrega automática**: pagas en la web (`/pro`, Mercado Pago) y tu código `C30P-…` llega solo al correo; lo activas en la app (Perfil → Pagos y suscripciones).

@@ -17,7 +17,7 @@ están en esta misma carpeta (`capturas/`, `feature-graphic-1024x500.png`,
 | Correo de contacto | contacto.cumbre30@gmail.com |
 | Teléfono | +56 9 4296 1619 (WhatsApp) |
 | Sitio web | **https://cumbregeo.cl** (redirige a `/geo`, el sitio de Cumbre GEO: apps, detalles y planes) |
-| Versión a subir | v1.8.2 (versionCode 27) — `cumbre30-v1.8.2-code27.aab` |
+| Versión a subir | v1.8.2 (versionCode 28) — `cumbre30-v1.8.2-code28.aab` |
 
 ## Descripción corta (≤80 caracteres)
 
@@ -164,7 +164,7 @@ política de Google Play para funciones digitales):
 
 ## Notas de la versión (para el release de Play)
 
-v1.8.2 (versionCode 27):
+v1.8.2 (versionCode 28):
 
 ```
 • Nueva marca: Cumbre GEO — sitio oficial cumbregeo.cl

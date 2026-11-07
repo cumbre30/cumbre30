@@ -30,7 +30,7 @@ una terminal **dentro de la carpeta** y:
 ```bash
 git init
 git add .
-git commit -m "Cumbre30 v1.8.2 (build 27)"
+git commit -m "Cumbre30 v1.8.2 (build 28)"
 git push --set-upstream https://github.com/TU-USUARIO/cumbre30.git main
 ```
 
@@ -66,7 +66,7 @@ DATABASE_URL="postgresql://…neon.tech/neondb?sslmode=require" npx prisma db pu
 | `GMAIL_USER` | `contacto.cumbre30@gmail.com` |
 | `GMAIL_APP_PASSWORD` | contraseña de aplicación de Google (16 caracteres) |
 | `MP_SYNC_TOKEN` | secreto aleatorio: `openssl rand -hex 32` |
-| `APK_DOWNLOAD_URL` | URL del APK en GitHub Releases (paso 6) |
+| `APK_DOWNLOAD_URL` | URL directa del APK — hoy el link de Google Drive ya va en `appsCatalog.ts`; esta variable queda para GitHub Releases (paso 6) y la descarga dentro de la app (`/api/apk`) |
 
 ## Paso 4 · Deploy
 
@@ -93,14 +93,14 @@ Detalle completo de credenciales en `download/autogestion-codigos.md`.
 El APK (53 MB) no puede vivir dentro de las funciones serverless de Vercel:
 
 1. GitHub → tu repo → **Releases → Create a new release**.
-2. Crea el tag `v1.8.2`, título `Cumbre30 v1.8.2 (build 27)`, adjunta
-   `cumbre30-v1.8.2-code27.apk` y publica.
+2. Crea el tag `v1.8.2`, título `Cumbre30 v1.8.2 (build 28)`, adjunta
+   `cumbre30-v1.8.2-code28.apk` y publica.
 3. Copia la URL del asset (botón derecho → copiar dirección del enlace,
-   termina en `…/download/v1.8.2/cumbre30-v1.8.2-code27.apk`).
+   termina en `…/download/v1.8.2/cumbre30-v1.8.2-code28.apk`).
 4. Ponla en la variable `APK_DOWNLOAD_URL` en Vercel y re-despliega.
-   `/api/apk` ahora redirige ahí (la app y los usuarios no notan cambio) y
-   el botón **"Descargar APK"** de la landing `/geo` se activa solo: la
-   página lee `APK_DOWNLOAD_URL` al compilar, sin tocar código.
+   `/api/apk` redirige ahí — eso alimenta la descarga de actualizaciones
+   **dentro de la app**; el botón de la landing `/geo` ya está activo
+   apuntando directo a Google Drive desde `appsCatalog.ts`.
 
 ## Paso 7 · Ficha de Google Play
 
