@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
@@ -11,6 +12,7 @@ import {
   Wifi,
 } from "lucide-react";
 import { CONTACT_EMAIL, CONTACT_WHATSAPP, DONATE_OPTIONS, PRO_BENEFITS, PRO_PAY_URL } from "@/lib/proConfig";
+import GeoBackLink from "@/components/GeoBackLink";
 
 // ============================================================
 // /pro — Página de venta de Cumbre30 Pro (web oficial).
@@ -77,6 +79,10 @@ function Faq({ q, a }: { q: string; a: string }) {
 export default function ProPage() {
   return (
     <main className="min-h-dvh w-full" style={{ background: C.bg, color: C.cream }}>
+      {/* Botón flotante de regreso (solo si se llega desde /geo) */}
+      <Suspense fallback={null}>
+        <GeoBackLink />
+      </Suspense>
       <div className="mx-auto w-full max-w-xl px-5 py-10">
       {/* Marca Cumbre GEO */}
       <p className="text-center text-[15px] font-black tracking-[0.35em]" style={{ color: C.cream }}>
