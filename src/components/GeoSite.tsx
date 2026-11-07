@@ -367,6 +367,8 @@ export default function GeoSite({ apkActivo = false }: { apkActivo?: boolean }) 
               {app.apk.disponible || (apkActivo && !!app.apk.url) ? (
                 <a
                   href={app.apk.url ?? "#"}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="flex h-13 w-full items-center justify-center gap-2 rounded-2xl py-3.5 text-[15px] font-bold transition-opacity hover:opacity-90"
                   style={{ background: C.green, color: C.greenInk }}
                 >

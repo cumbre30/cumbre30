@@ -76,13 +76,20 @@ export const APPS: AppCatalogo[] = [
           "v1.8.2 (versionCode 27):\n• Nueva marca: Cumbre GEO — sitio oficial cumbregeo.cl\n• Compra Pro con entrega automática: tu código llega solo al correo tras pagar\n• Mejoras de estabilidad",
       },
     ],
-    // APK directo: deshabilitado por defecto. Se activa de dos formas:
-    //   1. Automática: define APK_DOWNLOAD_URL (URL del asset en GitHub
-    //      Releases, DEPLOY.md paso 6) → /api/apk redirige ahí y el botón
-    //      del modal se habilita solo.
-    //   2. Manual: apk.disponible = true (sirve el archivo local; solo
-    //      funciona en despliegue Node, no en Vercel serverless).
-    apk: { disponible: false, url: "/api/apk", nota: "Disponible próximamente" },
+    // APK directo: ACTIVO — descarga desde Google Drive (link del cliente).
+    // La URL "usercontent + confirm=t" baja el archivo de un clic, sin la
+    // pantalla de advertencia de Drive ("Download anyway"). El link de
+    // visor original, por si hay que compartirlo:
+    //   https://drive.google.com/file/d/1JVMc-6oSKQBAP3iYi0cp1caFhbMz-_8u/view?usp=drivesdk
+    // Para publicar otro APK: sube el archivo nuevo a Drive, compártelo
+    // "Cualquiera con el enlace" y reemplaza el id de la URL de abajo.
+    // Alternativa futura (GitHub Releases): dejar url: "/api/apk" y definir
+    // la variable APK_DOWNLOAD_URL en el hosting (DEPLOY.md · paso 6).
+    apk: {
+      disponible: true,
+      url: "https://drive.usercontent.google.com/download?id=1JVMc-6oSKQBAP3iYi0cp1caFhbMz-_8u&export=download&confirm=t",
+      nota: "",
+    },
     planes: { publicado: true, url: "/pro" },
   },
   {

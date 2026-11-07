@@ -14,9 +14,10 @@ export const metadata: Metadata = {
 };
 
 export default function GeoPage() {
-  // El botón "Descargar APK" se activa solo cuando el APK está publicado
-  // en GitHub Releases (DEPLOY.md · paso 6): basta con definir la variable
-  // APK_DOWNLOAD_URL — /api/apk redirige ahí y el sitio no cambia.
+  // El botón "Descargar APK" vive en el catálogo (appsCatalog.ts → apk):
+  // hoy apunta directo al archivo en Google Drive. La prop apkActivo queda
+  // como vía alternativa para el flujo /api/apk + APK_DOWNLOAD_URL
+  // (GitHub Releases, DEPLOY.md · paso 6) sin tocar el componente.
   const apkActivo = Boolean(process.env.APK_DOWNLOAD_URL);
   return <GeoSite apkActivo={apkActivo} />;
 }
