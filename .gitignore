@@ -80,3 +80,4 @@ public/cumbre30-github.zip
 # Postgres embebido local: data dir vivo, no va al repo
 /db/pgdata/
 db/pg.log
+public/cumbre30-codigo.zip
