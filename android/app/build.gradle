@@ -40,7 +40,7 @@ android {
         applicationId "cl.cumbre30.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 27
+        versionCode 28
         versionName "1.8.2"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {

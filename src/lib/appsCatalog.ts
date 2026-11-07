@@ -73,7 +73,7 @@ export const APPS: AppCatalogo[] = [
       {
         titulo: "Novedades de esta versión",
         cuerpo:
-          "v1.8.2 (versionCode 27):\n• Nueva marca: Cumbre GEO — sitio oficial cumbregeo.cl\n• Compra Pro con entrega automática: tu código llega solo al correo tras pagar\n• Mejoras de estabilidad",
+          "v1.8.2 (versionCode 28):\n• Nueva marca: Cumbre GEO — sitio oficial cumbregeo.cl\n• Compra Pro con entrega automática: tu código llega solo al correo tras pagar\n• Mejoras de estabilidad",
       },
     ],
     // APK directo: ACTIVO — descarga desde Google Drive (link del cliente).
