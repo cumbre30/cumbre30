@@ -1,15 +1,21 @@
 # Deploy de la web Cumbre30 — Vercel + Postgres (Neon), $0
 
-Objetivo: publicar la web (vende Pro en `/pro`, aloja `/privacidad`,
-`/eliminar-cuenta`, la activación de cuentas y la auto-entrega de códigos)
-con URL pública HTTPS para la ficha de Google Play. Todo gratis.
+Objetivo: publicar la web — **cumbregeo.cl** (landing Cumbre GEO en `/geo`),
+la venta Pro en `/pro`, `/privacidad`, `/eliminar-cuenta`, la activación de
+cuentas y la auto-entrega de códigos — con URL pública HTTPS para la ficha
+de Google Play. Todo gratis.
 
 ```
 Vercel  →  hospeda la app Next.js (región Santiago scl1) + HTTPS
 Neon    →  base Postgres gratuita (users, rides, entregas de códigos)
-GitHub  →  el repo + el APK de 54 MB como Release (descarga directa)
+GitHub  →  el repo + el APK de 53 MB como Release (descarga directa)
 cron-job.org →  revisa pagos de Mercado Pago cada 15 min
 ```
+
+> El `vercel.json` ya viene listo: `buildCommand` con `prisma generate`,
+> región `scl1` y redirección de la raíz de `cumbregeo.cl` → `/geo`.
+> El repo no incluye binarios (APK/AAB salieron del git para que el
+> deploy sea liviano) — viven en el disco y en GitHub Releases.
 
 Tiempo total: ~30–45 min la primera vez.
 
@@ -17,13 +23,17 @@ Tiempo total: ~30–45 min la primera vez.
 
 ## Paso 0 · Sube el repo a GitHub
 
+El código llega a tu computador en `cumbre30-github.zip` (código + historia
+de git limpia, sin `node_modules`, sin `.env`, sin APKs). Descomprime, abre
+una terminal **dentro de la carpeta** y:
+
 ```bash
-cd /home/z/my-project
 git remote add origin https://github.com/TU-USUARIO/cumbre30.git
+git branch -M main
 git push -u origin main
 ```
 
-(El repo ya está commiteado y `.env` está fuera de git — nunca se sube.)
+(Paso a paso con soluciones a problemas comunes: `INSTRUCCIONES-GITHUB.md`.)
 
 ## Paso 1 · Crea el proyecto en Vercel
 
@@ -79,15 +89,17 @@ Detalle completo de credenciales en `download/autogestion-codigos.md`.
 
 ## Paso 6 · El APK en GitHub Releases
 
-El APK (54 MB) no puede vivir dentro de las funciones serverless de Vercel:
+El APK (53 MB) no puede vivir dentro de las funciones serverless de Vercel:
 
 1. GitHub → tu repo → **Releases → Create a new release**.
-2. Crea el tag `v1.8.1`, título `Cumbre30 v1.8.1`, adjunta
-   `cumbre30-v1.8.1-code26.apk` y publica.
+2. Crea el tag `v1.8.2`, título `Cumbre30 v1.8.2 (build 27)`, adjunta
+   `cumbre30-v1.8.2-code27.apk` y publica.
 3. Copia la URL del asset (botón derecho → copiar dirección del enlace,
-   termina en `…/download/v1.8.1/cumbre30-v1.8.1-code26.apk`).
+   termina en `…/download/v1.8.2/cumbre30-v1.8.2-code27.apk`).
 4. Ponla en la variable `APK_DOWNLOAD_URL` en Vercel y re-despliega.
-   `/api/apk` ahora redirige ahí (la app y los usuarios no notan cambio).
+   `/api/apk` ahora redirige ahí (la app y los usuarios no notan cambio) y
+   el botón **"Descargar APK"** de la landing `/geo` se activa solo: la
+   página lee `APK_DOWNLOAD_URL` al compilar, sin tocar código.
 
 ## Paso 7 · Ficha de Google Play
 
@@ -96,10 +108,29 @@ El APK (54 MB) no puede vivir dentro de las funciones serverless de Vercel:
 - **Eliminar cuenta**: `https://tu-dominio/eliminar-cuenta`
 - Página de venta Pro (para WhatsApp/comunidad): `https://tu-dominio/pro`
 
-## Dominio propio (opcional, recomendado antes del lanzamiento)
+## Dominio propio (cumbregeo.cl)
 
-Vercel → Settings → Domains → agrega `cumbre30.cl` (o el que compres) y
-apunta los DNS según las instrucciones. Después actualiza la ficha de Play.
+1. Vercel → tu proyecto → **Settings → Domains** → agrega `cumbregeo.cl`
+   y `www.cumbregeo.cl`.
+2. En tu registrador apunta los DNS:
+   - `cumbregeo.cl` → registro **A** → `76.76.21.21`
+   - `www` → registro **CNAME** → `cname.vercel-dns.com`
+3. Nada más que configurar: el `vercel.json` ya redirige la raíz de
+   `cumbregeo.cl` (y `www`) → `/geo`, la landing de Cumbre GEO. La app,
+   `/pro`, `/privacidad` y el resto responden en el mismo dominio.
+4. Actualiza **Sitio web** en la ficha de Google Play a `https://cumbregeo.cl`.
+
+---
+
+## 🧯 Si algo falla
+
+| Síntoma | Causa y arreglo |
+| --- | --- |
+| En runtime: `Prisma Client could not locate the Query Engine for runtime rhel-openssl-3.0.x` | Ya resuelto: `prisma/schema.prisma` trae `binaryTargets = ["native", "rhel-openssl-3.0.x"]`. Si Vercel cambia de runtime, el error nombra el target nuevo: agrégalo a `binaryTargets`, `prisma generate` y re-despliega. |
+| El build de Vercel no encuentra `prisma` | `vercel.json` define `buildCommand: prisma generate && next build` — no lo borres ni lo reemplaces por `npm run build`. |
+| `/api/apk` responde 404 en producción | Normal sin `APK_DOWNLOAD_URL`: el APK vive en GitHub Releases (paso 6), no dentro del serverless. |
+| La landing `/geo` sigue mostrando "Disponible próximamente" después de subir el APK | `APK_DOWNLOAD_URL` se lee al compilar: al agregarla en Vercel hay que **re-desplegar**. |
+| `git push` se queda pegado o pesa mucho | No debería: la historia ya fue limpiada con filter-repo (480 MB → 14 MB). Si ves APKs en el repo, alguien los volvió a `git add -f`. |
 
 ---
 

@@ -1,5 +1,11 @@
 generator client {
   provider = "prisma-client-js"
+  // "native" = el motor del sistema donde se genera (dev/sandbox).
+  // "rhel-openssl-3.0.x" = el runtime de las funciones serverless de
+  // Vercel (Amazon Linux 2023). Sin este target el build pasa pero el
+  // login/rides/pagos fallan en producción con "Prisma Client could not
+  // locate the Query Engine for runtime rhel-openssl-3.0.x".
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
 }
 
 datasource db {
