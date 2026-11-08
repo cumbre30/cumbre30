@@ -12,6 +12,7 @@
 // ============================================================
 
 import { APP_VERSION, APP_VERSION_CODE } from "@/lib/appVersion";
+import { CONTACT_EMAIL } from "@/lib/proConfig";
 
 export type SeccionDetalle = { titulo: string; cuerpo: string };
 
@@ -35,6 +36,17 @@ export type AppCatalogo = {
   apk: { disponible: boolean; url: string | null; nota: string };
   /** "Ver planes" apunta a la página existente de la app. */
   planes: { publicado: boolean; url: string | null };
+  /**
+   * Accesos exclusivos de esta app (soporte y privacidad): se muestran
+   * al final de su modal de detalle, con el mismo diseño del sitio.
+   * Requeridos por Play Store por app; null en apps que aún no los tienen.
+   * NO van en el footer del sitio: ahí solo vive la marca Cumbre GEO.
+   */
+  enlaces?: {
+    contacto: string;
+    privacidad: string;
+    eliminarCuenta: string;
+  } | null;
 };
 
 export const APPS: AppCatalogo[] = [
@@ -91,6 +103,13 @@ export const APPS: AppCatalogo[] = [
       nota: "",
     },
     planes: { publicado: true, url: "/pro" },
+    // Play exige estos accesos por app; viven al final del modal de
+    // detalle de Cumbre30 (no en el footer del sitio).
+    enlaces: {
+      contacto: `mailto:${CONTACT_EMAIL}`,
+      privacidad: "/privacidad",
+      eliminarCuenta: "/eliminar-cuenta",
+    },
   },
   {
     id: "proxima-app",
@@ -105,6 +124,7 @@ export const APPS: AppCatalogo[] = [
     detalleCompleto: [],
     apk: { disponible: false, url: null, nota: "" },
     planes: { publicado: false, url: null },
+    enlaces: null,
   },
 ];
 

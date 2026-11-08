@@ -16,11 +16,15 @@
 //               aporte voluntario y FAQ). /pro ahora redirige acá.
 //   · Modal:    cabecera degradada, botón APK (activo con el link de
 //               Google Drive del catálogo), capturas de Play Store,
-//               descripción y acordeón de detalle completo.
+//               descripción y acordeón de detalle completo. Al final del
+//               cuerpo, los accesos exclusivos de la app (correo de
+//               contacto, privacidad y eliminar mi cuenta) como pills
+//               con el mismo diseño — vienen del campo enlaces del
+//               catálogo y solo se muestran si la app los define.
 //   · Footer:   solo la marca — sin correo/WhatsApp ni enlaces de la
 //               app (privacidad, eliminar cuenta, Cumbre30 Pro son
 //               exclusivos de Cumbre30; las rutas siguen vivas para
-//               Play Store, solo dejaron de estar enlazadas acá).
+//               Play Store, enlazadas solo dentro del modal).
 // Los estilos del prototipo van incrustados y acotados a #geo-root
 // para que no afecten al resto del sitio.
 // ============================================================
@@ -37,7 +41,10 @@ import {
   HeartHandshake,
   KeyRound,
   Lock,
+  Mail,
+  ShieldCheck,
   ShoppingBag,
+  Trash2,
   Wifi,
   X,
 } from "lucide-react";
@@ -122,6 +129,10 @@ const CSS = `
 #geo-root .acordeon details[open] summary svg{transform:rotate(180deg)}
 #geo-root .acordeon .cuerpo{padding:4px 18px 16px;color:#42514b;font-size:.93rem;white-space:pre-line}
 #geo-root .modal-foot{display:flex;gap:12px;justify-content:flex-end;padding:0 28px 26px}
+#geo-root .modal-enlaces{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:24px;padding-top:18px;border-top:1px solid var(--borde)}
+#geo-root .enlace-app{display:inline-flex;align-items:center;gap:7px;padding:9px 16px;border-radius:999px;border:1px solid var(--borde);background:var(--crema);color:var(--verde-osc);font-size:.85rem;font-weight:700;text-decoration:none;transition:.2s}
+#geo-root .enlace-app:hover{border-color:var(--verde);background:#fff;box-shadow:var(--sombra)}
+#geo-root .enlace-app svg{color:var(--acento);flex-shrink:0}
 #geo-root footer{background:var(--verde-osc);color:#9db8b1;text-align:center;padding:28px 0;font-size:.85rem}
 #geo-root .bloque-pro{background:var(--blanco);border:1px solid var(--borde);border-radius:var(--radio);box-shadow:var(--sombra);padding:32px 28px;margin-bottom:24px}
 #geo-root .bloque-pro h3{color:var(--verde-osc);font-size:1.15rem;margin:0}
@@ -637,6 +648,33 @@ export default function GeoSite({
                   </details>
                 ))}
               </div>
+
+              {/* Accesos exclusivos de la app (catálogo · enlaces): soporte
+                  y privacidad que Play exige por app. Footer del sitio
+                  queda limpio: estos enlaces solo viven acá. */}
+              {app.enlaces && (
+                <div className="modal-enlaces">
+                  <a className="enlace-app" href={app.enlaces.contacto}>
+                    <Mail style={{ width: 15, height: 15 }} aria-hidden /> Correo de contacto
+                  </a>
+                  <a
+                    className="enlace-app"
+                    href={app.enlaces.privacidad}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <ShieldCheck style={{ width: 15, height: 15 }} aria-hidden /> Privacidad
+                  </a>
+                  <a
+                    className="enlace-app"
+                    href={app.enlaces.eliminarCuenta}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <Trash2 style={{ width: 15, height: 15 }} aria-hidden /> Eliminar mi cuenta
+                  </a>
+                </div>
+              )}
             </div>
 
             <div className="modal-foot">
