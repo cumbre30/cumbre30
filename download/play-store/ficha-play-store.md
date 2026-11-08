@@ -147,7 +147,7 @@ política de Google Play para funciones digitales):
    La compra se muestra solo en el AAB (export con `PLAY_BUILD=1`):
    Pagos y suscripciones → "Comprar con Google Play", con restauración.
 2. **Canje por código (web y APK directo)**: la venta con Mercado Pago
-   vive SOLO en la página web **`/pro`** (paleta Cumbre GEO, link de cobro
+   vive SOLO en la venta web **`/cumbre30pro`** (vista de planes de /geo; alias heredado `/pro`) (link de cobro
    único mpago.la/2tghXUc — $6.500 precio fundador; el link anterior
    1WdyZaW era una suscripción anual y se reemplazó — + botón de aporte
    voluntario). El usuario paga allí,

@@ -13,7 +13,9 @@
 //               (cámbio por estado, sin recargar, igual que el prototipo)
 //   · Planes:   aquí se integró el contenido de la página /pro tal cual
 //               (precio fundador $6.500, beneficios, activación,
-//               aporte voluntario y FAQ). /pro ahora redirige acá.
+//               aporte voluntario y FAQ). Las rutas /cumbre30pro
+//               (canónica) y /pro (alias heredado) redirigen acá con
+//               ?vista=planes&app=<id>, un enlace nombrado por app.
 //   · Modal:    cabecera degradada, botón APK (activo con el link de
 //               Google Drive del catálogo), capturas de Play Store,
 //               descripción y acordeón de detalle completo. Al final del
@@ -164,13 +166,20 @@ const PILARES = [
 export default function GeoSite({
   apkActivo = false,
   vistaInicial = "home",
+  appInicial,
 }: {
   apkActivo?: boolean;
   vistaInicial?: Vista;
+  /** id de la app cuyos planes se abren (parámetro ?app de la URL).
+   *  Se ignora si no existe o si la app no tiene planes publicados. */
+  appInicial?: string;
 }) {
   const [vista, setVista] = useState<Vista>(vistaInicial);
   const [appId, setAppId] = useState<string | null>(null);
-  const [planAppId, setPlanAppId] = useState<string | null>(null);
+  const [planAppId, setPlanAppId] = useState<string | null>(() => {
+    const a = appInicial ? APPS.find((x) => x.id === appInicial && x.planes.publicado) : null;
+    return a ? a.id : null;
+  });
   const carruselRef = useRef<HTMLDivElement>(null);
   const app = appId ? APPS.find((a) => a.id === appId) ?? null : null;
   const appPlanes = (planAppId ? APPS.find((a) => a.id === planAppId) : null) ?? APPS.find((a) => a.planes.publicado) ?? null;
@@ -387,7 +396,8 @@ export default function GeoSite({
           <h2 className="seccion-titulo">Elige tu plan</h2>
           <p className="seccion-sub">Un solo pago y desbloqueas todo, para siempre.</p>
 
-          {/* ── Bloque Plan Pro (contenido de /pro, integrado tal cual) ── */}
+          {/* ── Bloque Plan Pro (contenido de la venta web, antes página /pro,
+              hoy integrado tal cual; rutas /cumbre30pro + /pro redirigen acá) ── */}
           {appPlanes && (
             <>
               {/* Precio + compra */}

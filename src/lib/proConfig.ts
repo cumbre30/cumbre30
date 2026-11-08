@@ -5,7 +5,8 @@
 //   · LA APP no contiene links de pago: solo activación por
 //     código (Canje) o compra con Google Play Billing cuando
 //     el build es de Play (NEXT_PUBLIC_PLAY_BUILD=1).
-//   · LA PÁGINA WEB /pro concentra el pago con Mercado Pago
+//   · LA PÁGINA WEB (vista "planes" de /geo, rutas /cumbre30pro y
+//     alias heredado /pro) concentra el pago con Mercado Pago
 //     (plan Pro y aporte voluntario) — Google Play prohíbe
 //     dirigir la compra de funciones digitales desde la app.
 //   · El código C30P-XXXX-XXXX-XXXX-XXXX llega por correo y se
@@ -17,7 +18,8 @@ export const IS_PLAY_BUILD = process.env.NEXT_PUBLIC_PLAY_BUILD === "1";
 
 /**
  * Enlace de COBRO ÚNICO de Cumbre30 Pro en Mercado Pago ($6.500,
- * precio fundador; solo página /pro — la app no lleva links de pago).
+ * precio fundador; solo la venta web — vista "planes" de /geo,
+ * rutas /cumbre30pro y alias /pro — la app no lleva links de pago).
  * v2 (2tghXUc): reemplaza al 1WdyZaW, que era una SUSCRIPCIÓN anual
  * creada por error en la sección Suscripciones de Mercado Pago.
  */
@@ -25,10 +27,11 @@ export const PRO_PAY_URL = "https://mpago.la/2tghXUc";
 
 /**
  * Precio de referencia DENTRO de la app = precio de Google Play.
- * El precio fundador $6.500 de la web vive SOLO en la página /pro
- * (es un descuento de lanzamiento que se descubre en la web); la app
- * nunca muestra un precio distinto al de Play para no generar
- * expectativas de precio equivocadas frente a la ficha de Play.
+ * El precio fundador $6.500 de la web vive SOLO en la venta web
+ * (vista "planes" de /geo; es un descuento de lanzamiento que se
+ * descubre en la web); la app nunca muestra un precio distinto al
+ * de Play para no generar expectativas de precio equivocadas frente
+ * a la ficha de Play.
  */
 export const PRO_PRICE_LABEL = "$7.650 · pago único";
 
@@ -42,7 +45,7 @@ export const PRO_PRICE_LABEL = "$7.650 · pago único";
 export const PRO_PLAY_PRODUCT_ID = "cumbre30_pro";
 export const PRO_PLAY_PRICE_LABEL = "$7.650 · pago único";
 
-/** Aporte voluntario — botón de la página /pro (Mercado Pago, monto libre). */
+/** Aporte voluntario — botón de la venta web (Mercado Pago, monto libre). */
 export const DONATE_OPTIONS: { label: string; url: string }[] = [
   { label: "Aportar — monto libre", url: "https://link.mercadopago.cl/perfumatch" },
 ];

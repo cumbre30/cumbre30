@@ -34,7 +34,9 @@ export type AppCatalogo = {
   detalleCompleto: SeccionDetalle[];
   /** Botón de descarga APK: false → deshabilitado con nota. */
   apk: { disponible: boolean; url: string | null; nota: string };
-  /** "Ver planes" apunta a la página existente de la app. */
+  /** Ruta nombrada de los planes de la app (entry point externo).
+   *  El botón "Ver planes" cambia de vista internamente sin recargar;
+   *  la URL queda como referencia y para enlaces salientes. */
   planes: { publicado: boolean; url: string | null };
   /**
    * Accesos exclusivos de esta app (soporte y privacidad): se muestran
@@ -102,7 +104,7 @@ export const APPS: AppCatalogo[] = [
       url: "https://drive.usercontent.google.com/download?id=1JVMc-6oSKQBAP3iYi0cp1caFhbMz-_8u&export=download&confirm=t",
       nota: "",
     },
-    planes: { publicado: true, url: "/pro" },
+    planes: { publicado: true, url: "/cumbre30pro" },
     // Play exige estos accesos por app; viven al final del modal de
     // detalle de Cumbre30 (no en el footer del sitio).
     enlaces: {

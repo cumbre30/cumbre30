@@ -57,7 +57,7 @@ GitHub da gratis hasta 2 GB por release para binarios — es el lugar correcto p
 ### Novedades v1.8.2 (build 28) — marca Cumbre GEO
 
 - 🏔️ **Nueva marca: Cumbre GEO** — sitio oficial cumbregeo.cl (redirige a `/geo`: qué hacemos, apps con detalles y planes).
-- 👑 **Compra Pro con entrega automática**: pagas en la web (`/pro`, Mercado Pago) y tu código `C30P-…` llega solo al correo; lo activas en la app (Perfil → Pagos y suscripciones).
+- 👑 **Compra Pro con entrega automática**: pagas en la web (`/cumbre30pro` → vista de planes de /geo, Mercado Pago; `/pro` sigue funcionando como alias) y tu código `C30P-…` llega solo al correo; lo activas en la app (Perfil → Pagos y suscripciones).
 - 🔧 **Mejoras de estabilidad**.
 
 ### Novedades v1.5.0 (build 21) — monetización
