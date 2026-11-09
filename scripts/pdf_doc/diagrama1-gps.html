@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<style>
+  /* Diagrama 1 — Flujo del fix GPS en el motor de rides (paleta Template 07, bajas saturaciones) */
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #f5f8fc; font-family: 'Segoe UI', 'Noto Sans SC', Arial, sans-serif; }
+  .canvas { position: relative; width: 1160px; height: 600px; background: #f5f8fc; }
+  .card { position: absolute; background: #ffffff; border: 1px solid #c0d0e2; border-radius: 10px; padding: 14px 16px; }
+  .card h4 { font-size: 25px; color: #1a4a7a; margin-bottom: 8px; font-weight: 700; }
+  .card p { font-size: 20px; line-height: 1.45; color: #142840; }
+  .card .tag { display: inline-block; font-size: 17px; color: #2d7ab3; border: 1px solid #c0d0e2; border-radius: 999px; padding: 1px 10px; margin-bottom: 7px; background: #edf2f9; }
+  .src { border-top: 4px solid #2d7ab3; }
+  .pipe { border-top: 4px solid #1a4a7a; background: #edf2f9; }
+  .out { border-top: 4px solid #5a7a96; }
+  .pipe-row { display: flex; align-items: baseline; gap: 8px; padding: 3.5px 0; border-bottom: 1px dashed #c0d0e2; }
+  .pipe-row:last-child { border-bottom: none; }
+  .pipe-row .n { font-size: 16px; font-weight: 700; color: #2d7ab3; min-width: 34px; }
+  .pipe-row .t { font-size: 19px; color: #142840; line-height: 1.3; }
+  svg.wires { position: absolute; inset: 0; width: 1160px; height: 600px; pointer-events: none; }
+</style>
+</head>
+<body>
+<div class="canvas">
+  <!-- Columna 1: fuentes de fix -->
+  <div class="card src" style="left:20px; top:20px; width:300px; height:146px;">
+    <span class="tag">web</span>
+    <h4>navigator.geolocation.watchPosition</h4>
+    <p>WebView · enableHighAccuracy · Doppler o delta de posición · maximumAge 0</p>
+  </div>
+  <div class="card src" style="left:20px; top:186px; width:300px; height:146px;">
+    <span class="tag">APK</span>
+    <h4>RideLocationService.kt</h4>
+    <p>Foreground Service · GPS_PROVIDER a 1 Hz · sin Play Services · evento &quot;gpsfix&quot; al WebView</p>
+  </div>
+  <div class="card src" style="left:20px; top:352px; width:300px; height:146px;">
+    <span class="tag">demo</span>
+    <h4>RideSimulator</h4>
+    <p>SIM_ROUTE con velocidad y altitud por waypoint · tick cada 500 ms</p>
+  </div>
+
+  <!-- Columna 2: pipeline -->
+  <div class="card pipe" style="left:400px; top:20px; width:360px; height:478px;">
+    <h4>useRideEngine · processFix()</h4>
+    <div class="pipe-row"><span class="n">0</span><span class="t">pausa: publica posición, no acumula</span></div>
+    <div class="pipe-row"><span class="n">1</span><span class="t">velocidad: Doppler → Kalman + predicción 400 ms</span></div>
+    <div class="pipe-row"><span class="n">2</span><span class="t">distancia Haversine (rechaza saltos ≥ 100 m)</span></div>
+    <div class="pipe-row"><span class="n">3</span><span class="t">desnivel: EMA α 0,3 · pendiente EMA α 0,22</span></div>
+    <div class="pipe-row"><span class="n">4</span><span class="t">tiempos (movingSec / elapsed)</span></div>
+    <div class="pipe-row"><span class="n">4b</span><span class="t">huella de vehículo (racha &gt; 45 km/h)</span></div>
+    <div class="pipe-row"><span class="n">5</span><span class="t">geofence del parque (ray casting, 147 vértices)</span></div>
+    <div class="pipe-row"><span class="n">6</span><span class="t">accesos &lt; 80 m</span></div>
+    <div class="pipe-row"><span class="n">7</span><span class="t">zonas de riesgo (pre-aviso a 100 m)</span></div>
+    <div class="pipe-row"><span class="n">8</span><span class="t">máquina de estados 30 km/h + alertas</span></div>
+    <div class="pipe-row"><span class="n">9</span><span class="t">publica a la UI (position / track / summary)</span></div>
+  </div>
+
+  <!-- Columna 3: consumidores -->
+  <div class="card out" style="left:840px; top:20px; width:300px; height:146px;">
+    <h4>alertEngine</h4>
+    <p>Voz TTS es-CL · sirena WebAudio · vibración en 3 tiers ≥ 25/28/30 km/h · wake lock</p>
+  </div>
+  <div class="card out" style="left:840px; top:186px; width:300px; height:146px;">
+    <h4>MiniMap + useNavEngine</h4>
+    <p>ruta A* / OSRM, cámara Waze, reroute cada 30 s o con desvío &gt; 140 m</p>
+  </div>
+  <div class="card out" style="left:840px; top:352px; width:300px; height:146px;">
+    <h4>Persistencia</h4>
+    <p>localStorage c30-history-v1 (tope free 20) · POST /api/rides · GPX · segmentos Pro</p>
+  </div>
+
+  <svg class="wires" viewBox="0 0 1160 600">
+    <defs>
+      <marker id="ah" markerWidth="9" markerHeight="8" refX="8" refY="4" orient="auto">
+        <path d="M0,0 L9,4 L0,8 Z" fill="#2d7ab3"/>
+      </marker>
+    </defs>
+    <!-- merge: 3 fuentes → línea vertical → 1 flecha al pipeline -->
+    <path d="M320,93 L352,93" stroke="#2d7ab3" stroke-width="2.5" fill="none"/>
+    <path d="M320,259 L352,259" stroke="#2d7ab3" stroke-width="2.5" fill="none"/>
+    <path d="M320,425 L352,425" stroke="#2d7ab3" stroke-width="2.5" fill="none"/>
+    <path d="M352,93 L352,425" stroke="#2d7ab3" stroke-width="2.5" fill="none"/>
+    <path d="M352,259 L396,259" stroke="#2d7ab3" stroke-width="2.5" fill="none" marker-end="url(#ah)"/>
+    <!-- fan-out: pipeline → 3 consumidores -->
+    <path d="M760,259 L796,259" stroke="#2d7ab3" stroke-width="2.5" fill="none"/>
+    <path d="M796,93 L796,425" stroke="#2d7ab3" stroke-width="2.5" fill="none"/>
+    <path d="M796,93 L836,93" stroke="#2d7ab3" stroke-width="2.5" fill="none" marker-end="url(#ah)"/>
+    <path d="M796,259 L836,259" stroke="#2d7ab3" stroke-width="2.5" fill="none" marker-end="url(#ah)"/>
+    <path d="M796,425 L836,425" stroke="#2d7ab3" stroke-width="2.5" fill="none" marker-end="url(#ah)"/>
+  </svg>
+</div>
+</body>
+</html>

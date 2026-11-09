@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<style>
+  /* Diagrama 2 — Pipeline: datos locales → producción (4 fases, flechas solo entre fases adyacentes) */
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #f5f8fc; font-family: 'Segoe UI', 'Noto Sans SC', Arial, sans-serif; }
+  .canvas { position: relative; width: 1160px; height: 780px; background: #f5f8fc; }
+  .phase { position: absolute; left: 20px; width: 1120px; background: #ffffff; border: 1px solid #c0d0e2; border-radius: 10px; overflow: hidden; }
+  .ph-head { display: flex; align-items: center; gap: 14px; background: #1a4a7a; padding: 9px 18px; }
+  .ph-head .num { font-size: 21px; font-weight: 800; color: #ffffff; background: #2d7ab3; border-radius: 8px; padding: 2px 13px; }
+  .ph-head .tt { font-size: 25px; font-weight: 700; color: #ffffff; letter-spacing: 0.4px; }
+  .ph-body { display: flex; flex-wrap: wrap; gap: 14px; padding: 14px 18px; }
+  .item { flex: 1 1 auto; min-width: 220px; max-width: 100%; background: #edf2f9; border: 1px solid #c0d0e2; border-left: 4px solid #2d7ab3; border-radius: 8px; padding: 10px 14px; }
+  .item h5 { font-size: 20px; color: #1a4a7a; margin-bottom: 4px; }
+  .item p { font-size: 18px; line-height: 1.4; color: #142840; }
+  .code { font-family: 'Consolas', 'DejaVu Sans Mono', monospace; font-size: 17px; color: #1a4a7a; }
+  svg.wires { position: absolute; inset: 0; width: 1160px; height: 780px; pointer-events: none; }
+</style>
+</head>
+<body>
+<div class="canvas">
+  <!-- Fase 1 -->
+  <div class="phase" style="top:20px; height:200px;">
+    <div class="ph-head"><span class="num">1</span><span class="tt">Datos del terreno (offline, una vez)</span></div>
+    <div class="ph-body">
+      <div class="item" style="flex:1.2;">
+        <h5>Callejero ciclable</h5>
+        <p><span class="code">build-red-ciclista.mjs</span>: OSM API 0.6 (malla 3×3, bbox cerro) → <span class="code">public/red-ciclista.json</span> · 2,4 MB · 50.648 nodos / 58.468 aristas / 337 ciclovías</p>
+      </div>
+      <div class="item" style="flex:1;">
+        <h5>Geocercas y POIs</h5>
+        <p><span class="code">calibrate.js</span> (Douglas-Peucker ≈13 m) → <span class="code">osm-calibrated.json</span> → <span class="code">gen-park.py</span> → <span class="code">src/lib/park.ts</span></p>
+      </div>
+      <div class="item" style="flex:0.9;">
+        <h5>Verificación</h5>
+        <p><span class="code">route-dist.py</span> (Dijkstra de distancias Pro) · <span class="code">verify-origin.ts</span> · <span class="code">probe-coverage.ts</span></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Fase 2 -->
+  <div class="phase" style="top:270px; height:200px;">
+    <div class="ph-head"><span class="num">2</span><span class="tt">Un código, dos compilaciones</span></div>
+    <div class="ph-body">
+      <div class="item" style="flex:1;">
+        <h5>Web con backend (Vercel)</h5>
+        <p>Next.js 15 + API routes + Prisma + Postgres (Neon) · auth con sesiones · pagos y correos en el servidor</p>
+      </div>
+      <div class="item" style="flex:1;">
+        <h5>APK estático (Capacitor 8)</h5>
+        <p><span class="code">NEXT_PUBLIC_STATIC=1</span> + <span class="code">export-web.sh</span> (saca <span class="code">src/app/api</span>) → <span class="code">build-static/</span> · auth, Pro y logros en localStorage (PBKDF2)</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Fase 3 -->
+  <div class="phase" style="top:520px; height:118px;">
+    <div class="ph-head"><span class="num">3</span><span class="tt">Backend en Vercel</span></div>
+    <div class="ph-body">
+      <div class="item" style="flex:1.1;">
+        <p><span class="code">vercel.json</span>: <span class="code">prisma generate && next build</span> · región <span class="code">gru1</span> (Santiago/scl1 retirada) · redirects por host a /geo</p>
+      </div>
+      <div class="item" style="flex:1;">
+        <p>Env vars: <span class="code">DATABASE_URL</span> (Neon) · <span class="code">MP_ACCESS_TOKEN</span> · <span class="code">GMAIL_*</span> · <span class="code">MP_SYNC_TOKEN</span> · <span class="code">APK_DOWNLOAD_URL</span></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Fase 4 -->
+  <div class="phase" style="top:688px; height:72px;">
+    <div class="ph-head"><span class="num">4</span><span class="tt">Distribución</span></div>
+  </div>
+
+  <svg class="wires" viewBox="0 0 1160 780">
+    <defs>
+      <marker id="ah2" markerWidth="9" markerHeight="8" refX="8" refY="4" orient="auto">
+        <path d="M0,0 L9,4 L0,8 Z" fill="#2d7ab3"/>
+      </marker>
+    </defs>
+    <path d="M580,220 L580,264" stroke="#2d7ab3" stroke-width="3" fill="none" marker-end="url(#ah2)"/>
+    <path d="M580,470 L580,514" stroke="#2d7ab3" stroke-width="3" fill="none" marker-end="url(#ah2)"/>
+    <path d="M580,638 L580,682" stroke="#2d7ab3" stroke-width="3" fill="none" marker-end="url(#ah2)"/>
+  </svg>
+</div>
+</body>
+</html>

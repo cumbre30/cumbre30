@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<style>
+  /* Diagrama 3 — Flujo de compra Pro end-to-end (Mercado Pago → código → activación offline) */
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #f5f8fc; font-family: 'Segoe UI', 'Noto Sans SC', Arial, sans-serif; }
+  .canvas { position: relative; width: 1160px; height: 640px; background: #f5f8fc; }
+  .card { position: absolute; background: #ffffff; border: 1px solid #c0d0e2; border-radius: 10px; padding: 12px 15px; }
+  .card h4 { font-size: 23px; color: #1a4a7a; margin-bottom: 6px; font-weight: 700; }
+  .card p { font-size: 18px; line-height: 1.4; color: #142840; }
+  .card .code { font-family: 'Consolas', 'DejaVu Sans Mono', monospace; font-size: 17px; color: #1a4a7a; }
+  .serv { border-top: 4px solid #1a4a7a; }
+  .ext  { border-top: 4px solid #2d7ab3; background: #edf2f9; }
+  .app  { border-top: 4px solid #5a7a96; background: #edf2f9; }
+  .lbl { position: absolute; font-size: 16px; color: #5a7a96; background: #f5f8fc; padding: 0 6px; }
+  svg.wires { position: absolute; inset: 0; width: 1160px; height: 640px; pointer-events: none; }
+</style>
+</head>
+<body>
+<div class="canvas">
+  <!-- Fila superior: pago y entrega (servidor) -->
+  <div class="card ext" style="left:20px; top:30px; width:250px; height:120px;">
+    <h4>1 · Compra web</h4>
+    <p>Botón ámbar en <span class="code">/cumbre30pro</span> → link de cobro único <span class="code">mpago.la</span> · $6.500 CLP</p>
+  </div>
+  <div class="card ext" style="left:330px; top:30px; width:220px; height:120px;">
+    <h4>2 · Mercado Pago</h4>
+    <p>Pago <span class="code">approved</span> · notifica por webhook y queda consultable en su API</p>
+  </div>
+  <div class="card serv" style="left:610px; top:20px; width:250px; height:66px;">
+    <h4>3a · Webhook (instantáneo)</h4>
+    <p><span class="code">POST /api/mp/webhook</span></p>
+  </div>
+  <div class="card serv" style="left:610px; top:104px; width:250px; height:66px;">
+    <h4>3b · Cron cada 15 min</h4>
+    <p><span class="code">GET /api/mp/sync</span> · red de seguridad</p>
+  </div>
+  <div class="card serv" style="left:920px; top:30px; width:220px; height:170px;">
+    <h4>4 · verifyAndDeliver</h4>
+    <p><span class="code">GET /v1/payments/{id}</span> con <span class="code">MP_ACCESS_TOKEN</span> · <span class="code">isProPayment</span>: approved + CLP + $6.500 + no &quot;aporte&quot;</p>
+  </div>
+  <div class="card serv" style="left:610px; top:250px; width:530px; height:110px;">
+    <h4>5 · Entrega idempotente</h4>
+    <p><span class="code">deliverCodeForPayment</span>: código <span class="code">C30P-…</span> = HMAC-SHA256(correo) → correo SMTP Gmail → registro único en <span class="code">ProDelivery</span> (1 pago = 1 código, reintento seguro)</p>
+  </div>
+
+  <!-- Fila inferior: activación en la app -->
+  <div class="card app" style="left:20px; top:420px; width:340px; height:120px;">
+    <h4>6 · Código llega por correo</h4>
+    <p><span class="code">C30P-XXXX-XXXX-XXXX-XXXX</span> · ligado al correo del comprador</p>
+  </div>
+  <div class="card app" style="left:430px; top:420px; width:360px; height:120px;">
+    <h4>7 · Activación 100% offline</h4>
+    <p>App: Perfil → Pagos → <span class="code">validateProCode(correo, código)</span> recalcula el HMAC local y compara en tiempo constante · sin internet</p>
+  </div>
+  <div class="card serv" style="left:860px; top:420px; width:280px; height:120px;">
+    <h4>8 · Pro guardado</h4>
+    <p><span class="code">cumbre30-pro-v1</span> en localStorage · desbloquea GPX, segmentos, historial ilimitado</p>
+  </div>
+
+  <svg class="wires" viewBox="0 0 1160 640">
+    <defs>
+      <marker id="ah3" markerWidth="9" markerHeight="8" refX="8" refY="4" orient="auto">
+        <path d="M0,0 L9,4 L0,8 Z" fill="#2d7ab3"/>
+      </marker>
+    </defs>
+    <!-- flujo superior -->
+    <path d="M270,90 L326,90" stroke="#2d7ab3" stroke-width="2.5" fill="none" marker-end="url(#ah3)"/>
+    <!-- MP → webhook y cron (distribución a 2 entradas) -->
+    <path d="M550,90 L580,90" stroke="#2d7ab3" stroke-width="2.5" fill="none"/>
+    <path d="M580,53 L580,137" stroke="#2d7ab3" stroke-width="2.5" fill="none"/>
+    <path d="M580,53 L606,53" stroke="#2d7ab3" stroke-width="2.5" fill="none" marker-end="url(#ah3)"/>
+    <path d="M580,137 L606,137" stroke="#2d7ab3" stroke-width="2.5" fill="none" marker-end="url(#ah3)"/>
+    <!-- webhook/cron → verify (merge) -->
+    <path d="M860,53 L890,53" stroke="#2d7ab3" stroke-width="2.5" fill="none"/>
+    <path d="M860,137 L890,137" stroke="#2d7ab3" stroke-width="2.5" fill="none"/>
+    <path d="M890,53 L890,137" stroke="#2d7ab3" stroke-width="2.5" fill="none"/>
+    <path d="M890,95 L916,95" stroke="#2d7ab3" stroke-width="2.5" fill="none" marker-end="url(#ah3)"/>
+    <!-- verify → entrega -->
+    <path d="M1030,200 L1030,244" stroke="#2d7ab3" stroke-width="2.5" fill="none" marker-end="url(#ah3)"/>
+    <!-- entrega → código por correo (baja en diagonal por el centro) -->
+    <path d="M610,305 L560,330 L560,396 L190,396 L190,414" stroke="#2d7ab3" stroke-width="2.5" fill="none" marker-end="url(#ah3)"/>
+    <!-- activación → Pro guardado -->
+    <path d="M790,480 L856,480" stroke="#2d7ab3" stroke-width="2.5" fill="none" marker-end="url(#ah3)"/>
+  </svg>
+  <span class="lbl" style="left:640px; top:362px;">correo con el código (SMTP Gmail, puerto 465)</span>
+</div>
+</body>
+</html>
