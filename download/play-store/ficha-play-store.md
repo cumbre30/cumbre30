@@ -54,8 +54,10 @@ Desbloquea pines exclusivos para tu perfil. El primer desafío de cada serie
 es gratis; el resto con Cumbre30 PRO.
 
 🪪 CREDENCIAL DIGITAL
-Enrolamiento Parquemet con código QR: tu credencial digital de ciclista
-siempre a un toque, con los datos de tu bicicleta.
+Guarda tu QR Pedalea Seguro de Parquemet en el teléfono y muéstralo sin
+señal: el registro oficial del parque para ciclistas de montaña, pensado
+para emergencias y fiscalizaciones. La app no gestiona tus datos: solo
+guarda la imagen del QR en tu teléfono.
 
 📊 HISTORIAL Y ESTADÍSTICAS
 Cada ride queda guardado con su trazado GPS; expórtalo en GPX, revisa tus

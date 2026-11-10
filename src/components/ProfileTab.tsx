@@ -12,7 +12,6 @@
 import { useCallback, useState } from "react";
 import {
   AtSign,
-  Bike as BikeIcon,
   Share2,
   LogOut,
   LogIn,
@@ -601,27 +600,6 @@ export default function ProfileTab() {
             {userMsg.text}
           </p>
         )}
-      </Card>
-
-      {/* Bicicleta */}
-      <Card className="bg-card/80 border-border p-4">
-        <div className="flex items-start gap-3">
-          <BikeIcon className="h-5 w-5 text-emerald-600 dark:text-emerald-400 mt-0.5" />
-          <div className="text-sm flex-1">
-            <p className="font-medium text-foreground">Mi bicicleta</p>
-            {me.user.bikeBrand || me.user.bikeType ? (
-              <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1.5 text-[13px]">
-                <span className="text-muted-foreground">Marca</span><span className="text-foreground">{me.user.bikeBrand ?? "—"}</span>
-                <span className="text-muted-foreground">Tipo</span><span className="text-foreground">{me.user.bikeType ?? "—"}</span>
-                <span className="text-muted-foreground">Modelo</span><span className="text-foreground">{me.user.bikeModel ?? "—"}</span>
-                <span className="text-muted-foreground">Talla</span><span className="text-foreground">{me.user.bikeSize ?? "—"}</span>
-                <span className="text-muted-foreground">Color</span><span className="text-foreground">{me.user.bikeColor ?? "—"}</span>
-              </div>
-            ) : (
-              <p className="mt-1 text-muted-foreground">Edita los datos de tu bici en la pestaña QR.</p>
-            )}
-          </div>
-        </div>
       </Card>
 
       {/* Logros y pin activo */}

@@ -1,37 +1,35 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
-  Bike as BikeIcon,
-  ChevronDown,
-  Droplets as BloodType,
+  CalendarDays,
+  ExternalLink,
   IdCard,
   Maximize2,
-  Phone,
   QrCode,
   RefreshCw,
   Trash2,
   Upload,
-  UserRound,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { KeepAwake } from "@capacitor-community/keep-awake";
-import { BIKE_SIZES, BIKE_TYPES } from "@/lib/bike";
-import { isOfflineMode, offlineUpdateProfile } from "@/lib/offlineAuth";
-import { refreshMe } from "@/hooks/useMe";
+import { openExternal } from "@/lib/proConfig";
 
 // ============================================================
-// QR de ENTRADA de Parquemet
+// QR Pedalea Seguro (Parquemet)
 // ------------------------------------------------------------
-// El QR oficial de ingreso al cerro NO lo genera esta app: lo
-// emite Parquemet con tu ClaveÚnica en parquemet.cl. Aquí el
-// ciclista carga la imagen de ese QR (foto, captura o archivo)
-// y la app la guarda en el teléfono para mostrarla en el acceso,
-// incluso sin señal. 100% local, no sale del dispositivo.
+// El QR del programa Pedalea Seguro NO lo genera esta app: lo
+// emite Parquemet al registrarte en pedaleaseguro.parquemet.cl
+// (con ClaveÚnica o formulario manual) para ciclistas de
+// montaña (MTB y enduro) que usan los senderos de tierra del
+// parque. Es un elemento de seguridad médica que va pegado en
+// la bicicleta y sirve ante emergencias y fiscalizaciones.
+//
+// Aquí el ciclista carga la imagen de ese QR (foto, captura o
+// archivo) y la app la guarda en el teléfono para mostrarla
+// incluso sin señal. 100% local: la imagen no sale del
+// dispositivo y la app no gestiona ninguno de sus datos.
 // ============================================================
 
 type EntryQr = { img: string; savedAt: string };
@@ -81,66 +79,12 @@ async function processQrImage(file: File): Promise<string> {
   return canvas.toDataURL("image/jpeg", 0.92);
 }
 
-// ============================================================
-// Ficha médica local (sirve en caso de accidente)
-// ============================================================
-
-type WalletData = {
-  fullName: string;
-  bloodType: string;
-  allergies: string;
-  emergencyName: string;
-  emergencyPhone: string;
-  bikeBrand: string;
-  bikeType: string;
-  bikeModel: string;
-  bikeSize: string;
-  bikeColor: string;
-};
-
-const KEY = "cumbre30-wallet-v1";
-
-const EMPTY: WalletData = {
-  fullName: "",
-  bloodType: "",
-  allergies: "",
-  emergencyName: "",
-  emergencyPhone: "",
-  bikeBrand: "",
-  bikeType: "",
-  bikeModel: "",
-  bikeSize: "",
-  bikeColor: "",
-};
-
-type Stored = { data: WalletData; savedAt: string | null };
-
-function loadWallet(): Stored {
-  try {
-    const raw = localStorage.getItem(KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw) as WalletData & { savedAt?: string };
-      return { data: { ...EMPTY, ...parsed }, savedAt: parsed.savedAt ?? null };
-    }
-  } catch {
-    // sin datos guardados
-  }
-  return { data: EMPTY, savedAt: null };
-}
-
 export default function Wallet() {
-  const [stored, setStored] = useState<Stored>(() => loadWallet());
-  const data = stored.data;
-  const savedAt = stored.savedAt;
-
   const [entryQr, setEntryQr] = useState<EntryQr | null>(() => loadEntryQr());
   const [qrBusy, setQrBusy] = useState(false);
   const [qrError, setQrError] = useState("");
   const [fullQr, setFullQr] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
-
-  const set = (k: keyof WalletData) => (v: string) =>
-    setStored((s) => ({ ...s, data: { ...s.data, [k]: v } }));
 
   // Pantalla completa del QR: mantiene la pantalla encendida
   // (en el APK usa el plugin keep-awake) y se cierra con Escape.
@@ -197,60 +141,43 @@ export default function Wallet() {
     setQrError("");
   };
 
-  const saveMedical = () => {
-    const savedAtISO = new Date().toISOString();
-    localStorage.setItem(KEY, JSON.stringify({ ...data, savedAt: savedAtISO }));
-    setStored({ data, savedAt: savedAtISO });
-  };
-
-  const clearMedical = () => {
-    localStorage.removeItem(KEY);
-    setStored({ data: EMPTY, savedAt: null });
-  };
-
-  // Guarda los datos de la bici y los sincroniza al perfil
-  // (offline en el APK, API en la web).
-  const saveBike = useCallback(() => {
-    const savedAtISO = new Date().toISOString();
-    localStorage.setItem(KEY, JSON.stringify({ ...data, savedAt: savedAtISO }));
-    setStored({ data, savedAt: savedAtISO });
-    if (isOfflineMode()) {
-      offlineUpdateProfile({
-        bikeBrand: data.bikeBrand,
-        bikeType: data.bikeType,
-        bikeModel: data.bikeModel,
-        bikeSize: data.bikeSize,
-        bikeColor: data.bikeColor,
-      });
-      void refreshMe();
-      return;
-    }
-    void fetch("/api/me", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        bikeBrand: data.bikeBrand,
-        bikeType: data.bikeType,
-        bikeModel: data.bikeModel,
-        bikeSize: data.bikeSize,
-        bikeColor: data.bikeColor,
-      }),
-    }).then((r) => (r.ok ? refreshMe() : undefined)).catch(() => undefined);
-  }, [data]);
-
   return (
     <div className="flex flex-col gap-4">
-      {/* ---- QR de entrada Parquemet ---- */}
+      {/* ---- QR Pedalea Seguro (Parquemet) ---- */}
       <Card className="bg-card/80 border-border p-4">
         <div className="flex items-start gap-3">
           <IdCard className="h-5 w-5 text-emerald-600 dark:text-emerald-400 mt-0.5 shrink-0" />
           <div className="text-sm text-muted-foreground">
-            <p className="font-medium text-foreground">QR de entrada (Parquemet)</p>
+            <p className="font-medium text-foreground">QR Pedalea Seguro (Parquemet)</p>
             <p className="mt-1 leading-relaxed">
-              El QR oficial de ingreso lo emite Parquemet con tu ClaveÚnica en parquemet.cl — esta app no puede
-              generarlo. Cárgalo aquí para presentarlo en los accesos (Pío Nono, Pedro de Valdivia Norte) sin
-              depender de la señal. Se guarda solo en tu teléfono.
+              El registro Pedalea Seguro es para ciclistas de montaña (MTB y enduro) que usan los senderos de
+              tierra del parque. Lo haces en pedaleaseguro.parquemet.cl —con ClaveÚnica o formulario manual— y ahí
+              Parquemet te entrega tu QR y tu número de registro. Esta app no genera ni gestiona ese QR: solo te
+              sirve para guardarlo y mostrarlo cuando lo pidan. La imagen se guarda solo en tu teléfono.
             </p>
+          </div>
+        </div>
+      </Card>
+
+      {/* ---- Fechas clave del programa ---- */}
+      <Card className="bg-card/80 border-border p-4">
+        <div className="flex items-start gap-3">
+          <CalendarDays className="h-5 w-5 text-emerald-600 dark:text-emerald-400 mt-0.5 shrink-0" />
+          <div className="flex-1 text-sm text-muted-foreground">
+            <p className="font-medium text-foreground">Fechas del programa</p>
+            <p className="mt-1 leading-relaxed">
+              Marcha blanca del <span className="font-medium text-foreground">1 al 14 de diciembre</span>. Registro{" "}
+              <span className="font-medium text-foreground">obligatorio desde el 15 de diciembre</span> para quien
+              pedalee en los senderos de tierra. Habrá fiscalizaciones en tres puntos del parque (velocidad y
+              conductas de riesgo).
+            </p>
+            <Button
+              variant="outline"
+              className="mt-3 border-border text-foreground/90 hover:bg-card"
+              onClick={() => void openExternal("https://pedaleaseguro.parquemet.cl")}
+            >
+              <ExternalLink className="h-4 w-4 mr-2" /> Ir al registro oficial
+            </Button>
           </div>
         </div>
       </Card>
@@ -260,7 +187,7 @@ export default function Wallet() {
         type="file"
         accept="image/*"
         className="hidden"
-        aria-label="Cargar imagen del QR de entrada"
+        aria-label="Cargar imagen del QR Pedalea Seguro"
         onChange={(e) => {
           void onPickFile(e.target.files?.[0] ?? null);
           e.target.value = "";
@@ -273,10 +200,10 @@ export default function Wallet() {
             <div className="rounded-full bg-muted p-3">
               <QrCode className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
             </div>
-            <p className="font-medium text-foreground">Aún no cargas tu QR de entrada</p>
+            <p className="font-medium text-foreground">Aún no cargas tu QR Pedalea Seguro</p>
             <p className="text-sm text-muted-foreground max-w-sm">
-              Genera tu QR en la web de Parquemet y guárdalo como foto o captura. Después tócalo aquí para llevarlo
-              siempre a mano.
+              Regístrate en la web oficial, guarda la foto o captura del QR que te entrega y tócala aquí para
+              llevarla siempre a mano — pegada en tu bici y en tu teléfono.
             </p>
             <Button
               onClick={() => fileRef.current?.click()}
@@ -295,10 +222,10 @@ export default function Wallet() {
               type="button"
               onClick={() => setFullQr(true)}
               className="rounded-xl bg-white p-3 shadow transition-transform active:scale-[0.98]"
-              aria-label="Ampliar QR de entrada"
+              aria-label="Ampliar QR Pedalea Seguro"
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={entryQr.img} alt="QR de entrada Parquemet" className="h-56 w-56 object-contain" />
+              <img src={entryQr.img} alt="QR Pedalea Seguro de Parquemet" className="h-56 w-56 object-contain" />
             </button>
             <div className="flex gap-2 w-full">
               <Button
@@ -334,134 +261,7 @@ export default function Wallet() {
         </Card>
       )}
 
-      {/* ---- Ficha médica de emergencia (desplegable) ---- */}
-      <details className="group rounded-xl border border-border bg-card/80 p-4">
-        <summary className="flex cursor-pointer list-none items-start gap-3 [&::-webkit-details-marker]:hidden">
-          <UserRound className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600 dark:text-emerald-400" />
-          <div className="min-w-0 flex-1 text-sm text-muted-foreground">
-            <p className="font-medium text-foreground">Ficha médica de emergencia</p>
-            <p className="mt-1 leading-relaxed">
-              Guarda tu información básica en el teléfono: si tienes un accidente, quienes te ayuden pueden verla
-              aquí. No se comparte ni sale del dispositivo.
-            </p>
-          </div>
-          <ChevronDown className="mt-1 h-5 w-5 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
-        </summary>
-        <div className="mt-3 grid gap-3">
-          <div className="grid gap-1.5">
-            <Label htmlFor="w-name" className="text-foreground/90">Nombre completo</Label>
-            <Input id="w-name" className="bg-card border-border" placeholder="Ej: Camila Rojas Fuentes" value={data.fullName} onChange={(e) => set("fullName")(e.target.value)} />
-          </div>
-          <div className="grid gap-1.5">
-            <Label className="text-foreground/90">Tipo de sangre</Label>
-            <Select value={data.bloodType} onValueChange={set("bloodType")}>
-              <SelectTrigger className="bg-card border-border w-full" aria-label="Tipo de sangre">
-                <SelectValue placeholder="Selecciona tu grupo sanguíneo" />
-              </SelectTrigger>
-              <SelectContent className="bg-card border-border">
-                {["A+", "A−", "B+", "B−", "AB+", "AB−", "O+", "O−", "No lo sé"].map((t) => (
-                  <SelectItem key={t} value={t}>{t}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="grid gap-1.5">
-            <Label htmlFor="w-allergies" className="text-foreground/90">Alergias o condición médica</Label>
-            <Input id="w-allergies" className="bg-card border-border" placeholder="Ej: alergia a penicilina, asmático" value={data.allergies} onChange={(e) => set("allergies")(e.target.value)} />
-          </div>
-          <div className="grid sm:grid-cols-2 gap-3">
-            <div className="grid gap-1.5">
-              <Label htmlFor="w-emname" className="text-foreground/90">Contacto de emergencia</Label>
-              <Input id="w-emname" className="bg-card border-border" placeholder="Nombre" value={data.emergencyName} onChange={(e) => set("emergencyName")(e.target.value)} />
-            </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor="w-emphone" className="text-foreground/90">Teléfono</Label>
-              <Input id="w-emphone" className="bg-card border-border" type="tel" placeholder="+56 9 1234 5678" value={data.emergencyPhone} onChange={(e) => set("emergencyPhone")(e.target.value)} />
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <Button onClick={saveMedical} className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-zinc-950 font-semibold">
-              Guardar ficha
-            </Button>
-            {savedAt && (
-              <Button
-                variant="outline"
-                onClick={clearMedical}
-                aria-label="Borrar ficha médica"
-                className="border-border text-muted-foreground hover:bg-card"
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            )}
-          </div>
-          {savedAt && (
-            <p className="text-[11px] text-muted-foreground/80">Guardada el {new Date(savedAt).toLocaleString("es-CL")}</p>
-          )}
-        </div>
-      </details>
-
-      {/* ---- Datos de la bicicleta (desplegable) ---- */}
-      <details className="group rounded-xl border border-border bg-card/80 p-4">
-        <summary className="flex cursor-pointer list-none items-start gap-3 [&::-webkit-details-marker]:hidden">
-          <BikeIcon className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600 dark:text-emerald-400" />
-          <div className="min-w-0 flex-1 text-sm text-muted-foreground">
-            <p className="font-medium text-foreground">Datos de tu bicicleta</p>
-            <p className="mt-1 leading-relaxed">
-              Registra tu bici para que aparezca en tu perfil y ayude a identificarla en caso de robo o accidente.
-            </p>
-          </div>
-          <ChevronDown className="mt-1 h-5 w-5 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
-        </summary>
-        <div className="mt-3 grid gap-3">
-          <div className="grid sm:grid-cols-2 gap-3">
-            <div className="grid gap-1.5">
-              <Label htmlFor="b-brand" className="text-foreground/90">Marca</Label>
-              <Input id="b-brand" className="bg-card border-border" placeholder="Ej: Trek, Giant, Oxford" value={data.bikeBrand} onChange={(e) => set("bikeBrand")(e.target.value)} />
-            </div>
-            <div className="grid gap-1.5">
-              <Label className="text-foreground/90">Tipo</Label>
-              <Select value={data.bikeType} onValueChange={set("bikeType")}>
-                <SelectTrigger className="bg-card border-border w-full" aria-label="Tipo de bicicleta">
-                  <SelectValue placeholder="Ej: MTB" />
-                </SelectTrigger>
-                <SelectContent className="bg-card border-border">
-                  {BIKE_TYPES.map((t) => (
-                    <SelectItem key={t} value={t}>{t}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <div className="grid sm:grid-cols-2 gap-3">
-            <div className="grid gap-1.5">
-              <Label htmlFor="b-model" className="text-foreground/90">Modelo</Label>
-              <Input id="b-model" className="bg-card border-border" placeholder="Ej: Marlin 7" value={data.bikeModel} onChange={(e) => set("bikeModel")(e.target.value)} />
-            </div>
-            <div className="grid gap-1.5">
-              <Label className="text-foreground/90">Talla</Label>
-              <Select value={data.bikeSize} onValueChange={set("bikeSize")}>
-                <SelectTrigger className="bg-card border-border w-full" aria-label="Talla del cuadro">
-                  <SelectValue placeholder="Talla del cuadro" />
-                </SelectTrigger>
-                <SelectContent className="bg-card border-border">
-                  {BIKE_SIZES.map((t) => (
-                    <SelectItem key={t} value={t}>{t}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <div className="grid gap-1.5">
-            <Label htmlFor="b-color" className="text-foreground/90">Color</Label>
-            <Input id="b-color" className="bg-card border-border" placeholder="Ej: azul con negro" value={data.bikeColor} onChange={(e) => set("bikeColor")(e.target.value)} />
-          </div>
-          <Button onClick={saveBike} className="bg-emerald-600 hover:bg-emerald-500 text-zinc-950 font-semibold">
-            Guardar bicicleta
-          </Button>
-        </div>
-      </details>
-
-      {/* ---- Pantalla completa del QR (para el acceso) ---- */}
+      {/* ---- Pantalla completa del QR (para mostrarlo en fiscalización o emergencia) ---- */}
       {fullQr && entryQr && (
         <div
           className="fixed inset-0 z-[100] bg-white flex flex-col items-center justify-center cursor-pointer select-none"
@@ -472,7 +272,7 @@ export default function Wallet() {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={entryQr.img}
-            alt="QR de entrada Parquemet"
+            alt="QR Pedalea Seguro de Parquemet"
             className="max-h-[80vh] max-w-[94vw] object-contain"
           />
           <p className="mt-5 px-6 text-center text-sm text-zinc-500">

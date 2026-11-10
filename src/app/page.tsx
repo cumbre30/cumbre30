@@ -292,7 +292,8 @@ export default function Home() {
         <div className="mx-auto grid max-w-md grid-cols-3 px-3 py-1.5">
           <BottomTab icon={<Bike className="h-[22px] w-[22px]" />} label="Ride" on={screen === "ride"} onClick={() => go("ride")} />
           <BottomTab icon={<MapIcon className="h-[22px] w-[22px]" />} label="Explorar" on={screen === "explorar"} onClick={() => go("explorar")} />
-          <BottomTab icon={<QrCode className="h-[22px] w-[22px]" />} label="Acceso" on={screen === "acceso"} onClick={() => go("acceso")} />
+          {/* "acceso" es el id interno histórico; visible: credencial Pedalea Seguro */}
+          <BottomTab icon={<QrCode className="h-[22px] w-[22px]" />} label="Credencial" on={screen === "acceso"} onClick={() => go("acceso")} />
         </div>
       </nav>
 

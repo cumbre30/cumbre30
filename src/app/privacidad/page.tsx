@@ -47,8 +47,7 @@ export default function PrivacidadPage() {
       <Section title="Qué datos tratamos">
         <ul className="list-disc space-y-1.5 pl-5">
           <li>
-            <span className="font-medium text-foreground">Cuenta:</span> correo electrónico, nombre de usuario y —de
-            forma opcional— los datos de tu bicicleta (marca, tipo, modelo, talla y color).
+            <span className="font-medium text-foreground">Cuenta:</span> correo electrónico y nombre de usuario.
           </li>
           <li>
             <span className="font-medium text-foreground">Recorridos (rides):</span> fecha, duración, distancia,
@@ -75,6 +74,11 @@ export default function PrivacidadPage() {
           <span className="font-medium text-foreground">App web:</span> la cuenta y los rides sincronizados se guardan
           en la base de datos del servidor de Cumbre30. Las contraseñas se almacenan solo como hash (scrypt) y la
           sesión usa una cookie propia. No vendemos ni arrendamos datos personales a terceros.
+        </p>
+        <p>
+          <span className="font-medium text-foreground">QR Pedalea Seguro (Parquemet):</span> la imagen del QR oficial
+          que cargas en la app se guarda únicamente en el almacenamiento de tu teléfono. Cumbre30 no la sube a ningún
+          servidor ni procesa sus datos; el registro Pedalea Seguro lo gestiona Parquemet en pedaleaseguro.parquemet.cl.
         </p>
       </Section>
 

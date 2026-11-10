@@ -30,18 +30,10 @@ export type RideIdentity = {
   username?: string;
 };
 
-/** Completa el nombre con la ficha médica local si no viene de la sesión. */
+/** Identidad para el PDF del ride: la que viene de la sesión
+ * (cuenta o modo offline). Ya no hay ficha médica local. */
 export function resolveRideIdentity(explicit?: RideIdentity): RideIdentity {
-  const out: RideIdentity = { ...(explicit ?? {}) };
-  try {
-    if (typeof window !== "undefined" && !out.name) {
-      const w = JSON.parse(localStorage.getItem("cumbre30-wallet-v1") || "{}") as { fullName?: string };
-      if (w?.fullName) out.name = String(w.fullName);
-    }
-  } catch {
-    // sin ficha guardada
-  }
-  return out;
+  return { ...(explicit ?? {}) };
 }
 
 /** SHA-256 hex (WebCrypto). Fallback interno si no hay crypto.subtle. */
