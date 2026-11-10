@@ -9,7 +9,7 @@ App Android nativa (APK) + vista web, construida con Next.js y Capacitor. Traza 
 - **Rutas por calle**: arranque siempre en tu ubicación GPS (sin líneas que crucen cuadras), preferencia por ciclovías, instrucciones voz + turnos, funcionando offline con mapa vectorial propio (grafo OSM de ~58k aristas del sector).
 - **Límite 30 km/h**: geocercas del parque, alertas sonoras/voz, resumen de excesos por ride.
 - **Inicio de sesión con Google** (APK): selector de cuentas nativo, sin Firebase ni servidor; si ya tienes cuenta con el mismo correo se enlaza y conservas km y logros. Requiere configurar el Client ID (ver `GUIA-GOOGLE-SIGNIN.md`).
-- **Cuenta local sin servidor**: registro/login guardado en el teléfono (PBKDF2 100k), perfil de bici, QR de emergencia, logros y pines evaluados localmente.
+- **Cuenta local sin servidor**: registro/login guardado en el teléfono (PBKDF2 100k), credencial QR Pedalea Seguro (solo guarda la imagen que emite Parquemet), logros y pines evaluados localmente.
 - **Reportes de incidencias** en el mapa (baches, perros, obstáculos) con modo local si no hay conexión.
 - **Descarga de la app** desde su propio botón de Perfil (endpoint `/api/apk`, versión única en `src/lib/appVersion.ts`).
 
@@ -68,6 +68,10 @@ Versión y nombre de archivo se controlan en **`src/lib/appVersion.ts`** (fuente
 - Sin analytics, sin trackers, sin cuentas en la nube: los datos del ciclista viven en el dispositivo.
 - La base de datos del modo web (`db/custom.db`) es local y **no se sube al repo**.
 - El modo servidor (login con BD) es opcional y solo se usa si despliegas la web.
+
+## ✍️ Convenciones de texto
+
+- **Sin guiones largos**: en todo el texto de la app, la web y la documentación se usa el guión simple `-` (nunca guión largo ni guión medio), también en cambios futuros.
 
 ## 📄 Licencia
 
