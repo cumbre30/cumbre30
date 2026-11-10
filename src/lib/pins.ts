@@ -13,6 +13,7 @@ export type PinId =
   | "luna" | "rayo" | "cohete"
   | "brote" | "dorsal" | "zorro" | "bosque"
   | "medalla" | "picnic" | "zen"
+  | "credencial"
   | "reloj" | "amanecer" | "atardecer" | "cronista";
 
 export type PinDef = {
@@ -53,6 +54,7 @@ export const PINS: Record<PinId, PinDef> = {
   rayo: { id: "rayo", name: "Velocista", emoji: "⚡", color: "#facc15", desc: "Reto: registra 42 km/h (hazlo fuera del parque)." },
   cohete: { id: "cohete", name: "Madrugador", emoji: "🚀", color: "#e879f9", desc: "Reto: termina un ride antes de las 08:00 de la mañana." },
   medalla: { id: "medalla", name: "Medalla", emoji: "🏅", color: "#fbbf24", desc: "Reto: un solo ride de 21 km o más (media maratón)." },
+  credencial: { id: "credencial", name: "Pedalea Seguro", emoji: "🪪", color: "#34d399", desc: "Reto: carga tu QR Pedalea Seguro de Parquemet en la pestaña Credencial." },
   picnic: { id: "picnic", name: "Picnic", emoji: "🧺", color: "#d6d3d1", desc: "Reto: 8 rides en sábado o domingo." },
   zen: { id: "zen", name: "Zen", emoji: "🧘", color: "#2dd4bf", desc: "Reto: 5 rides dentro del parque sin exceder los 30 km/h." },
   // Serie Horas
@@ -76,6 +78,7 @@ export type MetricKey =
   | "totalGainM"
   | "parkRides"
   | "cleanParkRides"
+  | "credencialLista"
   | "incidentCount"
   | "nightRides"
   | "dawnRides"
@@ -246,6 +249,7 @@ export const RETOS: Tier[] = [
   { code: "dist_21", name: "Media maratón", desc: "Completa un solo ride de 21 km o más. Tu mejor vuelta.", metric: "maxRideKm", goal: 21, reward: "medalla", pro: true },
   { code: "finde_8", name: "Guerrero del finde", desc: "Completa 8 rides en sábado o domingo.", metric: "weekendRides", goal: 8, reward: "picnic", pro: true },
   { code: "clean_5", name: "Cinco limpios", desc: "Suma 5 rides dentro del parque sin exceder los 30 km/h.", metric: "cleanParkRides", goal: 5, reward: "zen", pro: true },
+  { code: "pedalea_seguro_qr", name: "Pedalea Seguro listo", desc: "Carga tu QR Pedalea Seguro de Parquemet en la pestaña Credencial. Obligatorio desde el 15 de diciembre para senderos de tierra.", metric: "credencialLista", goal: 1, reward: "credencial" },
 ];
 
 export const ALL_TIERS: Tier[] = [...SERIES.flatMap((s) => s.tiers), ...RETOS];
@@ -304,6 +308,18 @@ export type AchievementStats = {
 };
 
 export function metricValue(s: AchievementStats, m: MetricKey): number {
+  // Credencial Pedalea Seguro: no es una métrica de rides, es el QR
+  // cargado en la pestaña Credencial (localStorage del dispositivo,
+  // nunca viaja al servidor). En el servidor vale 0 y no resta:
+  // evaluateAchievements solo agrega códigos, nunca quita.
+  if (m === "credencialLista") {
+    if (typeof window === "undefined") return 0;
+    try {
+      return localStorage.getItem("cumbre30-entry-qr-v1") ? 1 : 0;
+    } catch {
+      return 0;
+    }
+  }
   return s[m];
 }
 

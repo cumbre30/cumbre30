@@ -27,11 +27,19 @@ export type SegmentDef = {
   /** Radio de llegada a cada geocerca (m). */
   radiusStartM: number;
   radiusEndM: number;
-  /** Desnivel mínimo inicio→meta para contar como subida (m). */
+  /** Desnivel mínimo inicio→meta para contar como subida (m).
+   *  En descensos (dir "bajada") es el desnivel que DEBES perder:
+   *  el intento valida gainM <= -minGainM. */
   minGainM: number;
   /** Tiempo plausible del intento (s): fuera de este rango se descarta. */
   minTimeSec: number;
   maxTimeSec: number;
+  /** Dirección del intento: "subida" (default) o "bajada" para los
+   *  senderos de enduro (2026-11-11). */
+  dir?: "subida" | "bajada";
+  /** true: trazado preliminar, pendiente de la publicación oficial
+   *  de Parquemet (5 rutas de enduro, antes del 15 de diciembre). */
+  preliminar?: boolean;
 };
 
 /** Plaza México: la meta en bici más alta de la ruta de la cumbre
@@ -76,6 +84,40 @@ export const SEGMENTS: SegmentDef[] = [
     minGainM: 30,
     minTimeSec: 150,
     maxTimeSec: 2400,
+  },
+  // ---- Senderos de tierra (enduro) ----
+  // Extremos tomados de la geometría OSM de cada sendero
+  // (scripts/extract-parque.py, 2026-11-11). Son trazados
+  // preliminares: Parquemet aún no publica las 5 rutas de enduro
+  // oficiales (obligatorio desde el 15 de diciembre); al
+  // confirmarse se ajustan start/end y se marcan como oficiales.
+  {
+    id: "zorro-vidal-bajada",
+    name: "Zorro Vidal · bajada",
+    detail: "Descenso de tierra desde Plaza México hasta el sector Pío Nono: ~1,2 km y -140 m.",
+    start: { lat: -33.42394, lon: -70.63269 }, // cabeza alta (borde Plaza México)
+    end: { lat: -33.42651, lon: -70.63765 }, // salida al sector Pío Nono
+    radiusStartM: 110,
+    radiusEndM: 130,
+    minGainM: 80, // se exige PERDER al menos 80 m
+    minTimeSec: 60,
+    maxTimeSec: 900,
+    dir: "bajada",
+    preliminar: true,
+  },
+  {
+    id: "mapuche-bajada",
+    name: "Mapuche · bajada",
+    detail: "Descenso de tierra desde la zona Anáhuac hacia el camino: ~1,1 km y -35 m.",
+    start: { lat: -33.41781, lon: -70.62392 }, // cabeza alta (sector Anáhuac)
+    end: { lat: -33.42405, lon: -70.62944 }, // salida al camino
+    radiusStartM: 110,
+    radiusEndM: 130,
+    minGainM: 20,
+    minTimeSec: 60,
+    maxTimeSec: 900,
+    dir: "bajada",
+    preliminar: true,
   },
 ];
 
@@ -130,7 +172,10 @@ export function detectEfforts(r: RideSummary, def: SegmentDef): SegmentEffort[] 
     const timeSec = track[iEnd][3] - track[iStart][3];
     const gainM = track[iEnd][2] - track[iStart][2];
 
-    if (timeSec >= def.minTimeSec && timeSec <= def.maxTimeSec && gainM >= def.minGainM) {
+    // Subida: se exige ganar al menos minGainM. Bajada: se exige
+    // PERDER al menos minGainM (gainM <= -minGainM).
+    const dirOk = def.dir === "bajada" ? gainM <= -def.minGainM : gainM >= def.minGainM;
+    if (timeSec >= def.minTimeSec && timeSec <= def.maxTimeSec && dirOk) {
       let distanceM = 0;
       for (let j = iStart + 1; j <= iEnd; j++) {
         distanceM += haversineM(

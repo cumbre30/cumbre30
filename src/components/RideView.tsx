@@ -12,28 +12,35 @@
 // ============================================================
 
 import dynamic from "next/dynamic";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
+  BadgeCheck,
   Bike,
   ChevronDown,
+  Copy,
   Gauge,
   ListTree,
   Mountain,
   Navigation,
   Pause,
+  Phone,
   Play,
   Route,
+  Share2,
   ShieldAlert,
+  Siren,
   Square,
   Timer,
   TrendingDown,
   TrendingUp,
+  X,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { LIMIT_KMH } from "@/lib/park";
 import { formatClock } from "@/lib/geo";
 import { formatStepRemaining, routeProgress, stepGlyph } from "@/lib/routing";
+import { estadoParque } from "@/lib/horario";
 import type { LatLng } from "@/lib/park";
 import type { RideEvent, RideStatus, Source, SpeedState } from "@/hooks/useRideEngine";
 import type { NavEngine } from "@/hooks/useNavEngine";
@@ -78,6 +85,32 @@ export function RideView(p: Props) {
   const idle = p.status === "idle";
   const over = p.speedState === "over";
   const caution = p.speedState === "caution";
+  const [sosOpen, setSosOpen] = useState(false);
+  const [sosMsg, setSosMsg] = useState<string | null>(null);
+
+  // Horario del parque + aviso de luces (cálculo offline, se
+  // evalúa al montar la vista; el banner no necesita reloj vivo).
+  const estado = useMemo(() => estadoParque(), []);
+  // Descenso limpio: entró al parque y nunca pasó de 30 km/h.
+  const descensoLimpio =
+    !idle && p.overLimitSec === 0 && p.maxInParkKmh !== null && p.maxInParkKmh <= LIMIT_KMH;
+
+  const compartirUbicacion = async () => {
+    if (!p.position) return;
+    const txt = `Estoy pedaleando en el cerro San Cristóbal. Mi ubicación: https://maps.google.com/?q=${p.position.lat.toFixed(5)},${p.position.lon.toFixed(5)}`;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: "Mi ubicación - Cumbre30", text: txt });
+        setSosMsg("Ubicación compartida ✓");
+      } else {
+        await navigator.clipboard.writeText(txt);
+        setSosMsg("Ubicación copiada al portapapeles ✓");
+      }
+    } catch {
+      setSosMsg("No se pudo compartir; copia la ubicación de abajo.");
+    }
+    setTimeout(() => setSosMsg(null), 5000);
+  };
 
   const speedColor = idle
     ? "text-muted-foreground/50"
@@ -136,6 +169,33 @@ export function RideView(p: Props) {
       <div className={`rounded-xl border px-4 py-3 flex items-center gap-3 font-semibold tracking-wide text-sm ${banner}`} role="status" aria-live="polite">
         {p.insidePark ? <ShieldAlert className="h-5 w-5 shrink-0" /> : <Bike className="h-5 w-5 shrink-0" />}
         <span>{bannerText}</span>
+      </div>
+
+      {/* Horario y luz: reglas del parque + atardecer (offline) */}
+      {estado.aviso && (
+        <div
+          className={`rounded-xl border px-4 py-2.5 text-xs font-medium ${
+            estado.nivel === "cierre"
+              ? "border-red-700/70 bg-red-950/50 text-red-200"
+              : estado.nivel === "luz"
+                ? "border-amber-600/70 bg-amber-950/50 text-amber-200"
+                : "border-sky-700/60 bg-sky-950/40 text-sky-200"
+          }`}
+          role="status"
+        >
+          {estado.nivel === "luz" ? "💡 " : "🕒 "}{estado.aviso}
+        </div>
+      )}
+
+      {/* SOS: teléfonos de emergencia + compartir ubicación */}
+      <div className="flex justify-end -mt-1">
+        <button
+          onClick={() => setSosOpen(true)}
+          className="inline-flex items-center gap-1.5 rounded-full border border-red-800/70 bg-red-950/50 px-3 py-1.5 text-[11px] font-bold tracking-wide text-red-300 hover:bg-red-900/60"
+          aria-label="Abrir tarjeta de emergencia"
+        >
+          <Siren className="h-3.5 w-3.5" /> SOS
+        </button>
       </div>
 
       {/* VELOCIDAD - protagonista (elemento 2 del brief) */}
@@ -251,6 +311,15 @@ export function RideView(p: Props) {
             <div className="font-mono text-base font-bold tabular-nums text-red-300">{formatClock(p.overLimitSec)}</div>
           </Card>
         )}
+        {descensoLimpio && (
+          <Card className="mt-2.5 flex-row items-center justify-between border-emerald-800/70 bg-emerald-950/40 px-3 py-2.5">
+            <div className="flex items-center gap-2 text-emerald-300 text-xs font-semibold">
+              <BadgeCheck className="h-4 w-4" />
+              Descenso limpio: respetaste los {LIMIT_KMH} km/h en el parque
+            </div>
+            <BadgeCheck className="h-4 w-4 text-emerald-400" />
+          </Card>
+        )}
         {p.maxInParkKmh !== null && (
           <p className="mt-2 text-center text-[11px] text-muted-foreground">
             Máxima dentro del parque: <span className="font-mono text-foreground/90">{p.maxInParkKmh.toFixed(1)} km/h</span>
@@ -304,6 +373,67 @@ export function RideView(p: Props) {
           </ul>
         </Card>
       </div>
+
+      {/* Tarjeta de emergencia (funciona sin conexión: tel: y compartir) */}
+      {sosOpen && (
+        <div className="fixed inset-0 z-[110] flex items-end justify-center bg-black/70 sm:items-center" role="dialog" aria-label="Emergencia">
+          <Card className="w-full max-w-md rounded-b-none rounded-t-2xl bg-background p-4 sm:rounded-2xl">
+            <div className="flex items-center gap-2">
+              <Siren className="h-5 w-5 text-red-600 dark:text-red-400" />
+              <p className="flex-1 font-bold text-foreground">Emergencia en el cerro</p>
+              <button
+                onClick={() => setSosOpen(false)}
+                className="rounded-full border border-border p-1.5 text-muted-foreground hover:text-foreground"
+                aria-label="Cerrar tarjeta de emergencia"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="mt-3 grid grid-cols-3 gap-2">
+              <a href="tel:133" className="flex flex-col items-center gap-1 rounded-lg border border-border bg-card py-3 text-center hover:border-red-500/70">
+                <Phone className="h-4 w-4 text-red-600 dark:text-red-400" />
+                <span className="text-sm font-bold text-foreground">133</span>
+                <span className="text-[10px] text-muted-foreground">Carabineros</span>
+              </a>
+              <a href="tel:131" className="flex flex-col items-center gap-1 rounded-lg border border-border bg-card py-3 text-center hover:border-red-500/70">
+                <Phone className="h-4 w-4 text-red-600 dark:text-red-400" />
+                <span className="text-sm font-bold text-foreground">131</span>
+                <span className="text-[10px] text-muted-foreground">Ambulancia</span>
+              </a>
+              <a href="tel:132" className="flex flex-col items-center gap-1 rounded-lg border border-border bg-card py-3 text-center hover:border-red-500/70">
+                <Phone className="h-4 w-4 text-red-600 dark:text-red-400" />
+                <span className="text-sm font-bold text-foreground">132</span>
+                <span className="text-[10px] text-muted-foreground">Bomberos</span>
+              </a>
+            </div>
+            {p.position ? (
+              <>
+                <Button
+                  onClick={() => void compartirUbicacion()}
+                  className="mt-3 w-full bg-emerald-600 hover:bg-emerald-500 text-zinc-950 font-semibold"
+                >
+                  <Share2 className="h-4 w-4 mr-2" /> Compartir mi ubicación
+                </Button>
+                <div className="mt-2 flex items-center gap-2 rounded-lg border border-border bg-card/60 px-2.5 py-2">
+                  <Copy className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                  <span className="min-w-0 flex-1 truncate font-mono text-[11px] text-foreground/90">
+                    {p.position.lat.toFixed(5)}, {p.position.lon.toFixed(5)}
+                  </span>
+                </div>
+              </>
+            ) : (
+              <p className="mt-3 text-xs text-muted-foreground">
+                Sin posición GPS aún: no se puede compartir ubicación. Acércate al acceso o caseta más cercana del parque.
+              </p>
+            )}
+            {sosMsg && <p className="mt-2 text-xs font-medium text-emerald-600 dark:text-emerald-400" role="status">{sosMsg}</p>}
+            <p className="mt-3 text-[11px] leading-relaxed text-muted-foreground">
+              Si puedes, avisa también al personal del parque (accesos y casetas). Tu QR Pedalea Seguro pegado en la
+              bici ayuda a que te identifiquen rápido.
+            </p>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }

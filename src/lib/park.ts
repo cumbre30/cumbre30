@@ -74,7 +74,10 @@ export type Gate = {
   position: LatLng;
 };
 
-/** Accesos principales donde Parquemet fiscaliza / pide enrolamiento. */
+/** Accesos principales donde Parquemet fiscaliza / pide enrolamiento.
+ *  Posiciones derivadas del grafo OSM propio: nodo de la calle del
+ *  acceso más cercano al borde del polígono (2026-11-11). Los 3
+ *  primeros conservan sus coordenadas calibradas originales. */
 export const GATES: Gate[] = [
   { id: "pio-nono", name: "Acceso Pío Nono", position: { lat: -33.430691, lon: -70.63592 } },
   { id: "pv-norte", name: "Acceso Pedro de Valdivia Norte", position: { lat: -33.411769, lon: -70.607988 } },
@@ -86,7 +89,91 @@ export const GATES: Gate[] = [
   // (-33.38642, -70.60179, verificado el 2026-11-05), a ~40 m de la
   // punta nororiente del polígono del parque.
   { id: "la-piramide", name: "Acceso La Pirámide", position: { lat: -33.38642, lon: -70.60179 } },
+  // Los 6 accesos restantes del mapa oficial de Parquemet. Posición
+  // = nodo OSM de la calle del acceso a menor distancia del borde
+  // del polígono (extracción 2026-11-11, scripts/extract-parque.py).
+  { id: "santos-dumont", name: "Acceso Santos Dumont", position: { lat: -33.423385, lon: -70.637442 } },
+  { id: "carlos-reed", name: "Acceso Carlos Reed", position: { lat: -33.430102, lon: -70.635426 } },
+  { id: "aurora-de-chile", name: "Acceso Aurora de Chile", position: { lat: -33.415205, lon: -70.627807 } },
+  { id: "zapadores", name: "Acceso Zapadores", position: { lat: -33.399921, lon: -70.620406 } },
+  { id: "paseo-metropolitano", name: "Acceso Paseo Metropolitano", position: { lat: -33.412407, lon: -70.623052 } },
+  // "Acceso Pasarela Pirámide" queda pendiente: sin fuente
+  // verificable aún (no confundir con la portería La Pirámide).
 ];
+
+// ============================================================
+// Las 6 cumbres del parque (mapa oficial "Nuestras seis cumbres").
+// Son puntos geográficos para contexto y desafíos, NO destinos de
+// navegación: el Santuario es solo peatonal y las cumbres de
+// Bosque Santiago están fuera del grafo de ruteo principal.
+// Coordenadas verificadas en OpenStreetMap/Nominatim (2026-11-11).
+// ============================================================
+
+export type Cumbre = {
+  id: string;
+  name: string;
+  /** Altitud oficial según el mapa Parquemet (m s.n.m.). */
+  altM: number;
+  position: LatLng;
+  /** true si la posición cae dentro del polígono del parque. */
+  dentroDelParque: boolean;
+};
+
+export const CUMBRES: Cumbre[] = [
+  // 1. Santuario de la Inmaculada Concepción: nodo OSM verificado
+  // (Nominatim, "Santuario de la Inmaculada Concepción del Cerro
+  // San Cristóbal", 2026-11-11). Solo peatonal: no se sube en bici.
+  { id: "san-cristobal", name: "Cerro San Cristóbal (Santuario)", altM: 880, position: { lat: -33.42574, lon: -70.63319 }, dentroDelParque: true },
+  // 2. Cerro Chacarillas: el mapa oficial lo marca en Piscina Antilén.
+  { id: "chacarillas", name: "Cerro Chacarillas (Piscina Antilén)", altM: 800, position: { lat: -33.409051, lon: -70.61374 }, dentroDelParque: true },
+  // 3. Nodo natural=peak de OSM.
+  { id: "piramide", name: "Cerro La Pirámide", altM: 733, position: { lat: -33.39259, lon: -70.60491 }, dentroDelParque: true },
+  // 4. El mapa oficial lo referencia al Anfiteatro Pablo Neruda.
+  { id: "los-gemelos", name: "Cerro Los Gemelos (Anfiteatro Pablo Neruda)", altM: 798, position: { lat: -33.40401, lon: -70.60956 }, dentroDelParque: true },
+  // 5 y 6. Sector Bosque Santiago (fuera del grafo de ruteo).
+  { id: "polanco", name: "Cerro Polanco", altM: 730, position: { lat: -33.38127, lon: -70.60796 }, dentroDelParque: false },
+  { id: "el-carbon", name: "Cerro El Carbón", altM: 1365, position: { lat: -33.36264, lon: -70.6006 }, dentroDelParque: false },
+];
+
+// ============================================================
+// Lugares de interés del parque (mapa oficial Parquemet).
+// Coordenadas verificadas en OSM/Nominatim (2026-11-11).
+// ============================================================
+
+export type ParkPlace = {
+  id: string;
+  name: string;
+  /** Categoría para el ícono en la UI. */
+  cat: "piscina" | "mirador" | "plaza" | "cultura" | "deporte";
+  position: LatLng;
+};
+
+export const PARK_PLACES: ParkPlace[] = [
+  // Nodos OSM verificados vía Nominatim (2026-11-11):
+  { id: "piscina-tupahue", name: "🏊 Piscina Tupahue", cat: "piscina", position: { lat: -33.41581, lon: -70.62355 } },
+  { id: "torreon-victoria", name: "🗿 Torreón Victoria", cat: "mirador", position: { lat: -33.41537, lon: -70.62225 } },
+  { id: "plaza-antilen", name: "🌳 Plaza Antilén", cat: "plaza", position: { lat: -33.40758, lon: -70.61121 } },
+  { id: "anfiteatro-neruda", name: "🎭 Anfiteatro Pablo Neruda", cat: "cultura", position: { lat: -33.40401, lon: -70.60956 } },
+];
+
+// ============================================================
+// Horario de acceso para ciclistas (Parquemet, noticias nov 2026).
+// Ingreso de ciclistas por los accesos de 06:00 a 19:00; desde
+// las 13:30 no se puede acceder a la cumbre desde el sector
+// Tupahue (restricción informada por Parquemet para días de
+// afluencia). El límite de 30 km/h rige todo el recorrido.
+// ============================================================
+
+export const PARK_HOURS = {
+  abreMin: 6 * 60, // 06:00
+  cierraMin: 19 * 60, // 19:00
+  /** Restricción cumbre desde Tupahue: no se permite el acceso a la
+   *  cumbre a partir de esta hora (minutos del día). */
+  cumbreTupahueBloqueaMin: 13 * 60 + 30, // 13:30
+  /** Mensajes para la UI. */
+  msgCierre: "El ingreso de ciclistas al parque es de 06:00 a 19:00.",
+  msgCumbreTupahue: "Restricción del parque: la cumbre por el sector Tupahue no se puede acceder desde las 13:30.",
+};
 
 export type RiskZone = {
   id: string;
@@ -195,4 +282,11 @@ export const NAV_DESTINATIONS: { id: string; name: string; position: LatLng }[] 
   { id: "jardin-japones", name: "🏯 Jardín Japonés", position: { lat: -33.413345, lon: -70.614692 } },
   { id: "zoologico", name: "🦁 Zoológico Nacional", position: { lat: -33.429636, lon: -70.633963 } },
   { id: "anahuac", name: "🎭 Casa de la Cultura Anáhuac", position: { lat: -33.417135, lon: -70.623511 } },
+  // Accesos agregados el 2026-11-11 (mismas posiciones que GATES;
+  // son nodos del grafo propio, así que el ruteo llega directo).
+  { id: "santos-dumont", name: "🚪 Acceso Santos Dumont", position: { lat: -33.423385, lon: -70.637442 } },
+  { id: "carlos-reed", name: "🚪 Acceso Carlos Reed", position: { lat: -33.430102, lon: -70.635426 } },
+  { id: "aurora-de-chile", name: "🚪 Acceso Aurora de Chile", position: { lat: -33.415205, lon: -70.627807 } },
+  { id: "zapadores", name: "🚪 Acceso Zapadores", position: { lat: -33.399921, lon: -70.620406 } },
+  { id: "paseo-metropolitano", name: "🚪 Acceso Paseo Metropolitano", position: { lat: -33.412407, lon: -70.623052 } },
 ];

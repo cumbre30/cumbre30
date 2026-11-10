@@ -40,6 +40,7 @@ import { buildCicloFeature } from "@/lib/navCanvasLogic";
 import { useProLicense } from "@/lib/proLicense";
 import { addMark, removeMark, useMarks, normalizeForSearch } from "@/lib/marks";
 import { geocodeAddress, type AddrResult } from "@/lib/geocode";
+import SenderosBloque from "@/components/SenderosPanel";
 import type { ProLockFeature } from "@/lib/planData";
 
 function pinEmoji(pinId: string): string {
@@ -284,6 +285,8 @@ function SearchCard({
           ))}
         </ul>
 
+        <SenderosBloque query={query} onSetDest={onSetDest} />
+
         <button
           onClick={() => onProLocked?.("marcador")}
           className="mt-2 flex h-9 w-full items-center justify-center gap-1.5 rounded-md border border-border bg-background text-[11px] font-medium text-muted-foreground hover:border-emerald-500/60 hover:text-foreground"
@@ -441,6 +444,8 @@ function SearchCard({
           <li className="py-2 text-center text-xs text-muted-foreground">Sin resultados para «{query}»</li>
         )}
       </ul>
+
+      <SenderosBloque query={query} onSetDest={onSetDest} />
 
       <button
         onClick={onToggleMarkMode}

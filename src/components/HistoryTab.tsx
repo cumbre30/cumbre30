@@ -26,6 +26,7 @@ import {
   Route,
   Share2,
   ShieldAlert,
+  ShieldCheck,
   Timer,
   Trash2,
   Trophy,
@@ -566,6 +567,11 @@ export function HistoryTab({
                     {r.source === "sim" && " · Viaje de demostración: no emite constancia"}
                     {r.motorized && " · Viaje en vehículo: no cuenta para desafíos ni estadísticas"}
                   </div>
+                  {r.overLimitSec === 0 && r.maxInParkKmh !== null && r.maxInParkKmh <= 30 && (r.motorized !== true) && (
+                    <div className="mt-1.5 inline-flex items-center gap-1 rounded-full border border-emerald-700/60 bg-emerald-950/40 px-2 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
+                      <ShieldCheck className="h-3 w-3" /> Descenso limpio en el parque
+                    </div>
+                  )}
                   {(perRideEfforts.get(r.id)?.length ?? 0) > 0 && (
                     <div className="mt-1.5 flex items-start gap-1.5 text-[11px] text-amber-700 dark:text-amber-300">
                       <Trophy className="mt-0.5 h-3 w-3 shrink-0" />
