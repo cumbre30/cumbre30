@@ -9,7 +9,7 @@
 // Las pistas se guardan desde la v1.5.0 (GPS únicamente), así
 // que los viajes anteriores y los demo no generan intentos.
 // 2026-11-05: la meta de los 3 segmentos pasa de la Cumbre a
-// PLAZA MÉXICO — el Santuario de la Virgen es solo peatonal y no
+// PLAZA MÉXICO - el Santuario de la Virgen es solo peatonal y no
 // se puede subir en bici (misma ruta, ~210 m antes de la cima).
 // ============================================================
 
@@ -191,5 +191,5 @@ export function effortsByRide(rides: RideSummary[]): Map<string, SegmentEffort[]
   return map;
 }
 
-/** "24:31" o "1:02:08" — reutiliza el formateo global. */
+/** "24:31" o "1:02:08" - reutiliza el formateo global. */
 export { formatClock as fmtEffort } from "./geo";

@@ -1,5 +1,5 @@
 /* ============================================================
-   CUMBRE30 · Prototipo navegable — Fase 2 rediseño UX/UI
+   CUMBRE30 · Prototipo navegable - Fase 2 rediseño UX/UI
    Todo simulado en memoria. Sin datos reales del usuario.
    ============================================================ */
 "use strict";
@@ -107,7 +107,7 @@ $$("[data-go]").forEach((b) =>
     const dest = b.dataset.go;
     if (dest === "premios-toast") {
       closeDrawer();
-      toast("Premios y desafíos — sección existente, vivirá dentro de “Mi actividad”");
+      toast("Premios y desafíos - sección existente, vivirá dentro de “Mi actividad”");
       return;
     }
     go(dest);
@@ -179,13 +179,13 @@ function setPlan(p, silent) {
   $("#proActivate")?.addEventListener("click", () => {
     const v = ($("#proCode")?.value || "").trim();
     if (/^C30P-/i.test(v)) { setPlan("pro"); toast("¡Cumbre30 Pro activado! 🎉"); }
-    else toast("Código inválido — prueba con un código C30P-…");
+    else toast("Código inválido - prueba con un código C30P-…");
   });
   $("#proBuy2")?.addEventListener("click", () => go("planes"));
   $("#proDeact")?.addEventListener("click", () => { setPlan("free"); toast("Licencia quitada de este teléfono."); });
   // segmento control superior
   $$("#planSeg button").forEach((b) => b.classList.toggle("on", b.dataset.plan === p));
-  if (!silent) toast(pro ? "Modo PRO — mira qué se desbloquea" : "Modo FREE");
+  if (!silent) toast(pro ? "Modo PRO - mira qué se desbloquea" : "Modo FREE");
 }
 $$("#planSeg button").forEach((b) => b.addEventListener("click", () => setPlan(b.dataset.plan)));
 
@@ -301,7 +301,7 @@ function logEvent(kind, text) {
 }
 function renderBitacora() {
   const ul = $("#bitacora");
-  if (!R.events.length) { ul.innerHTML = `<li class="empty-note" style="border:0">Sin eventos aún — los avisos de zona, geocercas y excesos aparecerán aquí.</li>`; return; }
+  if (!R.events.length) { ul.innerHTML = `<li class="empty-note" style="border:0">Sin eventos aún - los avisos de zona, geocercas y excesos aparecerán aquí.</li>`; return; }
   ul.innerHTML = R.events
     .map((e) => `<li><span class="b-dot ${e.kind}"></span><span class="grow">${e.text}</span><time>${e.t}</time></li>`)
     .join("");
@@ -316,7 +316,7 @@ function renderRide() {
   $("#stGain").textContent = Math.round(R.gain);
   $("#stSlope").textContent = (R.slope > 0 ? "+" : "") + R.slope.toFixed(1);
   $("#stAcc").textContent = R.acc;
-  $("#stPark").textContent = R.state === "idle" ? "—" : R.insidePark ? "Sí" : "No";
+  $("#stPark").textContent = R.state === "idle" ? "-" : R.insidePark ? "Sí" : "No";
   const off = 628 - Math.min(R.speed / 45, 1) * 628;
   $("#arcVal").style.strokeDashoffset = off;
 
@@ -391,13 +391,13 @@ setInterval(() => {
   // geocerca: entrada al parque
   if (!R.insidePark && R.elapsed >= 12) {
     R.insidePark = true;
-    logEvent("info", "Ingreso a Parquemet detectado — portada Pío Nono");
+    logEvent("info", "Ingreso a Parquemet detectado - portada Pío Nono");
   }
   // avisos de velocidad
   const over = R.insidePark && R.speed > 30;
   const caution = R.insidePark && !over && R.speed > 26;
   if (over && !R.everOver) { R.everOver = true; logEvent("danger", `Exceso: ${Math.round(R.speed)} km/h en zona 30`); }
-  if (caution && !R.warned) { R.warned = true; logEvent("warn", `Precaución — vas a ${Math.round(R.speed)} km/h, límite 30`); }
+  if (caution && !R.warned) { R.warned = true; logEvent("warn", `Precaución - vas a ${Math.round(R.speed)} km/h, límite 30`); }
   renderRide();
 }, 1000);
 
@@ -407,14 +407,14 @@ $$("#srcSeg button").forEach((b) =>
     $$("#srcSeg button").forEach((x) => x.classList.remove("on"));
     b.classList.add("on");
     R.src = b.dataset.src;
-    toast(`Fuente de datos: ${R.src === "demo" ? "Demo" : "GPS real"} — ya no compite con el botón Iniciar`);
+    toast(`Fuente de datos: ${R.src === "demo" ? "Demo" : "GPS real"} - ya no compite con el botón Iniciar`);
   })
 );
 $$(".sw").forEach((b) => b.addEventListener("click", () => b.classList.toggle("on")));
 
 /* ---------------- planes: comprar (simulado) ---------------- */
 $("#btnBuy").addEventListener("click", () => {
-  toast("Demo — en la app abre Mercado Pago (mpago.la/1WdyZaW)");
+  toast("Demo - en la app abre Mercado Pago (mpago.la/1WdyZaW)");
   setTimeout(() => setPlan("pro"), 700);
 });
 

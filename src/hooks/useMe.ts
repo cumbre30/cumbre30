@@ -219,8 +219,8 @@ export async function logout(): Promise<void> {
 /**
  * Baja definitiva de la cuenta (Google Play exige eliminación in-app).
  * Servidor: DELETE /api/auth/account (cascade en el schema). APK:
- * offlineDeleteAccount borra cuenta, sesión, rides y —si es la última
- * cuenta del dispositivo— logros y licencia Pro locales.
+ * offlineDeleteAccount borra cuenta, sesión, rides y -si es la última
+ * cuenta del dispositivo- logros y licencia Pro locales.
  */
 export async function deleteAccount(): Promise<void> {
   try {

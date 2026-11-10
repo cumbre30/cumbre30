@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { RESET_TTL_MIN } from "@/lib/auth";
 
 // ============================================================
-// POST /api/auth/forgot — solicita un código de restablecimiento.
+// POST /api/auth/forgot - solicita un código de restablecimiento.
 // Crea un código de 6 dígitos vigente 30 minutos. El código NO
 // viaja en la respuesta (no hay SMTP): lo entrega soporte por
 // WhatsApp/correo tras verificar la identidad del ciclista.

@@ -16,7 +16,7 @@ export function PlanPill({ pro, onClick }: { pro: boolean; onClick?: () => void 
   return (
     <button
       onClick={onClick}
-      aria-label={pro ? "Plan Pro activo — ver beneficios" : "Plan gratis — ver planes"}
+      aria-label={pro ? "Plan Pro activo - ver beneficios" : "Plan gratis - ver planes"}
       className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10.5px] font-extrabold tracking-wide transition-colors ${
         pro
           ? "border-emerald-400/70 bg-emerald-500/15 text-emerald-600 dark:text-emerald-300"

@@ -1,7 +1,7 @@
 "use client";
 
 // ============================================================
-// Diálogo "¿Este viaje fue en bicicleta?" — parte del sistema
+// Diálogo "¿Este viaje fue en bicicleta?" - parte del sistema
 // anti-vehículos (lib/vehicleDetect): cuando el motor detecta
 // velocidad sostenida típica de auto/moto, el ride se guarda
 // marcado como vehículo y este diálogo deja corregirlo con un

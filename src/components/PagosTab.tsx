@@ -1,7 +1,7 @@
 "use client";
 
 // ============================================================
-// Pagos y suscripciones — subsección dentro de Perfil (PerfilTab),
+// Pagos y suscripciones - subsección dentro de Perfil (PerfilTab),
 // porque la licencia Pro va atada al correo de la cuenta.
 //
 // Sin links externos de pago (requisito Google Play): aquí vive
@@ -114,7 +114,7 @@ export function PagosTab() {
                 disabled={playBusy || !playReady}
                 className="mt-3 h-10 w-full bg-emerald-600 font-semibold text-zinc-950 hover:bg-emerald-500"
               >
-                {playBusy ? "Abriendo Google Play…" : playReady ? `Comprar con Google Play — ${shownPlayPrice}` : "Conectando con Google Play…"}
+                {playBusy ? "Abriendo Google Play…" : playReady ? `Comprar con Google Play - ${shownPlayPrice}` : "Conectando con Google Play…"}
               </Button>
               <button
                 onClick={() => void restore()}

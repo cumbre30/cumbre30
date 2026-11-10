@@ -1,5 +1,5 @@
 // ============================================================
-// Google Play Billing — compra única del plan Pro (non-consumable).
+// Google Play Billing - compra única del plan Pro (non-consumable).
 //
 // Usa cordova-plugin-purchase v13 (window.CdvPurchase), el puente
 // Cordova que Capacitor carga nativamente. Solo opera en builds

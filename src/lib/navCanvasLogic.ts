@@ -47,7 +47,7 @@ export function bearingOf(a: LatLng, b: LatLng): number {
  *   La posición se PROYECTA sobre la polilínea (que sigue calles):
  *   si cae a ≤ CONNECTOR_MAX_M se antepone con un chaflán corto
  *   hacia la calle; si cae más lejos, el restante parte en el punto
- *   proyectado — nunca un cordón recto atravesando la manzana.
+ *   proyectado - nunca un cordón recto atravesando la manzana.
  * · traveled → tramo ya recorrido, atenuado, cerrando en el pin.
  */
 export function buildRouteFeatures(
@@ -113,7 +113,7 @@ export function buildFullRouteFeatures(route: NavRoute | null): FeatureCollectio
 }
 
 /**
- * Ciclovías SOLO del cerro (≥50% de sus puntos dentro del parque) —
+ * Ciclovías SOLO del cerro (≥50% de sus puntos dentro del parque) -
  * la misma regla del mapa web, empaquetada para el mapa nativo.
  */
 export function buildCicloFeature(net: Network | null): FeatureCollection | null {

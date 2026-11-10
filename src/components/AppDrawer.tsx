@@ -1,7 +1,7 @@
 "use client";
 
 // ============================================================
-// Menú lateral del rediseño — 4 zonas (brief §1):
+// Menú lateral del rediseño - 4 zonas (brief §1):
 //   CUMBRE30 PRO · Mi actividad · Cuenta · Plan actual
 // Cuenta consolida lo del ciclista: perfil (con subsecciones
 // mis datos / pagos y suscripciones, porque la licencia
@@ -156,7 +156,7 @@ export function AppDrawer({
           <MenuItem icon={<Trophy className="h-5 w-5" />} label="Desafíos y recompensas" onClick={() => go("premios")} />
         </div>
 
-        {/* Zona 3: Cuenta — Perfil abre subsecciones (datos/pagos) */}
+        {/* Zona 3: Cuenta - Perfil abre subsecciones (datos/pagos) */}
         <div className="mt-3 px-3">
           <p className="px-1 pb-1 pt-2 text-[10.5px] font-extrabold uppercase tracking-widest text-muted-foreground/70">Cuenta</p>
           <MenuItem icon={<UserRound className="h-5 w-5" />} label="Perfil" hint="Datos y pagos" onClick={() => go("perfil")} />

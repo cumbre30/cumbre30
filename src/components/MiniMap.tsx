@@ -1,7 +1,7 @@
 "use client";
 
 // ============================================================
-// Minimapa del velocímetro — NAVEGACIÓN REAL 3D (MapLibre GL).
+// Minimapa del velocímetro - NAVEGACIÓN REAL 3D (MapLibre GL).
 // Nada de trucos CSS: el motor WebGL de MapLibre (el mismo núcleo
 // que MapLibre Native en apps Android/iOS) dibuja con cámara de
 // perspectiva: inclinación (pitch), rotación al rumbo y el pin del
@@ -23,7 +23,7 @@ import type { Map as MlMap } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 
 // El bundler rompe la resolución automática del worker (import.meta.url),
-// así que lo servimos nosotros: public/maplibre-gl-worker.mjs — mismo
+// así que lo servimos nosotros: public/maplibre-gl-worker.mjs - mismo
 // archivo incluido en el APK como asset.
 setWorkerUrl("/maplibre-gl-worker.mjs?v=6.16.0");
 import { Crosshair, Plus, Route as RouteIcon, TriangleAlert, X } from "lucide-react";
@@ -42,7 +42,7 @@ import NativeMapCanvas from "@/components/NativeMapCanvas";
 import LeafletNav from "@/components/LeafletNav";
 import { isNativeApp } from "@/lib/rideNative";
 
-// ⚠️ [lng, lat] — MapLibre espera longitud PRIMERO. Antes estaba
+// ⚠️ [lng, lat] - MapLibre espera longitud PRIMERO. Antes estaba
 // invertido (-33.408, -70.636) y la cámara arrancaba en el Atlántico
 // Sur: el minimapa 3D se veía como un fondo de color sin mapa
 // (v1.3.2, causa raíz de "el 3d no carga").
@@ -256,7 +256,7 @@ function NavCanvas(props: NavCanvasProps) {
     mapRef.current = map;
 
     // --- fallback de base (v1.3.2): si OSM estándar falla repetidamente
-    // (rate-limit 429, caída), cambiamos a CyclOSM (OSM-France) —
+    // (rate-limit 429, caída), cambiamos a CyclOSM (OSM-France) -
     // prioriza funcionamiento: peor es quedarse sin mapa.
     let baseTileErr = 0;
     map.on("error", (e) => {
@@ -668,7 +668,7 @@ function BottomBar({ className, onRoute, etaMin, arrivalClock, remainingM, dest,
     <div className={className}>
       {onRoute ? (
         <div className="min-w-0 flex-1 text-center">
-          <div className="font-mono text-xl font-bold text-foreground leading-none tabular-nums">{etaMin > 0 ? arrivalClock : "—"}</div>
+          <div className="font-mono text-xl font-bold text-foreground leading-none tabular-nums">{etaMin > 0 ? arrivalClock : "-"}</div>
           <div className="text-[11px] text-muted-foreground leading-tight mt-0.5 truncate">
             {etaMin > 0 ? `${etaMin} min · ${fmtKmM(remainingM)}` : "Ruta lista"}
           </div>
@@ -762,7 +762,7 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
   const dest = nav.dest;
   // Mapa nativo (MapLibre Native vía plugin) o lienzo web (MapLibre GL JS)
   // ⚠️ NATIVE_MAPS_ENABLED=false (v1.3.1): el WebView del dispositivo no
-  // renderiza ni el nativo ni MapLibre GL JS (WebGL caído) — se muestra un
+  // renderiza ni el nativo ni MapLibre GL JS (WebGL caído) - se muestra un
   // fondo de color sin mapa. Prioriza funcionamiento: en la app nativa
   // corre Leaflet con tiles ráster (LeafletNav); el código nativo queda
   // dormido detrás de este flag para depurarlo más adelante.
@@ -1002,7 +1002,7 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
         onClear={() => nav.setDestination(null)}
       />
 
-      {/* ===== Barra inferior tipo Waze — SIN velocímetro ===== */}
+      {/* ===== Barra inferior tipo Waze - SIN velocímetro ===== */}
       <BottomBar
         className="absolute bottom-0 inset-x-0 z-[500] bg-background/95 border-t border-border px-2.5 py-2 flex items-center gap-2.5"
         onRoute={onRoute}

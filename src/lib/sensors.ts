@@ -65,7 +65,7 @@ export async function connectHeartRate(
 /**
  * Conecta un sensor de velocidad de rueda (CSC). La velocidad se
  * calcula con revoluciones acumuladas y tiempo de evento (1/1024 s):
- * sin el lag del GPS — ideal para la fiscalización del parque.
+ * sin el lag del GPS - ideal para la fiscalización del parque.
  */
 export async function connectWheelSpeed(
   onSpeed: (kmh: number) => void,

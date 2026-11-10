@@ -4,7 +4,7 @@
 // en Ñuñoa"…) y obtenemos coordenadas para trazar la ruta.
 //
 // · Photon (photon.komoot.io): público, sin clave, CORS abierto y
-//   pensado para apps — respuesta rápida sesgada por cercanía.
+//   pensado para apps - respuesta rápida sesgada por cercanía.
 // · Nominatim: respaldo si Photon no responde o no encuentra nada.
 // · Solo funciona CON conexión; offline el buscador sigue
 //   encontrando los lugares del cerro y los marcadores guardados.
@@ -134,7 +134,7 @@ function dedupe(list: AddrResult[]): AddrResult[] {
  * Busca direcciones y lugares por texto libre, sesgado hacia `near`
  * (la ubicación del ciclista). Photon primero; Nominatim de respaldo.
  * · Devuelve [] si nadie encuentra nada para la consulta.
- * · Lanza (TypeError/DOMException) si no hay conexión — el caller
+ * · Lanza (TypeError/DOMException) si no hay conexión - el caller
  *   muestra la nota offline y los resultados del cerro siguen ahí.
  * · Respeta `signal`: al escribir más letras, la búsqueda anterior se aborta.
  */
@@ -142,7 +142,7 @@ export async function geocodeAddress(query: string, near: LatLng, signal?: Abort
   const q = query.trim();
   if (q.length < 4) return [];
 
-  // 1) Photon — sesgo por cercanía, sin recorte duro de zona (cualquier
+  // 1) Photon - sesgo por cercanía, sin recorte duro de zona (cualquier
   //    dirección sirve; de cerca salen primero las de Santiago).
   let photonNetFail = false;
   try {
@@ -159,7 +159,7 @@ export async function geocodeAddress(query: string, near: LatLng, signal?: Abort
     photonNetFail = true;
   }
 
-  // 2) Nominatim — respaldo (Photon caído O sin resultados).
+  // 2) Nominatim - respaldo (Photon caído O sin resultados).
   try {
     const nUrl = `${NOMINATIM}?format=jsonv2&q=${encodeURIComponent(q)}&limit=6&accept-language=es`;
     const r2 = await fetchT(nUrl, 8000, signal);

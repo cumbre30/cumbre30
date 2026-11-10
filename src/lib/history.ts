@@ -21,7 +21,7 @@ export type RideSummary = {
   elapsedSec: number;
   gainM: number;
   overLimitSec: number;
-  /** Pista GPS para export GPX — solo viajes grabados desde v1.5.0. */
+  /** Pista GPS para export GPX - solo viajes grabados desde v1.5.0. */
   track?: TrackPt[];
   /** Correo de la cuenta dueña del viaje. Sin correo = viaje local del dispositivo. */
   account?: string;
@@ -36,7 +36,7 @@ const KEY = "cumbre30-history-v1";
 /**
  * Solo viajes con GPS real. Los viajes de demostración (source "sim",
  * simulación sin GPS) NO cuentan para ninguna estadística: totales,
- * resúmenes semanales, contadores ni logros — igual que ya ocurría
+ * resúmenes semanales, contadores ni logros - igual que ya ocurría
  * con las constancias PDF y los segmentos del cerro.
  */
 export function gpsOnly(rides: RideSummary[]): RideSummary[] {

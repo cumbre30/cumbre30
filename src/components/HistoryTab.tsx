@@ -1,11 +1,11 @@
 "use client";
 
 // ============================================================
-// Mis viajes (antes "Historial de viajes") — con subsecciones:
+// Mis viajes (antes "Historial de viajes") - con subsecciones:
 //   · "Viajes": contador de constancias, resumen semanal con
 //     compartir (Instagram), filtros de fecha y modo (demo/GPS)
 //     y la lista de viajes enlazada al correo de la cuenta.
-//   · "Pro": segmentos del cerro — cronometraje de subidas,
+//   · "Pro": segmentos del cerro - cronometraje de subidas,
 //     solo aplican a viajes GPS (función Cumbre30 Pro).
 // ============================================================
 
@@ -65,7 +65,7 @@ function weekBounds(): { start: Date; end: Date; label: string } {
   const end = new Date(start);
   end.setDate(end.getDate() + 7);
   const fmt = (d: Date) => d.toLocaleDateString("es-CL", { day: "numeric", month: "short" });
-  return { start, end, label: `${fmt(start)} — ${fmt(new Date(end.getTime() - 1))}` };
+  return { start, end, label: `${fmt(start)} - ${fmt(new Date(end.getTime() - 1))}` };
 }
 
 type RangeKey = "week" | "month" | "day" | "all";
@@ -225,7 +225,7 @@ export function HistoryTab({
       const res = await shareOrDownloadFile({
         blob,
         fileName,
-        title: "Constancia de trayecto — Cumbre30",
+        title: "Constancia de trayecto - Cumbre30",
         text: "Constancia de registro de trayecto en bicicleta, generada por la aplicación Cumbre30.",
       });
       incrConstancia();
@@ -249,7 +249,7 @@ export function HistoryTab({
     setGpxMsg(null);
     try {
       if (!pro.active) {
-        setGpxMsg("El export GPX es parte de Cumbre30 Pro — actívalo en Perfil → Pagos y suscripciones.");
+        setGpxMsg("El export GPX es parte de Cumbre30 Pro - actívalo en Perfil → Pagos y suscripciones.");
         return;
       }
       if (!r.track || r.track.length < 2) {
@@ -262,7 +262,7 @@ export function HistoryTab({
       await shareOrDownloadFile({
         blob,
         fileName: `cumbre30-${day}-${r.id.slice(0, 8)}.gpx`,
-        title: "Viaje GPX — Cumbre30",
+        title: "Viaje GPX - Cumbre30",
         text: "Pista GPX de tu viaje en el cerro, generada por Cumbre30.",
       });
       setGpxMsg("GPX listo: impórtalo en Strava, Garmin o Komoot.");
@@ -647,7 +647,7 @@ export function HistoryTab({
                       )}
                       {s.count > 0 && s.last && (
                         <p className="mt-0.5 text-[11px] text-muted-foreground">
-                          {s.count} {s.count === 1 ? "intento" : "intentos"} · último: {fmtEffort(s.last.timeSec)} — {fmtDate(s.last.dateISO)}
+                          {s.count} {s.count === 1 ? "intento" : "intentos"} · último: {fmtEffort(s.last.timeSec)} - {fmtDate(s.last.dateISO)}
                         </p>
                       )}
                       {s.top.length > 1 && (
@@ -666,8 +666,8 @@ export function HistoryTab({
             ) : (
               <>
                 <p className="mt-1 leading-relaxed text-muted-foreground">
-                  Cronometraje oficial de tus subidas — Pío Nono → Plaza México, Pedro de Valdivia
-                  Norte → Plaza México y el tramo Antilén → Plaza México — con récord personal, contador de
+                  Cronometraje oficial de tus subidas - Pío Nono → Plaza México, Pedro de Valdivia
+                  Norte → Plaza México y el tramo Antilén → Plaza México - con récord personal, contador de
                   intentos e historial de tiempos. Aplican solo a viajes grabados con GPS.
                 </p>
                 <Button

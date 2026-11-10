@@ -1,5 +1,5 @@
 // ============================================================
-// Cumbre30 Pro — auto-entrega de códigos (web desplegada).
+// Cumbre30 Pro - auto-entrega de códigos (web desplegada).
 //
 // Flujo: Mercado Pago avisa un pago aprobado de $6.500 CLP →
 // verificamos el pago CONTRA LA API DE MP (nunca confiamos en el
@@ -109,7 +109,7 @@ export function licenseEmailHtml(email: string, code: string): string {
       <li>Ingresa tu correo <b>${email}</b> y el código de arriba</li>
     </ol>
     <p style="font-size:12.5px;color:#5a5248;line-height:1.6">El código está ligado a este correo. Si cambias de teléfono, quita la licencia desde el teléfono antiguo (Pagos y suscripciones → Quitar licencia) y actívala en el nuevo con el mismo correo.</p>
-    <p style="font-size:12.5px;color:#5a5248">¿Dudas? Responde este correo o escríbenos por WhatsApp.<br/>— Cumbre GEO · App independiente de apoyo al ciclista</p>
+    <p style="font-size:12.5px;color:#5a5248">¿Dudas? Responde este correo o escríbenos por WhatsApp.<br/>- Cumbre GEO · App independiente de apoyo al ciclista</p>
   </div>`;
 }
 
@@ -129,7 +129,7 @@ export function licenseEmailText(email: string, code: string): string {
     "El código está ligado a este correo. Si cambias de teléfono,",
     "quita la licencia desde el antiguo y actívala en el nuevo.",
     "",
-    "— Cumbre GEO",
+    "- Cumbre GEO",
   ].join("\n");
 }
 

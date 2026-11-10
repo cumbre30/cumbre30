@@ -1,6 +1,6 @@
 // ============================================================
 // Catálogo compartido (cliente/servidor): pines de recompensa
-// y desafíos en series con avance SECUENCIAL — cada nivel se
+// y desafíos en series con avance SECUENCIAL - cada nivel se
 // activa al completar el anterior (no simultáneo).
 // Diseñado para completarse en ~3 meses pedaleando regular.
 // ============================================================
@@ -91,7 +91,7 @@ export type RiderLevel = { name: string; emoji: string; min: number; max: number
 /**
  * Umbrales pensados para la escala del cerro: una vuelta al San
  * Cristóbal ida y vuelta son ≈ 10 km, así que el nivel 2 llega con
- * ≈ 5 vueltas, el 3 con ≈ 15 y Desafiante arranca en 500 km —
+ * ≈ 5 vueltas, el 3 con ≈ 15 y Desafiante arranca en 500 km -
  * coincidiendo con el tier Diamante (500 km) de la Serie Kilómetros.
  * Sobre los 500 km el título es 🌟 Leyenda, exclusivo de la tarjeta
  * "Tu progreso" (no aparece en la grilla de niveles).
@@ -495,7 +495,7 @@ export function startOfMonth(now: Date): Date {
 /**
  * Suma rides/km/desnivel por ventana: día, semana y mes en curso
  * (hora local del dispositivo). Los rides en vehículo motorizado no
- * cuentan — misma regla que el resto de los desafíos.
+ * cuentan - misma regla que el resto de los desafíos.
  */
 export function windowStatsFromRides(
   rides: Array<{

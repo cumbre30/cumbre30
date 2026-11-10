@@ -1,7 +1,7 @@
 "use client";
 
 // ============================================================
-// Planes — comparación FREE vs PRO.
+// Planes - comparación FREE vs PRO.
 // La compra NO ocurre desde aquí (Google Play lo prohíbe para
 // funciones digitales): el pago vive en la web oficial /pro o en
 // Google Play Billing (build Play, dentro de Pagos y suscripciones).
@@ -45,7 +45,7 @@ export function PlanesTab() {
         <p className="text-4xl font-extrabold tracking-tight text-foreground">{priceLabel}</p>
         <p className="mt-1 text-sm text-muted-foreground">pago único · sin suscripción · para siempre</p>
 
-        {/* Cómo obtener PRO — sin links externos (requisito Play):
+        {/* Cómo obtener PRO - sin links externos (requisito Play):
             el pago ocurre en la web /pro o en Google Play Billing,
             la activación del código es local y offline. */}
         <div className="mt-4 rounded-xl border border-border bg-background/60 p-3 text-left text-[12.5px] leading-relaxed text-muted-foreground">
@@ -67,7 +67,7 @@ export function PlanesTab() {
               </p>
               <p className="mt-1">
                 <b className="text-foreground">3.</b> Actívalo en{" "}
-                <b className="text-foreground">Perfil → Pagos y suscripciones</b> — funciona 100% sin internet.
+                <b className="text-foreground">Perfil → Pagos y suscripciones</b> - funciona 100% sin internet.
               </p>
             </>
           )}

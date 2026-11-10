@@ -20,7 +20,7 @@ import type { NavEngine } from "@/hooks/useNavEngine";
 import type { RouteStep } from "@/lib/routing";
 import type { LatLng } from "@/lib/park";
 
-// ⚠️ [lng, lat] — MapLibre espera longitud PRIMERO (fix v1.3.2).
+// ⚠️ [lng, lat] - MapLibre espera longitud PRIMERO (fix v1.3.2).
 const PARK_CENTER: [number, number] = [-70.636, -33.408];
 
 type Props = {

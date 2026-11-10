@@ -4,7 +4,7 @@
 // Botón flotante "← Cumbre GEO" en /pro.
 // Aparece SOLO cuando /pro se abre desde el nuevo sitio /geo
 // (query ?from=geo). En cualquier otro caso /pro se ve igual
-// que siempre — su contenido no cambia.
+// que siempre - su contenido no cambia.
 // ============================================================
 
 import Link from "next/link";

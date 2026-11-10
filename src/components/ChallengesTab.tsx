@@ -1,7 +1,7 @@
 "use client";
 
 // ============================================================
-// Desafíos y recompensas — sección de la cuenta (requiere sesión;
+// Desafíos y recompensas - sección de la cuenta (requiere sesión;
 // sin sesión muestra acceso directo a iniciar sesión y luego carga).
 // Estructura (referencia: mockup de progreso gamificado):
 //   · "Tu progreso": km acumulados (GPS real, de la cuenta) + anillo
@@ -10,9 +10,9 @@
 //     (umbrales compartidos en lib/pins.ts → RIDER_LEVELS).
 //   · "Desafíos del cerro": las series acumulativas agrupadas en un
 //     menú desplegable, con % de avance por serie.
-//   · "Desafíos con fecha": diarios / semanales / mensuales — gratis,
+//   · "Desafíos con fecha": diarios / semanales / mensuales - gratis,
 //     sin recompensas; se reinician solos con el periodo.
-//   · "Retos puntuales" y "Tus pines": igual regla Free/Pro — solo el
+//   · "Retos puntuales" y "Tus pines": igual regla Free/Pro - solo el
 //     primer desafío de cada serie (y su pin) es gratis; el resto
 //     requiere Cumbre30 Pro (los ya ganados se conservan).
 // ============================================================
@@ -428,7 +428,7 @@ export default function ChallengesTab({ onGoPerfil, onGoPro }: { onGoPerfil: () 
                   Nivel {lvlIdx + 1} · {lvl.emoji} {lvl.name} · +{km.toFixed(0)} km acumulados
                 </p>
                 <p className="mt-2 text-[11px] leading-snug text-muted-foreground">
-                  Superaste los {LEYENDA_KM} km del Diamante. Título exclusivo de tu progreso — sigue haciendo historia en el cerro 🏔️
+                  Superaste los {LEYENDA_KM} km del Diamante. Título exclusivo de tu progreso - sigue haciendo historia en el cerro 🏔️
                 </p>
               </>
             ) : (
@@ -478,7 +478,7 @@ export default function ChallengesTab({ onGoPerfil, onGoPro }: { onGoPerfil: () 
                 <span className={`text-xl leading-none ${!done && !current ? "grayscale opacity-50" : ""}`} aria-hidden>{L.emoji}</span>
                 <span className={`text-[11px] font-semibold leading-tight ${current ? "text-emerald-700 dark:text-emerald-300" : done ? "text-foreground" : "text-muted-foreground"}`}>{L.name}</span>
                 <span className="text-[9.5px] leading-tight text-muted-foreground/80">
-                  {L.max != null ? `${L.min}–${L.max} km` : `${L.min}+ km`}
+                  {L.max != null ? `${L.min}-${L.max} km` : `${L.min}+ km`}
                 </span>
                 {done && !current && <CheckCircle2 className="absolute -top-1.5 -right-1.5 h-4 w-4 rounded-full bg-card text-emerald-600 dark:text-emerald-400" />}
                 {current && (
@@ -613,7 +613,7 @@ export default function ChallengesTab({ onGoPerfil, onGoPro }: { onGoPerfil: () 
                 key={pin.id}
                 onClick={() => void selectPin(pin.id)}
                 disabled={!open || savingPin !== null}
-                title={open ? `${pin.name} — ${pin.desc}` : needPro ? `Recompensa Pro: ${pin.desc}` : `Bloqueado: ${pin.desc}`}
+                title={open ? `${pin.name} - ${pin.desc}` : needPro ? `Recompensa Pro: ${pin.desc}` : `Bloqueado: ${pin.desc}`}
                 className={`relative rounded-lg border p-2 flex flex-col items-center gap-1 transition-colors ${
                   active
                     ? "border-emerald-400 bg-emerald-950/60"

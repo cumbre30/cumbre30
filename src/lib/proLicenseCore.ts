@@ -1,10 +1,10 @@
 // ============================================================
-// Cumbre30 Pro — núcleo de licencias (SIN React, usable en
+// Cumbre30 Pro - núcleo de licencias (SIN React, usable en
 // cliente y en rutas de API del servidor).
 //   Código = C30P-XXXX-XXXX-XXXX-XXXX = base32(HMAC-SHA256(
 //   secreto, correo)). La app lo valida sin servidor.
 // El secreto viaja en el APK: detiene la copia casual, no la
-// ingeniería inversa — equilibrio razonable para una app de nicho.
+// ingeniería inversa - equilibrio razonable para una app de nicho.
 // ============================================================
 
 // ⚠️ Debe coincidir con scripts/gen-license.mjs

@@ -21,7 +21,7 @@ function toB64(c: HTMLCanvasElement): string {
   return c.toDataURL("image/png");
 }
 
-/** Chevron blanco (borde oscuro) que va sobre la ruta — 48×48 @3x. */
+/** Chevron blanco (borde oscuro) que va sobre la ruta - 48×48 @3x. */
 export function chevronB64(): string {
   const S = 144; // 48 * 3
   const { c, ctx } = makeCanvas(S);

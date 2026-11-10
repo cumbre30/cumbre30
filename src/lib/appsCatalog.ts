@@ -1,5 +1,5 @@
 // ============================================================
-// Catálogo de aplicaciones de Cumbre GEO — fuente única del sitio
+// Catálogo de aplicaciones de Cumbre GEO - fuente única del sitio
 // público (/geo). Agregar una app nueva = agregar un objeto a APPS:
 // el carrusel, el modal de detalle y el acceso a planes se generan
 // solos desde esta estructura.
@@ -87,10 +87,10 @@ export const APPS: AppCatalogo[] = [
       {
         titulo: "Novedades de esta versión",
         cuerpo:
-          "v1.8.2 (versionCode 28):\n• Nueva marca: Cumbre GEO — sitio oficial cumbregeo.cl\n• Compra Pro con entrega automática: tu código llega solo al correo tras pagar\n• Mejoras de estabilidad",
+          "v1.8.2 (versionCode 28):\n• Nueva marca: Cumbre GEO - sitio oficial cumbregeo.cl\n• Compra Pro con entrega automática: tu código llega solo al correo tras pagar\n• Mejoras de estabilidad",
       },
     ],
-    // APK directo: ACTIVO — descarga desde Google Drive (link del cliente).
+    // APK directo: ACTIVO - descarga desde Google Drive (link del cliente).
     // La URL "usercontent + confirm=t" baja el archivo de un clic, sin la
     // pantalla de advertencia de Drive ("Download anyway"). El link de
     // visor original, por si hay que compartirlo:

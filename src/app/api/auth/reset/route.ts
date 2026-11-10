@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { hashPassword, RESET_MAX_ATTEMPTS } from "@/lib/auth";
 
 // ============================================================
-// POST /api/auth/reset — cambia la contraseña con el código
+// POST /api/auth/reset - cambia la contraseña con el código
 // entregado por soporte. Al éxito invalida el código y cierra
 // todas las sesiones activas de la cuenta (seguridad).
 // ============================================================

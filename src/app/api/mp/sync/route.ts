@@ -1,5 +1,5 @@
 // ============================================================
-// GET|POST /api/mp/sync — polling de pagos (red de seguridad).
+// GET|POST /api/mp/sync - polling de pagos (red de seguridad).
 //
 // Consulta los pagos aprobados de las últimas 48 h en la API de
 // Mercado Pago y entrega el código de los que aún no tengan

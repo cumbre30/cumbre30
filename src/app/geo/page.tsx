@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import GeoSite from "@/components/GeoSite";
 
 // ============================================================
-// /geo — Sitio público de Cumbre GEO (diseño del prototipo aprobado).
+// /geo - Sitio público de Cumbre GEO (diseño del prototipo aprobado).
 // Vistas internas: home ⇄ planes. ?vista=planes abre directo la
 // vista de planes y ?app=<id> selecciona la app de los planes
 // (lo usan los redirects nombrados por app: /cumbre30pro y el
@@ -10,7 +10,7 @@ import GeoSite from "@/components/GeoSite";
 // ============================================================
 
 export const metadata: Metadata = {
-  title: "Cumbre GEO — Aplicaciones 100% offline para el aire libre",
+  title: "Cumbre GEO - Aplicaciones 100% offline para el aire libre",
   description:
     "Qué hacemos y cómo lo hacemos: aplicaciones 100% offline, sin publicidad, con motor GPS propio y cartografía open source. Conoce Cumbre30, sus detalles y sus planes.",
 };

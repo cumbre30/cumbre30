@@ -2,7 +2,7 @@
 // Estilo del minimapa de navegación 3D (look Waze, cámara con
 // pitch 50° y rotación al rumbo).
 //
-// ⚠️ v1.3.2 — causa raíz del "3d no carga": la cámara arrancaba en
+// ⚠️ v1.3.2 - causa raíz del "3d no carga": la cámara arrancaba en
 // el Atlántico Sur porque PARK_CENTER pasaba [lat, lon] y MapLibre
 // espera [lng, lat]. El "océano" era real: estábamos mirando mar,
 // no tiles rotos (OpenFreeMap sirve Santiago sin problema).
@@ -38,13 +38,13 @@ export const NAV_COLORS = {
  *  en el resto de la app). */
 export const OSM_RASTER_TILES = ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"];
 
-/** Fallback: CyclOSM (OSM-France) — ráster orientado a bicicletas,
+/** Fallback: CyclOSM (OSM-France) - ráster orientado a bicicletas,
  *  destaca ciclovías y sendas del cerro. */
 export const CYCLOSM_TILES = ["a", "b", "c"].map(
   (s) => `https://${s}.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png`
 );
 
-/** Polígono circular (32 lados) alrededor de un punto — para zonas
+/** Polígono circular (32 lados) alrededor de un punto - para zonas
  *  de riesgo y porteras, porque circle-layer usa píxeles, no metros. */
 export function circlePolygon(lat: number, lon: number, radiusM: number, segments = 32): [number, number][] {
   const pts: [number, number][] = [];

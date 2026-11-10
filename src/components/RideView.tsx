@@ -1,7 +1,7 @@
 "use client";
 
 // ============================================================
-// Vista de ride — rediseño de jerarquía (brief §2):
+// Vista de ride - rediseño de jerarquía (brief §2):
 //   minimapa → VELOCIDAD protagonista → distancia/tiempo →
 //   botón principal → stats secundarias colapsables → bitácora.
 // Dos estados: DETENIDO (todo visible, Iniciar evidente) y
@@ -100,7 +100,7 @@ export function RideView(p: Props) {
           : "bg-card/80 border-border text-muted-foreground";
 
   const bannerText = paused
-    ? "EN PAUSA — cronómetro y distancia congelados"
+    ? "EN PAUSA - cronómetro y distancia congelados"
     : over
       ? `¡EXCESO DE VELOCIDAD! · LÍMITE ${LIMIT_KMH} km/h`
       : caution
@@ -138,7 +138,7 @@ export function RideView(p: Props) {
         <span>{bannerText}</span>
       </div>
 
-      {/* VELOCIDAD — protagonista (elemento 2 del brief) */}
+      {/* VELOCIDAD - protagonista (elemento 2 del brief) */}
       <div className="text-center pt-1">
         {p.insidePark && !idle && (
           <span
@@ -160,7 +160,7 @@ export function RideView(p: Props) {
         </div>
       </div>
 
-      {/* Distancia y tiempo — el par secundario importante (elemento 5) */}
+      {/* Distancia y tiempo - el par secundario importante (elemento 5) */}
       <div className="grid grid-cols-2 gap-2.5">
         <Card className="p-3.5">
           <div className="flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground">
@@ -181,7 +181,7 @@ export function RideView(p: Props) {
         </Card>
       </div>
 
-      {/* BOTÓN PRINCIPAL (elemento 4) — inicia/pausa/finaliza */}
+      {/* BOTÓN PRINCIPAL (elemento 4) - inicia/pausa/finaliza */}
       {idle ? (
         <div>
           <Button
@@ -222,7 +222,7 @@ export function RideView(p: Props) {
         </div>
       )}
 
-      {/* Stats secundarias — colapsables (elemento 6) */}
+      {/* Stats secundarias - colapsables (elemento 6) */}
       <details className="rounded-xl border border-border bg-card/70 p-3 group" open={idle}>
         <summary className="flex cursor-pointer select-none items-center gap-2 text-sm font-semibold text-foreground/90 list-none [&::-webkit-details-marker]:hidden">
           <Gauge className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
@@ -239,8 +239,8 @@ export function RideView(p: Props) {
             unit="%"
             icon={p.slopePct < 0 ? <TrendingDown className="h-3 w-3" /> : <TrendingUp className="h-3 w-3" />}
           />
-          <Stat label="Precisión GPS" value={p.accuracyM !== null ? `±${Math.round(p.accuracyM)}` : "—"} unit={p.accuracyM !== null ? "m" : undefined} icon={<Navigation className="h-3 w-3" />} />
-          <Stat label="En parque" value={idle ? "—" : p.insidePark ? "Sí" : "No"} icon={<ShieldAlert className="h-3 w-3" />} />
+          <Stat label="Precisión GPS" value={p.accuracyM !== null ? `±${Math.round(p.accuracyM)}` : "-"} unit={p.accuracyM !== null ? "m" : undefined} icon={<Navigation className="h-3 w-3" />} />
+          <Stat label="En parque" value={idle ? "-" : p.insidePark ? "Sí" : "No"} icon={<ShieldAlert className="h-3 w-3" />} />
         </div>
         {p.overLimitSec > 0 && (
           <Card className="mt-2.5 flex-row items-center justify-between border-red-900/70 bg-red-950/40 px-3 py-2.5">
@@ -290,7 +290,7 @@ export function RideView(p: Props) {
         <Card className="p-0 overflow-hidden">
           <ul className="max-h-56 overflow-y-auto divide-y divide-border/70" aria-label="Eventos del viaje">
             {p.events.length === 0 && (
-              <li className="px-4 py-6 text-center text-sm text-muted-foreground/80">Sin eventos aún — los avisos de zona, geocercas y excesos aparecerán aquí.</li>
+              <li className="px-4 py-6 text-center text-sm text-muted-foreground/80">Sin eventos aún - los avisos de zona, geocercas y excesos aparecerán aquí.</li>
             )}
             {[...p.events].reverse().map((ev, i) => (
               <li key={`${ev.t}-${i}`} className="px-4 py-2.5 flex items-start gap-2.5 text-sm">

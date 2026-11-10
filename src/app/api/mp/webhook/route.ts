@@ -1,5 +1,5 @@
 // ============================================================
-// POST /api/mp/webhook — webhook de Mercado Pago (camino rápido).
+// POST /api/mp/webhook - webhook de Mercado Pago (camino rápido).
 //
 // MP avisa un pago → lo verificamos contra la API de MP (nunca
 // confiamos en el body) → si es el plan Pro ($6.500 CLP aprobado)
@@ -26,7 +26,7 @@ export async function POST(req: Request) {
       const body = (await req.json()) as { type?: string; action?: string; data?: { id?: string | number } };
       if (body?.data?.id != null) paymentId = String(body.data.id);
     } catch {
-      // body vacío o no-JSON: MP a veces manda pings — responder ok.
+      // body vacío o no-JSON: MP a veces manda pings - responder ok.
     }
   }
 

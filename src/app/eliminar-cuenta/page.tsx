@@ -3,14 +3,14 @@ import Link from "next/link";
 import { DeleteAccountWebButton } from "./DeleteAccountWebButton";
 
 // ============================================================
-// /eliminar-cuenta — baja definitiva desde la web.
+// /eliminar-cuenta - baja definitiva desde la web.
 // URL que Google Play pide declarar en Seguridad de datos
 // (eliminación de cuenta). Estática: el APK también la incluye,
 // aunque ahí el flujo real vive en Perfil → Mis datos.
 // ============================================================
 
 export const metadata: Metadata = {
-  title: "Eliminar cuenta — Cumbre30",
+  title: "Eliminar cuenta - Cumbre30",
   description: "Elimina definitivamente tu cuenta de Cumbre30 y todos sus datos.",
 };
 

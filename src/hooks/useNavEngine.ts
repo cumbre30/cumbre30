@@ -105,7 +105,7 @@ export function useNavEngine(position: LatLng | null, running: boolean): NavEngi
     setProvisional(kind === "fallback");
     setNote(
       kind === "fallback"
-        ? "Partida provisional desde el Acceso Pío Nono — activa tu GPS para rutear desde tu ubicación."
+        ? "Partida provisional desde el Acceso Pío Nono - activa tu GPS para rutear desde tu ubicación."
         : null
     );
   }, []);
@@ -165,7 +165,7 @@ export function useNavEngine(position: LatLng | null, running: boolean): NavEngi
 
   // Re-anclaje del origen en planificación: si la ruta vigente se calculó
   // desde un punto LEJOS de donde estás AHORA (primer fix malo del GPS
-  // ambiental —a veces cae a ~200 m, p.ej. sobre la ciclovía— o caminaste
+  // ambiental -a veces cae a ~200 m, p.ej. sobre la ciclovía- o caminaste
   // después de trazar), recalcula desde tu posición fresca. Así la ruta
   // SIEMPRE nace en tu pin. Solo sin ride: en marcha los desvíos los
   // maneja el recálculo por desvío (>140 m) y el intervalo de 30 s.

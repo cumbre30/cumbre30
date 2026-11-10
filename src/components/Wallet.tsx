@@ -151,7 +151,7 @@ export default function Wallet() {
             <p className="font-medium text-foreground">QR Pedalea Seguro (Parquemet)</p>
             <p className="mt-1 leading-relaxed">
               El registro Pedalea Seguro es para ciclistas de montaña (MTB y enduro) que usan los senderos de
-              tierra del parque. Lo haces en pedaleaseguro.parquemet.cl —con ClaveÚnica o formulario manual— y ahí
+              tierra del parque. Lo haces en pedaleaseguro.parquemet.cl -con ClaveÚnica o formulario manual- y ahí
               Parquemet te entrega tu QR y tu número de registro. Esta app no genera ni gestiona ese QR: solo te
               sirve para guardarlo y mostrarlo cuando lo pidan. La imagen se guarda solo en tu teléfono.
             </p>
@@ -203,7 +203,7 @@ export default function Wallet() {
             <p className="font-medium text-foreground">Aún no cargas tu QR Pedalea Seguro</p>
             <p className="text-sm text-muted-foreground max-w-sm">
               Regístrate en la web oficial, guarda la foto o captura del QR que te entrega y tócala aquí para
-              llevarla siempre a mano — pegada en tu bici y en tu teléfono.
+              llevarla siempre a mano - pegada en tu bici y en tu teléfono.
             </p>
             <Button
               onClick={() => fileRef.current?.click()}

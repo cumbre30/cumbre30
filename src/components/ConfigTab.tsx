@@ -1,7 +1,7 @@
 "use client";
 
 // ============================================================
-// Configuración — el Brief (§2) manda las herramientas de prueba
+// Configuración - el Brief (§2) manda las herramientas de prueba
 // fuera de la pantalla Ride: fuente Demo/GPS, pitidos y avisos de
 // voz viven aquí; el header del ride queda compacto.
 // ============================================================

@@ -28,7 +28,7 @@ async function networkFirst(request) {
     if (cached) return cached;
     if (request.mode === "navigate") {
       return new Response(
-        "<!doctype html><html lang='es'><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>Cumbre30 — sin conexión</title><body style='background:#09090b;color:#f4f4f5;font-family:sans-serif;display:grid;place-items:center;height:100vh;margin:0'><div style='text-align:center'><h1 style='font-size:3rem;margin:0'>Cumbre<span style='color:#34d399'>30</span></h1><p style='color:#a1a1aa'>Sin conexión — el velocímetro y las alertas seguirán funcionando al reconectar.</p></div></body></html>",
+        "<!doctype html><html lang='es'><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>Cumbre30 - sin conexión</title><body style='background:#09090b;color:#f4f4f5;font-family:sans-serif;display:grid;place-items:center;height:100vh;margin:0'><div style='text-align:center'><h1 style='font-size:3rem;margin:0'>Cumbre<span style='color:#34d399'>30</span></h1><p style='color:#a1a1aa'>Sin conexión - el velocímetro y las alertas seguirán funcionando al reconectar.</p></div></body></html>",
         { headers: { "Content-Type": "text/html; charset=utf-8" } }
       );
     }

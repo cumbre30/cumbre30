@@ -4,8 +4,8 @@
 // Mapa de referencia: parque + zonas de riesgo + ciclovías
 // (SOLO las del cerro, para no ensuciar la vista) + reporte de
 // incidencias + botón de localización + pin personal.
-// Buscador universal (Pro): escribes CUALQUIER dirección —casa,
-// trabajo, otro barrio— o un lugar del cerro y la ruta ciclable
+// Buscador universal (Pro): escribes CUALQUIER dirección -casa,
+// trabajo, otro barrio- o un lugar del cerro y la ruta ciclable
 // se traza sola desde tu ubicación (grafo propio u OSRM bici).
 // ============================================================
 
@@ -220,13 +220,13 @@ function SearchCard({
   if (!pro) {
     // FREE: la búsqueda de texto libre abre el modal contextual (no
     // redirige ni interrumpe); los destinos del cerro siguen siendo
-    // trazables — el mapa y las rutas a destinos nunca se bloquean.
+    // trazables - el mapa y las rutas a destinos nunca se bloquean.
     return (
       <div className="rounded-xl border border-border bg-card/80 p-3">
         <button
           onClick={() => onProLocked?.("buscador")}
           className="flex w-full items-center gap-2 rounded-lg border border-border bg-background px-2.5 py-2 text-left hover:border-emerald-500/60"
-          aria-label="Buscador universal de direcciones — función Cumbre30 Pro"
+          aria-label="Buscador universal de direcciones - función Cumbre30 Pro"
         >
           <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
           <span className="min-w-0 flex-1 truncate text-sm text-muted-foreground">
@@ -434,7 +434,7 @@ function SearchCard({
         )}
         {addrOffline && (
           <li className="py-2 text-center text-[11px] text-amber-700 dark:text-amber-300">
-            Sin conexión para buscar direcciones — los lugares del cerro y tus marcadores siguen disponibles.
+            Sin conexión para buscar direcciones - los lugares del cerro y tus marcadores siguen disponibles.
           </li>
         )}
         {dests.length === 0 && mine.length === 0 && addr.length === 0 && !addrSearching && !addrOffline && query.trim().length >= 2 && (
@@ -647,7 +647,7 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
   };
 
   // Ciclovías: SOLO las que están dentro del cerro (≥50% de sus puntos
-  // dentro del polígono del parque) — el resto se omite por orden.
+  // dentro del polígono del parque) - el resto se omite por orden.
   const cicloviaLines = useMemo(() => {
     if (!net) return null;
     const out: React.ReactNode[] = [];
@@ -859,8 +859,8 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
           {/* Ciclovías (solo interior del parque) */}
           {cicloviaLines}
 
-          {/* Ruta elegida: completa, partida por condición — violeta =
-              ciclovía · blanco = vía compartida — con casing oscuro */}
+          {/* Ruta elegida: completa, partida por condición - violeta =
+              ciclovía · blanco = vía compartida - con casing oscuro */}
           {route && route.coords.length > 1 && (
             <>
               <Polyline

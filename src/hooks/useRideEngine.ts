@@ -276,7 +276,7 @@ export function useRideEngine() {
       setPosition(fix);
       setTrack((tr) => (tr.length && haversineM(tr[tr.length - 1], fix) < 2 ? tr : [...tr.slice(-6000), fix]));
       // Pista para GPX: ~1 punto cada 5 s, máx 600 (si se llena, se
-      // adelgaza a la mitad y se duplica el intervalo — ~21 KB por ride).
+      // adelgaza a la mitad y se duplica el intervalo - ~21 KB por ride).
       if (!e.trackPts.length || fix.t - e.trackPts[e.trackPts.length - 1][3] * 1000 >= e.trackEveryMs) {
         if (e.trackPts.length >= 600) {
           e.trackPts = e.trackPts.filter((_, i) => i % 2 === 0);
@@ -456,7 +456,7 @@ export function useRideEngine() {
     setStatus("paused");
     setSpeedState("ok");
     setSpeedKmh(0);
-    logEvent("info", "Ride en pausa — cronómetro detenido");
+    logEvent("info", "Ride en pausa - cronómetro detenido");
   }, [status, logEvent]);
 
   /** Reanuda: resetea los filtros (Kalman/último fix) para que ni la

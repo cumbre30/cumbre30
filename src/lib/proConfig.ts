@@ -7,7 +7,7 @@
 //     el build es de Play (NEXT_PUBLIC_PLAY_BUILD=1).
 //   · LA PÁGINA WEB (vista "planes" de /geo, rutas /cumbre30pro y
 //     alias heredado /pro) concentra el pago con Mercado Pago
-//     (plan Pro y aporte voluntario) — Google Play prohíbe
+//     (plan Pro y aporte voluntario) - Google Play prohíbe
 //     dirigir la compra de funciones digitales desde la app.
 //   · El código C30P-XXXX-XXXX-XXXX-XXXX llega por correo y se
 //     valida 100% offline en la app (proLicenseCore).
@@ -18,8 +18,8 @@ export const IS_PLAY_BUILD = process.env.NEXT_PUBLIC_PLAY_BUILD === "1";
 
 /**
  * Enlace de COBRO ÚNICO de Cumbre30 Pro en Mercado Pago ($6.500,
- * precio fundador; solo la venta web — vista "planes" de /geo,
- * rutas /cumbre30pro y alias /pro — la app no lleva links de pago).
+ * precio fundador; solo la venta web - vista "planes" de /geo,
+ * rutas /cumbre30pro y alias /pro - la app no lleva links de pago).
  * v2 (2tghXUc): reemplaza al 1WdyZaW, que era una SUSCRIPCIÓN anual
  * creada por error en la sección Suscripciones de Mercado Pago.
  */
@@ -36,7 +36,7 @@ export const PRO_PAY_URL = "https://mpago.la/2tghXUc";
 export const PRO_PRICE_LABEL = "$7.650 · pago único";
 
 /**
- * Google Play Billing — producto único (non-consumable).
+ * Google Play Billing - producto único (non-consumable).
  * Precio calculado para recibir ~$6.500 netos con la comisión 15%
  * del programa para desarrolladores pequeños: 7.650 × 0,85 = $6.502.
  * El precio que Play muestra al usuario (con IVA aplicable) viene de
@@ -45,9 +45,9 @@ export const PRO_PRICE_LABEL = "$7.650 · pago único";
 export const PRO_PLAY_PRODUCT_ID = "cumbre30_pro";
 export const PRO_PLAY_PRICE_LABEL = "$7.650 · pago único";
 
-/** Aporte voluntario — botón de la venta web (Mercado Pago, monto libre). */
+/** Aporte voluntario - botón de la venta web (Mercado Pago, monto libre). */
 export const DONATE_OPTIONS: { label: string; url: string }[] = [
-  { label: "Aportar — monto libre", url: "https://link.mercadopago.cl/perfumatch" },
+  { label: "Aportar - monto libre", url: "https://link.mercadopago.cl/perfumatch" },
 ];
 
 /** Contacto para soporte (permitido por Play: no es steering de compra). */

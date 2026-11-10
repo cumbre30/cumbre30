@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Cumbre30 — Ciclocomputador Cerro San Cristóbal",
+  title: "Cumbre30 - Ciclocomputador Cerro San Cristóbal",
   description:
     "Ciclocomputador en el celular con geofencing del Parque Metropolitano: límite 30 km/h, alertas de voz y vibración, zonas de riesgo y credencial digital de enrolamiento Parquemet.",
   applicationName: "Cumbre30",

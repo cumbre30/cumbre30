@@ -1,6 +1,6 @@
 // ============================================================
 // Puente hacia el plugin nativo RideNative:
-//   • GPS en primer plano (FGS tipo LOCATION a 1 Hz) — sigue
+//   • GPS en primer plano (FGS tipo LOCATION a 1 Hz) - sigue
 //     activo con la pantalla bloqueada o cambiando de app.
 //   • Hápticos nativos (VibratorManager / VibrationEffect).
 // En la web no se usa: useRideEngine cae a navigator.geolocation

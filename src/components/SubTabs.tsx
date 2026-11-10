@@ -1,7 +1,7 @@
 "use client";
 
 // ============================================================
-// SubTabs — navegación de subsecciones dentro de una pantalla.
+// SubTabs - navegación de subsecciones dentro de una pantalla.
 // Al hacer clic en una sección del menú, la pantalla muestra sus
 // subsecciones como chips y SOLO el contenido de la activa.
 // Mismo estilo que los chips de filtro de Mis viajes.

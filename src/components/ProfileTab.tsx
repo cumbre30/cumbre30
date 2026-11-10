@@ -1,11 +1,11 @@
 "use client";
 
 // ============================================================
-// Pestaña Perfil — con subsecciones (solo se ve la activa):
+// Pestaña Perfil - con subsecciones (solo se ve la activa):
 //   · "Mis datos": sesión (correo + usuario), resumen de cuenta,
 //     bici, pin y compartir resumen para Instagram. La versión de
 //     la app vive en Configuración → Acerca de.
-//   · "Pagos y suscripciones": modo Pro (código / Play Billing) —
+//   · "Pagos y suscripciones": modo Pro (código / Play Billing) -
 //     la licencia va atada al correo de la cuenta.
 // ============================================================
 
@@ -617,7 +617,7 @@ export default function ProfileTab() {
         </p>
       </Card>
 
-      {/* Zona de cuenta — baja definitiva (Google Play exige eliminación in-app) */}
+      {/* Zona de cuenta - baja definitiva (Google Play exige eliminación in-app) */}
       <Card className="border-red-900/40 bg-red-950/10 p-4">
         <div className="flex items-start gap-3">
           <Trash2 className="h-5 w-5 text-red-600 dark:text-red-400 mt-0.5 shrink-0" />

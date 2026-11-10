@@ -1,5 +1,5 @@
 // ============================================================
-// /api/pro/send-code — respaldo manual de códigos Pro (con clave).
+// /api/pro/send-code - respaldo manual de códigos Pro (con clave).
 //
 // POST { email, secret }: genera el código del correo y lo envía
 // por correo. paymentId = "manual-<ts>" para la auditoría; si el

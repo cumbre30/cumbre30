@@ -5,7 +5,7 @@
 // WebView del APK. El WebView del dispositivo no renderiza
 // MapLibre (ni Native bajo el WebView, ni GL JS: WebGL caído),
 // así que priorizamos funcionamiento: Leaflet clásico con
-// <img> de OpenStreetMap — funciona en cualquier equipo.
+// <img> de OpenStreetMap - funciona en cualquier equipo.
 //
 // Sustituye al lienzo 3D de MapLibre GL JS (NavCanvas) en la
 // app nativa; en el navegador se sigue mostrando el 3D.

@@ -1,7 +1,7 @@
 "use client";
 
 // ============================================================
-// Ayuda y contacto — con subsecciones:
+// Ayuda y contacto - con subsecciones:
 //   · "Ayuda": contacto (correo; sin WhatsApp a pedido del
 //     proyecto), consejos rápidos de GPS e info de constancias.
 //   · "Prototipo": formulario "¿Gestionas un parque o ciclovía?"
@@ -19,7 +19,7 @@ import { CONTACT_EMAIL, CONTACT_WHATSAPP, openExternal } from "@/lib/proConfig";
 import { SubTabs } from "@/components/SubTabs";
 
 export function HelpTab() {
-  const mail = `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent("Cumbre30 — consulta")}`;
+  const mail = `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent("Cumbre30 - consulta")}`;
 
   // Subsecciones: Ayuda (contacto + consejos) | Prototipo (parques)
   const [sub, setSub] = useState<"ayuda" | "prototipo">("ayuda");
@@ -50,7 +50,7 @@ export function HelpTab() {
   const sendWhatsApp = (): void => {
     if (!CONTACT_WHATSAPP) return;
     void openExternal(`https://wa.me/${CONTACT_WHATSAPP}?text=${encodeURIComponent(buildContactMsg())}`);
-    setCMsg({ ok: true, text: "Abrimos WhatsApp con el mensaje listo — solo envíalo." });
+    setCMsg({ ok: true, text: "Abrimos WhatsApp con el mensaje listo - solo envíalo." });
     setTimeout(() => setCMsg(null), 9000);
   };
 
@@ -59,7 +59,7 @@ export function HelpTab() {
     window.location.href = `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(
       "Prototipo Cumbre30 para otro parque",
     )}&body=${encodeURIComponent(buildContactMsg())}`;
-    setCMsg({ ok: true, text: "Abrimos tu correo con el mensaje listo — solo envíalo." });
+    setCMsg({ ok: true, text: "Abrimos tu correo con el mensaje listo - solo envíalo." });
     setTimeout(() => setCMsg(null), 9000);
   };
 
@@ -114,7 +114,7 @@ export function HelpTab() {
 
       {sub === "prototipo" && (
       <>
-      {/* ---- ¿Gestionas un parque o ciclovía? — prototipo white-label ---- */}
+      {/* ---- ¿Gestionas un parque o ciclovía? - prototipo white-label ---- */}
       <Card className="p-4">
         <div className="mb-1.5 flex items-center gap-2 font-bold text-foreground">
           <Mountain className="h-4 w-4 text-emerald-500" /> ¿Gestionas un parque o ciclovía?
@@ -175,7 +175,7 @@ export function HelpTab() {
             </div>
             {(!CONTACT_WHATSAPP || !CONTACT_EMAIL) && (
               <p className="text-[11px] text-muted-foreground">
-                El contacto se está configurando — podrás enviarlo en breve.
+                El contacto se está configurando - podrás enviarlo en breve.
               </p>
             )}
             {cMsg && (

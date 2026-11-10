@@ -1,7 +1,7 @@
 "use client";
 
 // ============================================================
-// Estadísticas generales — con subsecciones:
+// Estadísticas generales - con subsecciones:
 //   · "General": totales del historial local (FREE) + teaser del
 //     resumen mensual avanzado (PRO).
 //   · "Pro": resumen mes a mes (statsMonthly) y estadísticas por
@@ -134,7 +134,7 @@ export function StatsTab({ onGoPro }: { onGoPro: () => void }) {
 
       {sub === "pro" && (
         <>
-          {/* Resumen mensual — estadísticas avanzadas (Pro) */}
+          {/* Resumen mensual - estadísticas avanzadas (Pro) */}
           <div>
             <div className="mb-2 flex items-center gap-2">
               <p className="text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground">Resumen mensual</p>
@@ -189,7 +189,7 @@ export function StatsTab({ onGoPro }: { onGoPro: () => void }) {
             )}
           </div>
 
-          {/* Segmentos del cerro — función Pro validada (lib/segments) */}
+          {/* Segmentos del cerro - función Pro validada (lib/segments) */}
           <div>
             <div className="mb-2 flex items-center gap-2">
               <p className="text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground">Segmentos del cerro</p>

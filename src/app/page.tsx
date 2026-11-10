@@ -1,7 +1,7 @@
 "use client";
 
 // ============================================================
-// Cumbre30 — arquitectura de navegación del rediseño (brief §1):
+// Cumbre30 - arquitectura de navegación del rediseño (brief §1):
 //   · Bottom nav con 3 destinos: Ride · Explorar · Acceso
 //     (el QR se usa en la portada: siempre a un toque).
 //   · Menú lateral con 4 zonas: CUMBRE30 PRO · Mi actividad ·

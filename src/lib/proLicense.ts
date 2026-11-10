@@ -1,5 +1,5 @@
 // ============================================================
-// Cumbre30 Pro — capa cliente (store reactivo + hook).
+// Cumbre30 Pro - capa cliente (store reactivo + hook).
 // La lógica criptográfica vive en proLicenseCore.ts para poder
 // generar códigos también desde el servidor (/api/licencia).
 // ============================================================
@@ -33,8 +33,8 @@ export {
  * ¿Licencia Pro activa? Lectura SÍNCRONA para módulos no-React
  * (sync/offlineAuth evalúan logros fuera de componentes).
  * Dos orígenes de Pro:
- *   · Código de canje validado (STORE_KEY) — web y APK directo.
- *   · Compra con Google Play Billing (flag de playBilling) — build Play.
+ *   · Código de canje validado (STORE_KEY) - web y APK directo.
+ *   · Compra con Google Play Billing (flag de playBilling) - build Play.
  */
 export function isProActive(): boolean {
   return readStored() != null || playProOwned();

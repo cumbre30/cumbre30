@@ -1,5 +1,5 @@
 // ============================================================
-// Constancia de Registro de Trayecto (PDF) — Cumbre30
+// Constancia de Registro de Trayecto (PDF) - Cumbre30
 // ------------------------------------------------------------
 // Documento formal autogenerado a partir de un ride guardado en
 // el historial local. Pensado como respaldo del ciclista ante
@@ -182,8 +182,8 @@ export async function buildRidePdf(r: RideSummary, identity?: RideIdentity): Pro
   section("I. IDENTIFICACIÓN DEL CICLISTA");
   kv("Nombre:", id.name?.trim() ? id.name : "________________________________________");
   kv("RUT:", "_______________________________  (completar antes de presentar)");
-  kv("Usuario en la aplicación:", id.username?.trim() ? id.username : "—");
-  kv("Correo asociado:", id.email?.trim() ? id.email : "—");
+  kv("Usuario en la aplicación:", id.username?.trim() ? id.username : "-");
+  kv("Correo asociado:", id.email?.trim() ? id.email : "-");
   y += 1;
 
   // ----- II. Identificación del registro -----

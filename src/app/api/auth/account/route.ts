@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { getSessionUser, SESSION_COOKIE } from "@/lib/auth";
 
 // ============================================================
-// DELETE /api/auth/account — baja definitiva de la cuenta.
+// DELETE /api/auth/account - baja definitiva de la cuenta.
 // Exigida por Google Play (eliminación de cuenta desde la app y
 // desde la web: /eliminar-cuenta). El schema tiene onDelete:
 // Cascade en todas las relaciones del User, así que una sola

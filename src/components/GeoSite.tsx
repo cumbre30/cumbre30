@@ -1,7 +1,7 @@
 "use client";
 
 // ============================================================
-// /geo — Sitio público de Cumbre GEO.
+// /geo - Sitio público de Cumbre GEO.
 // Rediseño aprobado por el cliente a partir del prototipo
 // (chat.z.ai/space/e1ffd9t6v9u1-art): paleta verde profundo +
 // acento ámbar sobre crema, vistas home ⇄ planes y modal de
@@ -21,9 +21,9 @@
 //               descripción y acordeón de detalle completo. Al final del
 //               cuerpo, los accesos exclusivos de la app (correo de
 //               contacto, privacidad y eliminar mi cuenta) como pills
-//               con el mismo diseño — vienen del campo enlaces del
+//               con el mismo diseño - vienen del campo enlaces del
 //               catálogo y solo se muestran si la app los define.
-//   · Footer:   solo la marca — sin correo/WhatsApp ni enlaces de la
+//   · Footer:   solo la marca - sin correo/WhatsApp ni enlaces de la
 //               app (privacidad, eliminar cuenta, Cumbre30 Pro son
 //               exclusivos de Cumbre30; las rutas siguen vivas para
 //               Play Store, enlazadas solo dentro del modal).
@@ -436,7 +436,7 @@ export default function GeoSite({
                   className="btn btn-primario"
                   style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "16px 22px", fontSize: "1rem" }}
                 >
-                  <ShoppingBag style={{ width: 20, height: 20 }} aria-hidden /> Comprar Pro — $6.500
+                  <ShoppingBag style={{ width: 20, height: 20 }} aria-hidden /> Comprar Pro - $6.500
                 </a>
                 <p style={{ color: "var(--gris)", fontSize: ".85rem", margin: "14px auto 0", maxWidth: 480 }}>
                   Pagas con Mercado Pago y recibes tu código{" "}
@@ -529,7 +529,7 @@ export default function GeoSite({
                       className="btn btn-secundario"
                       style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "10px 16px", fontSize: ".9rem" }}
                     >
-                      <HeartHandshake style={{ width: 16, height: 16 }} aria-hidden /> Aportar — monto libre
+                      <HeartHandshake style={{ width: 16, height: 16 }} aria-hidden /> Aportar - monto libre
                     </a>
                   </div>
                 </div>
@@ -573,7 +573,7 @@ export default function GeoSite({
                     marginTop: 18,
                   }}
                 >
-                  <KeyRound style={{ width: 13, height: 13 }} aria-hidden /> Pago seguro procesado por Mercado Pago —
+                  <KeyRound style={{ width: 13, height: 13 }} aria-hidden /> Pago seguro procesado por Mercado Pago -
                   Cumbre30 no almacena datos de tarjetas.
                 </p>
               </div>

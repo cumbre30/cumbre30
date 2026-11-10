@@ -178,7 +178,7 @@ class MinHeap {
 
 /**
  * Arista (calle) más cercana a `p`: proyección equirectangular sobre cada
- * segmento del grafo (~58k aristas, se ejecuta UNA vez por cálculo de ruta —
+ * segmento del grafo (~58k aristas, se ejecuta UNA vez por cálculo de ruta -
  * coste trivial frente al A*). Devuelve también la clase/nombre de la vía.
  */
 function nearestEdge(
@@ -228,7 +228,7 @@ function nearestEdge(
  *  (típico: en la ciudad, fuera del sector cubierto), NO se ancla a una
  *  arista lejana (antes 800 m: la ruta nacía sobre la ciclovía de una
  *  avenida a 700 m y el conector al pin cruzaba las cuadras en línea
- *  recta) — se devuelve null y computeRoute cae a OSRM, que sí parte
+ *  recta) - se devuelve null y computeRoute cae a OSRM, que sí parte
  *  desde la posición real siguiendo calles. */
 export const ORIGIN_ANCHOR_MAX_M = 250;
 
@@ -415,7 +415,7 @@ export function findRoute(net: Network, from: LatLng, to: LatLng): NavRoute | nu
 /**
  * Proyección de `p` sobre la polilínea: devuelve el punto más cercano
  * (SOBRE una calle de la ruta), el índice del tramo y la distancia en m.
- * Escala equirectangular local — error < 0,2 % en tramos urbanos.
+ * Escala equirectangular local - error < 0,2 % en tramos urbanos.
  */
 export function projectOnPolyline(
   coords: LatLng[],
@@ -555,8 +555,8 @@ export function attachOrigin(route: NavRoute, from: LatLng): NavRoute {
   }
 
   // Proyección lejana: el arranque real de la ruta es el correcto (el
-  // recorte borraría el comienzo para saltar a un tramo posterior —
-  // típicamente la ciclovía—). Se conserva la ruta íntegra y el pin
+  // recorte borraría el comienzo para saltar a un tramo posterior -
+  // típicamente la ciclovía-). Se conserva la ruta íntegra y el pin
   // queda como vértice 0 con un conector recto hasta la ruta.
   const coords: LatLng[] = [from, ...route.coords];
   const flags: boolean[] = [false, ...route.flags];

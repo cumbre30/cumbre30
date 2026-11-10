@@ -1,7 +1,7 @@
 "use client";
 
 // ============================================================
-// Amigos — menú lateral (movido desde Perfil). Listado con km,
+// Amigos - menú lateral (movido desde Perfil). Listado con km,
 // logros y último viaje + botón para agregar por nombre de usuario.
 // Requiere servidor de cuenta: en el APK offline se explica.
 // ============================================================

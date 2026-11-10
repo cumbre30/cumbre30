@@ -1,5 +1,5 @@
 // ============================================================
-// Tabla FREE vs PRO — rediseño de planes (reevaluación v1.8.0).
+// Tabla FREE vs PRO - rediseño de planes (reevaluación v1.8.0).
 // ⚠️ Cada fila está validada contra el código real de la app:
 //   · Ciclocomputador, GPS, mapa/destinos, QR:
 //     funcionan completos en FREE (page.tsx, MapView, Wallet).
@@ -46,12 +46,12 @@ export const PLAN_ROWS: PlanRow[] = [
 export const PRO_LOCK_COPY = {
   buscador: {
     title: "Buscador universal de direcciones",
-    body: "Escribe cualquier dirección de Santiago —tu casa, el trabajo, otra ciclovía— y el mapa traza la ruta ciclable hasta ahí, sola. También desde cualquier lugar del cerro.",
+    body: "Escribe cualquier dirección de Santiago -tu casa, el trabajo, otra ciclovía- y el mapa traza la ruta ciclable hasta ahí, sola. También desde cualquier lugar del cerro.",
     free: "En FREE igual puedes navegar: el mapa, los destinos del cerro y el reporte de incidencias funcionan completos. El buscador de texto libre y tus lugares guardados son la parte Pro.",
   },
   marcador: {
     title: "Mis lugares y marcadores",
-    body: "Guarda tus propios puntos —miradores, fuentes, el punto de encuentro del grupo— tocando el mapa, y traza ruta a cada uno con un toque.",
+    body: "Guarda tus propios puntos -miradores, fuentes, el punto de encuentro del grupo- tocando el mapa, y traza ruta a cada uno con un toque.",
     free: "En FREE el mapa completo sigue disponible. Guardar lugares y marcar puntos personalizados es parte de Cumbre30 Pro.",
   },
 } as const;

@@ -15,7 +15,7 @@ export function DeleteAccountWebButton() {
   if (stage === "done") {
     return (
       <p className="rounded-lg border border-emerald-700/40 bg-emerald-950/20 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-300" role="status">
-        Tu cuenta fue eliminada definitivamente. Lamentamos verte partir — ¡buen pedaleo! 🚴
+        Tu cuenta fue eliminada definitivamente. Lamentamos verte partir - ¡buen pedaleo! 🚴
       </p>
     );
   }

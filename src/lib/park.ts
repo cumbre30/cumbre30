@@ -81,7 +81,7 @@ export const GATES: Gate[] = [
   // Acceso La Pirámide (Vitacura): portería al final de Camino La
   // Pirámide, borde nororiente del parque, el acceso más cercano a
   // Bosque Santiago y al Paseo Metropolitano (parquemet.cl,
-  // "Acceso La Pirámide", abierto 06:00–20:30). Posición = punto
+  // "Acceso La Pirámide", abierto 06:00-20:30). Posición = punto
   // final del way OSM 445801999 "Camino La Pirámide"
   // (-33.38642, -70.60179, verificado el 2026-11-05), a ~40 m de la
   // punta nororiente del polígono del parque.
@@ -148,7 +148,7 @@ export type SimWaypoint = LatLng & { kmh: number; alt: number };
 
 // Geografía real del parque: por el camino del lado del Funicular se
 // sube hasta Plaza México (848 m), la meta en bici más alta del sector
-// cumbre — el tramo final al Santuario de la Virgen (863 m) es solo
+// cumbre - el tramo final al Santuario de la Virgen (863 m) es solo
 // peatonal. De Plaza México Av. Pedro Bannen continúa al sector Tupahue
 // (Casa Anáhuac / Piscina Tupahue), Jardín Japonés y, por Av. Carlos
 // Martner, sube a la Piscina Antilén (cumbre del cerro Chacarillas,
@@ -159,7 +159,7 @@ export const SIM_ROUTE: SimWaypoint[] = [
   { lat: -33.43, lon: -70.635, kmh: 12, alt: 706 }, // ingreso por Pío Nono
   { lat: -33.4296, lon: -70.634, kmh: 11, alt: 722 }, // Zoológico Nacional
   { lat: -33.4277, lon: -70.6337, kmh: 12, alt: 758 }, // subida lado Funicular (camino a Plaza México)
-  { lat: -33.4234, lon: -70.6327, kmh: 8, alt: 848 }, // Plaza México — meta más alta en bici (fuente, buses panorámicos)
+  { lat: -33.4234, lon: -70.6327, kmh: 8, alt: 848 }, // Plaza México - meta más alta en bici (fuente, buses panorámicos)
   { lat: -33.4195, lon: -70.628, kmh: 16, alt: 822 }, // Av. Pedro Bannen hacia Tupahue
   { lat: -33.4171, lon: -70.6235, kmh: 12, alt: 785 }, // Casa de la Cultura Anáhuac (curva)
   { lat: -33.4148, lon: -70.619, kmh: 18, alt: 790 }, // tramo Tupahue → Jardín Japonés
@@ -167,7 +167,7 @@ export const SIM_ROUTE: SimWaypoint[] = [
   { lat: -33.4112, lon: -70.6138, kmh: 18, alt: 798 }, // Av. Carlos Martner hacia Antilén
   { lat: -33.409051, lon: -70.61374, kmh: 16, alt: 802 }, // cruce Piscina Antilén (cumbre Chacarillas)
   { lat: -33.4112, lon: -70.6135, kmh: 24, alt: 794 }, // vuelta por Carlos Martner
-  { lat: -33.4118, lon: -70.6105, kmh: 35, alt: 762 }, // bajada a PdV Norte — pico sobre el límite
+  { lat: -33.4118, lon: -70.6105, kmh: 35, alt: 762 }, // bajada a PdV Norte - pico sobre el límite
   { lat: -33.411769, lon: -70.607988, kmh: 16, alt: 738 }, // salida Acceso Pedro de Valdivia Norte
   { lat: -33.4113, lon: -70.6068, kmh: 12, alt: 730 }, // Av. Pedro de Valdivia (fuera)
 ];
@@ -186,7 +186,7 @@ export const NAV_DESTINATIONS: { id: string; name: string; position: LatLng }[] 
   // nodo de camino a 11 m de esta posición (2026-11-05). Es la meta
   // en bici más alta de la ruta de la cumbre.
   { id: "plaza-mexico", name: "⛲ Plaza México", position: { lat: -33.4234, lon: -70.6327 } },
-  // Acceso La Pirámide (Vitacura): misma posición que GATES — ver
+  // Acceso La Pirámide (Vitacura): misma posición que GATES - ver
   // la nota con fuentes en GATES.
   { id: "la-piramide", name: "🚪 Acceso La Pirámide", position: { lat: -33.38642, lon: -70.60179 } },
   { id: "pio-nono", name: "🚪 Acceso Pío Nono", position: { lat: -33.430691, lon: -70.63592 } },

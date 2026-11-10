@@ -2,14 +2,14 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 // ============================================================
-// /privacidad — Política de Privacidad de Cumbre30.
+// /privacidad - Política de Privacidad de Cumbre30.
 // Página estática (sin APIs dinámicas) para que también exista
 // dentro del export del APK. URL requerida por Google Play
 // Console (Política de privacidad en Contenido de la app).
 // ============================================================
 
 export const metadata: Metadata = {
-  title: "Política de Privacidad — Cumbre30",
+  title: "Política de Privacidad - Cumbre30",
   description:
     "Cómo Cumbre30 trata tus datos: cuenta, recorridos GPS, licencia Pro y eliminación de cuenta.",
 };

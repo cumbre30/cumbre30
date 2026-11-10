@@ -1,5 +1,5 @@
 // ============================================================
-// Estadísticas avanzadas (PRO) — resumen mensual del historial.
+// Estadísticas avanzadas (PRO) - resumen mensual del historial.
 // Función PURA sobre la lista de rides (ya filtrada por cuenta y
 // bici: caller usa bikeOnly(ridesForAccount(...))). Sin React ni
 // storage, así que se puede testear en node (test-freemium.ts).

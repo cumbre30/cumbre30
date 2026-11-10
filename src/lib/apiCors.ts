@@ -3,7 +3,7 @@
 // propio origen (https://localhost) y las llamadas a la web desplegada
 // cruzan origen, con cookies (credentials). Cada ruta API necesita
 // devolver estas cabeceras y responder el preflight OPTIONS.
-// Solo se emiten para orígenes conocidos del app — la web normal
+// Solo se emiten para orígenes conocidos del app - la web normal
 // (mismo origen) no las necesita.
 // ============================================================
 

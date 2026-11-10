@@ -1,5 +1,5 @@
 // ============================================================
-// GET /api/apk — descarga directa del APK Android de Cumbre30.
+// GET /api/apk - descarga directa del APK Android de Cumbre30.
 // Sirve el archivo desde download/ (fuera de public/) para que
 // nunca quede embebido dentro del build estático del propio APK.
 // export-web.sh mueve src/app/api fuera del export estático, así
