@@ -1,4 +1,4 @@
-# Cumbre30 — Ficha para Google Play Console
+# Cumbre30 - Ficha para Google Play Console
 
 Todo lo que se pide al crear la app en Play Console. Los archivos gráficos
 están en esta misma carpeta (`capturas/`, `feature-graphic-1024x500.png`,
@@ -17,7 +17,7 @@ están en esta misma carpeta (`capturas/`, `feature-graphic-1024x500.png`,
 | Correo de contacto | contacto.cumbre30@gmail.com |
 | Teléfono | +56 9 4296 1619 (WhatsApp) |
 | Sitio web | **https://cumbregeo.cl** (redirige a `/geo`, el sitio de Cumbre GEO: apps, detalles y planes) |
-| Versión a subir | v1.8.2 (versionCode 28) — `cumbre30-v1.8.2-code28.aab` |
+| Versión a subir | v1.8.2 (versionCode 28) - `cumbre30-v1.8.2-code28.aab` |
 
 ## Descripción corta (≤80 caracteres)
 
@@ -78,19 +78,19 @@ oficial del Parque Metropolitano de Santiago.
 | --- | --- | --- |
 | Ícono 512×512 | `public/icons/icon-512.png` (en el repo) | 32-bit PNG |
 | Feature graphic | `feature-graphic-1024x500.png` | 1024×500 |
-| Captura 1 | `capturas/01-ride-mapa.png` | 1080×1920 — ciclocomputador |
-| Captura 2 | `capturas/02-explorar.png` | 1080×1920 — destinos y rutas |
-| Captura 3 | `capturas/03-desafios.png` | 1080×1920 — desafíos (con sesión muestra progreso) |
-| Captura 4 | `capturas/04-perfil.png` | 1080×1920 — perfil |
+| Captura 1 | `capturas/01-ride-mapa.png` | 1080×1920 - ciclocomputador |
+| Captura 2 | `capturas/02-explorar.png` | 1080×1920 - destinos y rutas |
+| Captura 3 | `capturas/03-desafios.png` | 1080×1920 - desafíos (con sesión muestra progreso) |
+| Captura 4 | `capturas/04-perfil.png` | 1080×1920 - perfil |
 
-Mínimo requerido: 2 capturas — ya hay 4 listas.
+Mínimo requerido: 2 capturas - ya hay 4 listas.
 
 ## Declaraciones obligatorias del Console
 
 - **Política de privacidad (URL)**: `https://<tu-dominio-preview>/privacidad`
 - **URL de eliminación de cuenta** (Seguridad de datos → obligatoria porque
   la app permite crear cuentas): `https://<tu-dominio-preview>/eliminar-cuenta`
-  — el borrado real ya funciona: en la app (Perfil → Mis datos → Eliminar
+  - el borrado real ya funciona: en la app (Perfil → Mis datos → Eliminar
   cuenta, con confirmación) y por API `DELETE /api/auth/account`.
 - **Seguridad de datos (formulario)**:
   - Se recopilan: correo electrónico (cuenta), datos de actividad/fitness
@@ -99,7 +99,7 @@ Mínimo requerido: 2 capturas — ya hay 4 listas.
     sale del dispositivo salvo sincronización del ride en modo web).
   - No se comparte con terceros. No se vende. Cifrado en tránsito (HTTPS).
   - Eliminación: sí, por la app y por URL.
-- **Clasificación de contenido**: cuestionario IARC — sin violencia, sin
+- **Clasificación de contenido**: cuestionario IARC - sin violencia, sin
   apuestas; esperado: Todos / 3+.
 - **Anuncios**: la app no contiene publicidad.
 - **Acceso a funciones con restricción**: ninguno (no se usan permisos de
@@ -134,7 +134,7 @@ Mínimo requerido: 2 capturas — ya hay 4 listas.
 - Ruta recomendada: crear la app → pista **interna** con el AAB (validación
   técnica) → pista **cerrada** con 12+ testers → solicitar producción.
 
-## Pagos (Pro) — decisión v1.8.0: Play Billing + canje web
+## Pagos (Pro) - decisión v1.8.0: Play Billing + canje web
 
 Decisión tomada (nov. 2026), la app **no contiene links de pago** (cumple
 política de Google Play para funciones digitales):
@@ -150,8 +150,8 @@ política de Google Play para funciones digitales):
    Pagos y suscripciones → "Comprar con Google Play", con restauración.
 2. **Canje por código (web y APK directo)**: la venta con Mercado Pago
    vive SOLO en la venta web **`/cumbre30pro`** (vista de planes de /geo; alias heredado `/pro`) (link de cobro
-   único mpago.la/2tghXUc — $6.500 precio fundador; el link anterior
-   1WdyZaW era una suscripción anual y se reemplazó — + botón de aporte
+   único mpago.la/2tghXUc - $6.500 precio fundador; el link anterior
+   1WdyZaW era una suscripción anual y se reemplazó - + botón de aporte
    voluntario). El usuario paga allí,
    recibe el código C30P- por correo y lo activa en la app (validación
    offline HMAC). Envío AUTOMÁTICO (nov. 2026): webhook de Mercado Pago
@@ -169,11 +169,11 @@ política de Google Play para funciones digitales):
 v1.8.2 (versionCode 28):
 
 ```
-• Nueva marca: Cumbre GEO — sitio oficial cumbregeo.cl
+• Nueva marca: Cumbre GEO - sitio oficial cumbregeo.cl
 • Compra Pro con entrega automática: tu código llega solo al correo tras pagar
 • Mejoras de estabilidad
 ```
 
 (v1.8.1 / code 26: link de cobro único corregido y precio Play en app;
-v1.8.0 / code 25: monetización Pro — historial, estadísticas avanzadas,
+v1.8.0 / code 25: monetización Pro - historial, estadísticas avanzadas,
 GPX, constancias y segmentos.)
