@@ -25,7 +25,7 @@ Si te llegaron **por partes**, descomprime `cumbre30-parte1-codigo.zip` en una c
 ```bash
 git init
 git add .
-git commit -m "Cumbre30 v1.8.2 (build 28)"
+git commit -m "Cumbre30 v1.8.3 (build 29)"
 git push --set-upstream https://github.com/TU-USUARIO/cumbre30.git main
 ```
 
@@ -42,17 +42,26 @@ Cuando termine, refresca https://github.com/TU-USUARIO/cumbre30 y verás el proy
 
 ---
 
-## Paso 3 - Subir el APK v1.8.2 a "Releases" (necesario para el botón de descarga web)
+## Paso 3 - Subir el APK v1.8.3 a "Releases" (necesario para el botón de descarga web)
 
 GitHub da gratis hasta 2 GB por release para binarios - es el lugar correcto para los APKs (mejor que dentro del código). Publicar el release y definir `APK_DOWNLOAD_URL` en Vercel alimenta la descarga de actualizaciones **dentro de la app** (`/api/apk` redirige ahí); el botón de la web `/geo` ya está activo apuntando a Google Drive (ver `download/DEPLOY.md` paso 6):
 
 1. En tu repo: **Releases → Create a new release** (o https://github.com/TU-USUARIO/cumbre30/releases/new).
-2. **Tag**: escribe `v1.8.2` y elige "Create new tag on publish".
-3. **Title**: `Cumbre30 v1.8.2 (build 28)`.
-4. Arrastra el archivo `cumbre30-v1.8.2-code28.apk` (el que está en Google Drive) a la zona de adjuntos.
+2. **Tag**: escribe `v1.8.3` y elige "Create new tag on publish".
+3. **Title**: `Cumbre30 v1.8.3 (build 29)`.
+4. Arrastra el archivo `cumbre30-v1.8.3-code29.apk` (el que está en Google Drive) a la zona de adjuntos.
 5. En la descripción del release pega las notas de la versión (están listas en `download/play-store/ficha-play-store.md` → "Notas de la versión").
 6. **Publish release** ✅
-7. Copia la URL del asset subido (termina en `…/download/v1.8.2/cumbre30-v1.8.2-code28.apk`) y ponla en la variable `APK_DOWNLOAD_URL` en Vercel → Settings → Environment Variables → re-despliega.
+7. Copia la URL del asset subido (termina en `…/download/v1.8.3/cumbre30-v1.8.3-code29.apk`) y ponla en la variable `APK_DOWNLOAD_URL` en Vercel → Settings → Environment Variables → re-despliega.
+
+### Novedades v1.8.3 (build 29) - temas y SOS ampliado
+
+- 🎨 **Temas de color para toda la app** (Cumbre30 Pro): Cerro, Andes, Atardecer, Lila y Grafito, en Configuración.
+- 🧭 **Pantalla ride personalizable** (Pro): velocímetro digital, arco, dial o aguja; tamaños normal, grande y gigante; minimapa compacto, normal o grande, con vista previa.
+- 🆘 **SOS ampliado**: Parquemet (+56 2 2730 1404), Municipalidad de Providencia (+56 2 2654 3200) y Salud Responde (600 360 7777) además de 133, 131 y 132.
+- 🏞️ **Datos oficiales del parque**: accesos, cumbres, senderos enduro y horario de ciclistas (06:00 a 19:00).
+- ✅ **Descenso limpio**: resumen cuando recorres el parque respetando los 30 km/h.
+- 🔧 **Mejoras de estabilidad**.
 
 ### Novedades v1.8.2 (build 28) - marca Cumbre GEO
 
