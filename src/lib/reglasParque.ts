@@ -179,6 +179,19 @@ const UMBRAL_CADENA_M = 3;
 const GRADIENTE_ATAJO = 0.6;
 /** Banda del corte horario alrededor del puente (m). */
 const BANDA_CORTE_M = 160;
+/** Zona LOCAL del puente (m): el puente es el punto de vuelta — el tramo
+ *  puente ↔ Anáhuac (~130 m) queda SIEMPRE abierto en ambos sentidos
+ *  (acercarse al corte y regresar con la vuelta en U); la prohibición
+ *  de subida rige MÁS ALLÁ, en el tramo Anáhuac → Plaza México. */
+const ZONA_LOCAL_PUENTE_M = 140;
+/** Margen sobre la cadena Bannen (m) que define el tramo local del
+ *  puente: aristas cuyo t de destino cae dentro de este margen antes
+ *  del extremo del puente no se bloquean (corte 2026-11-12). */
+const MARGEN_LOCAL_BANNEN_M = 150;
+/** Radio de la TABLILLA del puente (m): aristas cuyos dos extremos caen
+ *  aquí no se les aplica el sólo-subida de Pío Nono (cruzar el puente
+ *  hacia Bannen no es «bajar por Pío Nono»). */
+const TABLILLA_PUENTE_M = 30;
 /** Avance hacia Plaza México dentro de la banda que se considera
  *  «subiendo a la cumbre» (m por arista). */
 const UMBRAL_SUBIDA_CORTE_M = 4;
@@ -211,6 +224,19 @@ function enBandaCorredor(cadenas: CadenaIndex[], lat: number, lon: number): bool
   return false;
 }
 
+/** ¿El punto cae en la banda (40 m) del corredor de ascenso Pío Nono?
+ *  Lo usa el motor de ride para la ADVERTENCIA DE BAJADA (cliente
+ *  2026-11-12: «pio nono sólo subida… bloquear ruta en reversa»). */
+export function enCorredorPioNono(lat: number, lon: number): boolean {
+  return enBandaCorredor(cadenasPio, lat, lon);
+}
+
+/** ¿El punto cae en la banda (40 m) del corredor Av. Pedro Bannen
+ *  (Tupahue → Plaza México)? Para el aviso de corte horario. */
+export function enCorredorBannen(lat: number, lon: number): boolean {
+  return enBandaCorredor(cadenasBannen, lat, lon);
+}
+
 // ----------------------------------------------------------------
 // Dirección permitida por arista
 // ----------------------------------------------------------------
@@ -241,6 +267,19 @@ export function crearDirOk(
   };
   const pioActivo = o.pioNonoSoloSubida;
   const corteActivo = o.corteCumbre;
+  // t del puente sobre la cadena Bannen (extremo Tupahue): define el
+  // tramo local puente ↔ Anáhuac que nunca se bloquea.
+  const tPuenteBannen = (() => {
+    let best: number | null = null;
+    for (const c of cadenasBannen) {
+      const t = proyectarCadena(c, PUENTE_TUPAHUE_CUMBRE.lat, PUENTE_TUPAHUE_CUMBRE.lon);
+      if (t !== null && (best === null || t > best)) best = t;
+    }
+    return best;
+  })();
+  const enTablilla = (la: number, lo: number, lb: number, ob: number) =>
+    haversineM({ lat: la, lon: lo }, PUENTE_TUPAHUE_CUMBRE) <= TABLILLA_PUENTE_M &&
+    haversineM({ lat: lb, lon: ob }, PUENTE_TUPAHUE_CUMBRE) <= TABLILLA_PUENTE_M;
 
   return (u, v, uLat, uLon, vLat, vLon, _cls, name) => {
     const len = haversineM({ lat: uLat, lon: uLon }, { lat: vLat, lon: vLon });
@@ -251,7 +290,10 @@ export function crearDirOk(
     // NO se puede proyectar sobre las cadenas de Pío Nono (y
     // viceversa) — la orientación se decide por el NOMBRE de la vía.
     // --- 1. Pío Nono sólo subida (24/7): bloquear el descenso ---
-    if (pioActivo && !esBannenNombre) {
+    // Excepción: la tablilla del puente (cruzar hacia Bannen NO es bajar
+    // por Pío Nono — sin ella el acercamiento al corte desde el lado
+    // Tupahue quedaba bloqueado).
+    if (pioActivo && !esBannenNombre && !enTablilla(uLat, uLon, vLat, vLon)) {
       const enCorredor =
         esPioNombre || (enBandaCorredor(cadenasPio, uLat, uLon) && enBandaCorredor(cadenasPio, vLat, vLon));
       if (enCorredor && esParque(u, uLat, uLon) && esParque(v, vLat, vLon)) {
@@ -262,8 +304,32 @@ export function crearDirOk(
     // --- 2. Corte horario cumbre: bloquear la subida por el puente ---
     if (corteActivo) {
       if (esBannenNombre) {
-        // ancla = Plaza México: avanzar hacia ella = subir a la cumbre
-        if (avanzaHaciaArranque(cadenasBannen, uLat, uLon, vLat, vLon, PLAZA_MEXICO_POS, len)) return false;
+        // ancla = Plaza México: avanzar hacia ella = subir a la cumbre.
+        // EXCEPCIÓN (tramo local del puente): las aristas cuyo destino
+        // cae dentro del margen del extremo puente de la cadena quedan
+        // abiertas — acercarse al corte y la vuelta en U de regreso.
+        const bloqueaSubida = (tu: number | null, tv: number | null): boolean => {
+          if (tu === null || tv === null) {
+            // sin cadena: gradiente por distancia al ancla
+            const dU = haversineM({ lat: uLat, lon: uLon }, PLAZA_MEXICO_POS);
+            const dV = haversineM({ lat: vLat, lon: vLon }, PLAZA_MEXICO_POS);
+            return dV < dU - Math.max(8, len * GRADIENTE_ATAJO);
+          }
+          if (tv >= tu - UMBRAL_CADENA_M) return false; // no avanza hacia la plaza
+          return tPuenteBannen === null || tv < tPuenteBannen - MARGEN_LOCAL_BANNEN_M;
+        };
+        let tuB: number | null = null;
+        let tvB: number | null = null;
+        for (const c of cadenasBannen) {
+          const tu = proyectarCadena(c, uLat, uLon);
+          const tv = proyectarCadena(c, vLat, vLon);
+          if (tu !== null && tv !== null) {
+            tuB = tu;
+            tvB = tv;
+            break;
+          }
+        }
+        if (bloqueaSubida(tuB, tvB)) return false;
       } else if (enBandaCorredor(cadenasBannen, uLat, uLon) && enBandaCorredor(cadenasBannen, vLat, vLon)) {
         // conectores sin nombre junto a Bannen: gradiente hacia la plaza
         const dU = haversineM({ lat: uLat, lon: uLon }, PLAZA_MEXICO_POS);
@@ -271,9 +337,16 @@ export function crearDirOk(
         if (dV < dU - Math.max(8, len * GRADIENTE_ATAJO)) return false;
       }
       // banda del puente: dentro de 160 m no se avanza hacia Plaza
-      // México ni por los conectores peatonales de la explanada
+      // México ni por los conectores peatonales de la explanada.
+      // Excepción: aristas DENTRO de la zona local del puente (ambos
+      // extremos a ≤140 m): el tramo puente ↔ Anáhuac de la vuelta en U.
       const dPuenU = haversineM({ lat: uLat, lon: uLon }, PUENTE_TUPAHUE_CUMBRE);
-      if (dPuenU <= BANDA_CORTE_M) {
+      const dPuenV = haversineM({ lat: vLat, lon: vLon }, PUENTE_TUPAHUE_CUMBRE);
+      if (
+        dPuenU <= BANDA_CORTE_M &&
+        dPuenU > ZONA_LOCAL_PUENTE_M &&
+        dPuenV > ZONA_LOCAL_PUENTE_M
+      ) {
         const dPlU = haversineM({ lat: uLat, lon: uLon }, PLAZA_MEXICO_POS);
         const dPlV = haversineM({ lat: vLat, lon: vLon }, PLAZA_MEXICO_POS);
         if (dPlV < dPlU - UMBRAL_SUBIDA_CORTE_M) return false;

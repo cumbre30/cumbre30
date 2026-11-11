@@ -10,6 +10,9 @@ import {
   type LatLng,
 } from "@/lib/park";
 import { Ema, SpeedKalman, haversineM, pointInPolygon } from "@/lib/geo";
+import { PARK_HOURS } from "@/lib/park";
+import { estadoParque } from "@/lib/horario";
+import { GATE_PIO_NONO, PUENTE_TUPAHUE_CUMBRE, enCorredorPioNono } from "@/lib/reglasParque";
 import { alerts } from "@/lib/alertEngine";
 import { RideNative, isNativeApp, type PluginListenerHandleLike } from "@/lib/rideNative";
 import { RideSimulator } from "@/lib/simulation";
@@ -97,6 +100,17 @@ export function useRideEngine() {
     vehStreakSec: 0,
     vehStreakMax: 0,
     vehNotified: false,
+    // Reglas direccionales del cliente (2026-11-12): detección de
+    // BAJADA por el corredor Pío Nono (sólo subida) y de SUBIDA a la
+    // cumbre por el puente de Tupahue fuera de horario (FDS ≥ 13:30).
+    pioPrevD: null as number | null,
+    pioStreak: 0,
+    pioStreakD: null as number | null,
+    pioLastTrigger: 0,
+    puentePrevD: null as number | null,
+    puenteStreak: 0,
+    puenteStreakD: null as number | null,
+    puenteLastTrigger: 0,
   });
 
   const logEvent = useCallback((kind: RideEvent["kind"], text: string) => {
@@ -220,6 +234,101 @@ export function useRideEngine() {
           alerts.speak(`zone-${zone.id}`, zone.voice, 10);
           alerts.beepTriple();
         }
+      }
+
+      // 7b) Reglas direccionales del cliente (2026-11-12):
+      //     · Bajada por el corredor Pío Nono BLOQUEADA (sólo subida,
+      //       24/7): si el ciclista desciende hacia el acceso dentro del
+      //       corredor, advertencia de voz («no es accesible para bajar
+      //       si se subió por los otros 3 accesos»).
+      //     · Subida a la cumbre por el puente de Tupahue FUERA DE
+      //       HORARIO (fines de semana y festivos desde las 13:30):
+      //       advertencia al acercarse al puente con la restricción
+      //       activa y alternativas según la posición.
+      if (inside && vKmh > 1.5) {
+        // — bajada Pío Nono: acercándose al acceso DENTRO del corredor —
+        const dPio = haversineM(fix, GATE_PIO_NONO);
+        const dPioPrev = e.pioPrevD;
+        if (enCorredorPioNono(fix.lat, fix.lon) && dPio < 2100) {
+          if (dPioPrev !== null && dPio < dPioPrev - 1) {
+            e.pioStreak += 1;
+            const dPioStart = e.pioStreakD ?? dPioPrev;
+            // 3 fixes acercándose (≥ 15 m netos) en el tramo final del
+            // corredor: es una bajada real, no ruido del GPS.
+            if (
+              e.pioStreak >= 3 &&
+              dPioStart - dPio >= 15 &&
+              dPio < 1500 &&
+              fix.t - e.pioLastTrigger > 180_000
+            ) {
+              e.pioLastTrigger = fix.t;
+              e.pioStreak = 0;
+              e.pioStreakD = null;
+              logEvent("warn", "Bajada bloqueada: Pío Nono es sólo de subida");
+              alerts.speak(
+                "pio-bajada",
+                "Atención: por Pío Nono no se puede bajar. La bajada es por el puente de Tupahue hacia Pedro de Valdivia Norte.",
+                30
+              );
+            }
+          } else if (dPioPrev !== null && dPio > dPioPrev + 1) {
+            e.pioStreak = 0;
+            e.pioStreakD = null;
+          }
+          e.pioPrevD = dPio;
+        } else {
+          e.pioPrevD = null;
+          e.pioStreak = 0;
+          e.pioStreakD = null;
+        }
+        // — corte horario cumbre (Tupahue → Cumbre) —
+        if (estadoParque(new Date(fix.t)).nivel === "tupa") {
+          const dPuen = haversineM(fix, PUENTE_TUPAHUE_CUMBRE);
+          const dPuenPrev = e.puentePrevD;
+          if (dPuen < 500) {
+            if (dPuenPrev !== null && dPuen < dPuenPrev - 1) {
+              e.puenteStreak += 1;
+              const dPuenStart = e.puenteStreakD ?? dPuenPrev;
+              if (
+                e.puenteStreak >= 3 &&
+                dPuenStart - dPuen >= 12 &&
+                fix.t - e.puenteLastTrigger > 180_000
+              ) {
+                e.puenteLastTrigger = fix.t;
+                e.puenteStreak = 0;
+                e.puenteStreakD = null;
+                logEvent(
+                  "warn",
+                  "Corte horario: acceso a la cumbre por Tupahue cerrado desde las 13:30 (fin de semana y festivos)"
+                );
+                alerts.speak(
+                  "corte-cumbre",
+                  `${PARK_HOURS.msgCumbreTupahue} Alternativas según tu posición: Av. Gabriela Mistral o Av. Carlos Martner.`,
+                  30
+                );
+              }
+            } else if (dPuenPrev !== null && dPuen > dPuenPrev + 1) {
+              e.puenteStreak = 0;
+              e.puenteStreakD = null;
+            }
+            e.puentePrevD = dPuen;
+          } else {
+            e.puentePrevD = null;
+            e.puenteStreak = 0;
+            e.puenteStreakD = null;
+          }
+        } else {
+          e.puentePrevD = null;
+          e.puenteStreak = 0;
+          e.puenteStreakD = null;
+        }
+      } else {
+        e.pioPrevD = null;
+        e.pioStreak = 0;
+        e.pioStreakD = null;
+        e.puentePrevD = null;
+        e.puenteStreak = 0;
+        e.puenteStreakD = null;
       }
 
       // 8) Máquina de estados de velocidad (solo dentro del parque)
@@ -417,6 +526,14 @@ export function useRideEngine() {
       e.vehStreakSec = 0;
       e.vehStreakMax = 0;
       e.vehNotified = false;
+      e.pioPrevD = null;
+      e.pioStreak = 0;
+      e.pioStreakD = null;
+      e.pioLastTrigger = 0;
+      e.puentePrevD = null;
+      e.puenteStreak = 0;
+      e.puenteStreakD = null;
+      e.puenteLastTrigger = 0;
       e.paused = false;
       setSource(src);
       setEvents([]);
