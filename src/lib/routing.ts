@@ -4,6 +4,8 @@
 // vía → prefiere ciclovías y calles tranquilas.
 // ============================================================
 
+import { aplicarPuentes } from "@/lib/puentesGrafo";
+
 export type NetNode = [number, number]; // [lat, lon]
 export type NetEdge = [number, number, number, number, 0 | 1]; // [a,b,classIdx,nameIdx,ciclovia]
 
@@ -31,6 +33,28 @@ export type NavRoute = {
 };
 
 export type LatLng = { lat: number; lon: number };
+
+/** Restricciones de la búsqueda (reglas del cliente para las rutas):
+ *  · allowedCls/nameAllow/nameBlock → clases y nombres de vía permitidos
+ *    (ej. rutas de pavimento sin senderos MTB).
+ *  · nodeOk → nodos permitidos (ej. solo dentro del parque). */
+export type FindRouteOpts = {
+  allowedCls?: Set<string>;
+  /** nombres con clase normalmente excluida que SÍ se permiten (caminos del parque) */
+  nameAllow?: RegExp[];
+  /** nombres excluidos aunque su clase esté permitida (ej. senderos MTB) */
+  nameBlock?: RegExp[];
+  /** nodos permitidos (p. ej. dentro del polígono del parque) */
+  nodeOk?: (lat: number, lon: number) => boolean;
+};
+
+/** ¿Pasa la arista los filtros de vía (clase + nombre)? */
+export function edgePasses(e: { cls: string; name: string }, o?: FindRouteOpts): boolean {
+  if (!o) return true;
+  if (o.nameBlock?.some((re) => re.test(e.name))) return false;
+  if (o.allowedCls && !o.allowedCls.has(e.cls) && !o.nameAllow?.some((re) => re.test(e.name))) return false;
+  return true;
+}
 
 const PENALTY: Record<string, number> = {
   cycleway: 0.65,
@@ -86,7 +110,11 @@ function bearing(a: LatLng, b: LatLng): number {
 
 let netPromise: Promise<Network | null> | null = null;
 
-/** Carga (una vez) y prepara el grafo de navegación. */
+/** Carga (una vez) y prepara el grafo de navegación.
+ *  Aplica los puentes del grafo (islas OSM desconectadas, ver
+ *  src/lib/puentesGrafo.ts) ANTES de memorizar la red: así el A*
+ *  puede salir/entrar del acceso Pedro de Valdivia Norte por el
+ *  camino real del parque. */
 export function loadNetwork(): Promise<Network | null> {
   if (!netPromise) {
     netPromise = fetch("/red-ciclista.json")
@@ -105,7 +133,9 @@ export function loadNetwork(): Promise<Network | null> {
           adj[a].push({ to: b, w, dist, cls, name, ciclovia: ciclo === 1, bearing: br });
           adj[b].push({ to: a, w, dist, cls, name, ciclovia: ciclo === 1, bearing: (br + 180) % 360 });
         }
-        return { ...raw, adj } as Network;
+        const net = { ...raw, adj } as Network;
+        aplicarPuentes(net);
+        return net;
       })
       .catch(() => null);
   }
@@ -180,11 +210,14 @@ class MinHeap {
  * Arista (calle) más cercana a `p`: proyección equirectangular sobre cada
  * segmento del grafo (~58k aristas, se ejecuta UNA vez por cálculo de ruta -
  * coste trivial frente al A*). Devuelve también la clase/nombre de la vía.
+ * Con `opts` solo considera aristas que pasan los filtros (así el anclaje
+ * del origen queda en una vía PERMITIDA y el A* no parte atrapado).
  */
 function nearestEdge(
   net: Network,
   p: LatLng,
-  maxM: number
+  maxM: number,
+  opts?: FindRouteOpts
 ): { u: number; v: number; cls: string; name: string; ciclovia: boolean; point: LatLng; distM: number } | null {
   const kx = Math.cos((p.lat * Math.PI) / 180);
   let best: { u: number; v: number; cls: string; name: string; ciclovia: boolean; point: LatLng; distM: number } | null = null;
@@ -193,6 +226,9 @@ function nearestEdge(
     const [a, b, clsIdx, nameIdx, ciclo] = net.edges[i];
     const na = net.nodes[a];
     const nb = net.nodes[b];
+    const info = { cls: net.classes[clsIdx] ?? "residential", name: net.names[nameIdx] ?? "" };
+    if (!edgePasses(info, opts)) continue;
+    if (opts?.nodeOk && (!opts.nodeOk(na[0], na[1]) || !opts.nodeOk(nb[0], nb[1]))) continue;
     const ax = na[1] * kx, ay = na[0];
     const bx = nb[1] * kx, by = nb[0];
     const px = p.lon * kx, py = p.lat;
@@ -207,8 +243,8 @@ function nearestEdge(
       best = {
         u: a,
         v: b,
-        cls: net.classes[clsIdx] ?? "residential",
-        name: net.names[nameIdx] ?? "",
+        cls: info.cls,
+        name: info.name,
         ciclovia: ciclo === 1,
         point: { lat: na[0] + (nb[0] - na[0]) * t, lon: na[1] + (nb[1] - na[1]) * t },
         distM: dM,
@@ -232,7 +268,7 @@ function nearestEdge(
  *  desde la posición real siguiendo calles. */
 export const ORIGIN_ANCHOR_MAX_M = 250;
 
-export function findRoute(net: Network, from: LatLng, to: LatLng): NavRoute | null {
+export function findRoute(net: Network, from: LatLng, to: LatLng, opts?: FindRouteOpts): NavRoute | null {
   const t = nearestNode(net, to);
   if (t === null) return null;
 
@@ -241,7 +277,9 @@ export function findRoute(net: Network, from: LatLng, to: LatLng): NavRoute | nu
   // lejos del punto real (típico: el nodo está arriba, en la ciclovía, y el
   // ciclista abajo en la entrada del parque). Se crea un nodo virtual en la
   // proyección sobre la arista más cercana, heredando su clase/nombre.
-  const edge = nearestEdge(net, from, ORIGIN_ANCHOR_MAX_M);
+  // Con opts, la arista de anclaje ya respeta los filtros (vía permitida y,
+  // si hay regla de nodos, ambos extremos dentro de la zona permitida).
+  const edge = nearestEdge(net, from, ORIGIN_ANCHOR_MAX_M, opts);
   let runNet: Network = net;
   let s: number;
   if (edge) {
@@ -304,6 +342,12 @@ export function findRoute(net: Network, from: LatLng, to: LatLng): NavRoute | nu
     if (u === t) break;
     for (const e of runNet.adj[u]) {
       if (done[e.to]) continue;
+      // filtros del cliente: vía permitida (clase/nombre) y nodo permitido
+      if (!edgePasses(e, opts)) continue;
+      if (opts?.nodeOk) {
+        const [nlat, nlon] = runNet.nodes[e.to];
+        if (!opts.nodeOk(nlat, nlon)) continue;
+      }
       const ng = g[u] + e.w;
       if (ng < g[e.to]) {
         g[e.to] = ng;

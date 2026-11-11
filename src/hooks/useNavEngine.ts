@@ -15,13 +15,18 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { haversineM, routeProgress, type NavRoute, type LatLng } from "@/lib/routing";
-import { computeRoute } from "@/lib/routingService";
+import { computeRoute, computePresetRoute } from "@/lib/routingService";
 import { GATES } from "@/lib/park";
 
 /** Origen provisional mientras no hay GPS (acceso Pío Nono). */
 export const DEFAULT_ORIGIN: LatLng = GATES[0].position;
 
 export type NavDest = { name: string; position: LatLng };
+
+/** Destino con ruta predefinida del mapa (botón «Ruta» de la capa Rutas):
+ *  el motor sigue el trazado precomputado, entrando por el acceso
+ *  ciclista más cercano (regla del cliente). */
+export type NavDestPreset = { name: string; position: LatLng; preset: { rutaId: string; nombre: string } };
 
 export type NavEngine = {
   net: ReturnType<typeof Object> | null; // se mantiene por compatibilidad; no se usa en UI
@@ -86,12 +91,17 @@ export function useNavEngine(position: LatLng | null, running: boolean): NavEngi
     destRef.current = dest;
   }, [dest]);
 
-  /** Calcula ruta desde `origin`; descarta resultados de cálculos viejos. */
+  /** Calcula ruta desde `origin`; descarta resultados de cálculos viejos.
+   *  Con destino predefinido (capa Rutas) usa el trazado precomputado:
+   *  acceso ciclista más cercano → ruta dentro del cerro. */
   const compute = useCallback(async (origin: LatLng, d: NavDest, kind: "gps" | "fallback") => {
     const seq = ++calcSeqRef.current;
     setLoading(true);
     lastCalcRef.current = Date.now();
-    const res = await computeRoute(origin, d.position);
+    const preset = (d as NavDestPreset).preset;
+    const res = preset
+      ? await computePresetRoute(origin, preset)
+      : await computeRoute(origin, d.position);
     if (seq !== calcSeqRef.current) return; // llegó uno más nuevo
     setLoading(false);
     if (!res.route) {

@@ -46,7 +46,7 @@ const Wallet = dynamic(() => import("@/components/Wallet"), {
 const MapView = dynamic(() => import("@/components/MapView"), {
   ssr: false,
   loading: () => (
-    <div className="h-[62vh] min-h-[420px] rounded-xl border border-border bg-card flex items-center justify-center text-sm text-muted-foreground">
+    <div className="h-full min-h-[420px] bg-card flex items-center justify-center text-sm text-muted-foreground">
       Cargando mapa…
     </div>
   ),
@@ -209,8 +209,15 @@ export default function Home() {
         </div>
       </header>
 
-      {/* Contenido */}
-      <main className="flex-1 w-full max-w-md mx-auto px-4 pt-4 pb-28">
+      {/* Contenido: Explorar va a pantalla completa (el mapa llena la
+          vista y lo demás flota encima); el resto mantiene su Layout. */}
+      <main
+        className={
+          screen === "explorar"
+            ? "flex min-h-0 flex-1 flex-col w-full max-w-md mx-auto"
+            : "flex-1 w-full max-w-md mx-auto px-4 pt-4 pb-28"
+        }
+      >
         {screen === "ride" && (
           <RideView
             speedKmh={ride.speedKmh}

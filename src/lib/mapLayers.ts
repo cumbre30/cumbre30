@@ -107,7 +107,7 @@ export const CAPA_RUTAS: CapaRuta[] = [
     tipo: "pavimento",
     nivel: "Tradicional",
     detalle:
-      "Ascenso tradicional desde Pío Nono pasando por Zoológico, Mirador Bellavista y Tupahue hasta Cumbre.",
+      "Ascenso tradicional desde Pío Nono pasando por el Zoológico, la rampa de curvas de Bellavista y Tupahue hasta Cumbre.",
     emoji: "🚴",
     color: "#0ea5e9",
   },
@@ -118,7 +118,7 @@ export const CAPA_RUTAS: CapaRuta[] = [
     tipo: "pavimento",
     nivel: "Exigente",
     detalle:
-      "Subida exigente desde Acceso Zapadores pasando por El Ermitaño y Tupahue con bajada a Pedro de Valdivia.",
+      "Travesía exigente desde Acceso Zapadores bajando por Avenida La Montaña a Tupahue y subiendo a Cumbre, con descenso final a Pedro de Valdivia Norte.",
     emoji: "🚴",
     color: "#0ea5e9",
   },
@@ -129,7 +129,7 @@ export const CAPA_RUTAS: CapaRuta[] = [
     tipo: "pavimento",
     nivel: "Moderada",
     detalle:
-      "Subida desde Acceso La Pirámide pasando por La Rotonda hasta Anfiteatro Pablo Neruda.",
+      "Desde Acceso La Pirámide por el camino de crestería norte (Zañartu · Claudio Gay) hasta Av. Pablo Neruda y el Anfiteatro Pablo Neruda.",
     emoji: "🚴",
     color: "#0ea5e9",
   },
@@ -140,7 +140,7 @@ export const CAPA_RUTAS: CapaRuta[] = [
     tipo: "pavimento",
     nivel: "Exigente · larga",
     detalle:
-      "Vuelta completa al cerro conectando los 4 accesos: ascenso por Pedro de Valdivia Norte, Tupahue, tramo norte por Zapadores y descenso oriente por La Pirámide.",
+      "Vuelta completa al cerro conectando los 4 accesos: ascenso por Pío Nono, Tupahue, tramo norte por Zapadores y La Pirámide, con cierre por la crestería oriente hasta Pedro de Valdivia Norte.",
     emoji: "🚴",
     color: "#0ea5e9",
   },
@@ -151,7 +151,7 @@ export const CAPA_RUTAS: CapaRuta[] = [
     tipo: "mtb",
     nivel: "Básico / Intermedio",
     detalle:
-      "Ascenso exclusivo por sendero Pa' Arriba desde La Rotonda al Anfiteatro y descenso unidireccional hacia La Rotonda.",
+      "Loop del circuito Los Gemelos: desde La Rotonda por Pa' Arriba al sector alto y descenso por Anfiteatro/Zorzal de vuelta.",
     emoji: "🚵",
     color: "#f97316",
   },
@@ -173,18 +173,18 @@ export const CAPA_RUTAS: CapaRuta[] = [
     tipo: "mtb",
     nivel: "Suave · XC/Gravel",
     detalle:
-      "Travesía circular alrededor del cerro por el Paseo Metropolitano: camino amplio de tierra con pendientes suaves, ideal para XC y gravel.",
+      "Travesía XC/Gravel por el anillo de caminos amplios del Paseo Metropolitano, desde el acceso poniente hasta el sector La Pirámide.",
     emoji: "🚵",
     color: "#f97316",
   },
   {
     id: "mtb-4",
     trz: "mtb4",
-    nombre: "MTB 4 · Enduro Cumbre - Torre 5 - Sendero 4½",
+    nombre: "MTB 4 · Enduro Torre 5 - PdV Norte",
     tipo: "mtb",
     nivel: "Técnico",
     detalle:
-      "Descenso técnico desde sector alto (Torre 5) encadenando Sendero 4½ hasta Acceso Pedro de Valdivia Norte.",
+      "Ascenso por el camino oriente al sector Torre 5 y descenso técnico por el sendero Torre 5 hasta la base Pedro de Valdivia Norte.",
     emoji: "🚵",
     color: "#f97316",
   },
