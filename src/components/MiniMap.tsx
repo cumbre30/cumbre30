@@ -28,11 +28,11 @@ import "maplibre-gl/dist/maplibre-gl.css";
 setWorkerUrl("/maplibre-gl-worker.mjs?v=6.16.0");
 import { Crosshair, Plus, Route as RouteIcon, TriangleAlert, X } from "lucide-react";
 import { GATES, PARK_POLYGON, RISK_ZONES, type LatLng } from "@/lib/park";
-import { MINIMAP_DESTINOS } from "@/lib/mapLayers";
+import { MINIMAP_ACCESOS, MINIMAP_OPCIONES } from "@/lib/mapLayers";
 import { DEFAULT_PIN, PINS, type PinId } from "@/lib/pins";
 import { INCIDENT_BY_ID } from "@/lib/incidents";
 import { circlePolygon, navStyle, CYCLOSM_TILES } from "@/lib/navStyle";
-import { routeProgress, streetAt, streetOfStep } from "@/lib/routing";
+import { haversineM, routeProgress, streetAt, streetOfStep } from "@/lib/routing";
 import { bearingOf, buildRouteFeatures, lineFeat, polyFeat, toFc } from "@/lib/navCanvasLogic";
 import { INCIDENT_TYPES, type IncidentTypeId } from "@/lib/incidents";
 import { addIncident, loadLocalIncidents, saveLocalIncidents, useIncidentFeed, type IncidentItem } from "@/hooks/useIncidentFeed";
@@ -672,9 +672,24 @@ type BottomBarProps = {
   onReport: () => void;
   /** Abrir el mapa general (opción «Revisa el listado completo»). */
   onOpenMap?: () => void;
+  /** Posición GPS actual: ordena las OPCIONES DE RUTA según donde se
+   *  mueva el ciclista (más cercana primero). */
+  position?: LatLng | null;
 };
 
-function BottomBar({ className, onRoute, etaMin, arrivalClock, remainingM, dest, onSetDest, onReport, onOpenMap }: BottomBarProps) {
+const TODOS_DESTINOS = [...MINIMAP_OPCIONES, ...MINIMAP_ACCESOS];
+
+/** Opciones de ruta ordenadas por cercanía a la posición del ciclista.
+ *  Sin GPS: orden fijo 1-2-3 (Plaza México · Gabriela Mistral · Martner). */
+function opcionesOrdenadas(position: LatLng | null): typeof MINIMAP_OPCIONES {
+  if (!position) return MINIMAP_OPCIONES;
+  return [...MINIMAP_OPCIONES].sort(
+    (a, b) => haversineM(position, a.position) - haversineM(position, b.position)
+  );
+}
+
+function BottomBar({ className, onRoute, etaMin, arrivalClock, remainingM, dest, onSetDest, onReport, onOpenMap, position }: BottomBarProps) {
+  const opciones = opcionesOrdenadas(position ?? null);
   return (
     <div className={className}>
       {onRoute ? (
@@ -691,7 +706,7 @@ function BottomBar({ className, onRoute, etaMin, arrivalClock, remainingM, dest,
             aria-label="Ir a"
             value={
               dest
-                ? MINIMAP_DESTINOS.find((d) => d.position.lat === dest.position.lat && d.position.lon === dest.position.lon)?.id ?? "mapa"
+                ? TODOS_DESTINOS.find((d) => d.position.lat === dest.position.lat && d.position.lon === dest.position.lon)?.id ?? "mapa"
                 : ""
             }
             onChange={(e) => {
@@ -701,16 +716,26 @@ function BottomBar({ className, onRoute, etaMin, arrivalClock, remainingM, dest,
                 return;
               }
               if (v === "mapa") return; // ya navegando a un punto libre: no borrar la ruta
-              const d = MINIMAP_DESTINOS.find((x) => x.id === v);
+              const d = TODOS_DESTINOS.find((x) => x.id === v);
               if (d) onSetDest({ name: d.name, position: d.position });
               else onSetDest(null);
             }}
             className="bg-transparent text-[11px] text-foreground outline-none w-full min-w-0"
           >
             <option value="" className="bg-card">Ir a…</option>
-            {MINIMAP_DESTINOS.map((d) => (
-              <option key={d.id} value={d.id} className="bg-card">{d.name}</option>
-            ))}
+            {/* Opciones de ruta del cliente: 1- Plaza México · 2- Av. Gabriela
+                Mistral (conecta con PdV Norte) · 3- Av. Carlos Martner —
+                ordenadas según donde se mueva el usuario */}
+            <optgroup label="Opciones de ruta">
+              {opciones.map((d) => (
+                <option key={d.id} value={d.id} className="bg-card">{d.name}</option>
+              ))}
+            </optgroup>
+            <optgroup label="Accesos ciclistas">
+              {MINIMAP_ACCESOS.map((d) => (
+                <option key={d.id} value={d.id} className="bg-card">{d.name}</option>
+              ))}
+            </optgroup>
             {dest && <option value="mapa" className="bg-card">🎯 {dest.name}</option>}
             {onOpenMap && <option value="listado" className="bg-card">🗺 Revisa el listado completo</option>}
           </select>
@@ -941,6 +966,7 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
           onSetDest={nav.setDestination}
           onReport={() => setReportOpen((v) => !v)}
           onOpenMap={onOpenMap}
+          position={position}
         />
       </div>
     );
@@ -1035,6 +1061,7 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
         onSetDest={nav.setDestination}
         onReport={() => setReportOpen((v) => !v)}
         onOpenMap={onOpenMap}
+        position={position}
       />
 
       {/* Hoja de reporte rápido */}

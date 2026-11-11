@@ -21,6 +21,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { findRoute, haversineM, type FindRouteOpts, type Network, type NetNode, type NetEdge, type LatLng } from "../src/lib/routing";
 import { PARK_POLYGON } from "../src/lib/park";
 import { aplicarPuentes } from "../src/lib/puentesGrafo";
+import { crearDirOk, PUENTE_TUPAHUE_CUMBRE } from "../src/lib/reglasParque";
 
 const raw = JSON.parse(readFileSync("public/red-ciclista.json", "utf8")) as {
   classes: string[];
@@ -57,6 +58,13 @@ const net: Network = { ...raw, adj };
 // puentes del grafo: islas OSM desconectadas (explanada PdV Norte)
 aplicarPuentes(net);
 
+// Reglas direccionales del cliente (2026-11-12): PÍO NONO SÓLO SUBIDA —
+// la ruta en reversa (bajada por el acceso Pío Nono y su corredor de
+// ascenso por Av. Alberto Mackenna) queda bloqueada también al
+// precomputar los trazados. El corte horario cumbre NO aplica aquí: los
+// trazados son geometría de horario normal (la navegación en vivo lo
+// recorta con vuelta en U, ver routingService).
+
 // --- restricciones de vía ---
 const CLASES_PAVIMENTO = new Set([
   "living_street", "residential", "service", "unclassified",
@@ -76,7 +84,15 @@ const NOMBRES_PERMITIDOS_PAV = [
 const OPTS_PAV: FindRouteOpts = {
   allowedCls: CLASES_PAVIMENTO,
   nameAllow: NOMBRES_PERMITIDOS_PAV,
-  nameBlock: [/^Sendero Ciclista /], // los senderos MTB nunca en pavimento
+  nameBlock: [
+    /^Sendero Ciclista /, // los senderos MTB nunca en pavimento
+    // Carlos Reed (cliente 2026-11-12): tramos del Paseo Metropolitano
+    // aún no implementados, fuera del trazado pavimento
+    /^Avenida Carlos Reed/,
+    /^Carlos Reed/,
+  ],
+  // Pío Nono sólo subida (24/7)
+  edgeDirOk: crearDirOk(net, { pioNonoSoloSubida: true, corteCumbre: false }),
 };
 const OPTS_MTB: FindRouteOpts = {}; // sin restricción de vía
 
@@ -114,7 +130,10 @@ const OPTS_MTB_PARK: FindRouteOpts = { ...OPTS_MTB, nodeOk };
 // --- puntos clave (posiciones verificadas del proyecto / grafo real) ---
 const P = {
   pioNono: { lat: -33.430691, lon: -70.63592 },
-  pdvNorte: { lat: -33.411769, lon: -70.607988 },
+  // Acceso Pedro de Valdivia Norte: coordenada exacta del cliente
+  // (2026-11-12), portería en el cruce Av. El Cerro × Av. PdV Norte
+  // (GATES pv-norte). Los trazados r1/r3/r5 nacen/terminan aquí.
+  pdvNorte: { lat: -33.415479, lon: -70.617402 },
   laPiramide: { lat: -33.38642, lon: -70.60179 },
   zapadores: { lat: -33.399921, lon: -70.620406 },
   plazaMexico: { lat: -33.4234, lon: -70.6327 },
@@ -200,25 +219,25 @@ const VIA = {
 };
 
 const defs: Record<string, LatLng[] | null> = {
-  // R1 Pavimento: PdV Norte → (tramo Jardín Japonés · PdV Norte · Abate Molina)
-  // → Tupahue → Plaza México (subida directa, sin Antilén)
+  // R1 Pavimento: PdV Norte (cruce Av. El Cerro × Av. PdV Norte) →
+  // (tramo Anáhuac · Tupahue) → Plaza México (subida directa, sin Antilén)
   r1: routeWithVias("r1", P.pdvNorte, [VIA.tupahue, VIA.nodoTupahue], P.plazaMexico, OPTS_PAV_PARK),
-  // R2 Pavimento: Pío Nono → zoo → rampa Bellavista (Carlos Reed) →
-  // Comodoro Merino Benítez → Tupahue (puente acceso sector) → Plaza México
-  r2: routeWithVias(
-    "r2",
-    P.pioNono,
-    [VIA.bellavista, VIA.bellavistaAlto, VIA.comodoro, VIA.tupahue],
-    P.plazaMexico,
-    OPTS_PAV_PARK
-  ),
-  // R3 Pavimento: Zapadores → Avenida La Montaña → Tupahue → bajada PdV Norte
-  r3: routeWithVias("r3", P.zapadores, [VIA.laMontana, VIA.tupahue, VIA.nodoTupahue, P.plazaMexico], P.pdvNorte, OPTS_PAV_PARK),
+  // R2 Pavimento: EL MISMO trazado que la navegación a Plaza México del
+  // minimapa (cliente, 2026-11-12): Pío Nono → Av. Alberto Mackenna →
+  // puente entre las Bannen paralelas (Tupahue) → Av. Pedro Bannen →
+  // Plaza México.
+  r2: routeWithVias("r2", P.pioNono, [VIA.mackenna, PUENTE_TUPAHUE_CUMBRE], P.plazaMexico, OPTS_PAV_PARK),
+  // R3 Pavimento: Zapadores → Avenida La Montaña → Tupahue → SÓLO hasta
+  // el puente que hicimos (Mackenna-Bannen) y de ahí BAJA a PdV Norte.
+  // Sin trazado a Plaza México ni por Carlos Reed (cliente, 2026-11-12).
+  r3: routeWithVias("r3", P.zapadores, [VIA.laMontana, PUENTE_TUPAHUE_CUMBRE], P.pdvNorte, OPTS_PAV_PARK),
   // R4 Pavimento: La Pirámide → camino de crecería norte (Zañartu ·
-  // Claudio Gay) → Av. Pablo Neruda → Anfiteatro
+  // Claudio Gay) → Av. Pablo Neruda → Anfiteatro (OK para el cliente)
   r4: routeWithVias("r4", P.laPiramide, [VIA.claudioGay], P.anfiteatro, OPTS_PAV_PARK),
-  // R5 Pavimento: Vuelta Completa conectando los 4 accesos (Pío Nono →
-  // Tupahue → Zapadores → La Pirámide → cierre por la cresta oriente a PdV Norte)
+  // R5 Pavimento: Vuelta Completa conectando los 4 accesos (Pío Nono
+  // sólo subida → Tupahue → Zapadores → La Pirámide → cierre por la
+  // bajada oriente a PdV Norte). SIN bajada por Pío Nono ni Carlos Reed
+  // (borrados por el cliente, 2026-11-12).
   r5: routeWithVias(
     "r5",
     P.pioNono,

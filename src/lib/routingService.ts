@@ -11,9 +11,11 @@
 // ============================================================
 
 import { attachOrigin, findRoute, haversineM, loadNetwork, snapInfo, type LatLng, type NavRoute, type Network, type RouteStep } from "@/lib/routing";
-import { GATES, PARK_POLYGON } from "@/lib/park";
+import { GATES, PARK_POLYGON, NAV_DESTINATIONS } from "@/lib/park";
 import { CAPA_RUTAS } from "@/lib/mapLayers";
 import { RUTAS_TRAZADOS } from "@/lib/rutasTrazados";
+import { estadoParque } from "@/lib/horario";
+import { GATE_PIO_NONO, PLAZA_MEXICO_POS, PUENTE_TUPAHUE_CUMBRE, conVueltaEnU, crearDirOk } from "@/lib/reglasParque";
 
 /** Distancia máx. al grafo local para usar el motor propio. */
 const GRAPH_COVER_M = 900;
@@ -32,7 +34,119 @@ export type RouteResult = {
   source: "local" | "osrm" | null;
   /** Mensaje para la UI (sin conexión, área no cubierta…). */
   error: string | null;
+  /** Aviso NO bloqueante sobre la ruta trazada (corte horario con
+   *  vuelta en U, Pío Nono sólo subida…). */
+  aviso?: string | null;
 };
+
+// ----------------------------------------------------------------
+// Reglas direccionales del cliente (2026-11-12)
+// ----------------------------------------------------------------
+
+/** ¿Corte horario de la cumbre activo AHORA? Fines de semana y festivos
+ *  desde las 13:30 (estadoParque.nivel === "tupa"). */
+function corteCumbreActivo(now: Date = new Date()): boolean {
+  return estadoParque(now).nivel === "tupa";
+}
+
+/** ¿La ruta quedó CORTADA por el puente de Tupahue (pasó cerca y no
+ *  alcanzó el destino)? Distancia mínima del trazado al puente. */
+function pasaPorPuente(coords: LatLng[]): number {
+  let best = Infinity;
+  for (const c of coords) {
+    const d = haversineM(c, PUENTE_TUPAHUE_CUMBRE);
+    if (d < best) best = d;
+  }
+  return best;
+}
+
+/** Alternativas del cliente cerca del corte, ordenadas por cercanía al
+ *  punto de partida: Av. Gabriela Mistral (conecta con PdV Norte) y
+ *  Av. Carlos Martner. */
+function opcionesAlternativas(from: LatLng): string {
+  const gabriela = NAV_DESTINATIONS.find((d) => d.id === "av-gabriela-mistral");
+  const martner = NAV_DESTINATIONS.find((d) => d.id === "av-carlos-martner");
+  const lista = [
+    { nombre: "Av. Gabriela Mistral (conecta con PdV Norte)", pos: gabriela?.position },
+    { nombre: "Av. Carlos Martner", pos: martner?.position },
+  ].filter((x): x is { nombre: string; pos: LatLng } => !!x.pos);
+  lista.sort((a, b) => haversineM(from, a.pos) - haversineM(from, b.pos));
+  return lista.map((x) => x.nombre).join(" · ");
+}
+
+/** Construye la ruta de VUELTA EN U en el puente de Tupahue a partir de
+ *  una ruta que ya termina ahí (corte horario, cliente 2026-11-12). */
+function rutaVueltaEnU(base: NavRoute, from: LatLng): { route: NavRoute; aviso: string } {
+  const vuelta = conVueltaEnU(base.coords);
+  const coords = vuelta.coords;
+  const steps = [...base.steps];
+  const lastIdx = coords.length - 1;
+  if (steps.length) {
+    const fin = steps[steps.length - 1];
+    if (fin.icon === "end") steps.pop();
+  }
+  steps.push({
+    icon: "straight",
+    text: "Vuelta en U: acceso a la cumbre restringido desde las 13:30 (fin de semana y festivos)",
+    distM: vuelta.metrosVuelta,
+    point: coords[coords.length - 1],
+    idx: lastIdx,
+  });
+  steps.push({ icon: "end", text: "Has llegado al puente de Tupahue (corte horario)", distM: 0, point: coords[coords.length - 1], idx: lastIdx });
+  const route: NavRoute = {
+    ...base,
+    coords,
+    distanceM: base.distanceM + vuelta.metrosVuelta,
+    etaMin: Math.max(1, Math.round((base.distanceM + vuelta.metrosVuelta) / 1000 / 15 * 60)),
+    flags: [...base.flags, ...new Array(coords.length - base.coords.length).fill(false)],
+    segNames: [...base.segNames, ...new Array(coords.length - base.coords.length).fill("Corte horario Tupahue")],
+    steps,
+  };
+  const aviso = `Fuera de horario (fines de semana y festivos desde 13:30): el acceso a la cumbre por Tupahue está cerrado. Trazamos hasta el puente con vuelta en U. Alternativas según tu posición: ${opcionesAlternativas(from)}.`;
+  return { route, aviso };
+}
+
+/** Ruta local con reglas del cliente:
+ *  · Corte horario activo y destino NO alcanzado (queda al otro lado del
+ *    puente de Tupahue) → re-traza HASTA EL PUENTE y agrega la VUELTA EN U
+ *    («se debe trazar una vuelta en U en tupahue, donde dejamos el puente»).
+ *  · Destino junto al acceso Pío Nono no alcanzado (sólo subida) → aviso.
+ *  `trazar(dest)` traza la ruta completa para un destino dado. */
+function rutaLocalConCorte(
+  from: LatLng,
+  dest: LatLng,
+  trazar: (d: LatLng) => NavRoute | null
+): { route: NavRoute; aviso: string | null } | null {
+  const base = trazar(dest);
+  if (!base) return null;
+  const end = base.coords[base.coords.length - 1];
+  if (haversineM(end, dest) <= 250) return { route: base, aviso: null };
+  if (!corteCumbreActivo()) return { route: base, aviso: avisoPioNono(base, dest) };
+  // corte activo, destino en la cara cumbre sin acceso: ¿destino junto al
+  // acceso Pío Nono? → ese caso lo explica avisoPioNono (sólo subida)
+  if (haversineM(dest, GATE_PIO_NONO) <= 400) return { route: base, aviso: avisoPioNono(base, dest) };
+  // re-traza hasta el puente de Tupahue y cierra con la vuelta en U
+  const aPuente = trazar(PUENTE_TUPAHUE_CUMBRE);
+  if (
+    aPuente &&
+    haversineM(aPuente.coords[aPuente.coords.length - 1], PUENTE_TUPAHUE_CUMBRE) <= 150
+  ) {
+    const vuelta = rutaVueltaEnU(aPuente, from);
+    return { route: vuelta.route, aviso: vuelta.aviso };
+  }
+  return { route: base, aviso: null };
+}
+
+/** Aviso de Pío Nono sólo subida: si el destino era el acceso Pío Nono (o
+ *  algo a sus pies, en Bellavista) y la ruta quedó cortada dentro del
+ *  parque, avisamos que no se puede bajar por ahí. */
+function avisoPioNono(route: NavRoute, dest: LatLng): string | null {
+  const cercaDelGate = haversineM(dest, GATE_PIO_NONO) <= 250;
+  if (!cercaDelGate) return null;
+  const end = route.coords[route.coords.length - 1];
+  if (haversineM(end, dest) <= 150) return null;
+  return "Pío Nono es sólo de subida: la bajada está bloqueada para bici. Te dejamos en el punto más cercano alcanzable.";
+}
 
 // ----------------------------------------------------------------
 // Conversión OSRM → NavRoute
@@ -572,6 +686,9 @@ export async function computeRoute(from: LatLng, to: LatLng): Promise<RouteResul
     const inside = parkInsideTest();
     const destInPark = inside(to.lat, to.lon);
     const fromInPark = inside(from.lat, from.lon);
+    // Reglas direccionales del cliente: Pío Nono sólo subida (24/7) y
+    // corte horario de la cumbre por el puente de Tupahue (FDS ≥ 13:30)
+    const dirOk = crearDirOk(net, { pioNonoSoloSubida: true, corteCumbre: corteCumbreActivo() });
     if (destInPark && !fromInPark) {
       const acc = accesoMasCercano(from);
       // tramo 1: hasta el acceso (ciudad; local si cubre, OSRM si no)
@@ -583,13 +700,20 @@ export async function computeRoute(from: LatLng, to: LatLng): Promise<RouteResul
       // pavimento (Paseo Metropolitano/avenidas) — sin senderos peatonales
       let leg2: NavRoute | null = null;
       if (leg1) {
-        leg2 = findRoute(net, acc.position, to, { nodeOk: inside, ...PAV_DEST_OPTS });
-        if (!leg2) leg2 = findRoute(net, acc.position, to, { nodeOk: inside, ...PAV_DEST_RELAX });
+        leg2 = findRoute(net, acc.position, to, { nodeOk: inside, ...PAV_DEST_OPTS, edgeDirOk: dirOk });
+        if (!leg2) leg2 = findRoute(net, acc.position, to, { nodeOk: inside, ...PAV_DEST_RELAX, edgeDirOk: dirOk });
       }
-      if (leg1 && leg2) {
-        const merged = mergeLegs(leg1, leg2, `Ingresa por ${acc.nombre} · ingreso oficial de ciclistas`);
-        const route = { ...merged, cicloviaPct: cicloPctOf(merged) };
-        return { route, source: "local", error: null };
+      if (leg1) {
+        const merged = rutaLocalConCorte(from, to, (d) => {
+          const l2 =
+            findRoute(net, acc.position, d, { nodeOk: inside, ...PAV_DEST_OPTS, edgeDirOk: dirOk }) ??
+            findRoute(net, acc.position, d, { nodeOk: inside, ...PAV_DEST_RELAX, edgeDirOk: dirOk });
+          return l2 ? mergeLegs(leg1, l2, `Ingresa por ${acc.nombre} · ingreso oficial de ciclistas`) : null;
+        });
+        if (merged) {
+          const route = { ...merged.route, cicloviaPct: cicloPctOf(merged.route) };
+          return { route, source: "local", error: null, aviso: merged.aviso };
+        }
       }
       // si la cadena por el acceso falla, cae al flujo normal (abajo)
     }
@@ -598,17 +722,19 @@ export async function computeRoute(from: LatLng, to: LatLng): Promise<RouteResul
     if (a.distM <= ORIGIN_COVER_M && b.distM <= GRAPH_COVER_M) {
       // destino dentro del cerro: pavimento del parque (sin senderos
       // peatonales), con respaldo que agrega senderos ciclistas
-      const r =
-        findRoute(net, from, to, destInPark ? PAV_DEST_OPTS : undefined) ??
-        (destInPark ? findRoute(net, from, to, PAV_DEST_RELAX) : null);
-      if (r) {
+      const trazarDirecto = (d: LatLng) =>
+        findRoute(net, from, d, destInPark ? { ...PAV_DEST_OPTS, edgeDirOk: dirOk } : undefined) ??
+        (destInPark ? findRoute(net, from, d, { ...PAV_DEST_RELAX, edgeDirOk: dirOk }) : null);
+      const local = rutaLocalConCorte(from, to, trazarDirecto);
+      if (local) {
         // flags del A* ya son confiables en el sector cubierto;
         // el inicio se ancla a la ubicación real del ciclista
-        const route = attachOrigin(r, from);
+        const route = attachOrigin(local.route, from);
         return {
           route: { ...route, cicloviaPct: cicloPctOf(route) },
           source: "local",
           error: null,
+          aviso: local.aviso,
         };
       }
     }
@@ -684,8 +810,12 @@ export async function computePresetRoute(
   corredorPav(net); // corredor con la red real (conectores sin nombre del ascenso)
   const inside = parkInsideTest();
   const fromInPark = inside(from.lat, from.lon);
+  // Reglas direccionales del cliente: Pío Nono sólo subida (24/7) y corte
+  // horario de la cumbre (FDS ≥ 13:30) en el tramo interno (acceso → trazado)
+  const dirOk = crearDirOk(net, { pioNonoSoloSubida: true, corteCumbre: corteCumbreActivo() });
   const opts = {
     nodeOk: inside,
+    edgeDirOk: dirOk,
     ...(ruta.tipo === "pavimento"
       ? { allowedCls: CLASES_PAVIMENTO, nameAllow: NOMBRES_PERMITIDOS_PAV, nameBlock: [/^Sendero Ciclista /], edgeOk: corredorOk }
       : {}),
@@ -733,13 +863,39 @@ export async function computePresetRoute(
     const origenInterno: LatLng = fromInPark ? from : acceso!.position;
     legInterno = findRoute(net, origenInterno, traceCoordsFull[0], opts);
     if (!legInterno) {
-      // respaldo: sin restricción de vía (mantiene la regla de parque)
-      legInterno = findRoute(net, origenInterno, traceCoordsFull[0], { nodeOk: inside });
+      // respaldo: sin restricción de vía (mantiene la regla de parque y la
+      // direccionalidad: Pío Nono sólo subida y corte horario cumbre)
+      legInterno = findRoute(net, origenInterno, traceCoordsFull[0], { nodeOk: inside, edgeDirOk: dirOk });
     }
   }
 
-  // 3. trazado precomputado (desde el punto de empalme si lo hay)
-  const traceCoords = joinIdx >= 0 ? traceCoordsFull.slice(joinIdx) : traceCoordsFull;
+  // 3. trazado precomputado (desde el punto de empalme si lo hay).
+  // Corte horario activo: si el trazado TERMINA en la cara cumbre (más
+  // cerca de Plaza México que el puente) y pasa por el puente de Tupahue,
+  // se trunca en el puente con VUELTA EN U (el resto del trazado queda
+  // tras el corte). Rutas que bajan a PdV (r3) no se tocan: su fin queda
+  // en la cara Tupahue.
+  let traceCoords = joinIdx >= 0 ? traceCoordsFull.slice(joinIdx) : traceCoordsFull;
+  let avisoCorte: string | null = null;
+  if (corteCumbreActivo()) {
+    const finCumbre = haversineM(traceCoords[traceCoords.length - 1], PLAZA_MEXICO_POS) < haversineM(PLAZA_MEXICO_POS, PUENTE_TUPAHUE_CUMBRE);
+    if (finCumbre) {
+      let idxPuente = -1;
+      let bd = Infinity;
+      for (let i = 0; i < traceCoords.length; i++) {
+        const d = haversineM(traceCoords[i], PUENTE_TUPAHUE_CUMBRE);
+        if (d < bd) {
+          bd = d;
+          idxPuente = i;
+        }
+      }
+      if (idxPuente >= 0 && bd <= 200 && idxPuente < traceCoords.length - 3) {
+        const vuelta = conVueltaEnU(traceCoords.slice(0, idxPuente + 1));
+        traceCoords = vuelta.coords;
+        avisoCorte = `Fuera de horario (fines de semana y festivos desde 13:30): el acceso a la cumbre por Tupahue está cerrado. Esta ruta termina en el puente con vuelta en U. Alternativas según tu posición: ${opcionesAlternativas(from)}.`;
+      }
+    }
+  }
   const traceFlags = new Array<boolean>(Math.max(0, traceCoords.length - 1)).fill(false);
   const traceNames = new Array<string>(Math.max(0, traceCoords.length - 1)).fill("");
   let traceDistM = 0;
@@ -796,12 +952,21 @@ export async function computePresetRoute(
   distanceM += Math.round(traceDistM);
   steps.push({
     icon: "end",
-    text: `Fin de ${preset.nombre}`,
+    text: avisoCorte ? "Fin de la ruta en el puente de Tupahue (corte horario)" : `Fin de ${preset.nombre}`,
     distM: 0,
     point: coords[coords.length - 1],
     idx: coords.length - 1,
   });
 
+  if (avisoCorte) {
+    steps.splice(steps.length - 1, 0, {
+      icon: "straight",
+      text: "Vuelta en U: acceso a la cumbre restringido desde las 13:30 (fin de semana y festivos)",
+      distM: 0,
+      point: coords[coords.length - 1],
+      idx: coords.length - 1,
+    });
+  }
   if (coords.length < 2) {
     return { route: null, source: null, error: "No pudimos armar la ruta." };
   }
@@ -815,5 +980,5 @@ export async function computePresetRoute(
     flags,
     segNames,
   };
-  return { route, source: "local", error: null };
+  return { route, source: "local", error: null, aviso: avisoCorte };
 }

@@ -21,8 +21,25 @@
 //     corredores del GPX (Tupahue, El Ermitaño, Pa' Arriba…).
 // ============================================================
 
-import { GATES, NAV_DESTINATIONS, type LatLng } from "./park";
+import { GATES, NAV_DESTINATIONS, RISK_ZONES, type LatLng } from "./park";
 import { RUTAS_TRAZADOS } from "./rutasTrazados";
+import { PUENTE_TUPAHUE_CUMBRE } from "./reglasParque";
+
+// ------------------------------------------------------------
+// OPCIONES DE RUTA del minimapa (cliente, 2026-11-12):
+//   1- Plaza México · 2- Av. Gabriela Mistral (conecta con PdV
+//   Norte) · 3- Av. Carlos Martner. Se ofrecen «según donde se
+//   mueva el usuario»: el minimapa las ordena por cercanía a la
+//   posición GPS del ciclista.
+// ------------------------------------------------------------
+
+const IDS_OPCIONES_RUTA = ["plaza-mexico", "av-gabriela-mistral", "av-carlos-martner"];
+
+export const MINIMAP_OPCIONES: { id: string; name: string; position: LatLng }[] = IDS_OPCIONES_RUTA.map((id) => {
+  const d = NAV_DESTINATIONS.find((x) => x.id === id);
+  if (!d) throw new Error(`Destino de opción de ruta no encontrado: ${id}`);
+  return { id: d.id, name: d.name, position: d.position };
+});
 
 // ------------------------------------------------------------
 // Destinos del MINIMAPA (limpieza pedida por el cliente): solo
@@ -30,15 +47,16 @@ import { RUTAS_TRAZADOS } from "./rutasTrazados";
 // listado completo vive en el mapa general (pestaña Explorar).
 // ------------------------------------------------------------
 
-export const MINIMAP_DESTINOS: { id: string; name: string; position: LatLng }[] = (() => {
-  const plaza = NAV_DESTINATIONS.find((d) => d.id === "plaza-mexico");
-  const accesos = GATES.filter((g) => g.ciclistas).map((g) => ({
-    id: g.id,
-    name: `🚴 ${g.name}`,
-    position: g.position,
-  }));
-  return plaza ? [{ id: plaza.id, name: plaza.name, position: plaza.position }, ...accesos] : accesos;
-})();
+export const MINIMAP_ACCESOS: { id: string; name: string; position: LatLng }[] = GATES.filter((g) => g.ciclistas).map((g) => ({
+  id: g.id,
+  name: `🚴 ${g.name}`,
+  position: g.position,
+}));
+
+export const MINIMAP_DESTINOS: { id: string; name: string; position: LatLng }[] = [
+  ...MINIMAP_OPCIONES,
+  ...MINIMAP_ACCESOS,
+];
 
 // ------------------------------------------------------------
 // CAPA 1 · ACCESOS OFICIALES HABILITADOS PARA CICLISTAS (4)
@@ -96,7 +114,7 @@ export const CAPA_RUTAS: CapaRuta[] = [
     tipo: "pavimento",
     nivel: "Fluida y directa",
     detalle:
-      "Subida fluida y directa desde Acceso Pedro de Valdivia Norte pasando por Tupahue hasta Plaza México.",
+      "Subida fluida y directa desde el Acceso Pedro de Valdivia Norte (cruce Av. El Cerro × Av. PdV Norte) pasando por Tupahue hasta Plaza México.",
     emoji: "🚴",
     color: "#0ea5e9",
   },
@@ -107,7 +125,7 @@ export const CAPA_RUTAS: CapaRuta[] = [
     tipo: "pavimento",
     nivel: "Tradicional",
     detalle:
-      "Ascenso tradicional desde Pío Nono pasando por el Zoológico, la rampa de curvas de Bellavista y Tupahue hasta Cumbre.",
+      "El mismo trazado de la navegación a Plaza México del minimapa: sube por Av. Alberto Mackenna desde Pío Nono, cruza el puente de Tupahue y toma Av. Pedro Bannen hasta Plaza México.",
     emoji: "🚴",
     color: "#0ea5e9",
   },
@@ -118,7 +136,7 @@ export const CAPA_RUTAS: CapaRuta[] = [
     tipo: "pavimento",
     nivel: "Exigente",
     detalle:
-      "Travesía exigente desde Acceso Zapadores bajando por Avenida La Montaña a Tupahue y subiendo a Cumbre, con descenso final a Pedro de Valdivia Norte.",
+      "Travesía desde Acceso Zapadores bajando por Avenida La Montaña a Tupahue, hasta el puente Mackenna-Bannen (corte horario fin de semana), y descenso final a Pedro de Valdivia Norte. Sin Plaza México ni Carlos Reed.",
     emoji: "🚴",
     color: "#0ea5e9",
   },
@@ -140,7 +158,7 @@ export const CAPA_RUTAS: CapaRuta[] = [
     tipo: "pavimento",
     nivel: "Exigente · larga",
     detalle:
-      "Vuelta completa al cerro conectando los 4 accesos: ascenso por Pío Nono, Tupahue, tramo norte por Zapadores y La Pirámide, con cierre por la crestería oriente hasta Pedro de Valdivia Norte.",
+      "Vuelta completa al cerro conectando los 4 accesos: subida por Pío Nono (sólo subida), Tupahue, tramo norte por Zapadores y La Pirámide, con cierre por la bajada oriente hasta Pedro de Valdivia Norte. Sin bajada por Pío Nono ni tramos por Carlos Reed.",
     emoji: "🚴",
     color: "#0ea5e9",
   },
@@ -350,7 +368,8 @@ export const CAPA_POIS: CapaPunto[] = [
 ];
 
 // ------------------------------------------------------------
-// CAPA 4 · NORMATIVA, SEGURIDAD Y SOPORTE TÉCNICO (6)
+// CAPA 4 · NORMATIVA, SEGURIDAD Y SOPORTE TÉCNICO
+// (cortes horarios, límites, soporte y advertencias de riesgo)
 // ------------------------------------------------------------
 
 export const CAPA_NORMATIVA: CapaPuntoBase[] = [
@@ -360,8 +379,10 @@ export const CAPA_NORMATIVA: CapaPuntoBase[] = [
     detalle:
       "Restricción de paso en bicicleta hacia la Cumbre los sábados, domingos y festivos desde las 13:30 hrs.",
     emoji: "🚫",
-    // posición GPX referencial (sector Tupahue, camino a la cumbre)
-    position: { lat: -33.4218, lon: -70.6292 },
+    // EN EL PUENTE que une Av. Alberto Mackenna con Av. Pedro Bannen en
+    // Tupahue (cliente: «dónde tenemos el puente»), nodo compartido del
+    // grafo OSM propio (2026-11-12).
+    position: PUENTE_TUPAHUE_CUMBRE,
   },
   {
     id: "control-30",
@@ -408,6 +429,16 @@ export const CAPA_NORMATIVA: CapaPuntoBase[] = [
     // GPX caía fuera del parque → junto al Acceso Pío Nono
     position: { lat: -33.4305, lon: -70.6358 },
   },
+  // --- Círculos amarillos de advertencia (zonas de riesgo RISK_ZONES,
+  //     cliente: «agrégalos a la capa del mapa en categoría Normativa y
+  //     Seguridad») — posiciones y textos sincronizados con park.ts ---
+  ...RISK_ZONES.map((z) => ({
+    id: `riesgo-${z.id}`,
+    nombre: `Advertencia: ${z.name}`,
+    detalle: z.voice,
+    emoji: "⚠️",
+    position: z.position,
+  })),
 ];
 
 // ------------------------------------------------------------

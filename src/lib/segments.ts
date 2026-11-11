@@ -65,7 +65,7 @@ export const SEGMENTS: SegmentDef[] = [
     id: "pv-norte-plaza-mexico",
     name: "Pedro de Valdivia Norte → Plaza México",
     detail: "Subida por el lado oriente: ~3,8 km y +110 m.",
-    start: { lat: -33.411769, lon: -70.607988 }, // Acceso Pedro de Valdivia Norte
+    start: { lat: -33.415479, lon: -70.617402 }, // Acceso Pedro de Valdivia Norte (cruce Av. El Cerro × Av. PdV Norte)
     end: PLAZA_MEXICO,
     radiusStartM: 150,
     radiusEndM: 180,

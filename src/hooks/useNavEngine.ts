@@ -113,10 +113,13 @@ export function useNavEngine(position: LatLng | null, running: boolean): NavEngi
     setRoute(res.route);
     originUsedRef.current = origin;
     setProvisional(kind === "fallback");
+    // Aviso del cliente (corte horario con vuelta en U, Pío Nono sólo
+    // subida…) tiene prioridad sobre el aviso de partida provisional.
     setNote(
-      kind === "fallback"
-        ? "Partida provisional desde el Acceso Pío Nono - activa tu GPS para rutear desde tu ubicación."
-        : null
+      res.aviso ??
+        (kind === "fallback"
+          ? "Partida provisional desde el Acceso Pío Nono - activa tu GPS para rutear desde tu ubicación."
+          : null)
     );
   }, []);
 

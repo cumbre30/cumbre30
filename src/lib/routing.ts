@@ -52,6 +52,12 @@ export type FindRouteOpts = {
   nodeOk?: (lat: number, lon: number) => boolean;
   /** rescate por arista: ¿se permite este tramo según su punto medio? */
   edgeOk?: (midLat: number, midLon: number, cls: string, name: string) => boolean;
+  /** dirección permitida por ARISTA (sentido de marcha): índices u→v del
+   *  grafo + coordenadas de ambos extremos. false bloquea el paso. Se usa
+   *  para Pío Nono sólo subida y para el corte horario Tupahue → Cumbre
+ *  (reglas del cliente, ver src/lib/reglasParque.ts). Las aristas del
+ *  anclaje virtual del origen NO se filtran: el ciclista ya está ahí. */
+  edgeDirOk?: (u: number, v: number, uLat: number, uLon: number, vLat: number, vLon: number, cls: string, name: string) => boolean;
 };
 
 /** ¿Pasa la arista los filtros de vía (clase + nombre + corredor geométrico)? */
@@ -297,8 +303,9 @@ export function findRoute(net: Network, from: LatLng, to: LatLng, opts?: FindRou
   const edge = nearestEdge(net, from, ORIGIN_ANCHOR_MAX_M, opts);
   let runNet: Network = net;
   let s: number;
+  let virt = -1; // índice del nodo virtual de anclaje (-1: sin anclaje virtual)
   if (edge) {
-    const virt = net.nodes.length;
+    const iv = net.nodes.length;
     const nodes2 = net.nodes.slice();
     nodes2.push([edge.point.lat, edge.point.lon]);
     const pu = { lat: net.nodes[edge.u][0], lon: net.nodes[edge.u][1] };
@@ -309,15 +316,16 @@ export function findRoute(net: Network, from: LatLng, to: LatLng, opts?: FindRou
     const brU = bearing(edge.point, pu);
     const brV = bearing(edge.point, pv);
     const adj2 = net.adj.slice();
-    adj2[virt] = [
+    adj2[iv] = [
       { to: edge.u, w: dU * pen, dist: dU, cls: edge.cls, name: edge.name, ciclovia: edge.ciclovia, bearing: brU },
       { to: edge.v, w: dV * pen, dist: dV, cls: edge.cls, name: edge.name, ciclovia: edge.ciclovia, bearing: brV },
     ];
     // aristas de vuelta u→virt / v→virt sin mutar la red compartida
-    adj2[edge.u] = [...net.adj[edge.u], { to: virt, w: dU * pen, dist: dU, cls: edge.cls, name: edge.name, ciclovia: edge.ciclovia, bearing: (brU + 180) % 360 }];
-    adj2[edge.v] = [...net.adj[edge.v], { to: virt, w: dV * pen, dist: dV, cls: edge.cls, name: edge.name, ciclovia: edge.ciclovia, bearing: (brV + 180) % 360 }];
+    adj2[edge.u] = [...net.adj[edge.u], { to: iv, w: dU * pen, dist: dU, cls: edge.cls, name: edge.name, ciclovia: edge.ciclovia, bearing: (brU + 180) % 360 }];
+    adj2[edge.v] = [...net.adj[edge.v], { to: iv, w: dV * pen, dist: dV, cls: edge.cls, name: edge.name, ciclovia: edge.ciclovia, bearing: (brV + 180) % 360 }];
     runNet = { ...net, nodes: nodes2, adj: adj2 };
-    s = virt;
+    s = iv;
+    virt = iv;
   } else {
     const s0 = nearestNode(net, from, ORIGIN_ANCHOR_MAX_M);
     if (s0 === null) return null;
@@ -362,6 +370,11 @@ export function findRoute(net: Network, from: LatLng, to: LatLng, opts?: FindRou
       if (!edgePasses(e, opts, (nlat + runNet.nodes[u][0]) / 2, (nlon + runNet.nodes[u][1]) / 2)) continue;
       if (opts?.nodeOk) {
         if (!opts.nodeOk(nlat, nlon)) continue;
+      }
+      // dirección de marcha (Pío Nono sólo subida / corte horario cumbre);
+      // el arranque desde el anclaje virtual no se filtra: el ciclista ya está ahí
+      if (opts?.edgeDirOk && u !== virt) {
+        if (!opts.edgeDirOk(u, e.to, runNet.nodes[u][0], runNet.nodes[u][1], nlat, nlon, e.cls, e.name)) continue;
       }
       const ng = g[u] + e.w;
       if (ng < g[e.to]) {

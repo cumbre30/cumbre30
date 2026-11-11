@@ -30,7 +30,21 @@ export const PARK_POLYGON: LatLng[] = [
   { lat: -33.41234, lon: -70.609007 }, { lat: -33.412468, lon: -70.61019 }, { lat: -33.413012, lon: -70.611494 },
   { lat: -33.414259, lon: -70.612363 }, { lat: -33.414518, lon: -70.61293 }, { lat: -33.414102, lon: -70.613556 },
   { lat: -33.414305, lon: -70.613959 }, { lat: -33.414636, lon: -70.614224 }, { lat: -33.415452, lon: -70.612862 },
-  { lat: -33.415567, lon: -70.612932 }, { lat: -33.415514, lon: -70.617574 }, { lat: -33.418192, lon: -70.620649 },
+  // Tramo Av. El Cerro (borde sur del parque, lado desde el parque):
+  // antes era un segmento recto a latitud constante (-33.415567,-70.612932
+  // → -33.415514,-70.617574) que cortaba la avenida en diagonal. Ahora
+  // sigue los nodos reales de Av. El Cerro (grafo OSM propio) desde la
+  // explanada oeste hasta el cruce con Av. Pedro de Valdivia Norte
+  // (-33.415461,-70.617414, portería PdV) y la curva de la avenida hacia
+  // el nororiente (2026-11-12, ajuste del cliente).
+  { lat: -33.415593, lon: -70.612909 }, { lat: -33.415557, lon: -70.613162 }, { lat: -33.415528, lon: -70.613417 },
+  { lat: -33.415512, lon: -70.613611 }, { lat: -33.4155, lon: -70.613805 }, { lat: -33.415458, lon: -70.614688 },
+  { lat: -33.415453, lon: -70.614976 }, { lat: -33.41543, lon: -70.616299 }, { lat: -33.41543, lon: -70.61716 },
+  { lat: -33.415431, lon: -70.617256 }, { lat: -33.415433, lon: -70.617293 }, { lat: -33.415438, lon: -70.617329 },
+  { lat: -33.415445, lon: -70.617363 }, { lat: -33.415461, lon: -70.617414 }, { lat: -33.415478, lon: -70.617447 },
+  { lat: -33.415504, lon: -70.617497 }, { lat: -33.415544, lon: -70.617562 }, { lat: -33.415591, lon: -70.617622 },
+  { lat: -33.415647, lon: -70.61769 },
+  { lat: -33.418192, lon: -70.620649 },
   { lat: -33.418975, lon: -70.621253 }, { lat: -33.420967, lon: -70.621945 }, { lat: -33.422642, lon: -70.622936 },
   { lat: -33.425647, lon: -70.623565 }, { lat: -33.425812, lon: -70.62411 }, { lat: -33.425531, lon: -70.625486 },
   { lat: -33.425671, lon: -70.625494 }, { lat: -33.426151, lon: -70.626706 }, { lat: -33.427712, lon: -70.628796 },
@@ -89,15 +103,14 @@ export type Gate = {
  *  primeros conservan sus coordenadas calibradas originales. */
 export const GATES: Gate[] = [
   { id: "pio-nono", name: "Acceso Pío Nono", position: { lat: -33.430691, lon: -70.63592 }, ciclistas: true },
-  // Acceso Pedro de Valdivia Norte: INGRESO POR EL PARQUE METROPOLITANO
-  // PEDRO DE VALDIVIA NORTE (parque plano con la CicloRecreoVía), desde
-  // Av. El Cerro 678, Providencia (captura del cliente 2026-11-12 +
-  // Google Maps "Parquemet Pedro de Valdivia Norte Parking, Av. El Cerro
-  // 678"). Posición = nodo-junta del grafo donde los caminos del parque
-  // plano tocan Av. El Cerro (-33.41627, -70.60909, verificado 2026-11-12).
-  // El marcador anterior (-33.411769, -70.607988) quedaba en la ladera,
-  // ~500 m más arriba de la entrada real.
-  { id: "pv-norte", name: "Acceso Pedro de Valdivia Norte", position: { lat: -33.41627, lon: -70.60909 }, ciclistas: true },
+  // Acceso Pedro de Valdivia Norte: la portería queda EN EL CRUCE de
+  // Av. El Cerro con Av. Pedro de Valdivia Norte, donde comienza el
+  // Paseo Metropolitano - Sendero Pedro de Valdivia Norte (ladera).
+  // Coordenada exacta enviada por el cliente (2026-11-12):
+  // -33.415479, -70.617402; el nodo del grafo más cercano es la junta
+  // Av. El Cerro × Av. PdV Norte (-33.415461, -70.617414, a 2 m), así
+  // que el ruteo ancla directo en el cruce.
+  { id: "pv-norte", name: "Acceso Pedro de Valdivia Norte", position: { lat: -33.415479, lon: -70.617402 }, ciclistas: true },
   // Acceso La Pirámide (Vitacura): portería al final de Camino La
   // Pirámide, borde nororiente del parque, el acceso más cercano a
   // Bosque Santiago y al Paseo Metropolitano (parquemet.cl,
@@ -285,7 +298,10 @@ export const RISK_ZONES: RiskZone[] = [
   {
     id: "salida-pv",
     name: "Salida Pedro de Valdivia",
-    position: { lat: -33.41627, lon: -70.60909 },
+    // Coordenada exacta del cliente (2026-11-12): salida del parque por
+    // Av. Pedro de Valdivia Norte, sobre el Tramo PdV del Paseo
+    // Metropolitano, a ~3 m del nodo del grafo.
+    position: { lat: -33.416209, lon: -70.619256 },
     radiusM: 130,
     voice: "Tramo previo a la salida Pedro de Valdivia. Confluencia de ciclistas y vehículos.",
   },
@@ -332,8 +348,9 @@ export const SIM_ROUTE: SimWaypoint[] = [
   { lat: -33.4118, lon: -70.6105, kmh: 35, alt: 762 }, // bajada a PdV Norte - pico sobre el límite
   { lat: -33.4121, lon: -70.6076, kmh: 20, alt: 730 }, // explanada del acceso PdV Norte (base de la ladera)
   { lat: -33.4142, lon: -70.6082, kmh: 22, alt: 715 }, // ParqueMet PdV Norte - CicloRecreoVía
-  { lat: -33.41627, lon: -70.60909, kmh: 16, alt: 705 }, // salida Acceso Pedro de Valdivia Norte (Av. El Cerro)
-  { lat: -33.4113, lon: -70.6068, kmh: 12, alt: 730 }, // Av. Pedro de Valdivia (fuera)
+  { lat: -33.415539, lon: -70.613809, kmh: 20, alt: 706 }, // CicloRecreoVía hacia el oriente del parque plano
+  { lat: -33.415479, lon: -70.617402, kmh: 14, alt: 705 }, // salida Acceso Pedro de Valdivia Norte (cruce Av. El Cerro × Av. PdV Norte)
+  { lat: -33.4163, lon: -70.617, kmh: 12, alt: 698 }, // Av. Pedro de Valdivia Norte (fuera)
 ];
 
 /** Destinos frecuentes para la navegación tipo Waze.
@@ -354,11 +371,23 @@ export const NAV_DESTINATIONS: { id: string; name: string; position: LatLng }[] 
   // la nota con fuentes en GATES.
   { id: "la-piramide", name: "🚴 Acceso La Pirámide", position: { lat: -33.38642, lon: -70.60179 } },
   { id: "pio-nono", name: "🚴 Acceso Pío Nono", position: { lat: -33.430691, lon: -70.63592 } },
-  { id: "pv-norte", name: "🚴 Acceso Pedro de Valdivia Norte", position: { lat: -33.41627, lon: -70.60909 } },
+  { id: "pv-norte", name: "🚴 Acceso Pedro de Valdivia Norte", position: { lat: -33.415479, lon: -70.617402 } },
   { id: "antiluen", name: "🏊 Piscina Antilén", position: { lat: -33.409051, lon: -70.61374 } },
   { id: "jardin-japones", name: "🏯 Jardín Japonés", position: { lat: -33.413345, lon: -70.614692 } },
   { id: "zoologico", name: "🦁 Zoológico Nacional", position: { lat: -33.429636, lon: -70.633963 } },
   { id: "anahuac", name: "🎭 Casa de la Cultura Anáhuac", position: { lat: -33.417135, lon: -70.623511 } },
+  // Opciones de ruta del cliente (2026-11-12): alternativas según dónde
+  // se mueva el ciclista en el sector Tupahue / cumbre. Av. Gabriela
+  // Mistral baja conectando con Pedro de Valdivia Norte (extremos del
+  // grafo: -33.417173,-70.62282 al norte y -33.414045,-70.618112 al
+  // sur, a 144 m del acceso PdV); Av. Carlos Martner une Tupahue con
+  // la Piscina Antilén (posiciones verificadas en el grafo OSM propio).
+  {
+    id: "av-gabriela-mistral",
+    name: "🛣️ Av. Gabriela Mistral (conecta con PdV Norte)",
+    position: { lat: -33.4156, lon: -70.6204 },
+  },
+  { id: "av-carlos-martner", name: "🛣️ Av. Carlos Martner", position: { lat: -33.41272, lon: -70.61862 } },
   // Accesos agregados el 2026-11-11 (mismas posiciones que GATES;
   // son nodos del grafo propio, así que el ruteo llega directo).
   // 🚴 = acceso autorizado para ingreso en bici (ACCESOS_CICLISTAS);
