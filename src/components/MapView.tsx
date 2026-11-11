@@ -1086,6 +1086,7 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
         <MapContainer
           center={[center.lat, center.lon]}
           zoom={14}
+          zoomControl={false}
           scrollWheelZoom
           className={`${darkMap ? "map-dark" : ""} h-full w-full bg-background ${reportMode ? "cursor-crosshair" : ""}`}
           attributionControl

@@ -13,7 +13,7 @@ const RUTAS = [
   "MTB 1 · Loop Los Gemelos",
   "MTB 2 · Loop Técnico La S",
   "MTB 3 · Travesía Paseo Metropolitano",
-  "MTB 4 · Enduro Cumbre - Torre 5 - Sendero 4½",
+  "MTB 4 · Enduro Torre 5 - PdV Norte",
 ];
 
 async function main() {
