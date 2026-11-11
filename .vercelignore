@@ -1,0 +1,22 @@
+# Deploy a Vercel: solo código fuente de la web.
+# Excluye artefactos de la app nativa, datos locales y binarios.
+android/
+apk-store/
+backups/
+build-static/
+db/
+download/
+node_modules/
+scripts/
+skills/
+tests/
+upload/
+.next/
+dev.log
+server.log
+tsconfig.tsbuildinfo
+Caddyfile
+capacitor.config.ts
+GUIA-GOOGLE-SIGNIN.md
+INSTRUCCIONES-GITHUB.md
+bun.lock
