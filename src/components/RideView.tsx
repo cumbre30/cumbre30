@@ -23,6 +23,14 @@ import {
   BadgeCheck,
   Bike,
   ChevronDown,
+  Cloud,
+  CloudDrizzle,
+  CloudFog,
+  CloudLightning,
+  CloudRain,
+  CloudRainWind,
+  CloudSnow,
+  CloudSun,
   Copy,
   Gauge,
   ListTree,
@@ -37,6 +45,7 @@ import {
   ShieldAlert,
   Siren,
   Square,
+  Sun,
   Timer,
   TrendingDown,
   TrendingUp,
@@ -48,7 +57,8 @@ import { Speedometer } from "@/components/Speedometer";
 import { LIMIT_KMH, PARK_HOURS } from "@/lib/park";
 import { formatClock } from "@/lib/geo";
 import { formatStepRemaining, routeProgress, stepGlyph } from "@/lib/routing";
-import { estadoParque } from "@/lib/horario";
+import { estadoParque, horaSantiago } from "@/lib/horario";
+import { etiquetaClima, useClima } from "@/hooks/useClima";
 import { minimapHeight, useRideTheme } from "@/lib/rideTheme";
 import type { LatLng } from "@/lib/park";
 import type { RideEvent, RideStatus, Source, SpeedState } from "@/hooks/useRideEngine";
@@ -88,6 +98,19 @@ type Props = {
 
 export { stepGlyph };
 
+// Punto 6: icono del banner de clima según el código WMO de Open-Meteo.
+function climaIcono(code: number) {
+  const cls = "h-4 w-4 shrink-0 text-amber-400";
+  if (code === 0) return <Sun className={cls} />;
+  if (code === 1 || code === 2) return <CloudSun className={cls} />;
+  if (code === 3 || code === 45 || code === 48) return <CloudFog className={cls} />;
+  if ((code >= 51 && code <= 57) || (code >= 80 && code <= 82)) return <CloudDrizzle className={cls} />;
+  if (code === 85 || code === 86 || (code >= 71 && code <= 77)) return <CloudSnow className={cls} />;
+  if (code >= 61 && code <= 67) return <CloudRain className={cls} />;
+  if (code >= 95) return <CloudLightning className={cls} />;
+  return <Cloud className={cls} />;
+}
+
 export function RideView(p: Props) {
   const running = p.status === "running";
   const paused = p.status === "paused";
@@ -109,6 +132,9 @@ export function RideView(p: Props) {
   // Personalización Pro: estilo/tamaño del velocímetro y altura del minimapa.
   const theme = useRideTheme();
   const mm = minimapHeight(theme.minimapSize);
+  // Punto 6: clima del parque para el banner (icono + °C). En el APK
+  // funciona offline: muestra el último dato guardado con su hora.
+  const { clima } = useClima();
 
   // Horario del parque + aviso de luces (cálculo offline, se
   // evalúa al montar la vista; el banner no necesita reloj vivo).
@@ -278,6 +304,25 @@ export function RideView(p: Props) {
               </li>
             ))}
           </ul>
+        </div>
+      )}
+
+      {/* Punto 6: banner de clima (icono + °C). Open-Meteo sin API
+          key; offline muestra el último dato con su hora. */}
+      {clima && (
+        <div
+          className="flex items-center gap-2 rounded-full border border-border bg-card/70 px-3 py-1.5"
+          role="status"
+          aria-label={`Clima en el parque: ${etiquetaClima(clima.code)}, ${Math.round(clima.tempC)} grados`}
+        >
+          {climaIcono(clima.code)}
+          <span className="font-mono text-sm font-bold tabular-nums text-foreground">
+            {Math.round(clima.tempC)}°
+          </span>
+          <span className="truncate text-xs text-muted-foreground">{etiquetaClima(clima.code)}</span>
+          <span className="ml-auto shrink-0 font-mono text-[10px] text-muted-foreground/80">
+            Santiago · {horaSantiago(clima.actualizado)}
+          </span>
         </div>
       )}
 
