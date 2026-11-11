@@ -2,18 +2,24 @@
 
 // ============================================================
 // Vista de ride - rediseño de jerarquía (brief §2):
-//   minimapa → VELOCIDAD protagonista → distancia/tiempo →
-//   botón principal → stats secundarias colapsables → bitácora.
-// Dos estados: DETENIDO (todo visible, Iniciar evidente) y
+//   minimapa → fila estado/avisos/SOS → VELOCIDAD protagonista →
+//   distancia/tiempo → botón principal → caja-filtro (stats +
+//   bitácora) → indicaciones.
+// Punto 4 del brief: banner de avisos/advertencias/restricciones
+//   colapsable a un icono junto a la píldora de estado GPS y al
+//   botón SOS (horario/luz/Tupahue + advertencias vivas).
+// Punto 8 del brief: estadísticas y bitácora agrupadas en UNA
+//   caja con filtro por pestañas.
+// Dos estados: DETENIDO (caja abierta, Iniciar evidente) y
 // EN MARCHA/PAUSA (velocidad+mapa+nav primero, botones grandes).
 // La fuente Demo/GPS vive ahora en Configuración (no compite con
 // el botón Iniciar).
-// Conserva: banner de zona, exceso, indicaciones y bitácora.
 // ============================================================
 
 import dynamic from "next/dynamic";
 import { useMemo, useState } from "react";
 import {
+  AlertTriangle,
   BadgeCheck,
   Bike,
   ChevronDown,
@@ -26,6 +32,7 @@ import {
   Phone,
   Play,
   Route,
+  ScrollText,
   Share2,
   ShieldAlert,
   Siren,
@@ -89,6 +96,10 @@ export function RideView(p: Props) {
   const caution = p.speedState === "caution";
   const [sosOpen, setSosOpen] = useState(false);
   const [sosMsg, setSosMsg] = useState<string | null>(null);
+  // Punto 4: banner de avisos colapsado a icono por defecto.
+  const [avisosOpen, setAvisosOpen] = useState(false);
+  // Punto 8: pestaña activa de la caja-filtro (stats o bitácora).
+  const [cajaTab, setCajaTab] = useState<"stats" | "bitacora">("stats");
   // Personalización Pro: estilo/tamaño del velocímetro y altura del minimapa.
   const theme = useRideTheme();
   const mm = minimapHeight(theme.minimapSize);
@@ -99,6 +110,42 @@ export function RideView(p: Props) {
   // Descenso limpio: entró al parque y nunca pasó de 30 km/h.
   const descensoLimpio =
     !idle && p.overLimitSec === 0 && p.maxInParkKmh !== null && p.maxInParkKmh <= LIMIT_KMH;
+
+  // Punto 4: avisos activos para el banner colapsable. Combina el
+  // estado del parque (horario/luz/restricción Tupahue) con las
+  // advertencias vivas de la bitácora (warn/danger de los últimos
+  // 30 minutos, sin repetir texto).
+  const avisos = useMemo(() => {
+    type Aviso = { nivel: "info" | "warn" | "danger"; text: string };
+    const list: Aviso[] = [];
+    if (estado.aviso) {
+      list.push({
+        nivel: estado.nivel === "cierre" ? "danger" : estado.nivel === "luz" ? "warn" : "info",
+        text: estado.aviso,
+      });
+    }
+    const limite = Date.now() - 30 * 60 * 1000;
+    const vistos = new Set<string>();
+    for (const ev of [...p.events].reverse()) {
+      if (ev.t < limite) break;
+      if ((ev.kind === "warn" || ev.kind === "danger") && !vistos.has(ev.text)) {
+        vistos.add(ev.text);
+        list.push({ nivel: ev.kind === "danger" ? "danger" : "warn", text: ev.text });
+      }
+      if (list.length >= 4) break;
+    }
+    return list;
+  }, [estado, p.events]);
+  const avisoPeor = avisos.some((a) => a.nivel === "danger") ? "danger" : avisos.some((a) => a.nivel === "warn") ? "warn" : "info";
+  const avisoIconoCls =
+    avisoPeor === "danger"
+      ? "border-red-600/80 bg-red-950/60 text-red-300"
+      : "border-amber-600/80 bg-amber-950/60 text-amber-300";
+  const avisoBadgeCls = avisoPeor === "danger" ? "bg-red-600 text-white" : "bg-amber-500 text-amber-950";
+  const avisoPanelCls =
+    avisoPeor === "danger"
+      ? "border-red-700/60 bg-red-950/40 text-red-300"
+      : "border-amber-600/60 bg-amber-950/40 text-amber-300";
 
   const compartirUbicacion = async () => {
     if (!p.position) return;
@@ -155,44 +202,64 @@ export function RideView(p: Props) {
         <p className={`text-xs -mt-2 ${p.nav.provisional ? "text-sky-700/90 dark:text-sky-300/90" : "text-amber-700/90 dark:text-amber-300/90"}`}>{p.nav.note}</p>
       )}
 
-      {/* Píldora compacta de modo/estado (reemplaza el banner grande) */}
-      <div className="flex justify-center">
+      {/* Punto 4: fila superior = píldora de estado GPS + icono de
+          avisos colapsable + botón SOS. El banner completo se abre
+          bajo la fila solo cuando tocas el icono. */}
+      <div className="flex items-center gap-2">
         <span
-          className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-bold tracking-wide ${chip.cls}`}
+          className={`inline-flex min-w-0 flex-1 items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-bold tracking-wide ${chip.cls}`}
           role="status"
           aria-live="polite"
         >
           {chip.icon}
-          {chip.text}
+          <span className="truncate">{chip.text}</span>
         </span>
-      </div>
-
-      {/* Horario y luz: reglas del parque + atardecer (offline) */}
-      {estado.aviso && (
-        <div
-          className={`rounded-xl border px-4 py-2.5 text-xs font-medium ${
-            estado.nivel === "cierre"
-              ? "border-red-700/70 bg-red-950/50 text-red-200"
-              : estado.nivel === "luz"
-                ? "border-amber-600/70 bg-amber-950/50 text-amber-200"
-                : "border-sky-700/60 bg-sky-950/40 text-sky-200"
-          }`}
-          role="status"
-        >
-          {estado.nivel === "luz" ? "💡 " : "🕒 "}{estado.aviso}
-        </div>
-      )}
-
-      {/* SOS: teléfonos de emergencia + compartir ubicación */}
-      <div className="flex justify-end -mt-1">
+        {avisos.length > 0 && (
+          <button
+            onClick={() => setAvisosOpen((v) => !v)}
+            className={`relative inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border ${avisoIconoCls} ${avisosOpen ? "ring-2 ring-current/40" : ""}`}
+            aria-label={`${avisosOpen ? "Colapsar" : "Ver"} avisos y restricciones (${avisos.length})`}
+            aria-expanded={avisosOpen}
+          >
+            <AlertTriangle className="h-4 w-4" />
+            <span className={`absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[9px] font-extrabold ${avisoBadgeCls}`}>
+              {avisos.length}
+            </span>
+          </button>
+        )}
         <button
           onClick={() => setSosOpen(true)}
-          className="inline-flex items-center gap-1.5 rounded-full border border-red-800/70 bg-red-950/50 px-3 py-1.5 text-[11px] font-bold tracking-wide text-red-300 hover:bg-red-900/60"
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-red-800/70 bg-red-950/50 px-3 py-1.5 text-[11px] font-bold tracking-wide text-red-300 hover:bg-red-900/60"
           aria-label="Abrir tarjeta de emergencia"
         >
           <Siren className="h-3.5 w-3.5" /> SOS
         </button>
       </div>
+
+      {/* Punto 4: banner de avisos completo (colapsado por defecto) */}
+      {avisosOpen && avisos.length > 0 && (
+        <div className={`rounded-xl border p-3 ${avisoPanelCls}`} role="region" aria-label="Avisos y restricciones del parque">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4 shrink-0" />
+            <p className="flex-1 text-[10px] font-extrabold uppercase tracking-widest">Avisos y restricciones</p>
+            <button
+              onClick={() => setAvisosOpen(false)}
+              className="rounded-full border border-border/60 p-1 text-muted-foreground hover:text-foreground"
+              aria-label="Colapsar banner de avisos"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+          <ul className="mt-2 space-y-1.5">
+            {avisos.map((a, i) => (
+              <li key={i} className="flex items-start gap-2 text-xs leading-snug text-foreground/90">
+                <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${a.nivel === "danger" ? "bg-red-500" : a.nivel === "warn" ? "bg-amber-400" : "bg-sky-400"}`} />
+                {a.text}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {/* VELOCIDAD - protagonista (elemento 2 del brief), estilo y tamaño personalizables Pro */}
       <div className="text-center pt-1">
@@ -269,48 +336,92 @@ export function RideView(p: Props) {
         </div>
       )}
 
-      {/* Stats secundarias - colapsables (elemento 6) */}
+      {/* Punto 8: caja-filtro - estadísticas y bitácora en UNA caja,
+          filtrables por pestañas. Abierta por defecto cuando estás
+          detenido; en marcha queda colapsada para no estorbar. */}
       <details className="rounded-xl border border-border bg-card/70 p-3 group" open={idle}>
         <summary className="flex cursor-pointer select-none items-center gap-2 text-sm font-semibold text-foreground/90 list-none [&::-webkit-details-marker]:hidden">
           <Gauge className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-          Estadísticas del viaje
+          Estadísticas y bitácora
           <ChevronDown className="ml-auto h-4 w-4 text-muted-foreground transition-transform group-open:rotate-180" />
         </summary>
-        <div className="mt-3 grid grid-cols-3 gap-2">
-          <Stat label="Máx" value={p.maxKmh.toFixed(1)} unit="km/h" icon={<TrendingUp className="h-3 w-3" />} />
-          <Stat label="Prom" value={p.avgKmh.toFixed(1)} unit="km/h" icon={<Gauge className="h-3 w-3" />} />
-          <Stat label="Desnivel" value={`+${Math.round(p.gainM)}`} unit="m" icon={<Mountain className="h-3 w-3" />} />
-          <Stat
-            label="Pendiente"
-            value={`${p.slopePct > 0 ? "+" : ""}${p.slopePct.toFixed(1)}`}
-            unit="%"
-            icon={p.slopePct < 0 ? <TrendingDown className="h-3 w-3" /> : <TrendingUp className="h-3 w-3" />}
-          />
-          <Stat label="Precisión GPS" value={p.accuracyM !== null ? `±${Math.round(p.accuracyM)}` : "-"} unit={p.accuracyM !== null ? "m" : undefined} icon={<Navigation className="h-3 w-3" />} />
-          <Stat label="En parque" value={idle ? "-" : p.insidePark ? "Sí" : "No"} icon={<ShieldAlert className="h-3 w-3" />} />
+        <div className="mt-3 flex rounded-lg border border-border bg-background/50 p-0.5" role="tablist" aria-label="Filtro del viaje">
+          <button
+            role="tab"
+            aria-selected={cajaTab === "stats"}
+            onClick={() => setCajaTab("stats")}
+            className={`inline-flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-bold transition-colors ${cajaTab === "stats" ? "bg-accent text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+          >
+            Estadísticas
+          </button>
+          <button
+            role="tab"
+            aria-selected={cajaTab === "bitacora"}
+            onClick={() => setCajaTab("bitacora")}
+            className={`inline-flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-bold transition-colors ${cajaTab === "bitacora" ? "bg-accent text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+          >
+            <ScrollText className="h-3.5 w-3.5" /> Bitácora
+            {p.events.length > 0 && (
+              <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-emerald-600 px-1 text-[9px] font-extrabold text-white">
+                {p.events.length}
+              </span>
+            )}
+          </button>
         </div>
-        {p.overLimitSec > 0 && (
-          <Card className="mt-2.5 flex-row items-center justify-between border-red-900/70 bg-red-950/40 px-3 py-2.5">
-            <div className="flex items-center gap-2 text-red-300 text-xs font-semibold">
-              <ShieldAlert className="h-4 w-4" />
-              Tiempo sobre el límite en el parque
+        {cajaTab === "stats" ? (
+          <div className="mt-2.5">
+            <div className="grid grid-cols-3 gap-2">
+              <Stat label="Máx" value={p.maxKmh.toFixed(1)} unit="km/h" icon={<TrendingUp className="h-3 w-3" />} />
+              <Stat label="Prom" value={p.avgKmh.toFixed(1)} unit="km/h" icon={<Gauge className="h-3 w-3" />} />
+              <Stat label="Desnivel" value={`+${Math.round(p.gainM)}`} unit="m" icon={<Mountain className="h-3 w-3" />} />
+              <Stat
+                label="Pendiente"
+                value={`${p.slopePct > 0 ? "+" : ""}${p.slopePct.toFixed(1)}`}
+                unit="%"
+                icon={p.slopePct < 0 ? <TrendingDown className="h-3 w-3" /> : <TrendingUp className="h-3 w-3" />}
+              />
+              <Stat label="Precisión GPS" value={p.accuracyM !== null ? `±${Math.round(p.accuracyM)}` : "-"} unit={p.accuracyM !== null ? "m" : undefined} icon={<Navigation className="h-3 w-3" />} />
+              <Stat label="En parque" value={idle ? "-" : p.insidePark ? "Sí" : "No"} icon={<ShieldAlert className="h-3 w-3" />} />
             </div>
-            <div className="font-mono text-base font-bold tabular-nums text-red-300">{formatClock(p.overLimitSec)}</div>
-          </Card>
-        )}
-        {descensoLimpio && (
-          <Card className="mt-2.5 flex-row items-center justify-between border-emerald-800/70 bg-emerald-950/40 px-3 py-2.5">
-            <div className="flex items-center gap-2 text-emerald-300 text-xs font-semibold">
-              <BadgeCheck className="h-4 w-4" />
-              Descenso limpio: respetaste los {LIMIT_KMH} km/h en el parque
-            </div>
-            <BadgeCheck className="h-4 w-4 text-emerald-400" />
-          </Card>
-        )}
-        {p.maxInParkKmh !== null && (
-          <p className="mt-2 text-center text-[11px] text-muted-foreground">
-            Máxima dentro del parque: <span className="font-mono text-foreground/90">{p.maxInParkKmh.toFixed(1)} km/h</span>
-          </p>
+            {p.overLimitSec > 0 && (
+              <Card className="mt-2.5 flex-row items-center justify-between border-red-900/70 bg-red-950/40 px-3 py-2.5">
+                <div className="flex items-center gap-2 text-red-300 text-xs font-semibold">
+                  <ShieldAlert className="h-4 w-4" />
+                  Tiempo sobre el límite en el parque
+                </div>
+                <div className="font-mono text-base font-bold tabular-nums text-red-300">{formatClock(p.overLimitSec)}</div>
+              </Card>
+            )}
+            {descensoLimpio && (
+              <Card className="mt-2.5 flex-row items-center justify-between border-emerald-800/70 bg-emerald-950/40 px-3 py-2.5">
+                <div className="flex items-center gap-2 text-emerald-300 text-xs font-semibold">
+                  <BadgeCheck className="h-4 w-4" />
+                  Descenso limpio: respetaste los {LIMIT_KMH} km/h en el parque
+                </div>
+                <BadgeCheck className="h-4 w-4 text-emerald-400" />
+              </Card>
+            )}
+            {p.maxInParkKmh !== null && (
+              <p className="mt-2 text-center text-[11px] text-muted-foreground">
+                Máxima dentro del parque: <span className="font-mono text-foreground/90">{p.maxInParkKmh.toFixed(1)} km/h</span>
+              </p>
+            )}
+          </div>
+        ) : (
+          <ul className="mt-2.5 max-h-56 overflow-y-auto rounded-lg border border-border/70 divide-y divide-border/70" aria-label="Eventos del viaje">
+            {p.events.length === 0 && (
+              <li className="px-4 py-6 text-center text-sm text-muted-foreground/80">Sin eventos aún - los avisos de zona, geocercas y excesos aparecerán aquí.</li>
+            )}
+            {[...p.events].reverse().map((ev, i) => (
+              <li key={`${ev.t}-${i}`} className="px-3.5 py-2.5 flex items-start gap-2.5 text-sm">
+                <EventDot kind={ev.kind} />
+                <span className={eventText(ev.kind)}>{ev.text}</span>
+                <span className="ml-auto font-mono text-[11px] text-muted-foreground/80 shrink-0 mt-0.5">
+                  {new Date(ev.t).toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+                </span>
+              </li>
+            ))}
+          </ul>
         )}
       </details>
 
@@ -339,27 +450,6 @@ export function RideView(p: Props) {
           </ol>
         </details>
       )}
-
-      {/* Bitácora del viaje (elemento 7) */}
-      <div>
-        <div className="text-[11px] uppercase tracking-widest text-muted-foreground mb-2 font-extrabold">Bitácora del viaje</div>
-        <Card className="p-0 overflow-hidden">
-          <ul className="max-h-56 overflow-y-auto divide-y divide-border/70" aria-label="Eventos del viaje">
-            {p.events.length === 0 && (
-              <li className="px-4 py-6 text-center text-sm text-muted-foreground/80">Sin eventos aún - los avisos de zona, geocercas y excesos aparecerán aquí.</li>
-            )}
-            {[...p.events].reverse().map((ev, i) => (
-              <li key={`${ev.t}-${i}`} className="px-4 py-2.5 flex items-start gap-2.5 text-sm">
-                <EventDot kind={ev.kind} />
-                <span className={eventText(ev.kind)}>{ev.text}</span>
-                <span className="ml-auto font-mono text-[11px] text-muted-foreground/80 shrink-0 mt-0.5">
-                  {new Date(ev.t).toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </Card>
-      </div>
 
       {/* Tarjeta de emergencia (funciona sin conexión: tel: y compartir) */}
       {sosOpen && (
