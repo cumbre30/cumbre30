@@ -61,7 +61,7 @@ export function VehicleConfirmModal({
         <div className="mt-4 flex flex-col gap-2">
           <Button
             onClick={() => onAnswer(true)}
-            className="h-12 w-full rounded-xl bg-emerald-600 text-base font-extrabold text-zinc-950 hover:bg-emerald-500"
+            className="h-12 w-full rounded-xl bg-emerald-600 text-base font-extrabold text-(--c30-on-accent) hover:bg-emerald-500"
           >
             <Bike className="h-5 w-5" /> Sí, fui en bici
           </Button>

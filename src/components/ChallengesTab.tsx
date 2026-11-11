@@ -284,7 +284,7 @@ export default function ChallengesTab({ onGoPerfil, onGoPro }: { onGoPerfil: () 
         </p>
         <Button
           onClick={onGoPerfil}
-          className="mt-4 h-11 w-full bg-emerald-600 font-bold text-zinc-950 hover:bg-emerald-500"
+          className="mt-4 h-11 w-full bg-emerald-600 font-bold text-(--c30-on-accent) hover:bg-emerald-500"
         >
           <LogIn className="mr-2 h-4 w-4" /> Iniciar sesión
         </Button>
@@ -482,7 +482,7 @@ export default function ChallengesTab({ onGoPerfil, onGoPro }: { onGoPerfil: () 
                 </span>
                 {done && !current && <CheckCircle2 className="absolute -top-1.5 -right-1.5 h-4 w-4 rounded-full bg-card text-emerald-600 dark:text-emerald-400" />}
                 {current && (
-                  <span className="absolute -top-2 right-1 rounded-full bg-emerald-500 px-1.5 text-[8px] font-extrabold uppercase tracking-wide text-zinc-950">aquí</span>
+                  <span className="absolute -top-2 right-1 rounded-full bg-emerald-500 px-1.5 text-[8px] font-extrabold uppercase tracking-wide text-(--c30-on-accent)">aquí</span>
                 )}
                 {!done && !current && <Lock className="absolute -top-1.5 -right-1.5 h-3.5 w-3.5 text-muted-foreground/70" />}
               </div>

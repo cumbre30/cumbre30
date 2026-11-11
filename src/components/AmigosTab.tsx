@@ -86,7 +86,7 @@ export function AmigosTab({ onGoPerfil }: { onGoPerfil?: () => void }) {
         {onGoPerfil && (
           <Button
             onClick={onGoPerfil}
-            className="mt-4 h-10 bg-emerald-600 font-semibold text-zinc-950 hover:bg-emerald-500"
+            className="mt-4 h-10 bg-emerald-600 font-semibold text-(--c30-on-accent) hover:bg-emerald-500"
           >
             <LogIn className="mr-2 h-4 w-4" /> Ir a iniciar sesión
           </Button>
@@ -116,7 +116,7 @@ export function AmigosTab({ onGoPerfil }: { onGoPerfil?: () => void }) {
           <Button
             onClick={() => void addFriend()}
             disabled={busy || !friendName.trim()}
-            className="shrink-0 bg-emerald-600 font-semibold text-zinc-950 hover:bg-emerald-500"
+            className="shrink-0 bg-emerald-600 font-semibold text-(--c30-on-accent) hover:bg-emerald-500"
           >
             <UserPlus className="mr-1 h-4 w-4" /> Agregar
           </Button>

@@ -45,6 +45,9 @@
 
 :root {
   --radius: 0.625rem;
+  /* Color del texto sobre botones de acento (bg-emerald-600).
+     Los temas lila/grafito lo cambian a claro (ver más abajo). */
+  --c30-on-accent: #04110b;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
@@ -118,6 +121,76 @@
   --sidebar-ring: #00A86B;
 }
 
+/* ============================================================
+   Temas Pro (rideTheme.ts): remapean la escala emerald de
+   Tailwind v4 (las utilidades referencian var(--color-emerald-*))
+   y el primario shadcn, así TODO el acento de la app cambia sin
+   tocar clases. El tema "cerro" (verde original) no aplica nada.
+   --c30-on-accent = color de texto sobre botones de acento.
+   ============================================================ */
+html[data-accent="andes"] {
+  --color-emerald-300: #7dd3fc;
+  --color-emerald-400: #38bdf8;
+  --color-emerald-500: #0ea5e9;
+  --color-emerald-600: #0284c7;
+  --color-emerald-700: #0369a1;
+  --color-emerald-800: #075985;
+  --color-emerald-900: #0c4a6e;
+  --color-emerald-950: #082f49;
+  --primary: #0284c7;
+  --ring: #0284c7;
+  --chart-1: #0284c7;
+  --sidebar-primary: #0284c7;
+  --sidebar-ring: #0284c7;
+}
+html[data-accent="atardecer"] {
+  --color-emerald-300: #fcd34d;
+  --color-emerald-400: #fbbf24;
+  --color-emerald-500: #f59e0b;
+  --color-emerald-600: #d97706;
+  --color-emerald-700: #b45309;
+  --color-emerald-800: #92400e;
+  --color-emerald-900: #78350f;
+  --color-emerald-950: #451a03;
+  --primary: #d97706;
+  --ring: #d97706;
+  --chart-1: #d97706;
+  --sidebar-primary: #d97706;
+  --sidebar-ring: #d97706;
+}
+html[data-accent="lila"] {
+  --color-emerald-300: #d8b4fe;
+  --color-emerald-400: #c084fc;
+  --color-emerald-500: #a855f7;
+  --color-emerald-600: #9333ea;
+  --color-emerald-700: #7e22ce;
+  --color-emerald-800: #6b21a8;
+  --color-emerald-900: #581c87;
+  --color-emerald-950: #4c1d95;
+  --primary: #9333ea;
+  --ring: #9333ea;
+  --chart-1: #9333ea;
+  --sidebar-primary: #9333ea;
+  --sidebar-ring: #9333ea;
+  --c30-on-accent: #fafafa;
+}
+html[data-accent="grafito"] {
+  --color-emerald-300: #d4d4d8;
+  --color-emerald-400: #a1a1aa;
+  --color-emerald-500: #52525b;
+  --color-emerald-600: #3f3f46;
+  --color-emerald-700: #27272a;
+  --color-emerald-800: #1c1c1f;
+  --color-emerald-900: #141416;
+  --color-emerald-950: #09090b;
+  --primary: #3f3f46;
+  --ring: #3f3f46;
+  --chart-1: #3f3f46;
+  --sidebar-primary: #3f3f46;
+  --sidebar-ring: #3f3f46;
+  --c30-on-accent: #fafafa;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -187,3 +260,114 @@
 }
 /* El marcador MapLibre no debe capturar gestos del minimapa */
 .c30-puck, .c30-puck * { pointer-events: none; }
+
+/* >>> CUMBRE30:OPACIDAD-ACENTO:INICIO (generado por scripts/gen-accent-opacity-css.py - no editar a mano) <<< */
+/* andes */
+html[data-accent="andes"] .bg-emerald-500\/10{background-color:color-mix(in oklab, var(--color-emerald-500) 10%, transparent)}
+html[data-accent="andes"] .bg-emerald-500\/15{background-color:color-mix(in oklab, var(--color-emerald-500) 15%, transparent)}
+html[data-accent="andes"] .bg-emerald-500\/50{background-color:color-mix(in oklab, var(--color-emerald-500) 50%, transparent)}
+html[data-accent="andes"] .bg-emerald-600\/10{background-color:color-mix(in oklab, var(--color-emerald-600) 10%, transparent)}
+html[data-accent="andes"] .bg-emerald-600\/15{background-color:color-mix(in oklab, var(--color-emerald-600) 15%, transparent)}
+html[data-accent="andes"] .bg-emerald-600\/40{background-color:color-mix(in oklab, var(--color-emerald-600) 40%, transparent)}
+html[data-accent="andes"] .bg-emerald-950\/20{background-color:color-mix(in oklab, var(--color-emerald-950) 20%, transparent)}
+html[data-accent="andes"] .bg-emerald-950\/30{background-color:color-mix(in oklab, var(--color-emerald-950) 30%, transparent)}
+html[data-accent="andes"] .bg-emerald-950\/40{background-color:color-mix(in oklab, var(--color-emerald-950) 40%, transparent)}
+html[data-accent="andes"] .bg-emerald-950\/60{background-color:color-mix(in oklab, var(--color-emerald-950) 60%, transparent)}
+html[data-accent="andes"] .border-emerald-400\/70{border-color:color-mix(in oklab, var(--color-emerald-400) 70%, transparent)}
+html[data-accent="andes"] .border-emerald-500\/40{border-color:color-mix(in oklab, var(--color-emerald-500) 40%, transparent)}
+html[data-accent="andes"] .border-emerald-500\/60{border-color:color-mix(in oklab, var(--color-emerald-500) 60%, transparent)}
+html[data-accent="andes"] .border-emerald-500\/70{border-color:color-mix(in oklab, var(--color-emerald-500) 70%, transparent)}
+html[data-accent="andes"] .border-emerald-600\/40{border-color:color-mix(in oklab, var(--color-emerald-600) 40%, transparent)}
+html[data-accent="andes"] .border-emerald-600\/50{border-color:color-mix(in oklab, var(--color-emerald-600) 50%, transparent)}
+html[data-accent="andes"] .border-emerald-600\/60{border-color:color-mix(in oklab, var(--color-emerald-600) 60%, transparent)}
+html[data-accent="andes"] .border-emerald-700\/40{border-color:color-mix(in oklab, var(--color-emerald-700) 40%, transparent)}
+html[data-accent="andes"] .border-emerald-700\/60{border-color:color-mix(in oklab, var(--color-emerald-700) 60%, transparent)}
+html[data-accent="andes"] .border-emerald-800\/60{border-color:color-mix(in oklab, var(--color-emerald-800) 60%, transparent)}
+html[data-accent="andes"] .border-emerald-800\/70{border-color:color-mix(in oklab, var(--color-emerald-800) 70%, transparent)}
+html[data-accent="andes"] .text-emerald-700\/90{color:color-mix(in oklab, var(--color-emerald-700) 90%, transparent)}
+html[data-accent="andes"] .dark .dark\:text-emerald-300\/90{color:color-mix(in oklab, var(--color-emerald-300) 90%, transparent)}
+html[data-accent="andes"] .bg-emerald-950\/40:hover{background-color:color-mix(in oklab, var(--color-emerald-950) 40%, transparent)}
+html[data-accent="andes"] .border-emerald-500\/50:hover{border-color:color-mix(in oklab, var(--color-emerald-500) 50%, transparent)}
+html[data-accent="andes"] .border-emerald-500\/60:hover{border-color:color-mix(in oklab, var(--color-emerald-500) 60%, transparent)}
+/* atardecer */
+html[data-accent="atardecer"] .bg-emerald-500\/10{background-color:color-mix(in oklab, var(--color-emerald-500) 10%, transparent)}
+html[data-accent="atardecer"] .bg-emerald-500\/15{background-color:color-mix(in oklab, var(--color-emerald-500) 15%, transparent)}
+html[data-accent="atardecer"] .bg-emerald-500\/50{background-color:color-mix(in oklab, var(--color-emerald-500) 50%, transparent)}
+html[data-accent="atardecer"] .bg-emerald-600\/10{background-color:color-mix(in oklab, var(--color-emerald-600) 10%, transparent)}
+html[data-accent="atardecer"] .bg-emerald-600\/15{background-color:color-mix(in oklab, var(--color-emerald-600) 15%, transparent)}
+html[data-accent="atardecer"] .bg-emerald-600\/40{background-color:color-mix(in oklab, var(--color-emerald-600) 40%, transparent)}
+html[data-accent="atardecer"] .bg-emerald-950\/20{background-color:color-mix(in oklab, var(--color-emerald-950) 20%, transparent)}
+html[data-accent="atardecer"] .bg-emerald-950\/30{background-color:color-mix(in oklab, var(--color-emerald-950) 30%, transparent)}
+html[data-accent="atardecer"] .bg-emerald-950\/40{background-color:color-mix(in oklab, var(--color-emerald-950) 40%, transparent)}
+html[data-accent="atardecer"] .bg-emerald-950\/60{background-color:color-mix(in oklab, var(--color-emerald-950) 60%, transparent)}
+html[data-accent="atardecer"] .border-emerald-400\/70{border-color:color-mix(in oklab, var(--color-emerald-400) 70%, transparent)}
+html[data-accent="atardecer"] .border-emerald-500\/40{border-color:color-mix(in oklab, var(--color-emerald-500) 40%, transparent)}
+html[data-accent="atardecer"] .border-emerald-500\/60{border-color:color-mix(in oklab, var(--color-emerald-500) 60%, transparent)}
+html[data-accent="atardecer"] .border-emerald-500\/70{border-color:color-mix(in oklab, var(--color-emerald-500) 70%, transparent)}
+html[data-accent="atardecer"] .border-emerald-600\/40{border-color:color-mix(in oklab, var(--color-emerald-600) 40%, transparent)}
+html[data-accent="atardecer"] .border-emerald-600\/50{border-color:color-mix(in oklab, var(--color-emerald-600) 50%, transparent)}
+html[data-accent="atardecer"] .border-emerald-600\/60{border-color:color-mix(in oklab, var(--color-emerald-600) 60%, transparent)}
+html[data-accent="atardecer"] .border-emerald-700\/40{border-color:color-mix(in oklab, var(--color-emerald-700) 40%, transparent)}
+html[data-accent="atardecer"] .border-emerald-700\/60{border-color:color-mix(in oklab, var(--color-emerald-700) 60%, transparent)}
+html[data-accent="atardecer"] .border-emerald-800\/60{border-color:color-mix(in oklab, var(--color-emerald-800) 60%, transparent)}
+html[data-accent="atardecer"] .border-emerald-800\/70{border-color:color-mix(in oklab, var(--color-emerald-800) 70%, transparent)}
+html[data-accent="atardecer"] .text-emerald-700\/90{color:color-mix(in oklab, var(--color-emerald-700) 90%, transparent)}
+html[data-accent="atardecer"] .dark .dark\:text-emerald-300\/90{color:color-mix(in oklab, var(--color-emerald-300) 90%, transparent)}
+html[data-accent="atardecer"] .bg-emerald-950\/40:hover{background-color:color-mix(in oklab, var(--color-emerald-950) 40%, transparent)}
+html[data-accent="atardecer"] .border-emerald-500\/50:hover{border-color:color-mix(in oklab, var(--color-emerald-500) 50%, transparent)}
+html[data-accent="atardecer"] .border-emerald-500\/60:hover{border-color:color-mix(in oklab, var(--color-emerald-500) 60%, transparent)}
+/* lila */
+html[data-accent="lila"] .bg-emerald-500\/10{background-color:color-mix(in oklab, var(--color-emerald-500) 10%, transparent)}
+html[data-accent="lila"] .bg-emerald-500\/15{background-color:color-mix(in oklab, var(--color-emerald-500) 15%, transparent)}
+html[data-accent="lila"] .bg-emerald-500\/50{background-color:color-mix(in oklab, var(--color-emerald-500) 50%, transparent)}
+html[data-accent="lila"] .bg-emerald-600\/10{background-color:color-mix(in oklab, var(--color-emerald-600) 10%, transparent)}
+html[data-accent="lila"] .bg-emerald-600\/15{background-color:color-mix(in oklab, var(--color-emerald-600) 15%, transparent)}
+html[data-accent="lila"] .bg-emerald-600\/40{background-color:color-mix(in oklab, var(--color-emerald-600) 40%, transparent)}
+html[data-accent="lila"] .bg-emerald-950\/20{background-color:color-mix(in oklab, var(--color-emerald-950) 20%, transparent)}
+html[data-accent="lila"] .bg-emerald-950\/30{background-color:color-mix(in oklab, var(--color-emerald-950) 30%, transparent)}
+html[data-accent="lila"] .bg-emerald-950\/40{background-color:color-mix(in oklab, var(--color-emerald-950) 40%, transparent)}
+html[data-accent="lila"] .bg-emerald-950\/60{background-color:color-mix(in oklab, var(--color-emerald-950) 60%, transparent)}
+html[data-accent="lila"] .border-emerald-400\/70{border-color:color-mix(in oklab, var(--color-emerald-400) 70%, transparent)}
+html[data-accent="lila"] .border-emerald-500\/40{border-color:color-mix(in oklab, var(--color-emerald-500) 40%, transparent)}
+html[data-accent="lila"] .border-emerald-500\/60{border-color:color-mix(in oklab, var(--color-emerald-500) 60%, transparent)}
+html[data-accent="lila"] .border-emerald-500\/70{border-color:color-mix(in oklab, var(--color-emerald-500) 70%, transparent)}
+html[data-accent="lila"] .border-emerald-600\/40{border-color:color-mix(in oklab, var(--color-emerald-600) 40%, transparent)}
+html[data-accent="lila"] .border-emerald-600\/50{border-color:color-mix(in oklab, var(--color-emerald-600) 50%, transparent)}
+html[data-accent="lila"] .border-emerald-600\/60{border-color:color-mix(in oklab, var(--color-emerald-600) 60%, transparent)}
+html[data-accent="lila"] .border-emerald-700\/40{border-color:color-mix(in oklab, var(--color-emerald-700) 40%, transparent)}
+html[data-accent="lila"] .border-emerald-700\/60{border-color:color-mix(in oklab, var(--color-emerald-700) 60%, transparent)}
+html[data-accent="lila"] .border-emerald-800\/60{border-color:color-mix(in oklab, var(--color-emerald-800) 60%, transparent)}
+html[data-accent="lila"] .border-emerald-800\/70{border-color:color-mix(in oklab, var(--color-emerald-800) 70%, transparent)}
+html[data-accent="lila"] .text-emerald-700\/90{color:color-mix(in oklab, var(--color-emerald-700) 90%, transparent)}
+html[data-accent="lila"] .dark .dark\:text-emerald-300\/90{color:color-mix(in oklab, var(--color-emerald-300) 90%, transparent)}
+html[data-accent="lila"] .bg-emerald-950\/40:hover{background-color:color-mix(in oklab, var(--color-emerald-950) 40%, transparent)}
+html[data-accent="lila"] .border-emerald-500\/50:hover{border-color:color-mix(in oklab, var(--color-emerald-500) 50%, transparent)}
+html[data-accent="lila"] .border-emerald-500\/60:hover{border-color:color-mix(in oklab, var(--color-emerald-500) 60%, transparent)}
+/* grafito */
+html[data-accent="grafito"] .bg-emerald-500\/10{background-color:color-mix(in oklab, var(--color-emerald-500) 10%, transparent)}
+html[data-accent="grafito"] .bg-emerald-500\/15{background-color:color-mix(in oklab, var(--color-emerald-500) 15%, transparent)}
+html[data-accent="grafito"] .bg-emerald-500\/50{background-color:color-mix(in oklab, var(--color-emerald-500) 50%, transparent)}
+html[data-accent="grafito"] .bg-emerald-600\/10{background-color:color-mix(in oklab, var(--color-emerald-600) 10%, transparent)}
+html[data-accent="grafito"] .bg-emerald-600\/15{background-color:color-mix(in oklab, var(--color-emerald-600) 15%, transparent)}
+html[data-accent="grafito"] .bg-emerald-600\/40{background-color:color-mix(in oklab, var(--color-emerald-600) 40%, transparent)}
+html[data-accent="grafito"] .bg-emerald-950\/20{background-color:color-mix(in oklab, var(--color-emerald-950) 20%, transparent)}
+html[data-accent="grafito"] .bg-emerald-950\/30{background-color:color-mix(in oklab, var(--color-emerald-950) 30%, transparent)}
+html[data-accent="grafito"] .bg-emerald-950\/40{background-color:color-mix(in oklab, var(--color-emerald-950) 40%, transparent)}
+html[data-accent="grafito"] .bg-emerald-950\/60{background-color:color-mix(in oklab, var(--color-emerald-950) 60%, transparent)}
+html[data-accent="grafito"] .border-emerald-400\/70{border-color:color-mix(in oklab, var(--color-emerald-400) 70%, transparent)}
+html[data-accent="grafito"] .border-emerald-500\/40{border-color:color-mix(in oklab, var(--color-emerald-500) 40%, transparent)}
+html[data-accent="grafito"] .border-emerald-500\/60{border-color:color-mix(in oklab, var(--color-emerald-500) 60%, transparent)}
+html[data-accent="grafito"] .border-emerald-500\/70{border-color:color-mix(in oklab, var(--color-emerald-500) 70%, transparent)}
+html[data-accent="grafito"] .border-emerald-600\/40{border-color:color-mix(in oklab, var(--color-emerald-600) 40%, transparent)}
+html[data-accent="grafito"] .border-emerald-600\/50{border-color:color-mix(in oklab, var(--color-emerald-600) 50%, transparent)}
+html[data-accent="grafito"] .border-emerald-600\/60{border-color:color-mix(in oklab, var(--color-emerald-600) 60%, transparent)}
+html[data-accent="grafito"] .border-emerald-700\/40{border-color:color-mix(in oklab, var(--color-emerald-700) 40%, transparent)}
+html[data-accent="grafito"] .border-emerald-700\/60{border-color:color-mix(in oklab, var(--color-emerald-700) 60%, transparent)}
+html[data-accent="grafito"] .border-emerald-800\/60{border-color:color-mix(in oklab, var(--color-emerald-800) 60%, transparent)}
+html[data-accent="grafito"] .border-emerald-800\/70{border-color:color-mix(in oklab, var(--color-emerald-800) 70%, transparent)}
+html[data-accent="grafito"] .text-emerald-700\/90{color:color-mix(in oklab, var(--color-emerald-700) 90%, transparent)}
+html[data-accent="grafito"] .dark .dark\:text-emerald-300\/90{color:color-mix(in oklab, var(--color-emerald-300) 90%, transparent)}
+html[data-accent="grafito"] .bg-emerald-950\/40:hover{background-color:color-mix(in oklab, var(--color-emerald-950) 40%, transparent)}
+html[data-accent="grafito"] .border-emerald-500\/50:hover{border-color:color-mix(in oklab, var(--color-emerald-500) 50%, transparent)}
+html[data-accent="grafito"] .border-emerald-500\/60:hover{border-color:color-mix(in oklab, var(--color-emerald-500) 60%, transparent)}
+/* >>> CUMBRE30:OPACIDAD-ACENTO:FIN <<< */

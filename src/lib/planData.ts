@@ -40,6 +40,7 @@ export const PLAN_ROWS: PlanRow[] = [
   { feature: "Buscador universal de direcciones", free: false, pro: true },
   { feature: "Segmentos del cerro con récords", free: false, pro: true },
   { feature: "Export GPX (Strava, Garmin, Komoot)", free: false, pro: true },
+  { feature: "Temas de color y velocímetro personalizable", free: false, pro: true },
 ];
 
 /** Texto del beneficio Pro que abre el modal contextual del mapa. */

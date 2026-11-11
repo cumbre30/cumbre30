@@ -231,7 +231,7 @@ export function StatsTab({ onGoPro }: { onGoPro: () => void }) {
                     </Card>
                   ))}
                 </div>
-                <Button onClick={onGoPro} size="sm" className="h-9 shrink-0 self-center rounded-lg bg-emerald-600 px-3 text-xs font-bold text-zinc-950 hover:bg-emerald-500">
+                <Button onClick={onGoPro} size="sm" className="h-9 shrink-0 self-center rounded-lg bg-emerald-600 px-3 text-xs font-bold text-(--c30-on-accent) hover:bg-emerald-500">
                   <Lock className="mr-1 h-3 w-3" /> Con PRO
                 </Button>
               </>

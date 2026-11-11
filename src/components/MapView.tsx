@@ -451,7 +451,7 @@ function SearchCard({
         onClick={onToggleMarkMode}
         className={`mt-2 flex h-8 w-full items-center justify-center gap-1.5 rounded-md border text-[11px] font-medium ${
           markMode
-            ? "border-emerald-400 bg-emerald-600 text-zinc-950"
+            ? "border-emerald-400 bg-emerald-600 text-(--c30-on-accent)"
             : "border-border bg-background text-muted-foreground hover:border-emerald-500 hover:text-foreground"
         }`}
       >
@@ -1039,7 +1039,7 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
               <button
                 onClick={saveMark}
                 disabled={!markName.trim()}
-                className="rounded-md bg-emerald-600 px-2.5 py-1.5 text-[11px] font-semibold text-zinc-950 hover:bg-emerald-500 disabled:opacity-40"
+                className="rounded-md bg-emerald-600 px-2.5 py-1.5 text-[11px] font-semibold text-(--c30-on-accent) hover:bg-emerald-500 disabled:opacity-40"
               >
                 Guardar
               </button>

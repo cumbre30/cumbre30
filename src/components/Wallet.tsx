@@ -208,7 +208,7 @@ export default function Wallet() {
             <Button
               onClick={() => fileRef.current?.click()}
               disabled={qrBusy}
-              className="bg-emerald-600 hover:bg-emerald-500 text-zinc-950 font-semibold"
+              className="bg-emerald-600 hover:bg-emerald-500 text-(--c30-on-accent) font-semibold"
             >
               <Upload className="h-4 w-4 mr-2" /> {qrBusy ? "Procesando…" : "Cargar mi QR"}
             </Button>
@@ -230,7 +230,7 @@ export default function Wallet() {
             <div className="flex gap-2 w-full">
               <Button
                 onClick={() => setFullQr(true)}
-                className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-zinc-950 font-semibold"
+                className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-(--c30-on-accent) font-semibold"
               >
                 <Maximize2 className="h-4 w-4 mr-2" /> Pantalla completa
               </Button>

@@ -28,6 +28,7 @@ import { useRideEngine, type Source } from "@/hooks/useRideEngine";
 import { useMe } from "@/hooks/useMe";
 import { useNavEngine } from "@/hooks/useNavEngine";
 import { useProLicense } from "@/lib/proLicense";
+import { applyThemeColor, useRideTheme } from "@/lib/rideTheme";
 import { linkRidesToAccount, setRideOwner } from "@/lib/history";
 import { courseHeading } from "@/lib/geo";
 import { alerts } from "@/lib/alertEngine";
@@ -122,6 +123,11 @@ export default function Home() {
 
   const status = ride.status; // idle | running | paused
   const active = status !== "idle"; // el ride (o su pausa) está en curso
+  // Tema Pro de color: remapea el acento por CSS (html[data-accent]).
+  const rideTheme = useRideTheme();
+  useEffect(() => {
+    applyThemeColor(rideTheme.color);
+  }, [rideTheme.color]);
   // Enlace viaje ↔ cuenta: rides nuevos y antiguos quedan asociados al
   // correo de la sesión; sin correo son locales del dispositivo.
   const userEmail = me?.user.email ?? null;
@@ -179,7 +185,7 @@ export default function Home() {
       <header className="sticky top-0 z-40 bg-background/95 backdrop-blur border-b border-border">
         <div className="max-w-md mx-auto px-4 py-3 flex items-center gap-3">
           <div className="h-9 w-9 rounded-lg bg-emerald-600 flex items-center justify-center shrink-0">
-            <Bike className="h-5 w-5 text-zinc-950" aria-hidden />
+            <Bike className="h-5 w-5 text-(--c30-on-accent)" aria-hidden />
           </div>
           <div className="min-w-0">
             <h1 className="font-bold leading-tight tracking-tight">
@@ -277,6 +283,8 @@ export default function Home() {
                 onToggleSound={toggleSound}
                 voiceOn={voiceOn}
                 onToggleVoice={toggleVoice}
+                pro={pro.active}
+                onGoPro={() => go("planes")}
               />
             )}
             {screen === "ayuda" && <HelpTab />}

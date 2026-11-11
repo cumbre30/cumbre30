@@ -112,7 +112,7 @@ export function PagosTab() {
               <Button
                 onClick={() => void buy()}
                 disabled={playBusy || !playReady}
-                className="mt-3 h-10 w-full bg-emerald-600 font-semibold text-zinc-950 hover:bg-emerald-500"
+                className="mt-3 h-10 w-full bg-emerald-600 font-semibold text-(--c30-on-accent) hover:bg-emerald-500"
               >
                 {playBusy ? "Abriendo Google Play…" : playReady ? `Comprar con Google Play - ${shownPlayPrice}` : "Conectando con Google Play…"}
               </Button>
@@ -239,7 +239,7 @@ export function PagosTab() {
                     <Button
                       onClick={activatePro}
                       disabled={proBusy || !proCode || (!me && !proEmail)}
-                      className="h-10 bg-emerald-600 font-semibold text-zinc-950 hover:bg-emerald-500"
+                      className="h-10 bg-emerald-600 font-semibold text-(--c30-on-accent) hover:bg-emerald-500"
                     >
                       {proBusy ? "Validando…" : "Validar código"}
                     </Button>

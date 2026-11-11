@@ -37,10 +37,12 @@ import {
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Speedometer } from "@/components/Speedometer";
 import { LIMIT_KMH } from "@/lib/park";
 import { formatClock } from "@/lib/geo";
 import { formatStepRemaining, routeProgress, stepGlyph } from "@/lib/routing";
 import { estadoParque } from "@/lib/horario";
+import { minimapHeight, useRideTheme } from "@/lib/rideTheme";
 import type { LatLng } from "@/lib/park";
 import type { RideEvent, RideStatus, Source, SpeedState } from "@/hooks/useRideEngine";
 import type { NavEngine } from "@/hooks/useNavEngine";
@@ -87,6 +89,9 @@ export function RideView(p: Props) {
   const caution = p.speedState === "caution";
   const [sosOpen, setSosOpen] = useState(false);
   const [sosMsg, setSosMsg] = useState<string | null>(null);
+  // Personalización Pro: estilo/tamaño del velocímetro y altura del minimapa.
+  const theme = useRideTheme();
+  const mm = minimapHeight(theme.minimapSize);
 
   // Horario del parque + aviso de luces (cálculo offline, se
   // evalúa al montar la vista; el banner no necesita reloj vivo).
@@ -112,35 +117,18 @@ export function RideView(p: Props) {
     setTimeout(() => setSosMsg(null), 5000);
   };
 
-  const speedColor = idle
-    ? "text-muted-foreground/50"
+  // Modo y estado en UNA píldora compacta (punto 3: sin banner
+  // grande que sature la pantalla ride). El modo es automático:
+  // geocerca del parque; lo demás son estados de velocidad y pausa.
+  const chip = paused
+    ? { cls: "border-sky-600/70 bg-sky-950/50 text-sky-300", icon: <Pause className="h-3.5 w-3.5" />, text: "EN PAUSA" }
     : over
-      ? "text-red-600 dark:text-red-500"
+      ? { cls: "border-red-600 bg-red-950/80 text-red-300 animate-pulse", icon: <ShieldAlert className="h-3.5 w-3.5" />, text: `EXCESO · límite ${LIMIT_KMH}` }
       : caution
-        ? "text-amber-600 dark:text-amber-400"
+        ? { cls: "border-amber-600/70 bg-amber-950/50 text-amber-300", icon: <ShieldAlert className="h-3.5 w-3.5" />, text: `PRECAUCIÓN · cerca del límite` }
         : p.insidePark
-          ? "text-emerald-600 dark:text-emerald-400"
-          : "text-foreground";
-
-  const banner = paused
-    ? "bg-sky-950/70 border-sky-600 text-sky-200"
-    : over
-      ? "bg-red-950/90 border-red-600 text-red-200 animate-pulse"
-      : caution
-        ? "bg-amber-950/90 border-amber-500 text-amber-200"
-        : p.insidePark
-          ? "bg-emerald-950/70 border-emerald-700 text-emerald-200"
-          : "bg-card/80 border-border text-muted-foreground";
-
-  const bannerText = paused
-    ? "EN PAUSA - cronómetro y distancia congelados"
-    : over
-      ? `¡EXCESO DE VELOCIDAD! · LÍMITE ${LIMIT_KMH} km/h`
-      : caution
-        ? `PRECAUCIÓN · te acercas al límite de ${LIMIT_KMH} km/h`
-        : p.insidePark
-          ? `MODO PARQUEMET · límite ${LIMIT_KMH} km/h`
-          : "MODO LIBRE · fuera del parque";
+          ? { cls: "border-emerald-600/60 bg-emerald-950/60 text-emerald-300", icon: <ShieldAlert className="h-3.5 w-3.5" />, text: `MODO PARQUE · ${LIMIT_KMH}` }
+          : { cls: "border-border bg-card/80 text-muted-foreground", icon: <Bike className="h-3.5 w-3.5" />, text: "MODO LIBRE" };
 
   // Navegación viva: progreso para la lista de indicaciones
   const onRoute = !!p.nav.route && p.nav.route.coords.length > 1;
@@ -160,15 +148,23 @@ export function RideView(p: Props) {
         userPin={p.userPin}
         nav={p.nav}
         speedKmh={p.speedKmh}
+        heightClass={mm.base}
+        heightRouteClass={mm.route}
       />
       {p.nav.note && (
         <p className={`text-xs -mt-2 ${p.nav.provisional ? "text-sky-700/90 dark:text-sky-300/90" : "text-amber-700/90 dark:text-amber-300/90"}`}>{p.nav.note}</p>
       )}
 
-      {/* Banner de zona */}
-      <div className={`rounded-xl border px-4 py-3 flex items-center gap-3 font-semibold tracking-wide text-sm ${banner}`} role="status" aria-live="polite">
-        {p.insidePark ? <ShieldAlert className="h-5 w-5 shrink-0" /> : <Bike className="h-5 w-5 shrink-0" />}
-        <span>{bannerText}</span>
+      {/* Píldora compacta de modo/estado (reemplaza el banner grande) */}
+      <div className="flex justify-center">
+        <span
+          className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-bold tracking-wide ${chip.cls}`}
+          role="status"
+          aria-live="polite"
+        >
+          {chip.icon}
+          {chip.text}
+        </span>
       </div>
 
       {/* Horario y luz: reglas del parque + atardecer (offline) */}
@@ -198,26 +194,17 @@ export function RideView(p: Props) {
         </button>
       </div>
 
-      {/* VELOCIDAD - protagonista (elemento 2 del brief) */}
+      {/* VELOCIDAD - protagonista (elemento 2 del brief), estilo y tamaño personalizables Pro */}
       <div className="text-center pt-1">
-        {p.insidePark && !idle && (
-          <span
-            className={`mb-1 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-extrabold tracking-widest ${
-              over
-                ? "border-red-500 bg-red-950 text-red-300"
-                : "border-emerald-600/60 bg-emerald-950/60 text-emerald-300"
-            }`}
-          >
-            <ShieldAlert className="h-3 w-3" /> LÍMITE {LIMIT_KMH}
-          </span>
-        )}
-        <div
-          className={`font-mono font-extrabold tabular-nums leading-none mt-1 text-[76px] tracking-tighter ${speedColor}`}
-          aria-label={`Velocidad actual ${Math.round(p.speedKmh)} kilómetros por hora`}
-        >
-          {Math.round(p.speedKmh)}
-          <span className="ml-2 align-baseline font-sans text-base font-semibold normal-case tracking-normal text-muted-foreground">km/h</span>
-        </div>
+        <Speedometer
+          speedKmh={p.speedKmh}
+          idle={idle}
+          over={over}
+          caution={caution}
+          inPark={p.insidePark}
+          style={theme.speedoStyle}
+          size={theme.speedoSize}
+        />
       </div>
 
       {/* Distancia y tiempo - el par secundario importante (elemento 5) */}
@@ -246,7 +233,7 @@ export function RideView(p: Props) {
         <div>
           <Button
             onClick={p.onStart}
-            className="h-16 w-full rounded-2xl bg-emerald-600 text-lg font-extrabold text-zinc-950 shadow-[0_6px_28px_rgba(16,185,129,0.35)] hover:bg-emerald-500"
+            className="h-16 w-full rounded-2xl bg-emerald-600 text-lg font-extrabold text-(--c30-on-accent) shadow-lg hover:bg-emerald-500"
           >
             <Play className="h-6 w-6" /> Iniciar ride
           </Button>
@@ -267,7 +254,7 @@ export function RideView(p: Props) {
           ) : (
             <Button
               onClick={p.onResume}
-              className="h-16 flex-1 rounded-2xl bg-emerald-600 text-base font-extrabold text-zinc-950 hover:bg-emerald-500"
+              className="h-16 flex-1 rounded-2xl bg-emerald-600 text-base font-extrabold text-(--c30-on-accent) hover:bg-emerald-500"
             >
               <Play className="h-6 w-6" /> Reanudar
             </Button>
@@ -410,7 +397,7 @@ export function RideView(p: Props) {
               <>
                 <Button
                   onClick={() => void compartirUbicacion()}
-                  className="mt-3 w-full bg-emerald-600 hover:bg-emerald-500 text-zinc-950 font-semibold"
+                  className="mt-3 w-full bg-emerald-600 hover:bg-emerald-500 text-(--c30-on-accent) font-semibold"
                 >
                   <Share2 className="h-4 w-4 mr-2" /> Compartir mi ubicación
                 </Button>

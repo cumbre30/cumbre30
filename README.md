@@ -11,6 +11,7 @@ App Android nativa (APK) + vista web, construida con Next.js y Capacitor. Traza 
 - **Inicio de sesión con Google** (APK): selector de cuentas nativo, sin Firebase ni servidor; si ya tienes cuenta con el mismo correo se enlaza y conservas km y logros. Requiere configurar el Client ID (ver `GUIA-GOOGLE-SIGNIN.md`).
 - **Cuenta local sin servidor**: registro/login guardado en el teléfono (PBKDF2 100k), credencial QR Pedalea Seguro (solo guarda la imagen que emite Parquemet), logros y pines evaluados localmente.
 - **Reportes de incidencias** en el mapa (baches, perros, obstáculos) con modo local si no hay conexión.
+- **Temas y pantalla ride (Pro)**: color de la app completo (Cerro, Andes, Atardecer, Lila, Grafito), velocímetro personalizable (digital, arco o dial; tamaños grande y gigante) y altura del minimapa. En Configuración, con vista previa; persiste en el teléfono. La píldora compacta de modo (MODO PARQUE/LIBRE, pausa, exceso) reemplaza al banner grande en la pantalla ride.
 - **Descarga de la app** desde su propio botón de Perfil (endpoint `/api/apk`, versión única en `src/lib/appVersion.ts`).
 
 ## 🗂️ Estructura

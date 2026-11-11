@@ -160,7 +160,7 @@ export function HelpTab() {
               <Button
                 disabled={!CONTACT_WHATSAPP || !contactOk}
                 onClick={sendWhatsApp}
-                className="h-10 flex-1 bg-emerald-600 font-semibold text-zinc-950 hover:bg-emerald-500"
+                className="h-10 flex-1 bg-emerald-600 font-semibold text-(--c30-on-accent) hover:bg-emerald-500"
               >
                 Enviar por WhatsApp
               </Button>

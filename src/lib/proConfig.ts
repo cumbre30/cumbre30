@@ -63,6 +63,7 @@ export const PRO_BENEFITS = [
   "Historial ilimitado de viajes (gratis: los últimos 20)",
   "Estadísticas avanzadas: resumen mes a mes con desnivel y comparación",
   "Desafíos del cerro completos y todos los pines (gratis: el primero de cada serie)",
+  "Temas de color de la app y velocímetro personalizable (estilo arco o dial, tamaños grande y gigante)",
   "Apoyo directo al desarrollo de la app",
 ];
 

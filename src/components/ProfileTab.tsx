@@ -247,7 +247,7 @@ export default function ProfileTab() {
                 <p className="text-sm text-emerald-700 dark:text-emerald-300" role="status">
                   ¡Listo! Tu contraseña se actualizó. Ingresa con la nueva.
                 </p>
-                <Button onClick={() => backToForm(true)} className="h-11 bg-emerald-600 hover:bg-emerald-500 text-zinc-950 font-bold">
+                <Button onClick={() => backToForm(true)} className="h-11 bg-emerald-600 hover:bg-emerald-500 text-(--c30-on-accent) font-bold">
                   Iniciar sesión
                 </Button>
               </>
@@ -344,7 +344,7 @@ export default function ProfileTab() {
                 <Button
                   onClick={() => void (offline || fStep === 2 ? confirmReset() : requestReset())}
                   disabled={fBusy || !fEmail || (offline || fStep === 2 ? !fCode || fPass.length < 6 : false)}
-                  className="h-11 bg-emerald-600 hover:bg-emerald-500 text-zinc-950 font-bold"
+                  className="h-11 bg-emerald-600 hover:bg-emerald-500 text-(--c30-on-accent) font-bold"
                 >
                   {fBusy ? "Conectando…" : offline || fStep === 2 ? "Restablecer contraseña" : "Solicitar código"}
                 </Button>
@@ -364,14 +364,14 @@ export default function ProfileTab() {
           <Button
             variant={mode === "login" ? "default" : "outline"}
             onClick={() => setMode("login")}
-            className={`flex-1 ${mode === "login" ? "bg-emerald-600 hover:bg-emerald-500 text-zinc-950 font-semibold" : "border-border text-muted-foreground"}`}
+            className={`flex-1 ${mode === "login" ? "bg-emerald-600 hover:bg-emerald-500 text-(--c30-on-accent) font-semibold" : "border-border text-muted-foreground"}`}
           >
             <LogIn className="h-4 w-4 mr-2" /> Iniciar sesión
           </Button>
           <Button
             variant={mode === "register" ? "default" : "outline"}
             onClick={() => setMode("register")}
-            className={`flex-1 ${mode === "register" ? "bg-emerald-600 hover:bg-emerald-500 text-zinc-950 font-semibold" : "border-border text-muted-foreground"}`}
+            className={`flex-1 ${mode === "register" ? "bg-emerald-600 hover:bg-emerald-500 text-(--c30-on-accent) font-semibold" : "border-border text-muted-foreground"}`}
           >
             <UserPlus className="h-4 w-4 mr-2" /> Crear cuenta
           </Button>
@@ -401,7 +401,7 @@ export default function ProfileTab() {
             <Input id="pf-pass" name="password" type="password" autoComplete={mode === "register" ? "new-password" : "current-password"} className="bg-card border-border" placeholder="mínimo 6 caracteres" value={password} onChange={(e) => setPassword(e.target.value)} />
           </div>
           {error && <p className="text-sm text-red-600 dark:text-red-400" role="alert">{error}</p>}
-          <Button type="submit" disabled={busy || !email || !password || (mode === "register" && !username)} className="h-11 bg-emerald-600 hover:bg-emerald-500 text-zinc-950 font-bold">
+          <Button type="submit" disabled={busy || !email || !password || (mode === "register" && !username)} className="h-11 bg-emerald-600 hover:bg-emerald-500 text-(--c30-on-accent) font-bold">
             {busy ? "Conectando…" : mode === "login" ? "Entrar" : "Crear mi cuenta"}
           </Button>
           {mode === "login" && (
@@ -582,7 +582,7 @@ export default function ProfileTab() {
               <Button
                 onClick={submitUsername}
                 disabled={userBusy || !newUsername.trim() || newUsername.trim() === me.user.username}
-                className="bg-emerald-600 hover:bg-emerald-500 text-zinc-950 font-semibold shrink-0"
+                className="bg-emerald-600 hover:bg-emerald-500 text-(--c30-on-accent) font-semibold shrink-0"
               >
                 {userBusy ? "Cambiando…" : "Cambiar"}
               </Button>

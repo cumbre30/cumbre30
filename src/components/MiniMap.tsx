@@ -66,6 +66,10 @@ type Props = {
   userPin?: string;
   nav: NavEngine;
   speedKmh?: number;
+  /** Altura del contenedor sin ruta activa (tema Pro: minimapa compacto/grande). */
+  heightClass?: string;
+  /** Altura del contenedor con ruta activa. */
+  heightRouteClass?: string;
 };
 
 const wrap360 = (deg: number) => ((deg % 360) + 360) % 360;
@@ -753,7 +757,7 @@ function StatusNote({ className, text }: { className: string; text: string }) {
 // ============================================================
 // Componente principal: lienzo + capa Waze (banner, barra, etc.)
 // ============================================================
-export default function MiniMap({ position, heading, track, accuracyM, userPin, nav, speedKmh = 0 }: Props) {
+export default function MiniMap({ position, heading, track, accuracyM, userPin, nav, speedKmh = 0, heightClass = "h-52 sm:h-56", heightRouteClass = "h-80" }: Props) {
   const incidents = useIncidentFeed();
   const [locateTarget, setLocateTarget] = useState<LatLng | null>(null);
   const [reportOpen, setReportOpen] = useState(false);
@@ -869,7 +873,7 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
         )}
 
         {/* SOLO el lienzo nativo dentro de la ventana: sin HTML encima */}
-        <div className={`relative rounded-xl overflow-hidden border border-border shrink-0 ${onRoute ? "h-72" : "h-56"}`}>
+        <div className={`relative rounded-xl overflow-hidden border border-border shrink-0 ${onRoute ? heightRouteClass : heightClass}`}>
           <NativeMapCanvas
             id="minimap"
             mode="nav"
@@ -925,7 +929,7 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
   }
 
   return (
-    <div className={`relative rounded-xl overflow-hidden border border-border z-0 c30-minimap ${onRoute ? "h-80" : "h-52 sm:h-56"}`}>
+    <div className={`relative rounded-xl overflow-hidden border border-border z-0 c30-minimap ${onRoute ? heightRouteClass : heightClass}`}>
       {webglOk && !isNativeApp() ? (
         <NavCanvas
           position={position}

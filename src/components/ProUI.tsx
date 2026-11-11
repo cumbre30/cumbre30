@@ -59,14 +59,14 @@ export function ProTag({ label }: { label?: string }) {
 /** Tarjeta promo del menú lateral (solo FREE). */
 export function ProPromoCard({ onDiscover }: { onDiscover: () => void }) {
   return (
-    <div className="rounded-xl border border-emerald-600/40 bg-gradient-to-br from-emerald-600/15 to-emerald-800/25 p-4">
+    <div className="rounded-xl border border-emerald-600/40 bg-emerald-600/10 p-4">
       <div className="mb-2 inline-flex items-center gap-1.5 rounded bg-emerald-400 px-2 py-0.5 text-[10px] font-extrabold tracking-widest text-emerald-950">
         <Crown className="h-3 w-3" /> CUMBRE30 PRO
       </div>
       <p className="text-[13px] leading-relaxed text-foreground">
         Planifica mejor tus rutas y desbloquea herramientas avanzadas para tus subidas.
       </p>
-      <Button onClick={onDiscover} className="mt-3 h-10 w-full rounded-lg bg-emerald-600 text-[13px] font-bold text-zinc-950 hover:bg-emerald-500">
+      <Button onClick={onDiscover} className="mt-3 h-10 w-full rounded-lg bg-emerald-600 text-[13px] font-bold text-(--c30-on-accent) hover:bg-emerald-500">
         Descubrir PRO
       </Button>
     </div>
@@ -120,7 +120,7 @@ export function ProContextModal({
           </span>
         </div>
 
-        <Button onClick={onDiscover} className="mt-4 h-12 w-full rounded-xl bg-emerald-600 text-[15px] font-bold text-zinc-950 hover:bg-emerald-500">
+        <Button onClick={onDiscover} className="mt-4 h-12 w-full rounded-xl bg-emerald-600 text-[15px] font-bold text-(--c30-on-accent) hover:bg-emerald-500">
           <Crown className="h-4 w-4" /> Descubrir PRO · {PRO_PRICE_LABEL}
         </Button>
         <button onClick={onClose} className="mt-1 h-10 w-full rounded-xl text-sm font-semibold text-muted-foreground hover:text-foreground">
