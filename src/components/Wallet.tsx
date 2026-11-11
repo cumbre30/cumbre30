@@ -151,9 +151,10 @@ export default function Wallet() {
             <p className="font-medium text-foreground">QR Pedalea Seguro (Parquemet)</p>
             <p className="mt-1 leading-relaxed">
               El registro Pedalea Seguro es para ciclistas de montaña (MTB y enduro) que usan los senderos de
-              tierra del parque. Lo haces en pedaleaseguro.parquemet.cl -con ClaveÚnica o formulario manual- y ahí
-              Parquemet te entrega tu QR y tu número de registro. Esta app no genera ni gestiona ese QR: solo te
-              sirve para guardarlo y mostrarlo cuando lo pidan. La imagen se guarda solo en tu teléfono.
+              enduro habilitados del parque. Lo haces en pedaleaseguro.parquemet.cl -con ClaveÚnica o formulario
+              manual- y ahí Parquemet te entrega tu QR y tu número de registro. Esta app no genera ni gestiona
+              ese QR: solo te sirve para guardarlo y mostrarlo cuando lo pidan. La imagen se guarda solo en tu
+              teléfono. Los ciclistas de ruta y recreativos quedan eximidos del registro QR.
             </p>
           </div>
         </div>
@@ -166,10 +167,11 @@ export default function Wallet() {
           <div className="flex-1 text-sm text-muted-foreground">
             <p className="font-medium text-foreground">Fechas del programa</p>
             <p className="mt-1 leading-relaxed">
-              Marcha blanca del <span className="font-medium text-foreground">1 al 14 de diciembre</span>. Registro{" "}
-              <span className="font-medium text-foreground">obligatorio desde el 15 de diciembre</span> para quien
-              pedalee en los senderos de tierra. Habrá fiscalizaciones en tres puntos del parque (velocidad y
-              conductas de riesgo).
+              Marcha blanca desde el <span className="font-medium text-foreground">1 de diciembre de 2026</span>.
+              Registro <span className="font-medium text-foreground">obligatorio desde el 15 de diciembre de 2026</span> para
+              quien pedalee en los senderos de enduro habilitados: QR pegado en la bici. Los ciclistas de ruta y
+              recreativos no necesitan QR, pero deben llevar casco y luces y respetar el límite de 30 km/h (el
+              chaleco reflectante propuesto quedó descartado). La velocidad la fiscaliza Carabineros.
             </p>
             <Button
               variant="outline"

@@ -94,7 +94,8 @@ export default function SenderosBloque({ query, onSetDest }: Props) {
         ))}
         <li className="pt-1.5 text-[10px] leading-relaxed text-muted-foreground/80">
           Fuente: mapa oficial Parquemet y OpenStreetMap. Las 5 rutas de enduro oficiales se marcarán en la app
-          cuando Parquemet las publique (registro obligatorio desde el 15 de diciembre).
+          cuando Parquemet las publique. Registro QR obligatorio en senderos de enduro desde el 15 de diciembre de
+          2026 (marcha blanca desde el 1 dic); ciclistas de ruta y recreativos sin QR, con casco y luces.
         </li>
       </ul>
     </details>

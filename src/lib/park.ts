@@ -8,6 +8,11 @@
 // Virgen es solo peatonal, no se puede subir en bici); Plaza México
 // la reemplaza como meta de esa ruta. Se agrega el ACCESO LA
 // PIRÁMIDE (Parquemet, Vitacura) como acceso oficial (ver GATES).
+// 2026-11-11: actualización normativa Parquemet - horario de
+// ciclistas 06:00-20:30 todos los días, solo 4 accesos habilitan
+// ingreso en bici (ACCESOS_CICLISTAS / Gate.ciclistas), restricción
+// cumbre-Tupahue solo FDS y festivos, y plan "Pedalea Seguro"
+// (PEDALEA_SEGURO) vigente desde diciembre de 2026.
 // ============================================================
 
 export const LIMIT_KMH = 30;
@@ -72,6 +77,10 @@ export type Gate = {
   id: string;
   name: string;
   position: LatLng;
+  /** true: acceso autorizado para el INGRESO EN BICICLETA (normativa
+   *  Parquemet: solo Zapadores, Pedro de Valdivia Norte, Pío Nono y
+   *  La Pirámide). El resto son accesos peatonales/vehiculares. */
+  ciclistas?: boolean;
 };
 
 /** Accesos principales donde Parquemet fiscaliza / pide enrolamiento.
@@ -79,8 +88,8 @@ export type Gate = {
  *  acceso más cercano al borde del polígono (2026-11-11). Los 3
  *  primeros conservan sus coordenadas calibradas originales. */
 export const GATES: Gate[] = [
-  { id: "pio-nono", name: "Acceso Pío Nono", position: { lat: -33.430691, lon: -70.63592 } },
-  { id: "pv-norte", name: "Acceso Pedro de Valdivia Norte", position: { lat: -33.411769, lon: -70.607988 } },
+  { id: "pio-nono", name: "Acceso Pío Nono", position: { lat: -33.430691, lon: -70.63592 }, ciclistas: true },
+  { id: "pv-norte", name: "Acceso Pedro de Valdivia Norte", position: { lat: -33.411769, lon: -70.607988 }, ciclistas: true },
   // Acceso La Pirámide (Vitacura): portería al final de Camino La
   // Pirámide, borde nororiente del parque, el acceso más cercano a
   // Bosque Santiago y al Paseo Metropolitano (parquemet.cl,
@@ -88,14 +97,14 @@ export const GATES: Gate[] = [
   // final del way OSM 445801999 "Camino La Pirámide"
   // (-33.38642, -70.60179, verificado el 2026-11-05), a ~40 m de la
   // punta nororiente del polígono del parque.
-  { id: "la-piramide", name: "Acceso La Pirámide", position: { lat: -33.38642, lon: -70.60179 } },
+  { id: "la-piramide", name: "Acceso La Pirámide", position: { lat: -33.38642, lon: -70.60179 }, ciclistas: true },
   // Los 6 accesos restantes del mapa oficial de Parquemet. Posición
   // = nodo OSM de la calle del acceso a menor distancia del borde
   // del polígono (extracción 2026-11-11, scripts/extract-parque.py).
   { id: "santos-dumont", name: "Acceso Santos Dumont", position: { lat: -33.423385, lon: -70.637442 } },
   { id: "carlos-reed", name: "Acceso Carlos Reed", position: { lat: -33.430102, lon: -70.635426 } },
   { id: "aurora-de-chile", name: "Acceso Aurora de Chile", position: { lat: -33.415205, lon: -70.627807 } },
-  { id: "zapadores", name: "Acceso Zapadores", position: { lat: -33.399921, lon: -70.620406 } },
+  { id: "zapadores", name: "Acceso Zapadores", position: { lat: -33.399921, lon: -70.620406 }, ciclistas: true },
   { id: "paseo-metropolitano", name: "Acceso Paseo Metropolitano", position: { lat: -33.412407, lon: -70.623052 } },
   // "Acceso Pasarela Pirámide" queda pendiente: sin fuente
   // verificable aún (no confundir con la portería La Pirámide).
@@ -157,22 +166,80 @@ export const PARK_PLACES: ParkPlace[] = [
 ];
 
 // ============================================================
-// Horario de acceso para ciclistas (Parquemet, noticias nov 2026).
-// Ingreso de ciclistas por los accesos de 06:00 a 19:00; desde
-// las 13:30 no se puede acceder a la cumbre desde el sector
-// Tupahue (restricción informada por Parquemet para días de
-// afluencia). El límite de 30 km/h rige todo el recorrido.
+// Horario de acceso para ciclistas (actualización oficial
+// Parquemet, nov 2026). El ingreso en bici es de 06:00 a 20:30
+// TODOS los días (igual de lunes a viernes que sábados, domingos
+// y festivos). Restricción de cumbre: solo fines de semana y
+// festivos, el acceso a la cumbre desde el sector Tupahue está
+// restringido a partir de las 13:30. El límite de 30 km/h rige
+// en las vías interiores del parque.
 // ============================================================
 
 export const PARK_HOURS = {
   abreMin: 6 * 60, // 06:00
-  cierraMin: 19 * 60, // 19:00
+  cierraMin: 20 * 60 + 30, // 20:30, lunes a domingo y festivos
   /** Restricción cumbre desde Tupahue: no se permite el acceso a la
-   *  cumbre a partir de esta hora (minutos del día). */
+   *  cumbre a partir de esta hora (minutos del día). SOLO aplica
+   *  fines de semana y festivos (ver estadoParque en horario.ts). */
   cumbreTupahueBloqueaMin: 13 * 60 + 30, // 13:30
   /** Mensajes para la UI. */
-  msgCierre: "El ingreso de ciclistas al parque es de 06:00 a 19:00.",
-  msgCumbreTupahue: "Restricción del parque: la cumbre por el sector Tupahue no se puede acceder desde las 13:30.",
+  msgCierre: "El ingreso de ciclistas al parque es de 06:00 a 20:30, todos los días.",
+  msgCumbreTupahue:
+    "Fines de semana y festivos: el acceso a la cumbre desde el sector Tupahue está restringido a partir de las 13:30.",
+};
+
+// ============================================================
+// Accesos EXCLUSIVOS autorizados para el ingreso en bicicleta
+// (normativa oficial Parquemet): son los ÚNICOS cuatro accesos
+// habilitados para subir en bici. La descripción es la del
+// comunicado oficial; la posición de cada uno vive en GATES
+// (mismo id). El resto de los accesos del parque NO habilita
+// ingreso de ciclistas.
+// ============================================================
+
+export const ACCESOS_CICLISTAS: { id: string; nombre: string; detalle: string }[] = [
+  {
+    id: "zapadores",
+    nombre: "Acceso Zapadores",
+    detalle: "Sector norte del cerro, comuna de Recoleta. Subida con pendiente pronunciada por camino pavimentado.",
+  },
+  {
+    id: "pv-norte",
+    nombre: "Acceso Pedro de Valdivia Norte",
+    detalle: "Comuna de Providencia. La entrada más directa desde el sector oriente hacia las rutas principales.",
+  },
+  {
+    id: "pio-nono",
+    nombre: "Acceso Pío Nono",
+    detalle: "Límite entre Providencia y Recoleta. Conecta con la subida tradicional hacia el sector Tupahue y la cumbre.",
+  },
+  {
+    id: "la-piramide",
+    nombre: "Acceso La Pirámide",
+    detalle: "Comuna de Vitacura. Ingreso por el costado nororiente del parque para conectar con el Paseo Metropolitano.",
+  },
+];
+
+// ============================================================
+// Plan "Pedalea Seguro": nuevas normas desde diciembre de 2026
+// (presentadas por las autoridades, enfocadas en seguridad vial).
+// ============================================================
+
+export const PEDALEA_SEGURO = {
+  /** Límite en las vías interiores, fiscalizado por Carabineros. */
+  limiteKmh: LIMIT_KMH,
+  /** Marcha blanca del registro digital: 1 de diciembre de 2026. */
+  marchaBlancaISO: "2026-12-01",
+  /** Registro digital con código QR en la bici, OBLIGATORIO para
+   *  quienes usen los senderos de enduro habilitados: 15 dic 2026. */
+  qrObligatorioISO: "2026-12-15",
+  /** Ciclistas de ruta y recreativos: eximidos del registro QR;
+   *  deben mantener casco, luces y respetar el límite de velocidad. */
+  msgRutaRecreativo:
+    "Ciclistas de ruta y recreativos: sin registro QR obligatorio, con casco y luces. El chaleco reflectante propuesto quedó descartado.",
+  /** Resumen corto para el banner de avisos. */
+  msgNormas:
+    "Pedalea Seguro (desde dic 2026): límite 30 km/h en vías interiores, fiscalizado por Carabineros. Senderos de enduro: QR obligatorio en la bici desde el 15/12 (marcha blanca desde el 01/12). Ruta y recreativo: sin QR, con casco y luces.",
 };
 
 export type RiskZone = {
@@ -275,18 +342,20 @@ export const NAV_DESTINATIONS: { id: string; name: string; position: LatLng }[] 
   { id: "plaza-mexico", name: "⛲ Plaza México", position: { lat: -33.4234, lon: -70.6327 } },
   // Acceso La Pirámide (Vitacura): misma posición que GATES - ver
   // la nota con fuentes en GATES.
-  { id: "la-piramide", name: "🚪 Acceso La Pirámide", position: { lat: -33.38642, lon: -70.60179 } },
-  { id: "pio-nono", name: "🚪 Acceso Pío Nono", position: { lat: -33.430691, lon: -70.63592 } },
-  { id: "pv-norte", name: "🚪 Acceso Pedro de Valdivia Norte", position: { lat: -33.411769, lon: -70.607988 } },
+  { id: "la-piramide", name: "🚴 Acceso La Pirámide", position: { lat: -33.38642, lon: -70.60179 } },
+  { id: "pio-nono", name: "🚴 Acceso Pío Nono", position: { lat: -33.430691, lon: -70.63592 } },
+  { id: "pv-norte", name: "🚴 Acceso Pedro de Valdivia Norte", position: { lat: -33.411769, lon: -70.607988 } },
   { id: "antiluen", name: "🏊 Piscina Antilén", position: { lat: -33.409051, lon: -70.61374 } },
   { id: "jardin-japones", name: "🏯 Jardín Japonés", position: { lat: -33.413345, lon: -70.614692 } },
   { id: "zoologico", name: "🦁 Zoológico Nacional", position: { lat: -33.429636, lon: -70.633963 } },
   { id: "anahuac", name: "🎭 Casa de la Cultura Anáhuac", position: { lat: -33.417135, lon: -70.623511 } },
   // Accesos agregados el 2026-11-11 (mismas posiciones que GATES;
   // son nodos del grafo propio, así que el ruteo llega directo).
+  // 🚴 = acceso autorizado para ingreso en bici (ACCESOS_CICLISTAS);
+  // 🚪 = acceso sin ingreso de ciclistas.
   { id: "santos-dumont", name: "🚪 Acceso Santos Dumont", position: { lat: -33.423385, lon: -70.637442 } },
   { id: "carlos-reed", name: "🚪 Acceso Carlos Reed", position: { lat: -33.430102, lon: -70.635426 } },
   { id: "aurora-de-chile", name: "🚪 Acceso Aurora de Chile", position: { lat: -33.415205, lon: -70.627807 } },
-  { id: "zapadores", name: "🚪 Acceso Zapadores", position: { lat: -33.399921, lon: -70.620406 } },
+  { id: "zapadores", name: "🚴 Acceso Zapadores", position: { lat: -33.399921, lon: -70.620406 } },
   { id: "paseo-metropolitano", name: "🚪 Acceso Paseo Metropolitano", position: { lat: -33.412407, lon: -70.623052 } },
 ];

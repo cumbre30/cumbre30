@@ -847,16 +847,24 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
             </Circle>
           ))}
 
-          {/* Accesos */}
+          {/* Accesos: los 4 autorizados para ingreso en bicicleta
+              (normativa Parquemet) en verde; el resto en gris. */}
           {GATES.map((g) => (
             <CircleMarker
               key={g.id}
               center={[g.position.lat, g.position.lon]}
               radius={7}
-              pathOptions={{ color: "#2dd4bf", weight: 2, fillColor: "#0f766e", fillOpacity: 0.9 }}
+              pathOptions={
+                g.ciclistas
+                  ? { color: "#34d399", weight: 2.5, fillColor: "#065f46", fillOpacity: 0.95 }
+                  : { color: "#94a3b8", weight: 1.5, fillColor: "#475569", fillOpacity: 0.8 }
+              }
             >
               <Tooltip direction="top" offset={[0, -6]}>
-                <span className="text-xs font-medium">🚪 {g.name}</span>
+                <span className="text-xs font-medium">
+                  {g.ciclistas ? "🚴" : "🚪"} {g.name}
+                  {g.ciclistas ? " · acceso ciclistas" : ""}
+                </span>
               </Tooltip>
             </CircleMarker>
           ))}

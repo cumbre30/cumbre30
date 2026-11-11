@@ -55,7 +55,7 @@ import {
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Speedometer } from "@/components/Speedometer";
-import { LIMIT_KMH, PARK_HOURS } from "@/lib/park";
+import { ACCESOS_CICLISTAS, LIMIT_KMH, PARK_HOURS, PEDALEA_SEGURO } from "@/lib/park";
 import { formatClock } from "@/lib/geo";
 import { formatStepRemaining, routeProgress, stepGlyph } from "@/lib/routing";
 import { estadoParque, horaSantiago } from "@/lib/horario";
@@ -153,7 +153,7 @@ export function RideView(p: Props) {
     const list: Aviso[] = [];
     if (estado.aviso) {
       list.push({
-        nivel: estado.nivel === "cierre" ? "danger" : estado.nivel === "luz" ? "warn" : "info",
+        nivel: estado.nivel === "cierre" ? "danger" : estado.nivel === "luz" || estado.nivel === "tupa" ? "warn" : "info",
         text: estado.aviso,
       });
     } else {
@@ -195,6 +195,12 @@ export function RideView(p: Props) {
       : avisoPeor === "warn"
         ? "border-amber-600/60 bg-amber-950/40 text-amber-300"
         : "border-border bg-card/90";
+  // "Zapadores, Pedro de Valdivia Norte, Pío Nono y La Pirámide" (los
+  // 4 accesos exclusivos con ingreso en bici, normativa Parquemet).
+  const listaAccesosCiclistas = useMemo(() => {
+    const nombres = ACCESOS_CICLISTAS.map((a) => a.nombre.replace("Acceso ", ""));
+    return `${nombres.slice(0, -1).join(", ")} y ${nombres[nombres.length - 1]}`;
+  }, []);
 
   const compartirUbicacion = async () => {
     if (!p.position) return;
@@ -309,6 +315,22 @@ export function RideView(p: Props) {
               </li>
             ))}
           </ul>
+          {/* Info permanente (actualización normativa Parquemet, nov 2026):
+              los ÚNICOS accesos con ingreso en bici y las normas del plan
+              Pedalea Seguro vigentes desde diciembre de 2026. */}
+          <div className="mt-2.5 space-y-1.5 border-t border-border/50 pt-2">
+            <p className="flex items-start gap-2 text-xs leading-snug text-foreground/90">
+              <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-teal-400" />
+              <span>
+                <span className="font-semibold text-foreground">Ingresa en bici solo por:</span>{" "}
+                {listaAccesosCiclistas}. Los demás accesos no habilitan ingreso de ciclistas.
+              </span>
+            </p>
+            <p className="flex items-start gap-2 text-xs leading-snug text-foreground/90">
+              <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-sky-400" />
+              {PEDALEA_SEGURO.msgNormas}
+            </p>
+          </div>
         </div>
       )}
 
