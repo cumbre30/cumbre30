@@ -55,7 +55,7 @@ const ACCESOS_DETALLE: Record<string, string> = {
   "pio-nono":
     "Entrada habilitada para ciclistas en Recoleta/Providencia. Horario: 06:00 a 20:30 hrs.",
   "pv-norte":
-    "Entrada habilitada para ciclistas en Providencia. Conexión directa a Tupahue y Cumbre.",
+    "Entrada habilitada para ciclistas en Providencia: Parque Metropolitano Pedro de Valdivia Norte (Av. El Cerro 678), por la CicloRecreoVía hasta la ladera y el Paseo Metropolitano.",
   "la-piramide":
     "Entrada habilitada para ciclistas en Vitacura. Acceso directo al Circuito Los Gemelos y Paseo Metropolitano.",
   zapadores:

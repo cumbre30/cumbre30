@@ -89,7 +89,15 @@ export type Gate = {
  *  primeros conservan sus coordenadas calibradas originales. */
 export const GATES: Gate[] = [
   { id: "pio-nono", name: "Acceso Pío Nono", position: { lat: -33.430691, lon: -70.63592 }, ciclistas: true },
-  { id: "pv-norte", name: "Acceso Pedro de Valdivia Norte", position: { lat: -33.411769, lon: -70.607988 }, ciclistas: true },
+  // Acceso Pedro de Valdivia Norte: INGRESO POR EL PARQUE METROPOLITANO
+  // PEDRO DE VALDIVIA NORTE (parque plano con la CicloRecreoVía), desde
+  // Av. El Cerro 678, Providencia (captura del cliente 2026-11-12 +
+  // Google Maps "Parquemet Pedro de Valdivia Norte Parking, Av. El Cerro
+  // 678"). Posición = nodo-junta del grafo donde los caminos del parque
+  // plano tocan Av. El Cerro (-33.41627, -70.60909, verificado 2026-11-12).
+  // El marcador anterior (-33.411769, -70.607988) quedaba en la ladera,
+  // ~500 m más arriba de la entrada real.
+  { id: "pv-norte", name: "Acceso Pedro de Valdivia Norte", position: { lat: -33.41627, lon: -70.60909 }, ciclistas: true },
   // Acceso La Pirámide (Vitacura): portería al final de Camino La
   // Pirámide, borde nororiente del parque, el acceso más cercano a
   // Bosque Santiago y al Paseo Metropolitano (parquemet.cl,
@@ -277,7 +285,7 @@ export const RISK_ZONES: RiskZone[] = [
   {
     id: "salida-pv",
     name: "Salida Pedro de Valdivia",
-    position: { lat: -33.411769, lon: -70.607988 },
+    position: { lat: -33.41627, lon: -70.60909 },
     radiusM: 130,
     voice: "Tramo previo a la salida Pedro de Valdivia. Confluencia de ciclistas y vehículos.",
   },
@@ -322,7 +330,9 @@ export const SIM_ROUTE: SimWaypoint[] = [
   { lat: -33.409051, lon: -70.61374, kmh: 16, alt: 802 }, // cruce Piscina Antilén (cumbre Chacarillas)
   { lat: -33.4112, lon: -70.6135, kmh: 24, alt: 794 }, // vuelta por Carlos Martner
   { lat: -33.4118, lon: -70.6105, kmh: 35, alt: 762 }, // bajada a PdV Norte - pico sobre el límite
-  { lat: -33.411769, lon: -70.607988, kmh: 16, alt: 738 }, // salida Acceso Pedro de Valdivia Norte
+  { lat: -33.4121, lon: -70.6076, kmh: 20, alt: 730 }, // explanada del acceso PdV Norte (base de la ladera)
+  { lat: -33.4142, lon: -70.6082, kmh: 22, alt: 715 }, // ParqueMet PdV Norte - CicloRecreoVía
+  { lat: -33.41627, lon: -70.60909, kmh: 16, alt: 705 }, // salida Acceso Pedro de Valdivia Norte (Av. El Cerro)
   { lat: -33.4113, lon: -70.6068, kmh: 12, alt: 730 }, // Av. Pedro de Valdivia (fuera)
 ];
 
@@ -344,7 +354,7 @@ export const NAV_DESTINATIONS: { id: string; name: string; position: LatLng }[] 
   // la nota con fuentes en GATES.
   { id: "la-piramide", name: "🚴 Acceso La Pirámide", position: { lat: -33.38642, lon: -70.60179 } },
   { id: "pio-nono", name: "🚴 Acceso Pío Nono", position: { lat: -33.430691, lon: -70.63592 } },
-  { id: "pv-norte", name: "🚴 Acceso Pedro de Valdivia Norte", position: { lat: -33.411769, lon: -70.607988 } },
+  { id: "pv-norte", name: "🚴 Acceso Pedro de Valdivia Norte", position: { lat: -33.41627, lon: -70.60909 } },
   { id: "antiluen", name: "🏊 Piscina Antilén", position: { lat: -33.409051, lon: -70.61374 } },
   { id: "jardin-japones", name: "🏯 Jardín Japonés", position: { lat: -33.413345, lon: -70.614692 } },
   { id: "zoologico", name: "🦁 Zoológico Nacional", position: { lat: -33.429636, lon: -70.633963 } },

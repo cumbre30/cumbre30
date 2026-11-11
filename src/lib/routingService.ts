@@ -317,7 +317,17 @@ export const PAV_DEST_OPTS = {
   // senderos nombrados fuera, EXCEPTO el tramo pavimentado del ascenso
   // ("Sendero El Excursionista", footway dentro del corredor — lo decide
   // corredorOk). nameBlock gana sobre edgeOk en edgePasses.
-  nameBlock: [/^Sendero Ciclista /, /^Sendero (?!Ciclista)(?!El Excursionista)/, /^Ruta Nativa/],
+  // Carlos Reed: la calle del zoo tiene tramo pavimentado y tramo de
+  // maicillo/tierra (Carlos Reed → PdV, 1,3 km) — para pavimento la
+  // subida desde Pío Nono va SIEMPRE por Av. Alberto Mackenna (cliente,
+  // 2026-11-12).
+  nameBlock: [
+    /^Sendero Ciclista /,
+    /^Sendero (?!Ciclista)(?!El Excursionista)/,
+    /^Ruta Nativa/,
+    /^Avenida Carlos Reed/,
+    /^Carlos Reed/,
+  ],
   edgeOk: corredorOk,
 };
 
@@ -378,19 +388,23 @@ export function corredorPav(net?: Network | null): Map<string, number[][]> {
     }
     // Expansión transitiva ACOTADA: los conectores sin nombre entre las
     // vías del Paseo (y sus conectores) se agregan siguiendo el grafo,
-    // rondas de crecimiento ~una arista. Sólo footway/pedestrian/service
-    // y nunca "Sendero …"/"Ruta Nativa" (el corredor no abre senderos).
+    // rondas de crecimiento ~una arista. Incluye path/track sin nombre
+    // (la cadena del ascenso Pío Nono → Plaza México intercala tramos
+    // etiquetados path) con radio más justo; nunca "Sendero …" ni
+    // "Ruta Nativa" nombrados (el corredor no abre senderos).
     for (let ronda = 0; ronda < 3; ronda++) {
       let agregados = 0;
       for (const [a, b, ci, ni] of net.edges) {
         const name = net.names[ni] ?? "";
-        if (/^(Sendero (?!Ciclista)|Ruta Nativa)/.test(name)) continue;
+        if (/^(Sendero (?!Ciclista)(?!El Excursionista)|Ruta Nativa)/.test(name)) continue;
         const cls = net.classes[ci];
-        if (cls !== "footway" && cls !== "pedestrian" && cls !== "service") continue;
+        const esCamino = cls === "footway" || cls === "pedestrian" || cls === "service";
+        const esSenda = cls === "path" || cls === "track";
+        if (!esCamino && !esSenda) continue;
         const pa = net.nodes[a];
         const pb = net.nodes[b];
         const mid = { lat: (pa[0] + pb[0]) / 2, lon: (pa[1] + pb[1]) / 2 };
-        if (!enCorredorPav(mid.lat, mid.lon, 45)) continue;
+        if (!enCorredorPav(mid.lat, mid.lon, esCamino ? 45 : 30)) continue;
         if (!enCorredorPav(pa[0], pa[1], 0.001)) { push(pa[0], pa[1]); agregados++; }
         if (!enCorredorPav(pb[0], pb[1], 0.001)) { push(pb[0], pb[1]); agregados++; }
       }
@@ -428,13 +442,29 @@ const CLASES_CORREDOR = new Set(["footway", "pedestrian", "service"]);
 const CLASES_CORREDOR_AJUSTADO = new Set(["footway", "pedestrian", "service", "path", "track"]);
 const RADIO_AJUSTADO_M = 22;
 
+/** Caja del Parque Metropolitano Pedro de Valdivia Norte (parque plano
+ *  con la CicloRecreoVía, entre Av. El Cerro y la ladera del cerro).
+ *  Sus caminos pavimentados son el acceso ciclista PdV Norte real. */
+const PDV_NORTE_BOX = { latMin: -33.4178, latMax: -33.4116, lonMin: -70.6112, lonMax: -70.6055 };
+
+function enParquePdvNorte(lat: number, lon: number): boolean {
+  return lat >= PDV_NORTE_BOX.latMin && lat <= PDV_NORTE_BOX.latMax && lon >= PDV_NORTE_BOX.lonMin && lon <= PDV_NORTE_BOX.lonMax;
+}
+
 /** edgeOk compartido: caminos del parque que el grafo trae sin nombre
  *  (o con nombres sueltos tipo "Explanada") dentro del corredor del
  *  Paseo. Los "Sendero …" nombrados sólo pasan si son footway (pavimento
  *  en OSM) y caen dentro del corredor: es el caso del tramo del ascenso
- *  Pío Nono → Plaza México etiquetado "Sendero El Excursionista". */
+ *  Pío Nono → Plaza México etiquetado "Sendero El Excursionista".
+ *  Excepción geométrica aparte: el Parque Metropolitano Pedro de
+ *  Valdivia Norte (parque plano de la CicloRecreoVía sobre Av. El
+ *  Cerro), cuyos caminos pavimentados también aparecen sin nombre y
+ *  están fuera del corredor de los trazados. */
 export function corredorOk(midLat: number, midLon: number, cls: string, name: string): boolean {
   if (/^Sendero /.test(name)) return cls === "footway" && enCorredorPav(midLat, midLon, 30);
+  if (enParquePdvNorte(midLat, midLon)) {
+    return CLASES_CORREDOR.has(cls) || cls === "cycleway"; // CicloRecreoVía incl.
+  }
   if (CLASES_CORREDOR.has(cls)) return enCorredorPav(midLat, midLon);
   if (CLASES_CORREDOR_AJUSTADO.has(cls)) return enCorredorPav(midLat, midLon, RADIO_AJUSTADO_M);
   return false;

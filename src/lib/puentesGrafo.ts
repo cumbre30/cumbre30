@@ -60,6 +60,23 @@ export const PUENTES: Puente[] = [
     a: { lat: -33.4195, lon: -70.6214 }, // Comodoro Arturo Merino Benítez (poniente)
     b: { lat: -33.4174, lon: -70.6237 }, // driveway Casa Anáhuac / cruz de Tupahue
   },
+  {
+    // Ascenso Pío Nono → Plaza México: Terraza Bellavista quedó como isla
+    // en el extracto OSM (comp. propia) y no se une a la Explanada que
+    // sigue hacia Camino Siete Palabras / Paseo Peatonal Cumbre (33 m).
+    nombre: "Camino Pío Nono - Plaza México",
+    a: { lat: -33.4261, lon: -70.63397 }, // Terraza Bellavista (norte)
+    b: { lat: -33.42596, lon: -70.63365 }, // Explanada (sur)
+  },
+  {
+    // Ascenso Pío Nono → Plaza México (tramo poniente): la cadena real del
+    // camino (Sendero El Excursionista → Terraza Bellavista) está partida
+    // por ~79 m de tramos etiquetados path sin conexión permitida; el
+    // puente la cierra por el pavimento real del camino.
+    nombre: "Camino Pío Nono - Plaza México",
+    a: { lat: -33.42639, lon: -70.63273 }, // Sendero El Excursionista (extremo oriente)
+    b: { lat: -33.42647, lon: -70.63358 }, // Terraza Bellavista (sur)
+  },
 ];
 
 /** Aplica los puentes sobre la red ya construida (muta adj). Idempotente:
