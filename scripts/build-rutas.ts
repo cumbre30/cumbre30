@@ -1,5 +1,5 @@
 // ============================================================
-// Precompute de las 6 rutas predefinidas del GPX de arquitectura
+// Precompute de las 9 rutas predefinidas del GPX de arquitectura
 // (Capa 2: Pavimento + MTB) usando el MISMO motor A* que la app
 // (src/lib/routing.ts sobre public/red-ciclista.json).
 // Salida: src/lib/rutasTrazados.ts (trazado estático, offline).
@@ -88,6 +88,11 @@ function distKm(coords: LatLng[]): number {
   return d / 1000;
 }
 
+// Antilén (corredor oriente del Paseo Metropolitano)
+const ANTILEN: LatLng = { lat: -33.40858, lon: -70.61314 };
+// Nodo bajo del Sendero Ciclista Anfiteatro (descenso técnico hacia La Rotonda)
+const ANFITEATRO_BAJO: LatLng = { lat: -33.40705, lon: -70.61016 };
+
 // Waypoints de la arquitectura GPX del cliente (referenciales):
 const VIA = {
   // Plaza Tupahue (Nodo Central) del GPX, sobre Av. Pedro Bannen
@@ -119,12 +124,26 @@ const defs: Record<string, LatLng[] | null> = {
     if (!up || !down) return null;
     return [...up, ...down.slice(1)];
   })(),
-  // MTB 2: Enduro Cumbre (Torre 5) → Sendero 4½ → Acceso PdV Norte
-  mtb2: routeWithVias(P.cruceTorre5, [
+  // MTB 4: Enduro Cumbre (Torre 5) → Sendero 4½ → Acceso PdV Norte
+  mtb4: routeWithVias(P.cruceTorre5, [
     { lat: -33.422, lon: -70.6275 },
     { lat: -33.421, lon: -70.6235 },
     { lat: -33.4198, lon: -70.6195 },
   ], P.pdvNorte),
+  // R5 Pavimento: Vuelta completa conectando los 4 accesos
+  // (PdV Norte → Tupahue → tramo norte Zapadores → oriente La Pirámide → cierre)
+  r5: routeWithVias(P.pdvNorte, [VIA.tupahue, VIA.elErmitano, P.zapadores, P.laPiramide], P.pdvNorte),
+  // MTB 2: Loop Técnico La S (zona Los Gemelos): La Rotonda → Pa' Arriba →
+  // Anfiteatro → descenso técnico (corredor Anfiteatro/La S) → La Rotonda
+  mtb2: (() => {
+    const up = routeWithVias(P.laRotonda, [{ lat: -33.4112, lon: -70.623 }], P.anfiteatro);
+    const down = routeWithVias(P.anfiteatro, [ANFITEATRO_BAJO], P.laRotonda);
+    if (!up || !down) return null;
+    return [...up, ...down.slice(1)];
+  })(),
+  // MTB 3: Travesía Paseo Metropolitano (XC/Gravel, vuelta al cerro por camino
+  // amplio de tierra): acceso Paseo Met → Antilén → La Rotonda → Tupahue → cierre
+  mtb3: routeWithVias(VIA.elErmitano, [ANTILEN, P.laRotonda, VIA.tupahue], VIA.elErmitano),
 };
 
 // --- diagnóstico: distancia de cada tramo a puntos que DEBEN tocar ---
@@ -186,7 +205,7 @@ for (const [id, coords] of Object.entries(defs)) {
 
 const ts = `// ============================================================
 // GENERADO por scripts/build-rutas.ts - NO editar a mano.
-// Trazados reales (grafo OSM propio) para las 6 rutas predefinidas
+// Trazados reales (grafo OSM propio) para las 9 rutas predefinidas
 // de la arquitectura GPX del cliente (Capa 2: Pavimento + MTB).
 // coords = [lat, lon].
 // ============================================================

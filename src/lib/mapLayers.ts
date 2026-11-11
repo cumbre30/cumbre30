@@ -70,7 +70,7 @@ export const CAPA_ACCESOS: CapaAcceso[] = GATES.filter((g) => g.ciclistas).map((
 }));
 
 // ------------------------------------------------------------
-// CAPA 2 · RUTAS PREDEFINIDAS (PAVIMENTO + MTB) (6)
+// CAPA 2 · RUTAS PREDEFINIDAS (PAVIMENTO + MTB) (9)
 // Trazados reales: ver scripts/build-rutas.ts (motor A* propio).
 // ------------------------------------------------------------
 
@@ -134,6 +134,17 @@ export const CAPA_RUTAS: CapaRuta[] = [
     color: "#0ea5e9",
   },
   {
+    id: "ruta-5",
+    trz: "r5",
+    nombre: "Ruta 5 · Vuelta Completa (4 accesos)",
+    tipo: "pavimento",
+    nivel: "Exigente · larga",
+    detalle:
+      "Vuelta completa al cerro conectando los 4 accesos: ascenso por Pedro de Valdivia Norte, Tupahue, tramo norte por Zapadores y descenso oriente por La Pirámide.",
+    emoji: "🚴",
+    color: "#0ea5e9",
+  },
+  {
     id: "mtb-1",
     trz: "mtb1",
     nombre: "MTB 1 · Loop Los Gemelos (Pa' Arriba + descenso Zorzal/Anfiteatro)",
@@ -147,7 +158,29 @@ export const CAPA_RUTAS: CapaRuta[] = [
   {
     id: "mtb-2",
     trz: "mtb2",
-    nombre: "MTB 2 · Enduro Cumbre - Torre 5 - Sendero 4½",
+    nombre: "MTB 2 · Loop Técnico La S",
+    tipo: "mtb",
+    nivel: "Avanzado",
+    detalle:
+      "Loop técnico en la zona Los Gemelos: ascenso por Pa' Arriba y descenso por La S (sendero de descenso exclusivo) hasta La Rotonda.",
+    emoji: "🚵",
+    color: "#f97316",
+  },
+  {
+    id: "mtb-3",
+    trz: "mtb3",
+    nombre: "MTB 3 · Travesía Paseo Metropolitano",
+    tipo: "mtb",
+    nivel: "Suave · XC/Gravel",
+    detalle:
+      "Travesía circular alrededor del cerro por el Paseo Metropolitano: camino amplio de tierra con pendientes suaves, ideal para XC y gravel.",
+    emoji: "🚵",
+    color: "#f97316",
+  },
+  {
+    id: "mtb-4",
+    trz: "mtb4",
+    nombre: "MTB 4 · Enduro Cumbre - Torre 5 - Sendero 4½",
     tipo: "mtb",
     nivel: "Técnico",
     detalle:
