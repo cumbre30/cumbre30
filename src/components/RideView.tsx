@@ -234,25 +234,29 @@ export function RideView(p: Props) {
 
   return (
     <div className="flex flex-col gap-3">
-      {/* Minimapa tipo Waze: banner de maniobra, ruta ciclovía/vía compartida, ETA y reporte */}
-      <MiniMap
-        position={p.position}
-        heading={p.heading}
-        track={p.track}
-        accuracyM={p.accuracyM}
-        userPin={p.userPin}
-        nav={p.nav}
-        speedKmh={p.speedKmh}
-        heightClass={mm.base}
-        heightRouteClass={mm.route}
-      />
-      {p.nav.note && (
-        <p className={`text-xs -mt-2 ${p.nav.provisional ? "text-sky-700/90 dark:text-sky-300/90" : "text-amber-700/90 dark:text-amber-300/90"}`}>{p.nav.note}</p>
+      {/* Punto 6: banner de clima (icono + °C). Open-Meteo sin API
+          key; offline muestra el último dato con su hora. Arriba,
+          agrupado con la fila de modo/avisos/SOS. */}
+      {clima && (
+        <div
+          className="flex items-center gap-2 rounded-full border border-border bg-card/70 px-3 py-1.5"
+          role="status"
+          aria-label={`Clima en el parque: ${etiquetaClima(clima.code)}, ${Math.round(clima.tempC)} grados`}
+        >
+          {climaIcono(clima.code)}
+          <span className="font-mono text-sm font-bold tabular-nums text-foreground">
+            {Math.round(clima.tempC)}°
+          </span>
+          <span className="truncate text-xs text-muted-foreground">{etiquetaClima(clima.code)}</span>
+          <span className="ml-auto shrink-0 font-mono text-[10px] text-muted-foreground/80">
+            Santiago · {horaSantiago(clima.actualizado)}
+          </span>
+        </div>
       )}
 
-      {/* Punto 4: fila superior = píldora de estado GPS + icono de
-          avisos colapsable + botón SOS. El banner completo se abre
-          bajo la fila solo cuando tocas el icono. */}
+      {/* Punto 4: fila superior = píldora de modo/estado + icono de
+          avisos colapsable + botón SOS. Arriba junto al banner de
+          clima; el banner completo se abre bajo la fila al tocarlo. */}
       <div className="flex items-center gap-2">
         <span
           className={`inline-flex min-w-0 flex-1 items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-bold tracking-wide ${chip.cls}`}
@@ -307,23 +311,21 @@ export function RideView(p: Props) {
         </div>
       )}
 
-      {/* Punto 6: banner de clima (icono + °C). Open-Meteo sin API
-          key; offline muestra el último dato con su hora. */}
-      {clima && (
-        <div
-          className="flex items-center gap-2 rounded-full border border-border bg-card/70 px-3 py-1.5"
-          role="status"
-          aria-label={`Clima en el parque: ${etiquetaClima(clima.code)}, ${Math.round(clima.tempC)} grados`}
-        >
-          {climaIcono(clima.code)}
-          <span className="font-mono text-sm font-bold tabular-nums text-foreground">
-            {Math.round(clima.tempC)}°
-          </span>
-          <span className="truncate text-xs text-muted-foreground">{etiquetaClima(clima.code)}</span>
-          <span className="ml-auto shrink-0 font-mono text-[10px] text-muted-foreground/80">
-            Santiago · {horaSantiago(clima.actualizado)}
-          </span>
-        </div>
+      {/* Minimapa tipo Waze (arriba del velocímetro): banner de maniobra,
+          ruta ciclovía/vía compartida, ETA y reporte */}
+      <MiniMap
+        position={p.position}
+        heading={p.heading}
+        track={p.track}
+        accuracyM={p.accuracyM}
+        userPin={p.userPin}
+        nav={p.nav}
+        speedKmh={p.speedKmh}
+        heightClass={mm.base}
+        heightRouteClass={mm.route}
+      />
+      {p.nav.note && (
+        <p className={`text-xs -mt-2 ${p.nav.provisional ? "text-sky-700/90 dark:text-sky-300/90" : "text-amber-700/90 dark:text-amber-300/90"}`}>{p.nav.note}</p>
       )}
 
       {/* VELOCIDAD - protagonista (elemento 2 del brief), estilo y tamaño personalizables Pro */}
@@ -360,46 +362,56 @@ export function RideView(p: Props) {
         </Card>
       </div>
 
-      {/* BOTÓN PRINCIPAL (elemento 4) - inicia/pausa/finaliza */}
-      {idle ? (
-        <div>
-          <Button
-            onClick={p.onStart}
-            className="h-16 w-full rounded-2xl bg-emerald-600 text-lg font-extrabold text-(--c30-on-accent) shadow-lg hover:bg-emerald-500"
-          >
-            <Play className="h-6 w-6" /> Iniciar ride
-          </Button>
-          <p className="mt-1.5 text-center text-[11px] text-muted-foreground">
-            Fuente: {p.source === "sim" ? "Demo" : "GPS real"} · cámbiala en Configuración
-          </p>
-        </div>
-      ) : (
-        <div className="flex gap-2.5">
-          {running ? (
-            <Button
-              onClick={p.onPause}
-              variant="outline"
-              className="h-16 flex-1 rounded-2xl border-border bg-card text-base font-bold text-foreground hover:bg-accent"
-            >
-              <Pause className="h-6 w-6" /> Pausar
-            </Button>
+      {/* BOTÓN PRINCIPAL (punto 7 del brief): fijo abajo, flotando sobre
+          el contenido. La pantalla scrollea completa y el botón siempre
+          queda a la vista, sobre la barra de navegación inferior. */}
+      <div className="pointer-events-none fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+58px)] z-[45]">
+        <div className="pointer-events-auto mx-auto max-w-md px-4">
+          <div className="pointer-events-none absolute inset-x-0 -top-8 bottom-0 -z-10 bg-gradient-to-t from-background via-background/85 to-transparent" />
+          {idle ? (
+            <div>
+              <Button
+                onClick={p.onStart}
+                className="h-16 w-full rounded-2xl bg-emerald-600 text-lg font-extrabold text-(--c30-on-accent) shadow-xl hover:bg-emerald-500"
+              >
+                <Play className="h-6 w-6" /> Iniciar ride
+              </Button>
+              <p className="mt-1 text-center text-[11px] text-muted-foreground">
+                Fuente: {p.source === "sim" ? "Demo" : "GPS real"} · cámbiala en Configuración
+              </p>
+            </div>
           ) : (
-            <Button
-              onClick={p.onResume}
-              className="h-16 flex-1 rounded-2xl bg-emerald-600 text-base font-extrabold text-(--c30-on-accent) hover:bg-emerald-500"
-            >
-              <Play className="h-6 w-6" /> Reanudar
-            </Button>
+            <div className="flex gap-2.5">
+              {running ? (
+                <Button
+                  onClick={p.onPause}
+                  variant="outline"
+                  className="h-16 flex-1 rounded-2xl border-border bg-card text-base font-bold text-foreground shadow-xl hover:bg-accent"
+                >
+                  <Pause className="h-6 w-6" /> Pausar
+                </Button>
+              ) : (
+                <Button
+                  onClick={p.onResume}
+                  className="h-16 flex-1 rounded-2xl bg-emerald-600 text-base font-extrabold text-(--c30-on-accent) shadow-xl hover:bg-emerald-500"
+                >
+                  <Play className="h-6 w-6" /> Reanudar
+                </Button>
+              )}
+              <Button
+                onClick={p.onFinish}
+                className="h-16 w-16 shrink-0 rounded-2xl bg-red-950/60 text-red-300 shadow-xl hover:bg-red-900"
+                aria-label="Finalizar y guardar ride"
+              >
+                <Square className="h-6 w-6" />
+              </Button>
+            </div>
           )}
-          <Button
-            onClick={p.onFinish}
-            className="h-16 w-16 shrink-0 rounded-2xl bg-red-950/60 text-red-300 hover:bg-red-900"
-            aria-label="Finalizar y guardar ride"
-          >
-            <Square className="h-6 w-6" />
-          </Button>
         </div>
-      )}
+      </div>
+      {/* Espacio para que el final del contenido no quede tapado por
+          el botón flotante (el main ya trae pb-28 por el nav). */}
+      <div className="h-16" aria-hidden />
 
       {/* Punto 8: caja-filtro - estadísticas y bitácora en UNA caja,
           filtrables por pestañas. Abierta por defecto cuando estás
