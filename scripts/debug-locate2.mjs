@@ -1,0 +1,24 @@
+import { chromium } from "playwright";
+const BASE = "http://localhost:3000/";
+const browser = await chromium.launch();
+const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, geolocation: { latitude: -33.4505, longitude: -70.67, accuracy: 12 }, permissions: ["geolocation"] });
+const page = await ctx.newPage();
+page.on("console", (m) => console.log("[console]", m.type(), m.text().slice(0, 150)));
+page.on("pageerror", (e) => console.log("[pageerror]", String(e).slice(0, 200)));
+await page.goto(BASE, { waitUntil: "networkidle" });
+await page.waitForTimeout(1500);
+await page.getByRole("button", { name: "Explorar" }).click();
+await page.waitForTimeout(5000);
+const status1 = await page.locator("body").innerText();
+console.log("[aviso visible]", status1.includes("No pudimos obtener tu ubicación") ? "SÍ (GPS falló)" : "no");
+// ¿hay marcador de posición en el mapa? (pin del usuario)
+const pinCount = await page.locator(".leaflet-marker-icon").count();
+console.log("[markers]", pinCount);
+const btn = page.locator("button[title='Centrar en mi ubicación']").first();
+await btn.click();
+await page.waitForTimeout(1200);
+const status2 = await page.locator("body").innerText();
+console.log("[aviso tras click]", status2.includes("No pudimos obtener tu ubicación") ? "SÍ (GPS falló)" : "no");
+const t = await page.evaluate(() => document.querySelector(".leaflet-map-pane")?.style.transform ?? "");
+console.log("transform tras click =", t);
+await browser.close();
