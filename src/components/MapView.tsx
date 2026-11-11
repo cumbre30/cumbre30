@@ -9,7 +9,7 @@
 // se traza sola desde tu ubicación (grafo propio u OSRM bici).
 // ============================================================
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, Fragment } from "react";
 import { useTheme } from "next-themes";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
@@ -26,12 +26,23 @@ import {
   useMap,
   useMapEvents,
 } from "react-leaflet";
-import { Crosshair, AlertTriangle, Trash2, X, Search, MapPin, Flag, Crown, Lock } from "lucide-react";
-import { GATES, NAV_DESTINATIONS, PARK_POLYGON, RISK_ZONES, type LatLng } from "@/lib/park";
+import { Crosshair, AlertTriangle, Trash2, X, Search, MapPin, Flag, Crown, Lock, Layers, ChevronDown, Eye } from "lucide-react";
+import { NAV_DESTINATIONS, PARK_POLYGON, RISK_ZONES, type LatLng } from "@/lib/park";
+import {
+  CAPA_ACCESOS,
+  CAPA_NORMATIVA,
+  CAPA_POIS,
+  CAPA_RUTAS,
+  CAPA_URBANA,
+  SUB_ETIQUETAS,
+  rutaTrazado,
+  type CapaPunto,
+  type CapaPuntoBase,
+} from "@/lib/mapLayers";
 import { PINS, DEFAULT_PIN } from "@/lib/pins";
 import { INCIDENT_BY_ID, INCIDENT_TYPES, type IncidentTypeId } from "@/lib/incidents";
 import { pointInPolygon } from "@/lib/geo";
-import { incidentIcon, userPinIcon, flagIcon, markIcon } from "@/lib/mapIcons";
+import { incidentIcon, userPinIcon, flagIcon, markIcon, poiIcon } from "@/lib/mapIcons";
 import { groupSegments, loadNetwork, type NavRoute, type Network } from "@/lib/routing";
 import { useIncidentFeed, addIncident, removeIncident, saveLocalIncidents, loadLocalIncidents, type IncidentItem } from "@/hooks/useIncidentFeed";
 import { isNativeMapPlatform } from "@/lib/nativeMapBridge";
@@ -130,6 +141,265 @@ function RouteFitter({
     map.fitBounds(b, { padding: [44, 44], maxZoom: 16, animate: true });
   }, [route, map, pendingRef, holdRef]);
   return null;
+}
+
+// ---- Capas del mapa: 5 menús desplegables (arquitectura GPX) ----
+
+type MenuCapa = {
+  id: string;
+  titulo: string;
+  sub: string;
+  emoji: string;
+  /** ids de visibilidad que agrupa (para el conteo) */
+  items: number;
+};
+
+const MENUS_CAPAS: MenuCapa[] = [
+  { id: "accesos", titulo: "Accesos", sub: "Entradas y salidas oficiales", emoji: "🚪", items: CAPA_ACCESOS.length },
+  { id: "rutas", titulo: "Rutas", sub: "Trazados de pavimento y circuitos MTB", emoji: "🛣️", items: CAPA_RUTAS.length },
+  { id: "pois", titulo: "Puntos de Interés", sub: "Cruces, servicios, miradores y alertas peatonales", emoji: "📍", items: CAPA_POIS.length },
+  { id: "normativa", titulo: "Normativa y Seguridad", sub: "Cortes horarios, límites y soporte técnico", emoji: "🛡️", items: CAPA_NORMATIVA.length },
+  { id: "urbana", titulo: "Conexión Urbana", sub: "Metro y ciclovías externas", emoji: "🏙️", items: CAPA_URBANA.length },
+];
+
+/** Colores de burbuja por subcategoría de Puntos de Interés y por capa de puntos. */
+const COLOR_SUB_POI: Record<CapaPunto["sub"], string> = {
+  conexion: "#0891b2",
+  servicio: "#16a34a",
+  mirador: "#8b5cf6",
+  precaucion: "#dc2626",
+};
+const COLOR_NORMATIVA = "#be123c";
+const COLOR_URBANA = "#7c3aed";
+
+/** Enfoque pedido desde el panel: centrar un punto o encuadrar una ruta. */
+type Focus = { kind: "punto"; p: LatLng } | { kind: "ruta"; coords: LatLng[] } | null;
+
+function FocusHandler({ focus }: { focus: Focus }) {
+  const map = useMap();
+  useEffect(() => {
+    if (!focus) return;
+    if (focus.kind === "punto") {
+      map.flyTo([focus.p.lat, focus.p.lon], Math.max(map.getZoom(), 15.5), { duration: 0.8 });
+    } else if (focus.coords.length > 1) {
+      const b = L.latLngBounds(focus.coords.map((c) => [c.lat, c.lon] as [number, number]));
+      map.fitBounds(b, { padding: [40, 40], maxZoom: 16, animate: true });
+    }
+  }, [focus, map]);
+  return null;
+}
+
+/** Fila de punto dentro de un menú: emoji + nombre + botón para centrar el mapa. */
+function FilaPunto({ p, color, onFocus }: { p: { nombre: string; detalle: string; emoji: string }; color: string; onFocus: () => void }) {
+  return (
+    <li className="flex items-center gap-1.5 py-1.5">
+      <span aria-hidden className="shrink-0 text-[13px]">{p.emoji}</span>
+      <span className="min-w-0 flex-1 text-left">
+        <span className="block truncate text-xs text-foreground">{p.nombre}</span>
+        <span className="block truncate text-[10px] text-muted-foreground">{p.detalle}</span>
+      </span>
+      <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: color }} aria-hidden />
+      <button
+        onClick={onFocus}
+        aria-label={`Centrar mapa en ${p.nombre}`}
+        title="Centrar el mapa aquí"
+        className="shrink-0 rounded border border-border px-1.5 py-0.5 text-muted-foreground hover:border-emerald-500 hover:text-emerald-600"
+      >
+        <Eye className="h-3.5 w-3.5" />
+      </button>
+    </li>
+  );
+}
+
+/** Interruptor compacto Ver/Ocultar de una capa o ruta. */
+function SwitchCapa({ on, onClick, label }: { on: boolean; onClick: () => void; label: string }) {
+  return (
+    <button
+      onClick={onClick}
+      data-vercapa={label}
+      aria-pressed={on}
+      className={`shrink-0 rounded-md border px-2 py-1 text-[10px] font-bold transition ${
+        on
+          ? "border-emerald-500 bg-emerald-600 text-(--c30-on-accent)"
+          : "border-border bg-background text-muted-foreground hover:border-emerald-500/60 hover:text-foreground"
+      }`}
+    >
+      {on ? "Ocultar" : "Ver"}
+    </button>
+  );
+}
+
+/** Panel de capas: 5 menús desplegables sobre el mapa general.
+ *  Cada menú tiene su propio estado abierto (los toggle de cierre de
+ *  un menú no cancelan la apertura de otro, que ocurría con un único
+ *  «abierto» compartido). */
+function CapasPanel({
+  abiertas,
+  onAbierta,
+  vis,
+  onVer,
+  onFocus,
+}: {
+  abiertas: Record<string, boolean>;
+  onAbierta: (id: string, open: boolean) => void;
+  vis: Record<string, boolean>;
+  onVer: (id: string) => void;
+  onFocus: (f: Focus) => void;
+}) {
+  return (
+    <div className="rounded-xl border border-border bg-card/80 overflow-hidden" data-testid="capas-panel">
+      <div className="flex items-center gap-2 px-3 pt-2.5 pb-1.5">
+        <Layers className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+        <span className="text-xs font-bold text-foreground">Capas del mapa</span>
+        <span className="ml-auto text-[10px] text-muted-foreground">elige qué ver en el mapa</span>
+      </div>
+      <div className="px-2 pb-2">
+        {MENUS_CAPAS.map((m) => {
+          const on = vis[m.id] ?? false;
+          const activos =
+            m.id === "rutas"
+              ? CAPA_RUTAS.filter((r) => vis[r.id]).length
+              : on
+                ? m.items
+                : 0;
+          return (
+            <details
+              key={m.id}
+              data-capa={m.id}
+              open={!!abiertas[m.id]}
+              onToggle={(e) => onAbierta(m.id, (e.currentTarget as HTMLDetailsElement).open)}
+              className="border-b border-border/50 last:border-0"
+            >
+              <summary className="flex cursor-pointer list-none items-center gap-2 px-1.5 py-2.5">
+                <span aria-hidden className="text-[15px]">{m.emoji}</span>
+                <span className="min-w-0 flex-1">
+                  <span className="flex items-center gap-1.5">
+                    <span className="text-[13px] font-bold text-foreground">{m.titulo}</span>
+                    <span className="rounded-full bg-emerald-600/10 px-1.5 py-px text-[9.5px] font-bold text-emerald-700 dark:text-emerald-300">
+                      {m.items}
+                    </span>
+                    {activos > 0 && (
+                      <span className="rounded-full bg-emerald-600 px-1.5 py-px text-[9.5px] font-bold text-(--c30-on-accent)">
+                        {activos} {m.id === "rutas" ? "dibujadas" : "visibles"}
+                      </span>
+                    )}
+                  </span>
+                  <span className="block truncate text-[10.5px] text-muted-foreground">{m.sub}</span>
+                </span>
+                <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground transition-transform details-chev" aria-hidden />
+              </summary>
+
+              <div className="px-1.5 pb-2.5">
+                {m.id === "accesos" && (
+                  <>
+                    <div className="mb-1 flex items-center justify-between gap-2">
+                      <p className="text-[10px] text-muted-foreground">Solo los 4 accesos habilitados para ingreso en bici (06:00-20:30).</p>
+                      <SwitchCapa on={on} onClick={() => onVer("accesos")} label="accesos" />
+                    </div>
+                    <ul>
+                      {CAPA_ACCESOS.map((a) => (
+                        <FilaPunto key={a.id} p={{ nombre: a.nombre, detalle: a.detalle, emoji: "🚴" }} color="#065f46" onFocus={() => onFocus({ kind: "punto", p: a.position })} />
+                      ))}
+                    </ul>
+                  </>
+                )}
+
+                {m.id === "rutas" && (
+                  <>
+                    <p className="mb-1 text-[10px] text-muted-foreground">Toca «Ver» para dibujar cada trazado sobre el mapa.</p>
+                    <ul>
+                      {CAPA_RUTAS.map((r) => {
+                        const t = rutaTrazado(r);
+                        return (
+                          <li key={r.id} className="flex items-center gap-1.5 py-1.5">
+                            <span aria-hidden className="shrink-0 text-[13px]">{r.emoji}</span>
+                            <span className="min-w-0 flex-1">
+                              <span className="flex items-center gap-1.5">
+                                <span className="truncate text-xs font-semibold text-foreground">{r.nombre}</span>
+                                <span
+                                  className={`shrink-0 rounded px-1 py-px text-[9px] font-bold ${
+                                    r.tipo === "pavimento" ? "bg-sky-500/15 text-sky-700 dark:text-sky-300" : "bg-orange-500/15 text-orange-700 dark:text-orange-300"
+                                  }`}
+                                >
+                                  {r.tipo === "pavimento" ? "Pavimento" : "MTB"}
+                                </span>
+                              </span>
+                              <span className="block truncate text-[10px] text-muted-foreground">
+                                {r.nivel} · {t.distKm.toFixed(1)} km
+                              </span>
+                            </span>
+                            <span className="h-2 w-4 shrink-0 rounded-full" style={{ background: r.color }} aria-hidden />
+                            <SwitchCapa on={!!vis[r.id]} onClick={() => onVer(r.id)} label={r.id} />
+                            <button
+                              onClick={() => onFocus({ kind: "ruta", coords: t.coords })}
+                              aria-label={`Encuadrar ${r.nombre}`}
+                              title="Encuadrar la ruta completa"
+                              className="shrink-0 rounded border border-border px-1.5 py-1 text-muted-foreground hover:border-emerald-500 hover:text-emerald-600"
+                            >
+                              <Eye className="h-3.5 w-3.5" />
+                            </button>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </>
+                )}
+
+                {m.id === "pois" && (
+                  <>
+                    <div className="mb-1 flex items-center justify-between gap-2">
+                      <p className="text-[10px] text-muted-foreground">Conexiones, servicios, miradores y alertas peatonales.</p>
+                      <SwitchCapa on={on} onClick={() => onVer("pois")} label="pois" />
+                    </div>
+                    {(["conexion", "servicio", "mirador", "precaucion"] as const).map((sub) => (
+                      <div key={sub}>
+                        <p className="mt-1 text-[9.5px] font-bold uppercase tracking-wide text-muted-foreground/80">
+                          {SUB_ETIQUETAS[sub]}
+                        </p>
+                        <ul>
+                          {CAPA_POIS.filter((p) => p.sub === sub).map((p) => (
+                            <FilaPunto key={p.id} p={p} color={COLOR_SUB_POI[p.sub]} onFocus={() => onFocus({ kind: "punto", p: p.position })} />
+                          ))}
+                        </ul>
+                      </div>
+                    ))}
+                  </>
+                )}
+
+                {m.id === "normativa" && (
+                  <>
+                    <div className="mb-1 flex items-center justify-between gap-2">
+                      <p className="text-[10px] text-muted-foreground">Cortes horarios, límites y soporte técnico.</p>
+                      <SwitchCapa on={on} onClick={() => onVer("normativa")} label="normativa" />
+                    </div>
+                    <ul>
+                      {CAPA_NORMATIVA.map((p) => (
+                        <FilaPunto key={p.id} p={p} color={COLOR_NORMATIVA} onFocus={() => onFocus({ kind: "punto", p: p.position })} />
+                      ))}
+                    </ul>
+                  </>
+                )}
+
+                {m.id === "urbana" && (
+                  <>
+                    <div className="mb-1 flex items-center justify-between gap-2">
+                      <p className="text-[10px] text-muted-foreground">Metro y ciclovías externas para llegar pedaleando.</p>
+                      <SwitchCapa on={on} onClick={() => onVer("urbana")} label="urbana" />
+                    </div>
+                    <ul>
+                      {CAPA_URBANA.map((p) => (
+                        <FilaPunto key={p.id} p={p} color={COLOR_URBANA} onFocus={() => onFocus({ kind: "punto", p: p.position })} />
+                      ))}
+                    </ul>
+                  </>
+                )}
+              </div>
+            </details>
+          );
+        })}
+      </div>
+    </div>
+  );
 }
 
 // ---- Buscador de destinos y marcadores (función Cumbre30 Pro) ----
@@ -469,6 +739,8 @@ function MapLegend({ className }: { className: string }) {
     <div className={className}>
       <div className="flex items-center gap-2"><span className="h-2 w-4 rounded-sm bg-emerald-500/50 border border-emerald-400" /> Parque · límite 30</div>
       <div className="flex items-center gap-2"><span className="h-2 w-4 rounded-sm bg-emerald-500" /> Ciclovía (interior del cerro)</div>
+      <div className="flex items-center gap-2"><span className="h-2 w-4 rounded-sm" style={{ background: "#0ea5e9" }} /> Ruta pavimento (capas)</div>
+      <div className="flex items-center gap-2"><span className="h-2 w-4 rounded-sm" style={{ background: "#f97316" }} /> Ruta MTB (capas)</div>
       <div className="flex items-center gap-2"><span className="h-2 w-4 rounded-sm" style={{ background: "#a855f7" }} /> Ruta: ciclovía</div>
       <div className="flex items-center gap-2"><span className="h-2 w-4 rounded-sm" style={{ background: "#f4f4f5" }} /> Ruta: vía compartida</div>
       <div className="flex items-center gap-2"><span className="h-2 w-4 rounded-sm bg-lime-400" /> Tu recorrido</div>
@@ -538,6 +810,10 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
   // Encuadre único de la ruta recién trazada desde el buscador
   const pendingFitRef = useRef(false);
   const recenterHoldRef = useRef(0);
+  // Capas del mapa (arquitectura GPX): apertura por menú y visibilidad por capa/ruta
+  const [capasAbiertas, setCapasAbiertas] = useState<Record<string, boolean>>({});
+  const [capasVis, setCapasVis] = useState<Record<string, boolean>>({ accesos: true });
+  const [focus, setFocus] = useState<Focus>(null);
   const [markMode, setMarkMode] = useState(false);
   const [pendingMark, setPendingMark] = useState<LatLng | null>(null);
   const [markName, setMarkName] = useState("");
@@ -650,6 +926,50 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
     if (d) pendingFitRef.current = true;
     onSetDest?.(d);
   };
+
+  /** Ver/ocultar una capa o ruta. Al dibujar una ruta se encuadra
+   *  completa una vez (FocusHandler) y la vista queda en pausa 12 s
+   *  antes de volver a seguir al ciclista (mismo pacto del buscador). */
+  const toggleCapa = (id: string) => {
+    const willBeOn = !capasVis[id];
+    setCapasVis((prev) => ({ ...prev, [id]: !prev[id] }));
+    if (willBeOn) {
+      const r = CAPA_RUTAS.find((x) => x.id === id);
+      if (r) {
+        const t = rutaTrazado(r);
+        if (t.coords.length > 1) setFocus({ kind: "ruta", coords: t.coords });
+      }
+      recenterHoldRef.current = Date.now() + 12_000;
+    }
+  };
+
+  const enfocar = (f: Focus) => {
+    setFocus(f);
+    recenterHoldRef.current = Date.now() + 12_000;
+  };
+
+  /** Marcadores de una capa de puntos con popup (nombre, detalle y «Ruta aquí»). */
+  const puntoMarkers = (pts: CapaPuntoBase[], colorOf: (pt: CapaPuntoBase) => string) =>
+    pts.map((pt) => (
+      <Marker key={pt.id} position={[pt.position.lat, pt.position.lon]} icon={poiIcon(pt.emoji, colorOf(pt))}>
+        <Popup>
+          <div className="min-w-[190px] text-[13px]">
+            <div className="font-semibold mb-0.5">
+              {pt.emoji} {pt.nombre}
+            </div>
+            <div className="text-zinc-600 text-[12px]">{pt.detalle}</div>
+            {onSetDest && (
+              <button
+                onClick={() => handleSetDest({ name: pt.nombre, position: pt.position })}
+                className="mt-1.5 font-medium text-sky-600 hover:underline"
+              >
+                Ruta aquí
+              </button>
+            )}
+          </div>
+        </Popup>
+      </Marker>
+    ));
 
   // Ciclovías: SOLO las que están dentro del cerro (≥50% de sus puntos
   // dentro del polígono del parque) - el resto se omite por orden.
@@ -813,6 +1133,9 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
         onRemoveMark={removeMark}
       />
 
+      {/* Capas del mapa: 5 menús desplegables (arquitectura GPX del cliente) */}
+      <CapasPanel abiertas={capasAbiertas} onAbierta={(id, open) => setCapasAbiertas((prev) => ({ ...prev, [id]: open }))} vis={capasVis} onVer={toggleCapa} onFocus={enfocar} />
+
       <div className="rounded-xl overflow-hidden border border-border h-[62vh] min-h-[420px] relative z-0">
         <MapContainer
           center={[center.lat, center.lon]}
@@ -847,27 +1170,56 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
             </Circle>
           ))}
 
-          {/* Accesos: los 4 autorizados para ingreso en bicicleta
-              (normativa Parquemet) en verde; el resto en gris. */}
-          {GATES.map((g) => (
-            <CircleMarker
-              key={g.id}
-              center={[g.position.lat, g.position.lon]}
-              radius={7}
-              pathOptions={
-                g.ciclistas
-                  ? { color: "#34d399", weight: 2.5, fillColor: "#065f46", fillOpacity: 0.95 }
-                  : { color: "#94a3b8", weight: 1.5, fillColor: "#475569", fillOpacity: 0.8 }
-              }
-            >
-              <Tooltip direction="top" offset={[0, -6]}>
-                <span className="text-xs font-medium">
-                  {g.ciclistas ? "🚴" : "🚪"} {g.name}
-                  {g.ciclistas ? " · acceso ciclistas" : ""}
-                </span>
-              </Tooltip>
-            </CircleMarker>
-          ))}
+          {/* Capa Accesos: los 4 autorizados para ingreso en bicicleta
+              (normativa Parquemet) — el resto de accesos no se dibuja. */}
+          {capasVis["accesos"] &&
+            CAPA_ACCESOS.map((a) => (
+              <CircleMarker
+                key={a.id}
+                center={[a.position.lat, a.position.lon]}
+                radius={7}
+                pathOptions={{ color: "#34d399", weight: 2.5, fillColor: "#065f46", fillOpacity: 0.95 }}
+              >
+                <Tooltip direction="top" offset={[0, -6]}>
+                  <span className="text-xs font-medium">🚴 {a.nombre} · acceso ciclistas</span>
+                </Tooltip>
+              </CircleMarker>
+            ))}
+
+          {/* Capa Rutas: trazados predefinidos (pavimento azul · MTB naranja
+              punteado) con casing oscuro para leerse sobre cualquier fondo. */}
+          {CAPA_RUTAS.filter((r) => capasVis[r.id]).map((r) => {
+            const t = rutaTrazado(r);
+            if (t.coords.length < 2) return null;
+            const path = t.coords.map((c) => [c.lat, c.lon] as [number, number]);
+            return (
+              <Fragment key={r.id}>
+                <Polyline positions={path} pathOptions={{ color: "#05070a", weight: 9, opacity: 0.75 }} interactive={false} />
+                <Polyline
+                  positions={path}
+                  pathOptions={{
+                    color: r.color,
+                    weight: 5,
+                    opacity: 0.95,
+                    dashArray: r.tipo === "mtb" ? "10 8" : undefined,
+                    lineCap: "round",
+                    lineJoin: "round",
+                  }}
+                >
+                  <Tooltip direction="top">
+                    <span className="text-xs font-medium">
+                      {r.emoji} {r.nombre} · {t.distKm.toFixed(1)} km
+                    </span>
+                  </Tooltip>
+                </Polyline>
+              </Fragment>
+            );
+          })}
+
+          {/* Capas de puntos: Puntos de Interés · Normativa y Seguridad · Conexión Urbana */}
+          {capasVis["pois"] && puntoMarkers(CAPA_POIS, (p) => COLOR_SUB_POI[(p as CapaPunto).sub])}
+          {capasVis["normativa"] && puntoMarkers(CAPA_NORMATIVA, () => COLOR_NORMATIVA)}
+          {capasVis["urbana"] && puntoMarkers(CAPA_URBANA, () => COLOR_URBANA)}
 
           {/* Ciclovías (solo interior del parque) */}
           {cicloviaLines}
@@ -957,6 +1309,7 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
 
           <Recenter position={position} holdRef={recenterHoldRef} />
           <RouteFitter route={route} pendingRef={pendingFitRef} holdRef={recenterHoldRef} />
+          <FocusHandler focus={focus} />
           <LocateHandler target={locateTarget} />
           <ClickHandler enabled={reportMode} onPick={setPending} />
           <ClickHandler
@@ -994,11 +1347,12 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
         <div className="absolute bottom-3 left-2 z-[500] rounded-lg bg-background/90 border border-border px-3 py-2 text-[11px] text-foreground/90 space-y-1 pointer-events-none">
           <div className="flex items-center gap-2"><span className="h-2 w-4 rounded-sm bg-emerald-500/50 border border-emerald-400" /> Parque · límite 30</div>
           <div className="flex items-center gap-2"><span className="h-2 w-4 rounded-sm bg-emerald-500" /> Ciclovía (interior del cerro)</div>
+          <div className="flex items-center gap-2"><span className="h-2 w-4 rounded-sm" style={{ background: "#0ea5e9" }} /> Ruta pavimento (capas)</div>
+          <div className="flex items-center gap-2"><span className="h-2 w-4 rounded-sm" style={{ background: "#f97316" }} /> Ruta MTB (capas)</div>
           <div className="flex items-center gap-2"><span className="h-2 w-4 rounded-sm" style={{ background: "#a855f7" }} /> Ruta: ciclovía</div>
           <div className="flex items-center gap-2"><span className="h-2 w-4 rounded-sm" style={{ background: "#f4f4f5" }} /> Ruta: vía compartida</div>
           <div className="flex items-center gap-2"><span className="h-2 w-4 rounded-sm bg-lime-400" /> Tu recorrido</div>
           <div className="flex items-center gap-2"><span className="h-2 w-4 rounded-sm bg-amber-500" /> Zonas de riesgo</div>
-          <div className="flex items-center gap-2"><span className="h-2 w-4 rounded-sm bg-zinc-600" /> ⚠ Emojis: incidencias reportadas</div>
         </div>
 
         {/* Estado / avisos */}
@@ -1069,10 +1423,10 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
         <p className="text-xs text-emerald-700/90 dark:text-emerald-300/90 -mt-1">Toca el mapa donde quieres dejar tu marcador 📍.</p>
       )}
       <p className="text-xs text-muted-foreground leading-relaxed">
-        Mapa de referencia: tu ubicación, zonas de riesgo, simbología e incidencias. Con Cumbre30 Pro escribes
-        cualquier dirección o lugar del cerro y la ruta ciclable se traza sola desde tu ubicación (buscar la
-        dirección necesita internet); además guardas tus propios marcadores. Para navegación giro a giro, usa
-        el velocímetro (pestaña Ride).
+        Mapa de referencia: tus capas (accesos, rutas pavimento/MTB, puntos de interés, normativa y conexión urbana),
+        zonas de riesgo e incidencias. Con Cumbre30 Pro escribes cualquier dirección o lugar del cerro y la ruta
+        ciclable se traza sola desde tu ubicación (buscar la dirección necesita internet); además guardas tus propios
+        marcadores. Para navegación giro a giro, usa el velocímetro (pestaña Ride).
       </p>
     </div>
   );

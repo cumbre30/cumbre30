@@ -57,6 +57,17 @@ export function incidentIcon(type: string): L.DivIcon {
   });
 }
 
+/** Marcador genérico de capa (POI, normativa, conexión urbana): burbuja de emoji con color de la capa. */
+export function poiIcon(emoji: string, color: string): L.DivIcon {
+  return L.divIcon({
+    className: "",
+    html: `<div class="c30-billboard"><div style="display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:9999px;background:${color};border:2.5px solid #fafafa;box-shadow:0 2px 8px rgba(0,0,0,.55);font-size:13px;line-height:1;">${emoji}</div></div>`,
+    iconSize: [28, 28],
+    iconAnchor: [14, 14],
+    popupAnchor: [0, -14],
+  });
+}
+
 /** Marcador de incidencia compacto para el minimapa. */
 export function miniIncidentIcon(type: string): L.DivIcon {
   const t = INCIDENT_BY_ID[type] ?? INCIDENT_BY_ID.otro;

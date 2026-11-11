@@ -95,6 +95,8 @@ type Props = {
   onPause: () => void;
   onResume: () => void;
   onFinish: () => void;
+  /** Abrir el mapa general (pestaña Explorar) desde el minimapa. */
+  onOpenMap?: () => void;
 };
 
 export { stepGlyph };
@@ -346,6 +348,7 @@ export function RideView(p: Props) {
         speedKmh={p.speedKmh}
         heightClass={mm.base}
         heightRouteClass={mm.route}
+        onOpenMap={p.onOpenMap}
       />
       {p.nav.note && (
         <p className={`text-xs -mt-2 ${p.nav.provisional ? "text-sky-700/90 dark:text-sky-300/90" : "text-amber-700/90 dark:text-amber-300/90"}`}>{p.nav.note}</p>

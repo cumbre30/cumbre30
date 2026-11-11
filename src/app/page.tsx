@@ -233,6 +233,7 @@ export default function Home() {
             heading={heading}
             userPin={me?.user.selectedPin}
             nav={nav}
+            onOpenMap={() => go("explorar")}
             onStart={startRide}
             onPause={ride.pause}
             onResume={ride.resume}

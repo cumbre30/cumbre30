@@ -27,7 +27,8 @@ import "maplibre-gl/dist/maplibre-gl.css";
 // archivo incluido en el APK como asset.
 setWorkerUrl("/maplibre-gl-worker.mjs?v=6.16.0");
 import { Crosshair, Plus, Route as RouteIcon, TriangleAlert, X } from "lucide-react";
-import { GATES, NAV_DESTINATIONS, PARK_POLYGON, RISK_ZONES, type LatLng } from "@/lib/park";
+import { GATES, PARK_POLYGON, RISK_ZONES, type LatLng } from "@/lib/park";
+import { MINIMAP_DESTINOS } from "@/lib/mapLayers";
 import { DEFAULT_PIN, PINS, type PinId } from "@/lib/pins";
 import { INCIDENT_BY_ID } from "@/lib/incidents";
 import { circlePolygon, navStyle, CYCLOSM_TILES } from "@/lib/navStyle";
@@ -70,6 +71,8 @@ type Props = {
   heightClass?: string;
   /** Altura del contenedor con ruta activa. */
   heightRouteClass?: string;
+  /** Abrir el mapa general (listado completo de destinos y capas). */
+  onOpenMap?: () => void;
 };
 
 const wrap360 = (deg: number) => ((deg % 360) + 360) % 360;
@@ -293,7 +296,9 @@ function NavCanvas(props: NavCanvasProps) {
       });
       map.addSource("gates", {
         type: "geojson",
-        data: toFc(GATES.map((g) => polyFeat(circlePolygon(g.position.lat, g.position.lon, 18), { id: g.id }))),
+        // Limpieza del minimapa: SOLO los 4 accesos habilitados para
+        // ciclistas (normativa Parquemet). El resto de accesos no se dibuja.
+        data: toFc(GATES.filter((g) => g.ciclistas).map((g) => polyFeat(circlePolygon(g.position.lat, g.position.lon, 18), { id: g.id }))),
       });
       map.addSource("track", { type: "geojson", data: toFc([]) });
       map.addSource("route-remaining", { type: "geojson", data: toFc([]) });
@@ -665,9 +670,11 @@ type BottomBarProps = {
   dest: NavEngine["dest"];
   onSetDest: NavEngine["setDestination"];
   onReport: () => void;
+  /** Abrir el mapa general (opción «Revisa el listado completo»). */
+  onOpenMap?: () => void;
 };
 
-function BottomBar({ className, onRoute, etaMin, arrivalClock, remainingM, dest, onSetDest, onReport }: BottomBarProps) {
+function BottomBar({ className, onRoute, etaMin, arrivalClock, remainingM, dest, onSetDest, onReport, onOpenMap }: BottomBarProps) {
   return (
     <div className={className}>
       {onRoute ? (
@@ -682,20 +689,30 @@ function BottomBar({ className, onRoute, etaMin, arrivalClock, remainingM, dest,
           <RouteIcon className="h-3.5 w-3.5 text-sky-600 dark:text-sky-400 shrink-0" />
           <select
             aria-label="Ir a"
-            value={dest ? NAV_DESTINATIONS.find((d) => d.position === dest.position)?.id ?? "mapa" : ""}
+            value={
+              dest
+                ? MINIMAP_DESTINOS.find((d) => d.position.lat === dest.position.lat && d.position.lon === dest.position.lon)?.id ?? "mapa"
+                : ""
+            }
             onChange={(e) => {
-              if (e.target.value === "mapa") return; // ya navegando a un punto libre: no borrar la ruta
-              const d = NAV_DESTINATIONS.find((x) => x.id === e.target.value);
+              const v = e.target.value;
+              if (v === "listado") {
+                onOpenMap?.(); // el listado completo vive en el mapa general
+                return;
+              }
+              if (v === "mapa") return; // ya navegando a un punto libre: no borrar la ruta
+              const d = MINIMAP_DESTINOS.find((x) => x.id === v);
               if (d) onSetDest({ name: d.name, position: d.position });
               else onSetDest(null);
             }}
             className="bg-transparent text-[11px] text-foreground outline-none w-full min-w-0"
           >
             <option value="" className="bg-card">Ir a…</option>
-            {NAV_DESTINATIONS.map((d) => (
+            {MINIMAP_DESTINOS.map((d) => (
               <option key={d.id} value={d.id} className="bg-card">{d.name}</option>
             ))}
             {dest && <option value="mapa" className="bg-card">🎯 {dest.name}</option>}
+            {onOpenMap && <option value="listado" className="bg-card">🗺 Revisa el listado completo</option>}
           </select>
         </div>
       )}
@@ -757,7 +774,7 @@ function StatusNote({ className, text }: { className: string; text: string }) {
 // ============================================================
 // Componente principal: lienzo + capa Waze (banner, barra, etc.)
 // ============================================================
-export default function MiniMap({ position, heading, track, accuracyM, userPin, nav, speedKmh = 0, heightClass = "h-52 sm:h-56", heightRouteClass = "h-80" }: Props) {
+export default function MiniMap({ position, heading, track, accuracyM, userPin, nav, speedKmh = 0, heightClass = "h-52 sm:h-56", heightRouteClass = "h-80", onOpenMap }: Props) {
   const incidents = useIncidentFeed();
   const [locateTarget, setLocateTarget] = useState<LatLng | null>(null);
   const [reportOpen, setReportOpen] = useState(false);
@@ -923,6 +940,7 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
           dest={dest}
           onSetDest={nav.setDestination}
           onReport={() => setReportOpen((v) => !v)}
+          onOpenMap={onOpenMap}
         />
       </div>
     );
@@ -1016,6 +1034,7 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
         dest={dest}
         onSetDest={nav.setDestination}
         onReport={() => setReportOpen((v) => !v)}
+        onOpenMap={onOpenMap}
       />
 
       {/* Hoja de reporte rápido */}

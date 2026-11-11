@@ -26,12 +26,13 @@ const all = (...conds: ExpressionSpecification[]): ExpressionSpecification =>
 
 export type NativeMapMode = "nav" | "flat";
 
-/** Fuentes estáticas del sector (parque, riesgo, porteras). */
+/** Fuentes estáticas del sector (parque, riesgo, porteras).
+ *  Limpieza: solo las 4 porteras habilitadas para ciclistas. */
 export function staticSources() {
   return {
     park: toFc([polyFeat(PARK_POLYGON.map((p) => [p.lon, p.lat] as [number, number]))]),
     risk: toFc(RISK_ZONES.map((z) => polyFeat(circlePolygon(z.position.lat, z.position.lon, z.radiusM), { id: z.id }))),
-    gates: toFc(GATES.map((g) => polyFeat(circlePolygon(g.position.lat, g.position.lon, 18), { id: g.id }))),
+    gates: toFc(GATES.filter((g) => g.ciclistas).map((g) => polyFeat(circlePolygon(g.position.lat, g.position.lon, 18), { id: g.id }))),
   };
 }
 
