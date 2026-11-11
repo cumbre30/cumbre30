@@ -3,8 +3,9 @@
 // ============================================================
 // Vista de ride - rediseño de jerarquía (brief §2):
 //   minimapa → fila estado/avisos/SOS → VELOCIDAD protagonista →
-//   distancia/tiempo → botón principal → caja-filtro (stats +
-//   bitácora) → indicaciones.
+//   distancia/tiempo → caja-filtro (stats + bitácora, pegada justo
+//   debajo de las tarjetas) → indicaciones. El botón principal flota
+//   fijo abajo y la holgura de scroll va al FINAL del contenido.
 // Punto 4 del brief: banner de avisos/advertencias/restricciones
 //   colapsable a un icono junto a la píldora de estado GPS y al
 //   botón SOS (horario/luz/Tupahue + advertencias vivas).
@@ -409,13 +410,11 @@ export function RideView(p: Props) {
           )}
         </div>
       </div>
-      {/* Espacio para que el final del contenido no quede tapado por
-          el botón flotante (el main ya trae pb-28 por el nav). */}
-      <div className="h-16" aria-hidden />
-
       {/* Punto 8: caja-filtro - estadísticas y bitácora en UNA caja,
-          filtrables por pestañas. Abierta por defecto cuando estás
-          detenido; en marcha queda colapsada para no estorbar. */}
+          filtrables por pestañas. Queda JUSTO DEBAJO de las tarjetas
+          de distancia/tiempo (solo el gap de la columna). Abierta por
+          defecto cuando estás detenido; en marcha queda colapsada
+          para no estorbar. */}
       <details
         className="rounded-xl border border-border bg-card/70 p-3 group"
         open={cajaAbierta}
@@ -531,6 +530,11 @@ export function RideView(p: Props) {
           </ol>
         </details>
       )}
+
+      {/* Holgura final: permite scrollear hasta ver el último elemento
+          por encima del botón flotante (main trae pb-28 por el nav;
+          el botón + su leyenda llegan a ~145px del borde inferior). */}
+      <div className="h-10" aria-hidden />
 
       {/* Tarjeta de emergencia (funciona sin conexión: tel: y compartir) */}
       {sosOpen && (
