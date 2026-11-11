@@ -58,8 +58,8 @@ export function PlanesTab() {
           ) : (
             <>
               <p>
-                <b className="text-foreground">1.</b> Paga tu licencia en la web oficial de Cumbre30 o consigue tu
-                código con la comunidad de WhatsApp.
+                <b className="text-foreground">1.</b> Paga tu licencia en la web oficial de CumbreGeo{" "}
+                <b className="text-foreground">www.cumbregeo.cl</b>
               </p>
               <p className="mt-1">
                 <b className="text-foreground">2.</b> Recibes por correo tu código{" "}

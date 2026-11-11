@@ -80,29 +80,10 @@ type Props = {
   onProLocked?: (feature: ProLockFeature) => void;
 };
 
-function Recenter({ position, holdRef }: { position: LatLng | null; holdRef?: { current: number } }) {
-  const map = useMap();
-  const centeredOnce = useRef(false);
-  useEffect(() => {
-    if (!position) return;
-    // Primer arreglo GPS: el mapa parte SIEMPRE en la ubicación del
-    // usuario (ubicación predeterminada = la mía), sin importar cuán
-    // lejos esté del centro por defecto.
-    if (!centeredOnce.current) {
-      centeredOnce.current = true;
-      map.setView([position.lat, position.lon], Math.max(map.getZoom(), 15), { animate: true });
-      return;
-    }
-    // Una ruta recién trazada se mira un rato: el encuadre automático
-    // no debe pelear con el «volver a mí».
-    if (holdRef && Date.now() < holdRef.current) return;
-    const center = map.getCenter();
-    const d = Math.abs(center.lat - position.lat) + Math.abs(center.lng - position.lon);
-    if (d > 0.01) map.setView([position.lat, position.lon], Math.max(map.getZoom(), 15), { animate: true });
-  }, [position, map, holdRef]);
-  return null;
-}
-
+// SIN ubicación automática (cliente, 2026-11-12): el mapa NO se envía
+// solo a la posición del ciclista — perseguía el dedo y no dejaba
+// navegar/explorar. La ubicación se centra SOLO con el botón
+// «Centrar en mi ubicación» (LocateHandler abajo).
 function LocateHandler({ target }: { target: LatLng | null }) {
   const map = useMap();
   useEffect(() => {
@@ -122,25 +103,23 @@ function ClickHandler({ onPick, enabled }: { onPick: (p: LatLng) => void; enable
 }
 
 /** Cuando llega la ruta pedida desde el buscador, la encuadra COMPLETA
- *  (inicio → destino) UNA sola vez; después la vista vuelve a seguir
- *  al ciclista. Rutas del velocímetro/minimapa no se enmarcan. */
+ *  (inicio → destino) UNA sola vez; después la vista queda libre para
+ *  que el ciclista explore sin que nadie se la lleve. Rutas del
+ *  velocímetro/minimapa no se enmarcan. */
 function RouteFitter({
   route,
   pendingRef,
-  holdRef,
 }: {
   route: NavRoute | null;
   pendingRef: { current: boolean };
-  holdRef: { current: number };
 }) {
   const map = useMap();
   useEffect(() => {
     if (!route || route.coords.length < 2 || !pendingRef.current) return;
     pendingRef.current = false;
-    holdRef.current = Date.now() + 12_000;
     const b = L.latLngBounds(route.coords.map((p) => [p.lat, p.lon] as [number, number]));
     map.fitBounds(b, { padding: [44, 44], maxZoom: 16, animate: true });
-  }, [route, map, pendingRef, holdRef]);
+  }, [route, map, pendingRef]);
   return null;
 }
 
@@ -747,14 +726,14 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
   const marks = useMarks();
   // Encuadre único de la ruta recién trazada desde el buscador
   const pendingFitRef = useRef(false);
-  const recenterHoldRef = useRef(0);
   // Capas del mapa (arquitectura GPX): visibilidad por capa/ruta
   const [capasVis, setCapasVis] = useState<Record<string, boolean>>({ accesos: true });
   const [focus, setFocus] = useState<Focus>(null);
   const last = track.length > 0 ? track[track.length - 1] : null;
-  // Sin fix aún: el centro por defecto es el parque; al llegar el
-  // primer arreglo GPS, Recenter lleva la vista a TU ubicación.
-  const center = position ?? last ?? { lat: -33.408, lon: -70.636 };
+  // Sin fix aún: el centro por defecto es el parque. Con fix GPS la
+  // vista NO salta sola a tu ubicación (cliente 2026-11-12): la
+  // centras tú con el botón «Centrar en mi ubicación».
+  const center = last ?? position ?? { lat: -33.408, lon: -70.636 };
   // Mapa nativo (MapLibre Native) o Leaflet en la web
   // ⚠️ NATIVE_MAPS_ENABLED=false (v1.3.1): el WebView del dispositivo no
   // renderiza el mapa nativo (ni el GL JS web). Prioriza funcionamiento:
@@ -844,8 +823,8 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
   };
 
   /** Destino desde el buscador/marcadores/capas: cuando llegue la ruta se
-   *  encuadra entera UNA vez (RouteFitter) y luego la vista vuelve al
-   *  ciclista. Las rutas del velocímetro no se enmarcan. */
+   *  encuadra entera UNA vez (RouteFitter) y luego la vista queda libre
+   *  para el ciclista. Las rutas del velocímetro no se enmarcan. */
   const handleSetDest = (d: NavDest | null) => {
     if (d) pendingFitRef.current = true;
     onSetDest?.(d);
@@ -865,7 +844,6 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
     }
     setCapasVis((prev) => ({ ...prev, [r.id]: true }));
     setFocus({ kind: "ruta", coords: t.coords });
-    recenterHoldRef.current = Date.now() + 12_000;
     handleSetDest({
       name: r.nombre,
       position: t.coords[t.coords.length - 1],
@@ -874,8 +852,7 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
   };
 
   /** Ver/ocultar una capa o ruta. Al dibujar una ruta se encuadra
-   *  completa una vez (FocusHandler) y la vista queda en pausa 12 s
-   *  antes de volver a seguir al ciclista (mismo pacto del buscador). */
+   *  completa una vez (FocusHandler); la vista no vuelve sola a nadie. */
   const toggleCapa = (id: string) => {
     const willBeOn = !capasVis[id];
     setCapasVis((prev) => ({ ...prev, [id]: !prev[id] }));
@@ -885,13 +862,11 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
         const t = rutaTrazado(r);
         if (t.coords.length > 1) setFocus({ kind: "ruta", coords: t.coords });
       }
-      recenterHoldRef.current = Date.now() + 12_000;
     }
   };
 
   const enfocar = (f: Focus) => {
     setFocus(f);
-    recenterHoldRef.current = Date.now() + 12_000;
   };
 
   /** Marcadores de una capa de puntos con popup (nombre, detalle y «Ruta aquí»). */
@@ -1254,8 +1229,7 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
             </>
           )}
 
-          <Recenter position={position} holdRef={recenterHoldRef} />
-          <RouteFitter route={route} pendingRef={pendingFitRef} holdRef={recenterHoldRef} />
+          <RouteFitter route={route} pendingRef={pendingFitRef} />
           <FocusHandler focus={focus} />
           <LocateHandler target={locateTarget} />
           <ClickHandler enabled={reportMode} onPick={setPending} />
