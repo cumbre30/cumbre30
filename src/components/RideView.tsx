@@ -45,7 +45,7 @@ import {
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Speedometer } from "@/components/Speedometer";
-import { LIMIT_KMH } from "@/lib/park";
+import { LIMIT_KMH, PARK_HOURS } from "@/lib/park";
 import { formatClock } from "@/lib/geo";
 import { formatStepRemaining, routeProgress, stepGlyph } from "@/lib/routing";
 import { estadoParque } from "@/lib/horario";
@@ -98,8 +98,14 @@ export function RideView(p: Props) {
   const [sosMsg, setSosMsg] = useState<string | null>(null);
   // Punto 4: banner de avisos colapsado a icono por defecto.
   const [avisosOpen, setAvisosOpen] = useState(false);
-  // Punto 8: pestaña activa de la caja-filtro (stats o bitácora).
+  // Punto 8: pestaña activa de la caja-filtro (stats o bitácora) y
+  // apertura controlada: React 19 trata open de <details> como atributo
+  // controlado, así que el toque del usuario se sincroniza con onToggle.
+  // Sin estado propio, cada re-render (ticks de velocidad en marcha)
+  // revertía la apertura/cierre y la caja parecía no funcionar.
   const [cajaTab, setCajaTab] = useState<"stats" | "bitacora">("stats");
+  const [cajaManual, setCajaManual] = useState<boolean | null>(null);
+  const cajaAbierta = cajaManual ?? idle;
   // Personalización Pro: estilo/tamaño del velocímetro y altura del minimapa.
   const theme = useRideTheme();
   const mm = minimapHeight(theme.minimapSize);
@@ -123,6 +129,13 @@ export function RideView(p: Props) {
         nivel: estado.nivel === "cierre" ? "danger" : estado.nivel === "luz" ? "warn" : "info",
         text: estado.aviso,
       });
+    } else {
+      // Parque abierto sin advertencia activa: el horario de ingreso y
+      // la restricción Tupahue se muestran igual. Así el icono de avisos
+      // nunca desaparece de la fila superior y el horario siempre está
+      // a un toque (punto 4 del brief).
+      list.push({ nivel: "info", text: PARK_HOURS.msgCierre });
+      list.push({ nivel: "info", text: PARK_HOURS.msgCumbreTupahue });
     }
     const limite = Date.now() - 30 * 60 * 1000;
     const vistos = new Set<string>();
@@ -140,12 +153,21 @@ export function RideView(p: Props) {
   const avisoIconoCls =
     avisoPeor === "danger"
       ? "border-red-600/80 bg-red-950/60 text-red-300"
-      : "border-amber-600/80 bg-amber-950/60 text-amber-300";
-  const avisoBadgeCls = avisoPeor === "danger" ? "bg-red-600 text-white" : "bg-amber-500 text-amber-950";
+      : avisoPeor === "warn"
+        ? "border-amber-600/80 bg-amber-950/60 text-amber-300"
+        : "border-border bg-card/90 text-muted-foreground";
+  const avisoBadgeCls =
+    avisoPeor === "danger"
+      ? "bg-red-600 text-white"
+      : avisoPeor === "warn"
+        ? "bg-amber-500 text-amber-950"
+        : "bg-emerald-600 text-white";
   const avisoPanelCls =
     avisoPeor === "danger"
       ? "border-red-700/60 bg-red-950/40 text-red-300"
-      : "border-amber-600/60 bg-amber-950/40 text-amber-300";
+      : avisoPeor === "warn"
+        ? "border-amber-600/60 bg-amber-950/40 text-amber-300"
+        : "border-border bg-card/90";
 
   const compartirUbicacion = async () => {
     if (!p.position) return;
@@ -214,19 +236,17 @@ export function RideView(p: Props) {
           {chip.icon}
           <span className="truncate">{chip.text}</span>
         </span>
-        {avisos.length > 0 && (
-          <button
-            onClick={() => setAvisosOpen((v) => !v)}
-            className={`relative inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border ${avisoIconoCls} ${avisosOpen ? "ring-2 ring-current/40" : ""}`}
-            aria-label={`${avisosOpen ? "Colapsar" : "Ver"} avisos y restricciones (${avisos.length})`}
-            aria-expanded={avisosOpen}
-          >
-            <AlertTriangle className="h-4 w-4" />
-            <span className={`absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[9px] font-extrabold ${avisoBadgeCls}`}>
-              {avisos.length}
-            </span>
-          </button>
-        )}
+        <button
+          onClick={() => setAvisosOpen((v) => !v)}
+          className={`relative inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border ${avisoIconoCls} ${avisosOpen ? "ring-2 ring-current/40" : ""}`}
+          aria-label={`${avisosOpen ? "Colapsar" : "Ver"} avisos y restricciones (${avisos.length})`}
+          aria-expanded={avisosOpen}
+        >
+          <AlertTriangle className="h-4 w-4" />
+          <span className={`absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[9px] font-extrabold ${avisoBadgeCls}`}>
+            {avisos.length}
+          </span>
+        </button>
         <button
           onClick={() => setSosOpen(true)}
           className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-red-800/70 bg-red-950/50 px-3 py-1.5 text-[11px] font-bold tracking-wide text-red-300 hover:bg-red-900/60"
@@ -237,7 +257,7 @@ export function RideView(p: Props) {
       </div>
 
       {/* Punto 4: banner de avisos completo (colapsado por defecto) */}
-      {avisosOpen && avisos.length > 0 && (
+      {avisosOpen && (
         <div className={`rounded-xl border p-3 ${avisoPanelCls}`} role="region" aria-label="Avisos y restricciones del parque">
           <div className="flex items-center gap-2">
             <AlertTriangle className="h-4 w-4 shrink-0" />
@@ -339,7 +359,11 @@ export function RideView(p: Props) {
       {/* Punto 8: caja-filtro - estadísticas y bitácora en UNA caja,
           filtrables por pestañas. Abierta por defecto cuando estás
           detenido; en marcha queda colapsada para no estorbar. */}
-      <details className="rounded-xl border border-border bg-card/70 p-3 group" open={idle}>
+      <details
+        className="rounded-xl border border-border bg-card/70 p-3 group"
+        open={cajaAbierta}
+        onToggle={(e) => setCajaManual(e.currentTarget.open)}
+      >
         <summary className="flex cursor-pointer select-none items-center gap-2 text-sm font-semibold text-foreground/90 list-none [&::-webkit-details-marker]:hidden">
           <Gauge className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
           Estadísticas y bitácora
