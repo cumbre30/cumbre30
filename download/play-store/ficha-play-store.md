@@ -17,7 +17,7 @@ están en esta misma carpeta (`capturas/`, `feature-graphic-1024x500.png`,
 | Correo de contacto | contacto.cumbre30@gmail.com |
 | Teléfono | +56 9 4296 1619 (WhatsApp) |
 | Sitio web | **https://cumbregeo.cl** (redirige a `/geo`, el sitio de Cumbre GEO: apps, detalles y planes) |
-| Versión a subir | v1.8.2 (versionCode 28) - `cumbre30-v1.8.2-code28.aab` |
+| Versión a subir | v1.8.3 (versionCode 29) - generar `cumbre30-v1.8.3-code29.aab` con `PLAY_BUILD=1 bash scripts/export-web.sh` + `npx cap sync android` + `bundleRelease` (el APK directo 29 ya va sin el flag) |
 
 ## Descripción corta (≤80 caracteres)
 
@@ -165,6 +165,16 @@ política de Google Play para funciones digitales):
    y `bundleRelease`; el APK directo va sin el flag (assembleDebug).
 
 ## Notas de la versión (para el release de Play)
+
+v1.8.3 (versionCode 29):
+
+```
+• Temas de color para toda la app y pantalla ride personalizable: velocímetro digital, arco, dial o aguja (Cumbre30 Pro)
+• SOS ampliado: Parquemet, Municipalidad de Providencia y Salud Responde además de 133, 131 y 132
+• Datos oficiales del parque: accesos, cumbres, senderos enduro y horario de ciclistas
+• Descenso limpio: resumen cuando respetas los 30 km/h
+• Mejoras de estabilidad
+```
 
 v1.8.2 (versionCode 28):
 
