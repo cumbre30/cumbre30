@@ -37,7 +37,11 @@ export type LatLng = { lat: number; lon: number };
 /** Restricciones de la búsqueda (reglas del cliente para las rutas):
  *  · allowedCls/nameAllow/nameBlock → clases y nombres de vía permitidos
  *    (ej. rutas de pavimento sin senderos MTB).
- *  · nodeOk → nodos permitidos (ej. solo dentro del parque). */
+ *  · nodeOk → nodos permitidos (ej. solo dentro del parque).
+ *  · edgeOk → rescate geométrico por ARISTA: punto medio (lat, lon) +
+ *    clase/nombre. Permite tramos que las clases/nombres no capturan
+ *    (ej. los caminos de ascenso pavimentados SIN nombre del grafo OSM
+ *    dentro del corredor del Paseo Metropolitano). */
 export type FindRouteOpts = {
   allowedCls?: Set<string>;
   /** nombres con clase normalmente excluida que SÍ se permiten (caminos del parque) */
@@ -46,13 +50,24 @@ export type FindRouteOpts = {
   nameBlock?: RegExp[];
   /** nodos permitidos (p. ej. dentro del polígono del parque) */
   nodeOk?: (lat: number, lon: number) => boolean;
+  /** rescate por arista: ¿se permite este tramo según su punto medio? */
+  edgeOk?: (midLat: number, midLon: number, cls: string, name: string) => boolean;
 };
 
-/** ¿Pasa la arista los filtros de vía (clase + nombre)? */
-export function edgePasses(e: { cls: string; name: string }, o?: FindRouteOpts): boolean {
+/** ¿Pasa la arista los filtros de vía (clase + nombre + corredor geométrico)? */
+export function edgePasses(
+  e: { cls: string; name: string },
+  o?: FindRouteOpts,
+  midLat?: number,
+  midLon?: number
+): boolean {
   if (!o) return true;
   if (o.nameBlock?.some((re) => re.test(e.name))) return false;
-  if (o.allowedCls && !o.allowedCls.has(e.cls) && !o.nameAllow?.some((re) => re.test(e.name))) return false;
+  if (o.allowedCls && !o.allowedCls.has(e.cls) && !o.nameAllow?.some((re) => re.test(e.name))) {
+    // rescate: aristas que el corredor geométrico habilita (con nameBlock ya descartadas)
+    if (o.edgeOk && midLat !== undefined && midLon !== undefined && o.edgeOk(midLat, midLon, e.cls, e.name)) return true;
+    return false;
+  }
   return true;
 }
 
@@ -227,7 +242,7 @@ function nearestEdge(
     const na = net.nodes[a];
     const nb = net.nodes[b];
     const info = { cls: net.classes[clsIdx] ?? "residential", name: net.names[nameIdx] ?? "" };
-    if (!edgePasses(info, opts)) continue;
+    if (!edgePasses(info, opts, (na[0] + nb[0]) / 2, (na[1] + nb[1]) / 2)) continue;
     if (opts?.nodeOk && (!opts.nodeOk(na[0], na[1]) || !opts.nodeOk(nb[0], nb[1]))) continue;
     const ax = na[1] * kx, ay = na[0];
     const bx = nb[1] * kx, by = nb[0];
@@ -342,10 +357,10 @@ export function findRoute(net: Network, from: LatLng, to: LatLng, opts?: FindRou
     if (u === t) break;
     for (const e of runNet.adj[u]) {
       if (done[e.to]) continue;
-      // filtros del cliente: vía permitida (clase/nombre) y nodo permitido
-      if (!edgePasses(e, opts)) continue;
+      const [nlat, nlon] = runNet.nodes[e.to];
+      // filtros del cliente: vía permitida (clase/nombre/corredor) y nodo permitido
+      if (!edgePasses(e, opts, (nlat + runNet.nodes[u][0]) / 2, (nlon + runNet.nodes[u][1]) / 2)) continue;
       if (opts?.nodeOk) {
-        const [nlat, nlon] = runNet.nodes[e.to];
         if (!opts.nodeOk(nlat, nlon)) continue;
       }
       const ng = g[u] + e.w;

@@ -275,6 +275,171 @@ async function osrmRoute(from: LatLng, to: LatLng): Promise<NavRoute | null> {
 /** Los 4 accesos habilitados para ingreso en bicicleta (normativa Parquemet). */
 const ACCESOS_CICLISTAS = GATES.filter((g) => g.ciclistas);
 
+/** Reglas de vía pavimento (idénticas a scripts/build-rutas.ts). */
+const CLASES_PAVIMENTO = new Set([
+  "living_street", "residential", "service", "unclassified",
+  "tertiary", "tertiary_link", "secondary", "secondary_link",
+  "primary", "primary_link",
+]);
+const NOMBRES_PERMITIDOS_PAV = [
+  // todos los tramos del Paseo Metropolitano (incl. "Sendero de los
+  // Sentidos", "Sendero Bellavista", "Sendero La Cascada") — es la espina
+  // pavimentada oficial del parque
+  /^Paseo Metropolitano/,
+  // explanadas y miradores del ascenso Pío Nono → Plaza México (el grafo
+  // OSM trae el camino con estos nombres locales, sin patrón común)
+  /^Terraza Bellavista/,
+  /^Explanada$/,
+  /^Paseo Peatonal Cumbre/,
+  /^Avenida /,
+  /^Camino /,
+  /^Antilen$/,
+  /^Rotonda /,
+  // puentes del grafo (explanadas de acceso)
+  /^Acceso (Pedro de Valdivia Norte|La Pirámide|sector Tupahue)$/,
+];
+
+/** Vías pavimentadas nombradas del parque que también alimentan el
+ *  corredor geométrico (para rescatar los conectores SIN nombre entre
+ *  ellas, p. ej. entre Terraza Bellavista y Explanada). El ascenso Pío
+ *  Nono → Plaza México pasa por "Sendero El Excursionista" (footway). */
+const NOMBRES_RED_PAV_PARQUE = /^Paseo Metropolitano|^Terraza Bellavista|^Explanada$|^Paseo Peatonal Cumbre|^Sendero El Excursionista/;
+
+/** Filtro pavimento para NAVEGACIÓN a destinos del parque (misma regla
+ *  de las rutas pavimento predefinidas): Paseo Metropolitano, avenidas
+ *  y caminos del cerro — NUNCA senderos peatonales ni senderos MTB.
+ *  Sin esto el A* cortaba por senderos (path/footway 0.9-1.35 pesan
+ *  menos que el pavimento pedestrian 1.1) y la ruta a Plaza México
+ *  entraba por Sendero Zorro Vidal / El Hundimiento / Mapuche. */
+export const PAV_DEST_OPTS = {
+  allowedCls: CLASES_PAVIMENTO,
+  nameAllow: NOMBRES_PERMITIDOS_PAV,
+  // senderos nombrados fuera, EXCEPTO el tramo pavimentado del ascenso
+  // ("Sendero El Excursionista", footway dentro del corredor — lo decide
+  // corredorOk). nameBlock gana sobre edgeOk en edgePasses.
+  nameBlock: [/^Sendero Ciclista /, /^Sendero (?!Ciclista)(?!El Excursionista)/, /^Ruta Nativa/],
+  edgeOk: corredorOk,
+};
+
+/** Respaldo si el pavimento estricto no conecta: agrega los senderos
+ *  ciclistas oficiales (cycleway, "Sendero Ciclista …") pero igual
+ *  excluye todo sendero peatonal (path/footway/track/pedestrian sin
+ *  nombre y "Sendero …" no ciclista). */
+export const PAV_DEST_RELAX = {
+  allowedCls: new Set([...CLASES_PAVIMENTO, "cycleway"]),
+  nameAllow: [...NOMBRES_PERMITIDOS_PAV, /^Sendero Ciclista/],
+  nameBlock: [/^Sendero (?!Ciclista)(?!El Excursionista)/, /^Ruta Nativa/],
+  edgeOk: corredorOk,
+};
+
+// ----------------------------------------------------------------
+// Corredor pavimentado del parque (rescate geométrico por arista)
+// ----------------------------------------------------------------
+// El grafo OSM trae los caminos de ascenso pavimentados del parque
+// (p. ej. Acceso Pío Nono → Plaza México) como footway/pedestrian SIN
+// nombre: un filtro solo de clases/nombres los bloquea y el A* terminaba
+// dando la vuelta por Carlos Reed/Tupahue (4,7 km) o metiéndose por
+// senderos (1,8 km). Rescate: se permite footway/pedestrian/service
+// dentro de un corredor de 55 m sobre los trazados pavimento
+// precomputados (GPX del cliente, RUTAS_TRAZADOS r1-r5) — la red
+// pavimentada REAL del parque. Los senderos (path/track) y los
+// "Sendero …" nombrados siguen bloqueados.
+
+const CORREDOR_RADIO_M = 55;
+let corredorGrid: Map<string, number[][]> | null = null;
+
+/** Construye (una vez) la rejilla del corredor: trazados pavimento
+ *  precomputados (GPX del cliente) + nodos de las vías pavimentadas
+ *  nombradas del parque (el ascenso Pío Nono → Plaza México). `net` es
+ *  opcional: si llega, la rejilla incluye la red nombrada real. */
+export function corredorPav(net?: Network | null): Map<string, number[][]> {
+  if (corredorGrid) return corredorGrid;
+  const cell = 0.0004; // ≈ 44 m
+  const grid = new Map<string, number[][]>();
+  const key = (lat: number, lon: number) => `${Math.round(lat / cell)}:${Math.round(lon / cell)}`;
+  const push = (lat: number, lon: number) => {
+    const k = key(lat, lon);
+    let arr = grid.get(k);
+    if (!arr) grid.set(k, (arr = []));
+    arr.push([lat, lon]);
+  };
+  for (const r of CAPA_RUTAS) {
+    if (r.tipo !== "pavimento") continue;
+    const t = RUTAS_TRAZADOS[r.trz];
+    if (!t) continue;
+    for (const [lat, lon] of t.coords) push(lat, lon);
+  }
+  if (net) {
+    for (const [a, b, , ni] of net.edges) {
+      const name = net.names[ni] ?? "";
+      if (!name || !NOMBRES_RED_PAV_PARQUE.test(name)) continue;
+      push(net.nodes[a][0], net.nodes[a][1]);
+      push(net.nodes[b][0], net.nodes[b][1]);
+    }
+    // Expansión transitiva ACOTADA: los conectores sin nombre entre las
+    // vías del Paseo (y sus conectores) se agregan siguiendo el grafo,
+    // rondas de crecimiento ~una arista. Sólo footway/pedestrian/service
+    // y nunca "Sendero …"/"Ruta Nativa" (el corredor no abre senderos).
+    for (let ronda = 0; ronda < 3; ronda++) {
+      let agregados = 0;
+      for (const [a, b, ci, ni] of net.edges) {
+        const name = net.names[ni] ?? "";
+        if (/^(Sendero (?!Ciclista)|Ruta Nativa)/.test(name)) continue;
+        const cls = net.classes[ci];
+        if (cls !== "footway" && cls !== "pedestrian" && cls !== "service") continue;
+        const pa = net.nodes[a];
+        const pb = net.nodes[b];
+        const mid = { lat: (pa[0] + pb[0]) / 2, lon: (pa[1] + pb[1]) / 2 };
+        if (!enCorredorPav(mid.lat, mid.lon, 45)) continue;
+        if (!enCorredorPav(pa[0], pa[1], 0.001)) { push(pa[0], pa[1]); agregados++; }
+        if (!enCorredorPav(pb[0], pb[1], 0.001)) { push(pb[0], pb[1]); agregados++; }
+      }
+      if (!agregados) break;
+    }
+    corredorGrid = grid;
+    return grid;
+  }
+  // sin net: rejilla solo con trazados (se reconstruye si luego llega net)
+  return grid;
+}
+
+/** ¿El punto cae dentro del corredor pavimentado del parque? */
+export function enCorredorPav(midLat: number, midLon: number, radioM = CORREDOR_RADIO_M): boolean {
+  const cell = 0.0004;
+  const grid = corredorPav();
+  const ci = Math.round(midLat / cell);
+  const cj = Math.round(midLon / cell);
+  for (let di = -1; di <= 1; di++)
+    for (let dj = -1; dj <= 1; dj++) {
+      const arr = grid.get(`${ci + di}:${cj + dj}`);
+      if (!arr) continue;
+      for (const [la, lo] of arr) {
+        if (haversineM({ lat: midLat, lon: midLon }, { lat: la, lon: lo }) <= radioM) return true;
+      }
+    }
+  return false;
+}
+
+/** Clases que puede rescate el corredor: caminos pavimentados y sus
+ *  tramos sin nombre. path/track solo con radio más justo (la cadena del
+ *  ascenso intercala tramos etiquetados path — sin ellos la cadena se
+ *  corta y el A* da la vuelta por el norte del parque). */
+const CLASES_CORREDOR = new Set(["footway", "pedestrian", "service"]);
+const CLASES_CORREDOR_AJUSTADO = new Set(["footway", "pedestrian", "service", "path", "track"]);
+const RADIO_AJUSTADO_M = 22;
+
+/** edgeOk compartido: caminos del parque que el grafo trae sin nombre
+ *  (o con nombres sueltos tipo "Explanada") dentro del corredor del
+ *  Paseo. Los "Sendero …" nombrados sólo pasan si son footway (pavimento
+ *  en OSM) y caen dentro del corredor: es el caso del tramo del ascenso
+ *  Pío Nono → Plaza México etiquetado "Sendero El Excursionista". */
+export function corredorOk(midLat: number, midLon: number, cls: string, name: string): boolean {
+  if (/^Sendero /.test(name)) return cls === "footway" && enCorredorPav(midLat, midLon, 30);
+  if (CLASES_CORREDOR.has(cls)) return enCorredorPav(midLat, midLon);
+  if (CLASES_CORREDOR_AJUSTADO.has(cls)) return enCorredorPav(midLat, midLon, RADIO_AJUSTADO_M);
+  return false;
+}
+
 /** Test "dentro del parque" con tolerancia de 80 m (los accesos quedan sobre
  *  el borde del polígono). */
 function parkInsideTest(): (lat: number, lon: number) => boolean {
@@ -371,6 +536,9 @@ function mergeLegs(leg1: NavRoute, leg2: NavRoute, ingreso: string | null): NavR
 export async function computeRoute(from: LatLng, to: LatLng): Promise<RouteResult> {
   const net = await loadNetwork();
   if (net) {
+    // calienta la rejilla del corredor con la red real (vías pavimentadas
+    // nombradas del parque — ascenso Pío Nono → Plaza México)
+    corredorPav(net);
     const inside = parkInsideTest();
     const destInPark = inside(to.lat, to.lon);
     const fromInPark = inside(from.lat, from.lon);
@@ -381,8 +549,13 @@ export async function computeRoute(from: LatLng, to: LatLng): Promise<RouteResul
       const a = snapInfo(net, from);
       if (a.distM <= ORIGIN_COVER_M) leg1 = findRoute(net, from, acc.position);
       if (!leg1) leg1 = await osrmRoute(from, acc.position);
-      // tramo 2: del acceso al destino, SOLO por dentro del parque
-      const leg2 = leg1 ? findRoute(net, acc.position, to, { nodeOk: inside }) : null;
+      // tramo 2: del acceso al destino, SOLO por dentro del parque y por
+      // pavimento (Paseo Metropolitano/avenidas) — sin senderos peatonales
+      let leg2: NavRoute | null = null;
+      if (leg1) {
+        leg2 = findRoute(net, acc.position, to, { nodeOk: inside, ...PAV_DEST_OPTS });
+        if (!leg2) leg2 = findRoute(net, acc.position, to, { nodeOk: inside, ...PAV_DEST_RELAX });
+      }
       if (leg1 && leg2) {
         const merged = mergeLegs(leg1, leg2, `Ingresa por ${acc.nombre} · ingreso oficial de ciclistas`);
         const route = { ...merged, cicloviaPct: cicloPctOf(merged) };
@@ -393,7 +566,11 @@ export async function computeRoute(from: LatLng, to: LatLng): Promise<RouteResul
     const b = snapInfo(net, to);
     const a = snapInfo(net, from);
     if (a.distM <= ORIGIN_COVER_M && b.distM <= GRAPH_COVER_M) {
-      const r = findRoute(net, from, to);
+      // destino dentro del cerro: pavimento del parque (sin senderos
+      // peatonales), con respaldo que agrega senderos ciclistas
+      const r =
+        findRoute(net, from, to, destInPark ? PAV_DEST_OPTS : undefined) ??
+        (destInPark ? findRoute(net, from, to, PAV_DEST_RELAX) : null);
       if (r) {
         // flags del A* ya son confiables en el sector cubierto;
         // el inicio se ancla a la ubicación real del ciclista
@@ -448,24 +625,6 @@ function cicloPctOf(route: NavRoute): number {
 // Rutas predefinidas del mapa («generar ruta» en la capa Rutas)
 // ----------------------------------------------------------------
 
-/** Reglas de vía por tipo de ruta (idénticas a scripts/build-rutas.ts). */
-const CLASES_PAVIMENTO = new Set([
-  "living_street", "residential", "service", "unclassified",
-  "tertiary", "tertiary_link", "secondary", "secondary_link",
-  "primary", "primary_link",
-]);
-const NOMBRES_PERMITIDOS_PAV = [
-  /^Paseo Metropolitano - Tramo /,
-  /^Paseo Metropolitano$/,
-  /^Paseo Metropolitano - Sendero Bellavista/,
-  /^Avenida /,
-  /^Camino /,
-  /^Antilen$/,
-  /^Rotonda /,
-  // puentes del grafo (explanadas de acceso)
-  /^Acceso (Pedro de Valdivia Norte|La Pirámide|sector Tupahue)$/,
-];
-
 /**
  * Genera la ruta para una ruta predefinida del mapa (botón «Ruta» de la
  * capa Rutas). REGLA DEL CLIENTE: toda ruta que accede al cerro dirige
@@ -492,12 +651,13 @@ export async function computePresetRoute(
   if (!net) {
     return { route: null, source: null, error: "Sin conexión al mapa de rutas." };
   }
+  corredorPav(net); // corredor con la red real (conectores sin nombre del ascenso)
   const inside = parkInsideTest();
   const fromInPark = inside(from.lat, from.lon);
   const opts = {
     nodeOk: inside,
     ...(ruta.tipo === "pavimento"
-      ? { allowedCls: CLASES_PAVIMENTO, nameAllow: NOMBRES_PERMITIDOS_PAV, nameBlock: [/^Sendero Ciclista /] }
+      ? { allowedCls: CLASES_PAVIMENTO, nameAllow: NOMBRES_PERMITIDOS_PAV, nameBlock: [/^Sendero Ciclista /], edgeOk: corredorOk }
       : {}),
   };
 
