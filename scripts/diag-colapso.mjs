@@ -1,0 +1,17 @@
+import { chromium } from "playwright";
+const b = await chromium.launch();
+const p = await b.newPage({ viewport: { width: 390, height: 844 } });
+await p.goto("http://localhost:3000/", { waitUntil: "networkidle" });
+await p.waitForTimeout(1500);
+await p.getByRole("button", { name: "Explorar" }).click();
+await p.waitForTimeout(2000);
+const header = p.locator("[data-testid=capas-panel] > button").first();
+await header.click();
+await p.waitForTimeout(400);
+const texto = await p.locator("[data-testid=capas-panel]").innerText();
+console.log("[colapsado sin menus]", !texto.includes("Entradas y salidas oficiales") ? "OK" : "FALTA");
+await header.click();
+await p.waitForTimeout(400);
+const texto2 = await p.locator("[data-testid=capas-panel]").innerText();
+console.log("[expandido con menus]", texto2.includes("Entradas y salidas oficiales") ? "OK" : "FALTA");
+await b.close();
