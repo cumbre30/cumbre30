@@ -376,22 +376,45 @@ export function RideView(p: Props) {
                 <X className="h-4 w-4" />
               </button>
             </div>
-            <div className="mt-3 grid grid-cols-3 gap-2">
-              <a href="tel:133" className="flex flex-col items-center gap-1 rounded-lg border border-border bg-card py-3 text-center hover:border-red-500/70">
-                <Phone className="h-4 w-4 text-red-600 dark:text-red-400" />
-                <span className="text-sm font-bold text-foreground">133</span>
-                <span className="text-[10px] text-muted-foreground">Carabineros</span>
-              </a>
-              <a href="tel:131" className="flex flex-col items-center gap-1 rounded-lg border border-border bg-card py-3 text-center hover:border-red-500/70">
-                <Phone className="h-4 w-4 text-red-600 dark:text-red-400" />
-                <span className="text-sm font-bold text-foreground">131</span>
-                <span className="text-[10px] text-muted-foreground">Ambulancia</span>
-              </a>
-              <a href="tel:132" className="flex flex-col items-center gap-1 rounded-lg border border-border bg-card py-3 text-center hover:border-red-500/70">
-                <Phone className="h-4 w-4 text-red-600 dark:text-red-400" />
-                <span className="text-sm font-bold text-foreground">132</span>
-                <span className="text-[10px] text-muted-foreground">Bomberos</span>
-              </a>
+            <div className="mt-3">
+              <p className="text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground">Emergencias</p>
+              <div className="mt-1.5 grid grid-cols-3 gap-2">
+                <a href="tel:133" className="flex flex-col items-center gap-1 rounded-lg border border-border bg-card py-3 text-center hover:border-red-500/70">
+                  <Phone className="h-4 w-4 text-red-600 dark:text-red-400" />
+                  <span className="text-sm font-bold text-foreground">133</span>
+                  <span className="text-[10px] text-muted-foreground">Carabineros</span>
+                </a>
+                <a href="tel:131" className="flex flex-col items-center gap-1 rounded-lg border border-border bg-card py-3 text-center hover:border-red-500/70">
+                  <Phone className="h-4 w-4 text-red-600 dark:text-red-400" />
+                  <span className="text-sm font-bold text-foreground">131</span>
+                  <span className="text-[10px] text-muted-foreground">Ambulancia</span>
+                </a>
+                <a href="tel:132" className="flex flex-col items-center gap-1 rounded-lg border border-border bg-card py-3 text-center hover:border-red-500/70">
+                  <Phone className="h-4 w-4 text-red-600 dark:text-red-400" />
+                  <span className="text-sm font-bold text-foreground">132</span>
+                  <span className="text-[10px] text-muted-foreground">Bomberos</span>
+                </a>
+              </div>
+            </div>
+            <div className="mt-2.5">
+              <p className="text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground">Parque y apoyo</p>
+              <div className="mt-1.5 grid grid-cols-3 gap-2">
+                <a href="tel:+56227301404" className="flex flex-col items-center gap-1 rounded-lg border border-border bg-card py-3 text-center hover:border-emerald-500/70">
+                  <Phone className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                  <span className="text-[13px] font-bold tabular-nums text-foreground">+56 2 2730 1404</span>
+                  <span className="text-[10px] text-muted-foreground">Parquemet</span>
+                </a>
+                <a href="tel:+56226543200" className="flex flex-col items-center gap-1 rounded-lg border border-border bg-card py-3 text-center hover:border-emerald-500/70">
+                  <Phone className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                  <span className="text-[13px] font-bold tabular-nums text-foreground">+56 2 2654 3200</span>
+                  <span className="text-[10px] text-muted-foreground">Mun. Providencia</span>
+                </a>
+                <a href="tel:6003607777" className="flex flex-col items-center gap-1 rounded-lg border border-border bg-card py-3 text-center hover:border-emerald-500/70">
+                  <Phone className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                  <span className="text-[13px] font-bold tabular-nums text-foreground">600 360 7777</span>
+                  <span className="text-[10px] text-muted-foreground">Salud Responde</span>
+                </a>
+              </div>
             </div>
             {p.position ? (
               <>
@@ -415,7 +438,8 @@ export function RideView(p: Props) {
             )}
             {sosMsg && <p className="mt-2 text-xs font-medium text-emerald-600 dark:text-emerald-400" role="status">{sosMsg}</p>}
             <p className="mt-3 text-[11px] leading-relaxed text-muted-foreground">
-              Si puedes, avisa también al personal del parque (accesos y casetas). Tu QR Pedalea Seguro pegado en la
+              Si puedes, avisa también al personal del parque (accesos y casetas). El teléfono de Parquemet es de
+              informaciones (9:00 a 17:00); ante una urgencia llama siempre al 133. Tu QR Pedalea Seguro pegado en la
               bici ayuda a que te identifiquen rápido.
             </p>
           </Card>

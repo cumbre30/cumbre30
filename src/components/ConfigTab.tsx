@@ -252,7 +252,7 @@ export function ConfigTab({
         )}
         {!pro && !proNote && (
           <p className="mx-4 mb-4 text-[11px] leading-relaxed text-muted-foreground">
-            Con Pro eliges el color de la app, el estilo (arco o dial) y el tamaño del velocímetro, y el minimapa grande.
+            Con Pro eliges el color de la app, el estilo (arco, dial o aguja) y el tamaño del velocímetro, y el minimapa grande.
           </p>
         )}
       </Card>

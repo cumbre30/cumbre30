@@ -20,12 +20,18 @@ export default async function GeoPage({
 }: {
   searchParams: Promise<{ vista?: string; app?: string }>;
 }) {
-  const { vista, app } = await searchParams;
   // El botón "Descargar APK" vive en el catálogo (appsCatalog.ts → apk):
   // hoy apunta directo al archivo en Google Drive. La prop apkActivo queda
   // como vía alternativa para el flujo /api/apk + APK_DOWNLOAD_URL
   // (GitHub Releases, DEPLOY.md · paso 6) sin tocar el componente.
   const apkActivo = Boolean(process.env.APK_DOWNLOAD_URL);
+  // En el export estático (APK) no hay servidor: searchParams no se puede
+  // esperar. GeoSite lee ?vista y ?app en el cliente al montar, así que
+  // aquí solo se pasan como props cuando hay servidor (web/Vercel).
+  if (process.env.STATIC_EXPORT === "1") {
+    return <GeoSite apkActivo={apkActivo} />;
+  }
+  const { vista, app } = await searchParams;
   return (
     <GeoSite
       apkActivo={apkActivo}

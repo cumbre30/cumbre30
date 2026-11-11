@@ -193,6 +193,15 @@ export default function GeoSite({
     return () => document.removeEventListener("keydown", onKey);
   }, []);
 
+  // En el export estático (APK) la página no recibe ?vista ni ?app del
+  // servidor: se leen directo de la URL al montar, en el cliente.
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search);
+    if (q.get("vista") === "planes") setVista("planes");
+    const a = q.get("app");
+    if (a && APPS.some((x) => x.id === a && x.planes.publicado)) setPlanAppId(a);
+  }, []);
+
   // Bloquea el scroll de fondo mientras el modal está abierto
   useEffect(() => {
     document.body.style.overflow = appId ? "hidden" : "";

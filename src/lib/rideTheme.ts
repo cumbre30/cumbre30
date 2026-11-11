@@ -8,8 +8,9 @@
 //                   emerald por CSS (html[data-accent="..."]) sin
 //                   tocar las clases de los componentes. El tema
 //                   "cerro" (verde, original) no escribe atributo.
-//   · speedoStyle - digital (número grande), arco (gauge 270°) o
-//                   dial (círculo con marcas).
+//   · speedoStyle - digital (número grande), arco (gauge 270°),
+//                   dial (círculo con marcas) o aguja (analógico con
+//                   zonas ámbar/rojo sobre 25 y 30 km/h).
 //   · speedoSize  - normal / grande / gigante.
 //   · minimapSize - compacto / normal / grande (altura del minimapa).
 //
@@ -26,7 +27,7 @@
 import { useSyncExternalStore } from "react";
 
 export type ThemeColorId = "cerro" | "andes" | "atardecer" | "lila" | "grafito";
-export type SpeedoStyle = "digital" | "arco" | "dial";
+export type SpeedoStyle = "digital" | "arco" | "dial" | "aguja";
 export type SpeedoSize = "normal" | "grande" | "gigante";
 export type MinimapSize = "compacto" | "normal" | "grande";
 
@@ -57,6 +58,7 @@ export const SPEEDO_STYLES: { id: SpeedoStyle; label: string; proOnly: boolean }
   { id: "digital", label: "Digital", proOnly: false },
   { id: "arco", label: "Arco", proOnly: true },
   { id: "dial", label: "Dial", proOnly: true },
+  { id: "aguja", label: "Aguja", proOnly: true },
 ];
 
 export const SPEEDO_SIZES: { id: SpeedoSize; label: string; proOnly: boolean }[] = [
