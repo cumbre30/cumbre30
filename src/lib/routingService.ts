@@ -803,19 +803,28 @@ function cicloPctOf(route: NavRoute): number {
 
 /**
  * Genera la ruta para una ruta predefinida del mapa (botón «Ruta» de la
- * capa Rutas). REGLA DEL CLIENTE: toda ruta que accede al cerro dirige
- * primero al ACCESO CICLISTA más cercano y desde ahí sigue la ruta
- * dentro del parque:
- *   1. tramo de ciudad: mi ubicación → acceso ciclista más cercano
+ * capa Rutas). REGLA DEL CLIENTE (2026-11-12): «el botón ruta tenga el
+ * mismo trazado del botón ver» — la navegación recorre SIEMPRE el trazado
+ * precomputado COMPLETO (el mismo que dibuja «Ver»), nunca un tramo A*
+ * que lo reemplace o lo recorte:
+ *   1. tramo de ciudad: mi ubicación → inicio del trazado cuando este es
+ *      un acceso ciclista (r1-r5 nacen en la portería); si el trazado
+ *      nace dentro del parque (MTB), acceso ciclista más cercano
  *      (solo si estoy fuera del parque)
- *   2. tramo interno: acceso → inicio del trazado, por caminos del
- *      parque (pavimento sin senderos MTB · MTB sin restricción)
- *   3. trazado precomputado completo de la ruta elegida
+ *   2. tramo interno: acceso/origen → inicio del trazado, por caminos
+ *      del parque (pavimento sin senderos MTB · MTB sin restricción);
+ *      si no se logra, se muestra el trazado completo desde su inicio
+ *   3. trazado precomputado COMPLETO de la ruta elegida
+ * `fullTrace` (generación inicial) nunca recorta el trazado; en el
+ * RECALCULO por desvío se sigue el trazado desde el punto más cercano
+ * hacia adelante (comportamiento de navegación en marcha).
  */
 export async function computePresetRoute(
   from: LatLng,
-  preset: { rutaId: string; nombre: string }
+  preset: { rutaId: string; nombre: string },
+  gen?: { fullTrace?: boolean }
 ): Promise<RouteResult> {
+  const fullTrace = gen?.fullTrace ?? false;
   const ruta = CAPA_RUTAS.find((r) => r.id === preset.rutaId);
   const t = ruta ? RUTAS_TRAZADOS[ruta.trz] : null;
   if (!ruta || !t || t.coords.length < 2) {
@@ -841,14 +850,37 @@ export async function computePresetRoute(
       : {}),
   };
 
-  // 1. tramo de ciudad hasta el acceso ciclista más cercano (si estoy fuera)
+  // 1. tramo de ciudad (si estoy fuera). REGLA DEL CLIENTE (2026-11-12):
+  //    «el botón ruta tenga el mismo trazado del botón ver» — cuando el
+  //    trazado nace en una portería ciclista (r1-r5), el tramo de ciudad
+  //    llega POR CALLES DE LA CIUDAD hasta esa portería (sin cruzar el
+  //    parque), así DENTRO del parque se recorre exactamente el trazado
+  //    de «Ver» y nada más. MTB (nace dentro del parque): acceso ciclista
+  //    más cercano y tramo interno (paso 2).
   let legAcceso: NavRoute | null = null;
   let acceso: { nombre: string; position: LatLng } | null = null;
   if (!fromInPark) {
-    acceso = accesoMasCercano(from);
+    const inicioTrace = trace[0];
+    const gateInicio = ACCESOS_CICLISTAS.find((g) => haversineM(g.position, inicioTrace) <= 120);
+    acceso = gateInicio
+      ? { nombre: gateInicio.name, position: inicioTrace }
+      : accesoMasCercano(from);
     const a = snapInfo(net, from);
-    if (a.distM <= ORIGIN_COVER_M) legAcceso = findRoute(net, from, acceso.position);
-    if (!legAcceso) legAcceso = await osrmRoute(from, acceso.position);
+    if (gateInicio) {
+      // Ciudad → portería donde nace el trazado: OSRM primero (cobertura
+      // urbana completa; el grafo local conecta mal las bocas norte/oriente),
+      // respaldo local SOLO por calles de la ciudad (el interior del parque
+      // queda bloqueado salvo la boca de la portería).
+      const cityOk = (lat: number, lon: number) =>
+        !inside(lat, lon) || haversineM({ lat, lon }, inicioTrace) <= 150;
+      legAcceso = await osrmRoute(from, acceso.position);
+      if (!legAcceso && a.distM <= ORIGIN_COVER_M) {
+        legAcceso = findRoute(net, from, acceso.position, { nodeOk: cityOk });
+      }
+    } else {
+      if (a.distM <= ORIGIN_COVER_M) legAcceso = findRoute(net, from, acceso.position);
+      if (!legAcceso) legAcceso = await osrmRoute(from, acceso.position);
+    }
     if (!legAcceso) {
       return {
         route: null,
@@ -858,12 +890,14 @@ export async function computePresetRoute(
     }
   }
 
-  // 2. si ya voy DENTRO del parque y estoy sobre el trazado (recálculo por
-  //    desvío), sigo el trazado desde el punto más cercano hacia adelante;
-  //    si no, tramo interno: acceso/origen → inicio del trazado.
+  // 2. recálculo por desvío (SOLO en marcha, nunca al generar): si ya voy
+  //    DENTRO del parque y estoy sobre el trazado, sigo el trazado desde
+  //    el punto más cercano hacia adelante; al GENERAR (fullTrace) el
+  //    trazado se recorre COMPLETO desde su inicio (cliente: «el botón
+  //    ruta tenga el mismo trazado del botón ver»).
   const traceCoordsFull = trace;
   let joinIdx = -1;
-  if (fromInPark) {
+  if (fromInPark && !fullTrace) {
     let bd = Infinity;
     const fromIdx = Math.floor(traceCoordsFull.length * 0.25); // no reenviar al inicio
     for (let i = fromIdx; i < traceCoordsFull.length; i++) {
@@ -888,6 +922,12 @@ export async function computePresetRoute(
       legInterno = findRoute(net, origenInterno, traceCoordsFull[0], { nodeOk: inside, edgeDirOk: dirOk });
     }
   }
+  // Sin conexión hasta el inicio del trazado: la ruta se muestra COMPLETA
+  // desde su comienzo (mismo trazado que «Ver») y se avisa.
+  const avisoConexion =
+    joinIdx < 0 && !yaEnInicio && !legInterno
+      ? "No pudimos trazar la conexión hasta el inicio de la ruta; te mostramos el trazado completo desde su comienzo."
+      : null;
 
   // 3. trazado precomputado (desde el punto de empalme si lo hay).
   // Corte horario activo: si el trazado TERMINA en la cara cumbre (más
@@ -953,7 +993,7 @@ export async function computePresetRoute(
     });
   }
   if (legInterno) pushLeg(legInterno, true);
-  if (joinIdx < 0) {
+  if (joinIdx < 0 && coords.length > 0) {
     steps.push({
       icon: "straight",
       text: `Comienza ${preset.nombre} (${(traceDistM / 1000).toFixed(1)} km)`,
@@ -1000,5 +1040,5 @@ export async function computePresetRoute(
     flags,
     segNames,
   };
-  return { route, source: "local", error: null, aviso: avisoCorte };
+  return { route, source: "local", error: null, aviso: avisoCorte ?? avisoConexion };
 }

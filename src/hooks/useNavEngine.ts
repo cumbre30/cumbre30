@@ -92,18 +92,20 @@ export function useNavEngine(position: LatLng | null, running: boolean): NavEngi
   }, [dest]);
 
   /** Calcula ruta desde `origin`; descarta resultados de cálculos viejos.
-   *  Con destino predefinido (capa Rutas) usa el trazado precomputado:
-   *  acceso ciclista más cercano → ruta dentro del cerro.
+   *  Con destino predefinido (capa Rutas) recorre el trazado precomputado
+   *  COMPLETO (el mismo de «Ver», cliente 2026-11-12); en recálculo por
+   *  desvío (isReroute, ride en marcha) se empalma al trazado desde el
+   *  punto más cercano hacia adelante.
    *  Blindaje: cualquier excepción deja el estado limpio y avisa — la UI
    *  NUNCA queda pegada en «cargando» (queja del cliente 2026-11-12). */
-  const compute = useCallback(async (origin: LatLng, d: NavDest, kind: "gps" | "fallback") => {
+  const compute = useCallback(async (origin: LatLng, d: NavDest, kind: "gps" | "fallback", isReroute = false) => {
     const seq = ++calcSeqRef.current;
     setLoading(true);
     lastCalcRef.current = Date.now();
     try {
       const preset = (d as NavDestPreset).preset;
       const res = preset
-        ? await computePresetRoute(origin, preset)
+        ? await computePresetRoute(origin, preset, { fullTrace: !isReroute })
         : await computeRoute(origin, d.position);
       if (seq !== calcSeqRef.current) return; // llegó uno más nuevo
       if (!res.route) {
@@ -168,7 +170,7 @@ export function useNavEngine(position: LatLng | null, running: boolean): NavEngi
   const reroute = useCallback(() => {
     const o = posRef.current;
     const d = destRef.current;
-    if (o && d) void compute(o, d, "gps");
+    if (o && d) void compute(o, d, "gps", true);
   }, [compute]);
 
   // Cuando aparece la posición real y la ruta vigente era provisional,
@@ -205,12 +207,13 @@ export function useNavEngine(position: LatLng | null, running: boolean): NavEngi
     return () => clearTimeout(t);
   }, [position, route, running, loading, compute]);
 
-  // Recálculo periódico mientras hay ride activo.
+  // Recálculo periódico mientras hay ride activo (recalculo por desvío:
+  // empalma al trazado, no reinicia desde el comienzo).
   useEffect(() => {
     if (!running || !dest) return;
     const iv = setInterval(() => {
       const o = posRef.current;
-      if (o) void compute(o, destRef.current!, "gps");
+      if (o) void compute(o, destRef.current!, "gps", true);
     }, REROUTE_INTERVAL_MS);
     return () => clearInterval(iv);
   }, [running, dest, compute]);
@@ -226,7 +229,7 @@ export function useNavEngine(position: LatLng | null, running: boolean): NavEngi
       lastRerouteRef.current = Date.now();
       const o = posRef.current;
       const d = destRef.current;
-      if (o && d) void compute(o, d, "gps");
+      if (o && d) void compute(o, d, "gps", true);
     }, 800);
     return () => clearTimeout(t);
   }, [position, route, running, dest, compute]);

@@ -179,8 +179,13 @@ const VIA = {
   martner: { lat: -33.41272, lon: -70.61862 },
   // Plaza Tupahue (Nodo Central del GPX, sobre Av. Pedro Bannen)
   nodoTupahue: { lat: -33.4215, lon: -70.6288 },
-  // Cruce Casa Anáhuac (convergencia real de caminos, Tupahue)
-  tupahue: { lat: -33.417135, lon: -70.623511 },
+  // Curva Casa Anáhuac SOBRE Av. Pedro Bannen (nodo n3346 del grafo, donde
+  // nace el ramal interno a la Casa de la Cultura): paso del ciclista por
+  // la curva SIN entrar al ramal sin salida — el cliente (2026-11-12):
+  // «es un trazado hacia atrás que se debe borrar». El ramal interno
+  // «Anáhuac» (living_street) muere en senderos peatonales junto a la
+  // Casa de la Cultura, así que ningún trazado ciclista debe usarlo.
+  curvaAnahuac: { lat: -33.41689, lon: -70.623351 },
   // Avenida La Montaña (Zapadores ↔ ladera poniente, residential)
   laMontana: { lat: -33.40501, lon: -70.61772 },
   // Av. Abate Molina junto al Jardín Japonés (nodo n30354 del grafo, a
@@ -229,8 +234,9 @@ const VIA = {
 
 const defs: Record<string, LatLng[] | null> = {
   // R1 Pavimento: PdV Norte (cruce Av. El Cerro × Av. PdV Norte) →
-  // (tramo Anáhuac · Tupahue) → Plaza México (subida directa, sin Antilén)
-  r1: routeWithVias("r1", P.pdvNorte, [VIA.tupahue, VIA.nodoTupahue], P.plazaMexico, OPTS_PAV_PARK),
+  // (curva Anáhuac por Av. Pedro Bannen, SIN ramal a la Casa de la
+  // Cultura) → Plaza México (subida directa, sin Antilén)
+  r1: routeWithVias("r1", P.pdvNorte, [VIA.curvaAnahuac, VIA.nodoTupahue], P.plazaMexico, OPTS_PAV_PARK),
   // R2 Pavimento: EL MISMO trazado que la navegación a Plaza México del
   // minimapa (cliente, 2026-11-12): Pío Nono → Av. Alberto Mackenna →
   // puente entre las Bannen paralelas (Tupahue) → Av. Pedro Bannen →
@@ -254,13 +260,18 @@ const defs: Record<string, LatLng[] | null> = {
   // Claudio Gay) → Av. Pablo Neruda → Anfiteatro (OK para el cliente)
   r4: routeWithVias("r4", P.laPiramide, [VIA.claudioGay], P.anfiteatro, OPTS_PAV_PARK),
   // R5 Pavimento: Vuelta Completa conectando los 4 accesos (Pío Nono
-  // sólo subida → Tupahue → Zapadores → La Pirámide → cierre por la
-  // bajada oriente a PdV Norte). SIN bajada por Pío Nono ni Carlos Reed
-  // (borrados por el cliente, 2026-11-12).
+  // sólo subida → puente de Tupahue → Av. Carlos Martner al norte →
+  // Zapadores → La Pirámide → cierre por la bajada oriente a PdV Norte).
+  // SIN el ramal de la curva Anáhuac (cliente 2026-11-12: «es un trazado
+  // hacia atrás que se debe borrar»: la ruta entra al camino interno de
+  // la Casa de la Cultura y regresa sobre sí misma; desde el puente la
+  // curva no tiene paso continuo hacia el norte, así que la vuelta
+  // completa toma directo Av. Carlos Martner). SIN bajada por Pío Nono
+  // ni Carlos Reed (borrados por el cliente, 2026-11-12).
   r5: routeWithVias(
     "r5",
     P.pioNono,
-    [VIA.mackenna, VIA.tupahue, P.zapadores, VIA.laMontana, P.laPiramide],
+    [VIA.mackenna, PUENTE_TUPAHUE_CUMBRE, P.zapadores, VIA.laMontana, P.laPiramide],
     P.pdvNorte,
     OPTS_PAV_PARK
   ),
