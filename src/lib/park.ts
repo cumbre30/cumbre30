@@ -20,6 +20,10 @@
 // comentario en PARK_POLYGON). El motor de ride agrega histéresis de
 // 18 m para que la frontera pegada a caminos reales no alterne
 // «Ingresando/Saliendo» con el ruido del GPS.
+// 2026-11-13: segunda corrección puntual (cliente): la esquina del
+// ACCESO PÍO NONO también queda dentro — el acceso se traslada al
+// punto de inicio del trazado de Av. Alberto Mackenna y la geocerca
+// se extiende hasta esa misma esquina (ver comentario en PARK_POLYGON).
 // ============================================================
 
 export const LIMIT_KMH = 30;
@@ -58,7 +62,18 @@ export const PARK_POLYGON: LatLng[] = [
   { lat: -33.427932, lon: -70.628671 }, { lat: -33.428078, lon: -70.629012 }, { lat: -33.428713, lon: -70.629487 },
   { lat: -33.430118, lon: -70.631512 }, { lat: -33.43108, lon: -70.634079 }, { lat: -33.430931, lon: -70.634628 },
   { lat: -33.430461, lon: -70.635186 }, { lat: -33.430696, lon: -70.635513 }, { lat: -33.430691, lon: -70.63592 },
-  { lat: -33.430543, lon: -70.636165 }, { lat: -33.430104, lon: -70.636115 }, { lat: -33.429931, lon: -70.636597 },
+  // Esquina del Acceso Pío Nono DENTRO de la geocerca (2026-11-13, ajuste
+  // del cliente): el límite OSM cortaba 19 m antes de la esquina y el
+  // acceso quedaba FUERA (en «modo libre»). Se envuelve la esquina
+  // Pío Nono × Av. Alberto Mackenna y el ARRANQUE del trazado de ascenso
+  // (nodos del grafo 5334 → 2921 → 2922) con ~10-15 m de margen — mismo
+  // estándar que la portería La Pirámide — dejando la calle Pío Nono
+  // (ciudad) fuera al sur. La frontera llega así al PUNTO DE INICIO del
+  // trazado de Av. Alberto Mackenna, donde está el acceso.
+  { lat: -33.4306086, lon: -70.6360939 },
+  { lat: -33.4308247, lon: -70.6362515 },
+  { lat: -33.43069, lon: -70.6364237 },
+  { lat: -33.429931, lon: -70.636597 },
   { lat: -33.429602, lon: -70.636421 }, { lat: -33.428652, lon: -70.637765 }, { lat: -33.428072, lon: -70.639018 },
   { lat: -33.427872, lon: -70.639123 }, { lat: -33.426419, lon: -70.638644 }, { lat: -33.423604, lon: -70.638472 },
   { lat: -33.423856, lon: -70.637343 }, { lat: -33.423369, lon: -70.637173 }, { lat: -33.423259, lon: -70.637717 },
@@ -134,6 +149,9 @@ export const GATES: Gate[] = [
   // camino de entrada al parque (way 919288128, barrera levadiza
   // 573719300 a 25 m; Parada Buses Panorámicos 8441915693 a 25 m).
   // Nodo del grafo n5334 a 0 m. Antes: -33.430462,-70.636212.
+  // 2026-11-13 (ajuste posterior): coincide con el PUNTO DE INICIO del
+  // trazado de Av. Alberto Mackenna y la geocerca se extendió hasta esta
+  // esquina para que el acceso quede DENTRO (antes quedaba 19 m fuera).
   { id: "pio-nono", name: "Acceso Pío Nono", position: { lat: -33.4306903, lon: -70.6362729 }, ciclistas: true },
   // Acceso Pedro de Valdivia Norte: la portería queda EN EL CRUCE de
   // Av. El Cerro con Av. Pedro de Valdivia Norte, donde comienza el
