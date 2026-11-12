@@ -270,8 +270,22 @@ const VIA = {
   paArribaAlto: { lat: -33.40042, lon: -70.60964 },
   anfiteatroAlto: { lat: -33.39988, lon: -70.61017 },
   zorzal: { lat: -33.40197, lon: -70.60993 },
+  // Fin SUR del sendero El Zorzal (nodo 27890 del grafo, unión con el
+  // conector Pa' Arriba/La S): obliga a mtb1 a bajar el Zorzal
+  // serpenteante COMPLETO. Sin este ancla, el A* cortaba a mitad de
+  // sendero por un path SIN NOMBRE que cruza la ladera en línea recta
+  // (89 m sin un solo vértice) y el trazado se veía igual al de mtb2
+  // (cliente 2026-11-13: «MTB 1 y 2 son similares, verifica si hay
+  // error en el trazado»).
+  zorzalBajo: { lat: -33.403264, lon: -70.610174 },
   laSAlto: { lat: -33.40073, lon: -70.61031 },
-  laSMedio: { lat: -33.40315, lon: -70.61034 },
+  // Curva OESTE de la S (nodo 28785 del grafo, el bucle del sendero).
+  // Antes apuntaba al nodo 28736 de la RAMA conectora (el brazo que
+  // sube a Pa' Arriba), no a la curva: el descenso de mtb2 subía por
+  // la rama hasta ese punto y volvía a bajar por lo mismo (ida y
+  // vuelta de ~200 m dibujado 3 veces). Corregido con la auditoría
+  // «MTB 1 y 2 son similares» (cliente 2026-11-13).
+  laSMedio: { lat: -33.403039, lon: -70.611123 },
   laSBajo: { lat: -33.40343, lon: -70.61092 },
   // Sector Torre 5 (ladera nororiente, sobre PdV Norte)
   torre5Top: { lat: -33.40805, lon: -70.60694 },
@@ -322,15 +336,21 @@ const defs: Record<string, LatLng[] | null> = {
     OPTS_PAV_PARK
   ),
   // MTB 1: Loop Los Gemelos — La Rotonda → Pa' Arriba → Anfiteatro →
-  // bajada Zorzal → La Rotonda (control QR MTB del cliente)
+  // bajada ZORZAL COMPLETA (con el serpenteante sur hasta su unión con
+  // el conector, via zorzalBajo) → La Rotonda (control QR MTB del
+  // cliente). El via zorzalBajo elimina el atajo recto por el path sin
+  // nombre que hacía mtb1 ≈ mtb2 (cliente 2026-11-13).
   mtb1: routeWithVias(
     "mtb1",
     VIA.laRotonda,
-    [VIA.hubGemelos, VIA.paArriba, VIA.paArribaAlto, VIA.anfiteatroAlto, VIA.zorzal, VIA.hubGemelos],
+    [VIA.hubGemelos, VIA.paArriba, VIA.paArribaAlto, VIA.anfiteatroAlto, VIA.zorzal, VIA.zorzalBajo, VIA.hubGemelos],
     VIA.laRotonda,
     OPTS_MTB_PARK
   ),
-  // MTB 2: Loop Técnico La S — La Rotonda → Pa' Arriba → La S (descenso) → La Rotonda
+  // MTB 2: Loop Técnico La S — La Rotonda → Pa' Arriba → LA S (curva
+  // completa: laSAlto → curva oeste laSMedio → fondo laSBajo) →
+  // La Rotonda. Con laSMedio en la curva real el descenso ya no entra
+  // a la rama conectora (sin ida y vuelta; cliente 2026-11-13).
   mtb2: routeWithVias(
     "mtb2",
     VIA.laRotonda,
