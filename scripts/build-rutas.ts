@@ -142,12 +142,34 @@ const P = {
   accesoPaseoMet: { lat: -33.412407, lon: -70.623052 },
 };
 
+/** Nodo EXACTO más cercano a `p` (barrido completo, sin corte temprano).
+ *  snapInfo corta en el primer nodo a <12 m por índice y en rejillas
+ *  densas puede devolver un nodo a 11 m cuando el punto pedido ES un nodo
+ *  del grafo (via curva Anáhuac: devolvía n3343 a 11,3 m en vez de n3346
+ *  a 0 m) — así el tramo anterior terminaba pasado el via y la unión
+ *  dibujaba el tramo dos veces («trazado hacia atrás», cliente 2026-11-12). */
+function nodoExacto(net: Network, p: LatLng): number {
+  let best = 0;
+  let bestD = Infinity;
+  for (let i = 0; i < net.nodes.length; i++) {
+    const d = haversineM(p, { lat: net.nodes[i][0], lon: net.nodes[i][1] });
+    if (d < bestD) {
+      bestD = d;
+      best = i;
+      if (d === 0) break;
+    }
+  }
+  return best;
+}
+
 /** Ruta por tramos con puntos de paso (anclados a corredores reales del grafo). */
 function routeWithVias(id: string, from: LatLng, vias: LatLng[], to: LatLng, opts: FindRouteOpts): LatLng[] | null {
   const stops = [from, ...vias, to];
   const out: LatLng[] = [];
   for (let i = 0; i < stops.length - 1; i++) {
-    const r = findRoute(net, stops[i], stops[i + 1], opts);
+    // anclaje EXACTO del destino del tramo: los tramos consecutivos
+    // comparten el mismo nodo y la unión no repite ni salta tramos
+    const r = findRoute(net, stops[i], stops[i + 1], { ...opts, targetNode: nodoExacto(net, stops[i + 1]) });
     if (!r || r.coords.length < 2 || r.distanceM < 1) {
       console.error(`✗ ${id} tramo ${i} sin ruta (${stops[i].lat},${stops[i].lon} → ${stops[i + 1].lat},${stops[i + 1].lon}) dist=${r?.distanceM ?? "null"}`);
       return null;

@@ -44,14 +44,12 @@ const r5 = RUTAS_TRAZADOS["r5"];
 const coords = r5.coords;
 
 const rangos: [number, number, string][] = [
-  [200, 290, "Acercamiento y retroceso en Anáhuac"],
-  [290, 330, "Pico 1 (tip idx=302)"],
-  [330, 400, "Zigzag post-pico 1"],
-  [400, 480, "Tramo laMontana → zapadores"],
-  [480, 570, "Zapadores → laPirámide"],
-  [570, 670, "Regreso + pico 2 (tip idx=662)"],
-  [670, 720, "Salida hacia el oriente"],
-  [1060, 1231, "Cierre bajada oriente → PdV Norte"],
+  [180, 260, "Curva Anáhuac (post-fix)"],
+  [255, 300, "Pico reversa idx=265 (n26778 Martner × La Montaña)"],
+  [300, 400, "Tramo laMontana → zapadores"],
+  [400, 480, "Zapadores → laPirámide"],
+  [560, 700, "Sector norte (regreso)"],
+  [1050, 1194, "Cierre bajada oriente → PdV Norte"],
 ];
 
 for (const [desde, hasta, titulo] of rangos) {

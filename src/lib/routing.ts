@@ -58,6 +58,13 @@ export type FindRouteOpts = {
  *  (reglas del cliente, ver src/lib/reglasParque.ts). Las aristas del
  *  anclaje virtual del origen NO se filtran: el ciclista ya está ahí. */
   edgeDirOk?: (u: number, v: number, uLat: number, uLon: number, vLat: number, vLon: number, cls: string, name: string) => boolean;
+  /** Índice EXACTO del nodo destino (anclaje preciso). El snap por defecto
+   *  (snapInfo) corta en el primer nodo a <12 m por orden de índice, que en
+   *  rejillas densas puede quedar a 11 m del punto pedido (via curva
+   *  Anáhuac: n3343 a 11,3 m en vez de n3346 a 0 m) y los tramos del
+   *  generador de trazados se empalman con doble paso. El precompute pasa
+   *  el nodo exacto de cada punto de paso; el runtime no lo usa. */
+  targetNode?: number;
 };
 
 /** ¿Pasa la arista los filtros de vía (clase + nombre + corredor geométrico)? */
@@ -290,8 +297,8 @@ function nearestEdge(
 export const ORIGIN_ANCHOR_MAX_M = 250;
 
 export function findRoute(net: Network, from: LatLng, to: LatLng, opts?: FindRouteOpts): NavRoute | null {
-  const t = nearestNode(net, to);
-  if (t === null) return null;
+  const t = opts?.targetNode ?? nearestNode(net, to);
+  if (t === null || t < 0 || t >= net.nodes.length) return null;
 
   // --- origen: la ruta nace en la CALLE más cercana al ciclista ---
   // Antes se arrancaba en el NODO más próximo del grafo, que puede quedar

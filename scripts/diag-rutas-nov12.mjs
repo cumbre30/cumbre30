@@ -86,7 +86,7 @@ async function main() {
   ok(/5\.1 km/.test(bodyRutas), `capa Rutas: Ruta 2 = minimapa Plaza México (5.1 km)`);
   ok(/4\.6 km/.test(bodyRutas), `capa Rutas: Ruta 3 Zapadores→PdV (4.6 km, SIEMPRE por Av. Abate Molina: Jardín Japonés + Salida PdV, sin Martner)`);
   ok(/3\.4 km/.test(bodyRutas), `capa Rutas: Ruta 4 intacta (3.4 km)`);
-  ok(/19\.6 km/.test(bodyRutas), `capa Rutas: Ruta 5 vuelta completa (19.6 km)`);
+  ok(/19\.3 km/.test(bodyRutas), `capa Rutas: Ruta 5 vuelta completa (19.3 km, sin el ramal Anáhuac)`);
 
   // dibujar Ruta 1 y Ruta 5 (Ver) y contar «dibujadas»
   await p2.locator("button[data-vercapa='ruta-1']").click();

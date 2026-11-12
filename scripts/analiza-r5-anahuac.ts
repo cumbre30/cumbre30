@@ -66,5 +66,5 @@ for (const w of [5, 15, 25]) {
     const after = haversineM(coords[0], coords[i + w]);
     if (after < before && before - after > max) { max = before - after; idx = i; }
   }
-  console.log(`ventana ${w}: retroceso máx ${max.toFixed(0)} m @ idx=${idx} (${idx >= 0 ? coords[idx][0].toFixed(6) + "," + coords[idx][1].toFixed(6) : "ninguno"})`);
+  console.log(`ventana ${w}: retroceso máx ${max.toFixed(0)} m @ idx=${idx} (${idx >= 0 ? `${coords[idx].lat.toFixed(6)},${coords[idx].lon.toFixed(6)}` : "ninguno"})`);
 }
