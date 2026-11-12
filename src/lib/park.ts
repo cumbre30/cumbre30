@@ -127,7 +127,9 @@ export type Gate = {
  *  borde del polígono (2026-11-11). Los 3 primeros conservan sus
  *  coordenadas calibradas originales. */
 export const GATES: Gate[] = [
-  { id: "pio-nono", name: "Acceso Pío Nono", position: { lat: -33.430691, lon: -70.63592 }, ciclistas: true },
+  // Coordenada exacta del cliente (2026-11-13): portería Pío Nono. El nodo
+  // del grafo más cercano es n5335 (Av. Alberto Mackenna, a 6 m).
+  { id: "pio-nono", name: "Acceso Pío Nono", position: { lat: -33.430462, lon: -70.636212 }, ciclistas: true },
   // Acceso Pedro de Valdivia Norte: la portería queda EN EL CRUCE de
   // Av. El Cerro con Av. Pedro de Valdivia Norte, donde comienza el
   // Paseo Metropolitano - Sendero Pedro de Valdivia Norte (ladera).
@@ -136,14 +138,12 @@ export const GATES: Gate[] = [
   // Av. El Cerro × Av. PdV Norte (-33.415461, -70.617414, a 2 m), así
   // que el ruteo ancla directo en el cruce.
   { id: "pv-norte", name: "Acceso Pedro de Valdivia Norte", position: { lat: -33.415479, lon: -70.617402 }, ciclistas: true },
-  // Acceso La Pirámide (Vitacura): portería al final de Camino La
-  // Pirámide, borde nororiente del parque, el acceso más cercano a
-  // Bosque Santiago y al Paseo Metropolitano (parquemet.cl,
-  // "Acceso La Pirámide", abierto 06:00-20:30). Posición = punto
-  // final del way OSM 445801999 "Camino La Pirámide"
-  // (-33.38642, -70.60179, verificado el 2026-11-05), a ~40 m de la
-  // punta nororiente del polígono del parque.
-  { id: "la-piramide", name: "Acceso La Pirámide", position: { lat: -33.38642, lon: -70.60179 }, ciclistas: true },
+  // Acceso La Pirámide (Vitacura): coordenada exacta del cliente
+  // (2026-11-13), portería al final de Camino La Pirámide. El nodo del
+  // grafo más cercano es n49273 (Av. Manuel Zañartu, a 9 m, dentro del
+  // parque), a ~190 m al sur de la punta del way OSM 445801999 que se
+  // usaba antes (-33.38642, -70.60179).
+  { id: "la-piramide", name: "Acceso La Pirámide", position: { lat: -33.3881236831842, lon: -70.60168398128492 }, ciclistas: true },
   // Los 6 accesos restantes del mapa oficial de Parquemet. Posición
   // = nodo OSM de la calle del acceso a menor distancia del borde
   // del polígono (extracción 2026-11-11, scripts/extract-parque.py).
@@ -297,27 +297,36 @@ export type RiskZone = {
   voice: string;
 };
 
-/** Zonas de riesgo: puntos sensibles de control y accidentes. */
+/** Zonas de riesgo: puntos sensibles de control y accidentes.
+ *  Radio ÚNICO de 55 m para todas (cliente 2026-11-13): el círculo de la
+ *  Salida Pedro de Valdivia con radio 130 m se salía de la geocerca (el
+ *  centro queda a 61 m del borde del parque) y el cliente pidió ajustarlo
+ *  y dejar «las demás zonas de advertencias del mismo tamaño».
+ *  Posiciones de anahuac/antiluen/zoologico = coordenadas del cliente
+ *  (2026-11-13); jardín japonés y salida PV conservan las suyas. */
 export const RISK_ZONES: RiskZone[] = [
   {
     id: "anahuac",
     name: "Curva Casa de la Cultura Anáhuac",
-    position: { lat: -33.417135, lon: -70.623511 },
-    radiusM: 140,
+    // Coordenada exacta del cliente (2026-11-13): curva de Av. Pedro
+    // Bannen junto al ramal interno de la Casa de la Cultura.
+    position: { lat: -33.416704, lon: -70.623639 },
+    radiusM: 55,
     voice: "Atención, curva cerrada de la Casa Anáhuac. Reduce velocidad.",
   },
   {
     id: "antiluen",
     name: "Cruce Piscina Antilén",
-    position: { lat: -33.409051, lon: -70.61374 },
-    radiusM: 130,
+    // Coordenada exacta del cliente (2026-11-13): La Rotonda / Plaza Antilén.
+    position: { lat: -33.407601, lon: -70.611192 },
+    radiusM: 55,
     voice: "Proximidad a la piscina Antilén. Cruza con precaución, área peatonal.",
   },
   {
     id: "jardin-japones",
     name: "Jardín Japonés",
     position: { lat: -33.413345, lon: -70.614692 },
-    radiusM: 120,
+    radiusM: 55,
     voice: "Jardín Japonés a la vista. Peatones cruzando.",
   },
   {
@@ -325,16 +334,19 @@ export const RISK_ZONES: RiskZone[] = [
     name: "Salida Pedro de Valdivia",
     // Coordenada exacta del cliente (2026-11-12): salida del parque por
     // Av. Pedro de Valdivia Norte, sobre el Tramo PdV del Paseo
-    // Metropolitano, a ~3 m del nodo del grafo.
+    // Metropolitano, a ~3 m del nodo del grafo. Radio 55 m (cliente
+    // 2026-11-13): con 130 m el círculo se salía de la geocerca (el
+    // centro está a 61 m del borde del parque).
     position: { lat: -33.416209, lon: -70.619256 },
-    radiusM: 130,
+    radiusM: 55,
     voice: "Tramo previo a la salida Pedro de Valdivia. Confluencia de ciclistas y vehículos.",
   },
   {
     id: "zoologico",
     name: "Zoológico Nacional",
-    position: { lat: -33.429636, lon: -70.633963 },
-    radiusM: 120,
+    // Coordenada exacta del cliente (2026-11-13).
+    position: { lat: -33.429544, lon: -70.636007 },
+    radiusM: 55,
     voice: "Zona de Zoológico. Niños y peatones en el camino.",
   },
 ];
@@ -394,8 +406,8 @@ export const NAV_DESTINATIONS: { id: string; name: string; position: LatLng }[] 
   { id: "plaza-mexico", name: "⛲ Plaza México", position: { lat: -33.4234, lon: -70.6327 } },
   // Acceso La Pirámide (Vitacura): misma posición que GATES - ver
   // la nota con fuentes en GATES.
-  { id: "la-piramide", name: "🚴 Acceso La Pirámide", position: { lat: -33.38642, lon: -70.60179 } },
-  { id: "pio-nono", name: "🚴 Acceso Pío Nono", position: { lat: -33.430691, lon: -70.63592 } },
+  { id: "la-piramide", name: "🚴 Acceso La Pirámide", position: { lat: -33.3881236831842, lon: -70.60168398128492 } },
+  { id: "pio-nono", name: "🚴 Acceso Pío Nono", position: { lat: -33.430462, lon: -70.636212 } },
   { id: "pv-norte", name: "🚴 Acceso Pedro de Valdivia Norte", position: { lat: -33.415479, lon: -70.617402 } },
   { id: "antiluen", name: "🏊 Piscina Antilén", position: { lat: -33.409051, lon: -70.61374 } },
   { id: "jardin-japones", name: "🏯 Jardín Japonés", position: { lat: -33.413345, lon: -70.614692 } },

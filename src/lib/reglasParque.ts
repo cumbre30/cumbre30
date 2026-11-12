@@ -45,7 +45,7 @@ export const PLAZA_MEXICO_POS: LatLng = { lat: -33.4234, lon: -70.6327 };
 
 /** Acceso Pío Nono (fondo del corredor de ascenso). */
 export const GATE_PIO_NONO: LatLng =
-  GATES.find((g) => g.id === "pio-nono")?.position ?? { lat: -33.430691, lon: -70.63592 };
+  GATES.find((g) => g.id === "pio-nono")?.position ?? { lat: -33.430462, lon: -70.636212 };
 
 // ----------------------------------------------------------------
 // Dentro del parque (+80 m en el borde, igual que el ruteo)

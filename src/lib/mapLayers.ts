@@ -22,8 +22,7 @@
 // ============================================================
 
 import { GATES, RISK_ZONES, type LatLng } from "./park";
-import { RUTAS_TRAZADOS } from "./rutasTrazados";
-import { PUENTE_TUPAHUE_CUMBRE } from "./reglasParque";
+import { BAJADAS_CONTROL_30, RUTAS_TRAZADOS } from "./rutasTrazados";
 
 // ------------------------------------------------------------
 // Destinos del MINIMAPA (limpieza pedida por el cliente, 2026-11-12):
@@ -201,6 +200,23 @@ export function rutaTrazado(r: CapaRuta): { coords: LatLng[]; distKm: number } {
 }
 
 // ------------------------------------------------------------
+// BAJADAS CON CONTROL DE VELOCIDAD 30 KM/H (cliente 2026-11-13):
+// «Control velocidad máx. 30 km/h (bajadas principales), al marcar
+// pintar trazado en rojo y que se vean los 3». Trazados precomputados
+// con el motor A* (scripts/build-rutas.ts) por el pavimento del
+// parque, SIN reglas direccionales (son geometría de la vía).
+// ------------------------------------------------------------
+
+export type Bajada30 = { id: string; nombre: string; coords: LatLng[]; distKm: number };
+
+export const BAJADAS_30: Bajada30[] = BAJADAS_CONTROL_30.map((b) => ({
+  id: b.id,
+  nombre: b.nombre,
+  coords: b.coords.map(([lat, lon]) => ({ lat, lon })),
+  distKm: b.distKm,
+}));
+
+// ------------------------------------------------------------
 // CAPA 3 · PUNTOS DE INTERÉS (12)
 // Cruces, servicios, miradores y alertas peatonales.
 // ------------------------------------------------------------
@@ -234,8 +250,8 @@ export const CAPA_POIS: CapaPunto[] = [
       "Cruce principal donde convergen rutas de Pedro de Valdivia, Pío Nono y Zapadores hacia la Cumbre.",
     emoji: "🔀",
     sub: "conexion",
-    // posición GPX referencial (sobre Av. Pedro Bannen, entre Tupahue y Plaza México)
-    position: { lat: -33.4215, lon: -70.6288 },
+    // Coordenada exacta del cliente (2026-11-13): cruce real de la Plaza Tupahue.
+    position: { lat: -33.41566193234907, lon: -70.62253008246276 },
   },
   {
     id: "el-ermitano",
@@ -254,8 +270,8 @@ export const CAPA_POIS: CapaPunto[] = [
       "Base operativa del Circuito Cerro Los Gemelos. Inicio subida Pa' Arriba y llegada descensos MTB.",
     emoji: "🔀",
     sub: "conexion",
-    // posición GPX referencial (dentro del parque)
-    position: { lat: -33.409, lon: -70.6215 },
+    // Coordenada exacta del cliente (2026-11-13).
+    position: { lat: -33.407601, lon: -70.611192 },
   },
   {
     id: "anfiteatro",
@@ -275,8 +291,8 @@ export const CAPA_POIS: CapaPunto[] = [
       "Meta de rutas de pavimento. Cuenta con bicicleteros, hidratación, servicios y acceso a Santuario.",
     emoji: "⛲",
     sub: "servicio",
-    // posición verificada (NAV_DESTINATIONS plaza-mexico)
-    position: { lat: -33.4234, lon: -70.6327 },
+    // Coordenada exacta del cliente (2026-11-13).
+    position: { lat: -33.42387320247046, lon: -70.63255907914812 },
   },
   {
     id: "piscina-antilen",
@@ -295,8 +311,8 @@ export const CAPA_POIS: CapaPunto[] = [
       "Zona de sombra, bancas y descanso en la subida de Pedro de Valdivia Norte.",
     emoji: "🌳",
     sub: "servicio",
-    // posición GPX referencial (dentro del parque)
-    position: { lat: -33.4195, lon: -70.6218 },
+    // Coordenada exacta del cliente (2026-11-13).
+    position: { lat: -33.414644, lon: -70.620398 },
   },
   // --- Miradores ---
   {
@@ -306,8 +322,8 @@ export const CAPA_POIS: CapaPunto[] = [
       "Vista panorámica hacia el centro y poniente de Santiago entre el Zoológico y Tupahue.",
     emoji: "🔭",
     sub: "mirador",
-    // posición GPX (coincide con el camino Pío Nono)
-    position: { lat: -33.4285, lon: -70.6345 },
+    // Coordenada exacta del cliente (2026-11-13).
+    position: { lat: -33.42618, lon: -70.63411 },
   },
   {
     id: "mirador-hundido",
@@ -315,8 +331,8 @@ export const CAPA_POIS: CapaPunto[] = [
     detalle: "Punto alto de referencia visual en la zona de cumbres.",
     emoji: "🔭",
     sub: "mirador",
-    // posición GPX referencial (dentro del parque)
-    position: { lat: -33.4165, lon: -70.6295 },
+    // Coordenada exacta del cliente (2026-11-13).
+    position: { lat: -33.419353, lon: -70.625013 },
   },
   // --- Precaución peatonal ---
   {
@@ -326,8 +342,8 @@ export const CAPA_POIS: CapaPunto[] = [
       "Alto flujo de peatones, familias y detención de buses en tramo bajo de Pío Nono. Reducir velocidad.",
     emoji: "⚠️",
     sub: "precaucion",
-    // posición verificada (RISK_ZONES zoologico)
-    position: { lat: -33.429636, lon: -70.633963 },
+    // Coordenada exacta del cliente (2026-11-13) = Advertencia RISK_ZONES zoologico.
+    position: { lat: -33.429544, lon: -70.636007 },
   },
   {
     id: "precau-cumbre",
@@ -335,8 +351,8 @@ export const CAPA_POIS: CapaPunto[] = [
     detalle: "Cruce constante de turistas en las inmediaciones de Plaza México.",
     emoji: "⚠️",
     sub: "precaucion",
-    // posición GPX referencial (junto a Plaza México)
-    position: { lat: -33.4248, lon: -70.6331 },
+    // Coordenada exacta del cliente (2026-11-13).
+    position: { lat: -33.425882, lon: -70.632243 },
   },
   {
     id: "precau-torre5",
@@ -345,8 +361,8 @@ export const CAPA_POIS: CapaPunto[] = [
       "Ingreso y salida de ciclistas de enduro hacia senderos técnicos Torre 5 y 4½.",
     emoji: "⚠️",
     sub: "precaucion",
-    // posición GPX referencial (sector cumbre)
-    position: { lat: -33.4232, lon: -70.6315 },
+    // Coordenada exacta del cliente (2026-11-13).
+    position: { lat: -33.40415, lon: -70.60739 },
   },
 ];
 
@@ -362,16 +378,17 @@ export const CAPA_NORMATIVA: CapaPuntoBase[] = [
     detalle:
       "Restricción de paso en bicicleta hacia la Cumbre los sábados, domingos y festivos desde las 13:30 hrs.",
     emoji: "🚫",
-    // EN EL PUENTE que une Av. Alberto Mackenna con Av. Pedro Bannen en
-    // Tupahue (cliente: «dónde tenemos el puente»), nodo compartido del
-    // grafo OSM propio (2026-11-12).
-    position: PUENTE_TUPAHUE_CUMBRE,
+    // Coordenada exacta del cliente (2026-11-13) para el MARCADOR de la
+    // capa. El CORTE de ruteo sigue anclado en el nodo real del puente
+    // Mackenna ↔ Bannen (PUENTE_TUPAHUE_CUMBRE en reglasParque) — mover
+    // este marcador no cambia las reglas de navegación.
+    position: { lat: -33.416203, lon: -70.622936 },
   },
   {
     id: "control-30",
     nombre: "Control velocidad máx. 30 km/h (bajadas principales)",
     detalle:
-      "Límite máximo de 30 km/h en vías interiores fiscalizado por Carabineros (plan Pedalea Seguro).",
+      "Límite máximo de 30 km/h en las 3 bajadas principales, fiscalizado por Carabineros (plan Pedalea Seguro): Cima Chacarillas → Acceso La Pirámide, Plaza Antilén → Acceso Pedro de Valdivia Norte y Plaza México → Acceso Pío Nono. Al activar la capa se pintan los 3 trazados en rojo.",
     emoji: "🐢",
     // posición GPX referencial (bajada principal)
     position: { lat: -33.4202, lon: -70.625 },
@@ -382,8 +399,8 @@ export const CAPA_NORMATIVA: CapaPuntoBase[] = [
     detalle:
       "Registro digital y código QR obligatorio en la bici para uso de senderos enduro/MTB desde diciembre 2026.",
     emoji: "📱",
-    // posición GPX referencial (base del circuito, junto a La Rotonda)
-    position: { lat: -33.4093, lon: -70.6213 },
+    // Coordenada exacta del cliente (2026-11-13).
+    position: { lat: -33.3989, lon: -70.6085 },
   },
   {
     id: "soporte-pdv",
@@ -391,8 +408,8 @@ export const CAPA_NORMATIVA: CapaPuntoBase[] = [
     detalle:
       "Punto de herramientas básicas, bombín y bebedero de agua potable en base oriente.",
     emoji: "🛠️",
-    // GPX caía fuera del parque → ~100 m dentro del Acceso PdV Norte
-    position: { lat: -33.4122, lon: -70.6088 },
+    // Coordenada exacta del cliente (2026-11-13).
+    position: { lat: -33.415149, lon: -70.617559 },
   },
   {
     id: "soporte-tupahue",
@@ -400,8 +417,8 @@ export const CAPA_NORMATIVA: CapaPuntoBase[] = [
     detalle:
       "Punto confirmado de hidratación, asistencia de guardaparques y primeros auxilios en zona media.",
     emoji: "🛠️",
-    // posición GPX referencial (zona Tupahue)
-    position: { lat: -33.4213, lon: -70.6285 },
+    // Coordenada exacta del cliente (2026-11-13).
+    position: { lat: -33.41627, lon: -70.62327 },
   },
   {
     id: "soporte-pio-nono",
@@ -409,8 +426,8 @@ export const CAPA_NORMATIVA: CapaPuntoBase[] = [
     detalle:
       "Punto de asistencia, información y recarga de agua en acceso sur-poniente.",
     emoji: "🛠️",
-    // GPX caía fuera del parque → junto al Acceso Pío Nono
-    position: { lat: -33.4305, lon: -70.6358 },
+    // Coordenada exacta del cliente (2026-11-13).
+    position: { lat: -33.430237, lon: -70.636087 },
   },
   // --- Círculos amarillos de advertencia (zonas de riesgo RISK_ZONES,
   //     cliente: «agrégalos a la capa del mapa en categoría Normativa y
@@ -435,8 +452,8 @@ export const CAPA_URBANA: CapaPuntoBase[] = [
     detalle:
       "Estación intermodal más cercana al Acceso Pío Nono (aprox. 450 m por Pío Nono / Parque Forestal).",
     emoji: "🚇",
-    // Plaza Baquedano (posición de referencia conocida); GPX a ~130 m
-    position: { lat: -33.437, lon: -70.6331 },
+    // Coordenada exacta del cliente (2026-11-13).
+    position: { lat: -33.4374699337498, lon: -70.63415952369353 },
   },
   {
     id: "metro-pdv",
@@ -444,8 +461,8 @@ export const CAPA_URBANA: CapaPuntoBase[] = [
     detalle:
       "Enlace directo hacia Acceso Pedro de Valdivia Norte cruzando el Río Mapocho.",
     emoji: "🚇",
-    // posición GPX
-    position: { lat: -33.4221, lon: -70.6146 },
+    // Coordenada exacta del cliente (2026-11-13).
+    position: { lat: -33.42547618122174, lon: -70.61427439161757 },
   },
   {
     id: "metro-zapadores",
@@ -453,8 +470,8 @@ export const CAPA_URBANA: CapaPuntoBase[] = [
     detalle:
       "Estación de acercamiento al Acceso Zapadores en el sector norte de Recoleta.",
     emoji: "🚇",
-    // posición GPX (Av. Recoleta, línea 2 norte)
-    position: { lat: -33.3958, lon: -70.6421 },
+    // Coordenada exacta del cliente (2026-11-13).
+    position: { lat: -33.39115837341313, lon: -70.64246117507359 },
   },
   {
     id: "ciclovia-andres-bello",
@@ -462,8 +479,8 @@ export const CAPA_URBANA: CapaPuntoBase[] = [
     detalle:
       "Eje ciclista estructurante que conecta directamente con Acceso Pedro de Valdivia Norte y Pío Nono.",
     emoji: "🚲",
-    // posición GPX (orilla sur del río Mapocho)
-    position: { lat: -33.4202, lon: -70.6168 },
+    // Coordenada exacta del cliente (2026-11-13).
+    position: { lat: -33.416492, lon: -70.607373 },
   },
   {
     id: "ciclovia-av-peru",
@@ -471,8 +488,8 @@ export const CAPA_URBANA: CapaPuntoBase[] = [
     detalle:
       "Corredor ciclista poniente en Recoleta que enlaza los sectores de Pío Nono y Zapadores.",
     emoji: "🚲",
-    // posición GPX (Av. Perú, Recoleta)
-    position: { lat: -33.4225, lon: -70.6412 },
+    // Coordenada exacta del cliente (2026-11-13).
+    position: { lat: -33.421135, lon: -70.64055 },
   },
   {
     id: "ciclovia-santa-maria",
@@ -480,7 +497,7 @@ export const CAPA_URBANA: CapaPuntoBase[] = [
     detalle:
       "Aproximación segura desde el sector oriente hacia el Acceso La Pirámide.",
     emoji: "🚲",
-    // posición GPX (Av. Santa María)
-    position: { lat: -33.4052, lon: -70.6135 },
+    // Coordenada exacta del cliente (2026-11-13).
+    position: { lat: -33.388756, lon: -70.599442 },
   },
 ];

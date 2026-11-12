@@ -126,15 +126,26 @@ const TOL_M = 80;
 const nodeOk = (lat: number, lon: number) => inPoly(lat, lon) || distToPolyM(lat, lon) <= TOL_M;
 const OPTS_PAV_PARK: FindRouteOpts = { ...OPTS_PAV, nodeOk };
 const OPTS_MTB_PARK: FindRouteOpts = { ...OPTS_MTB, nodeOk };
+// Bajadas del control 30 km/h (cliente 2026-11-13): geometría de la vía
+// SIN reglas direccionales — la bajada Plaza México → Pío Nono recorre el
+// corredor de ascenso Pío Nono (sólo subida) y aquí se DIBUJA, no se navega.
+const OPTS_PAV_PARK_LIBRE: FindRouteOpts = {
+  allowedCls: CLASES_PAVIMENTO,
+  nameAllow: NOMBRES_PERMITIDOS_PAV,
+  nameBlock: OPTS_PAV.nameBlock,
+  nodeOk,
+};
 
 // --- puntos clave (posiciones verificadas del proyecto / grafo real) ---
 const P = {
-  pioNono: { lat: -33.430691, lon: -70.63592 },
+  // Coordenada exacta del cliente (2026-11-13); nodo del grafo n5335 a 6 m.
+  pioNono: { lat: -33.430462, lon: -70.636212 },
   // Acceso Pedro de Valdivia Norte: coordenada exacta del cliente
   // (2026-11-12), portería en el cruce Av. El Cerro × Av. PdV Norte
   // (GATES pv-norte). Los trazados r1/r3/r5 nacen/terminan aquí.
   pdvNorte: { lat: -33.415479, lon: -70.617402 },
-  laPiramide: { lat: -33.38642, lon: -70.60179 },
+  // Coordenada exacta del cliente (2026-11-13); nodo del grafo n49273 a 9 m.
+  laPiramide: { lat: -33.3881236831842, lon: -70.60168398128492 },
   zapadores: { lat: -33.399921, lon: -70.620406 },
   plazaMexico: { lat: -33.4234, lon: -70.6327 },
   anfiteatro: { lat: -33.40401, lon: -70.60956 },
@@ -408,10 +419,47 @@ for (const [id, coords] of Object.entries(defs)) {
   out[id] = { coords: coords.map((c) => [Number(c.lat.toFixed(6)), Number(c.lon.toFixed(6))]), distKm: Number(distKm(coords).toFixed(2)) };
 }
 
+// --- bajadas con control 30 km/h (cliente 2026-11-13): «al marcar pintar
+// trazado en rojo y que se vean los 3» — corredores de las 3 bajadas
+// principales según los enlaces Google Maps del cliente ---
+console.log("\n— bajadas control 30 km/h —");
+const bajadasDefs: { id: string; nombre: string; from: LatLng; to: LatLng }[] = [
+  {
+    id: "b30-piramide",
+    nombre: "Cima Cerro Chacarillas → Acceso La Pirámide",
+    from: { lat: -33.409051, lon: -70.61374 }, // Piscina Antilén (cima Chacarillas)
+    to: P.laPiramide,
+  },
+  {
+    id: "b30-pdv",
+    nombre: "Plaza Antilén → Acceso Pedro de Valdivia Norte",
+    from: { lat: -33.40758, lon: -70.61121 }, // Plaza Antilén
+    to: P.pdvNorte,
+  },
+  {
+    id: "b30-pionono",
+    nombre: "Plaza México → Acceso Pío Nono",
+    from: P.plazaMexico,
+    to: P.pioNono,
+  },
+];
+const bajadasOut: { id: string; nombre: string; coords: [number, number][]; distKm: number }[] = [];
+for (const b of bajadasDefs) {
+  const r = findRoute(net, b.from, b.to, { ...OPTS_PAV_PARK_LIBRE, targetNode: nodoExacto(net, b.to) });
+  if (!r || r.coords.length < 2) {
+    console.error(`✗ bajada ${b.id} sin ruta`);
+    continue;
+  }
+  const coords = r.coords.map((c) => [Number(c.lat.toFixed(6)), Number(c.lon.toFixed(6))] as [number, number]);
+  bajadasOut.push({ id: b.id, nombre: b.nombre, coords, distKm: Number(distKm(r.coords).toFixed(2)) });
+  console.log(`✓ bajada ${b.id}: ${coords.length} pts · ${bajadasOut[bajadasOut.length - 1].distKm.toFixed(2)} km`);
+}
+
 const ts = `// ============================================================
 // GENERADO por scripts/build-rutas.ts - NO editar a mano.
 // Trazados reales (grafo OSM propio) para las 9 rutas predefinidas
-// del mapa general (Capa 2: Pavimento + MTB).
+// del mapa general (Capa 2: Pavimento + MTB) y las 3 bajadas del
+// control 30 km/h (Capa 4: Normativa y Seguridad, cliente 2026-11-13).
 // Reglas: dentro del parque (+80 m en accesos) · pavimento sin
 // senderos MTB ni sendas peatonales · MTB sin restricción de vía.
 // coords = [lat, lon].
@@ -420,6 +468,10 @@ const ts = `// ============================================================
 export type RutaTrazado = { coords: [number, number][]; distKm: number };
 
 export const RUTAS_TRAZADOS: Record<string, RutaTrazado> = ${JSON.stringify(out, null, 2)};
+
+export type BajadaControl30 = { id: string; nombre: string; coords: [number, number][]; distKm: number };
+
+export const BAJADAS_CONTROL_30: BajadaControl30[] = ${JSON.stringify(bajadasOut, null, 2)};
 `;
 writeFileSync("src/lib/rutasTrazados.ts", ts);
 console.log("\n✎ src/lib/rutasTrazados.ts escrito");

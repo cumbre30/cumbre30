@@ -33,6 +33,7 @@ import {
   CAPA_NORMATIVA,
   CAPA_POIS,
   CAPA_RUTAS,
+  BAJADAS_30,
   CAPA_URBANA,
   SUB_ETIQUETAS,
   rutaTrazado,
@@ -1147,6 +1148,29 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
           {capasVis["pois"] && puntoMarkers(CAPA_POIS, (p) => COLOR_SUB_POI[(p as CapaPunto).sub])}
           {capasVis["normativa"] && puntoMarkers(CAPA_NORMATIVA, () => COLOR_NORMATIVA)}
           {capasVis["urbana"] && puntoMarkers(CAPA_URBANA, () => COLOR_URBANA)}
+
+          {/* Bajadas con control de velocidad 30 km/h (Normativa y Seguridad):
+              al marcar la capa se pintan los 3 corredores en rojo
+              (cliente 2026-11-13: «al marcar pintar trazado en rojo y que
+              se vean los 3»). */}
+          {capasVis["normativa"] &&
+            BAJADAS_30.map((b) => {
+              if (b.coords.length < 2) return null;
+              const path = b.coords.map((c) => [c.lat, c.lon] as [number, number]);
+              return (
+                <Fragment key={b.id}>
+                  <Polyline positions={path} pathOptions={{ color: "#450a0a", weight: 8.5, opacity: 0.7 }} interactive={false} />
+                  <Polyline
+                    positions={path}
+                    pathOptions={{ color: "#dc2626", weight: 4.5, opacity: 0.95, lineCap: "round", lineJoin: "round" }}
+                  >
+                    <Tooltip direction="top">
+                      <span className="text-xs font-medium">🐢 30 km/h · {b.nombre} · {b.distKm.toFixed(1)} km</span>
+                    </Tooltip>
+                  </Polyline>
+                </Fragment>
+              );
+            })}
 
           {/* Ciclovías (solo interior del parque) */}
           {cicloviaLines}

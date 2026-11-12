@@ -10,7 +10,7 @@
 import { readFileSync } from "node:fs";
 import { haversineM, type Network, type NetNode, type NetEdge, type LatLng, type FindRouteOpts } from "../src/lib/routing";
 import { RUTAS_TRAZADOS } from "../src/lib/rutasTrazados";
-import { CAPA_NORMATIVA, CAPA_RUTAS } from "../src/lib/mapLayers";
+import { CAPA_NORMATIVA, CAPA_RUTAS, BAJADAS_30 } from "../src/lib/mapLayers";
 import { RISK_ZONES, GATES } from "../src/lib/park";
 import { PUENTE_TUPAHUE_CUMBRE, PLAZA_MEXICO_POS, GATE_PIO_NONO, crearDirOk } from "../src/lib/reglasParque";
 import { PAV_DEST_OPTS, corredorPav } from "../src/lib/routingService";
@@ -106,25 +106,19 @@ async function main() {
   ok(haversineM(r3[0], ZAPADORES) <= 30, `r3 nace en Zapadores (${haversineM(r3[0], ZAPADORES).toFixed(0)} m)`);
   ok(haversineM(r3[r3.length - 1], PDV) <= 40, `r3 termina en el acceso PdV Norte (${haversineM(r3[r3.length - 1], PDV).toFixed(0)} m)`);
   ok(minDist(r3, PUENTE_TUPAHUE_CUMBRE) > 200, `r3 NO se desvía al puente Mackenna-Bannen (${minDist(r3, PUENTE_TUPAHUE_CUMBRE).toFixed(0)} m)`);
-  const JJ_ZONE = { lat: -33.413345, lon: -70.614692 }; // zona de riesgo Jardín Japonés (radio 120 m)
-  const SP_ZONE = { lat: -33.416209, lon: -70.619256 }; // zona de riesgo Salida Pedro de Valdivia (radio 130 m)
-  ok(minDist(r3, JJ_ZONE) <= 120, `r3 pasa por Jardín Japonés (${minDist(r3, JJ_ZONE).toFixed(0)} m, zona 120 m)`);
-  ok(minDist(r3, SP_ZONE) <= 130, `r3 pasa por Salida Pedro de Valdivia (${minDist(r3, SP_ZONE).toFixed(0)} m, zona 130 m)`);
+  const JJ_ZONE = { lat: -33.413345, lon: -70.614692 }; // zona de riesgo Jardín Japonés (radio 55 m, cliente 2026-11-13)
+  const SP_ZONE = { lat: -33.416209, lon: -70.619256 }; // zona de riesgo Salida Pedro de Valdivia (radio 55 m)
+  ok(minDist(r3, JJ_ZONE) <= 55, `r3 pasa por Jardín Japonés (${minDist(r3, JJ_ZONE).toFixed(0)} m, zona 55 m)`);
+  ok(minDist(r3, SP_ZONE) <= 55, `r3 pasa por Salida Pedro de Valdivia (${minDist(r3, SP_ZONE).toFixed(0)} m, zona 55 m)`);
   // punto medio del antiguo tramo Martner (junction → puente) y de Av. Gabriela
   // Mistral: el nuevo trazado no debe pasar por ahí
   const MARTNER_MEDIO = { lat: -33.415426, lon: -70.621316 };
   ok(minDist(r3, MARTNER_MEDIO) > 100, `r3 sin el tramo Carlos Martner al puente (${minDist(r3, MARTNER_MEDIO).toFixed(0)} m)`);
   ok(minDist(r3, PLAZA_MEXICO_POS) > 400, `r3 NO llega a Plaza México (${minDist(r3, PLAZA_MEXICO_POS).toFixed(0)} m)`);
 
-  // --- r4 intacto (referencia git HEAD del trazado) ---
-  const { execFileSync } = await import("node:child_process");
-  const head = execFileSync("git", ["show", "HEAD:src/lib/rutasTrazados.ts"], { encoding: "utf8" });
-  const mR4 = head.match(/"r4": \{\s*"coords": (\[[\s\S]*?\]),\s*"distKm"/);
-  const r4head = JSON.parse((mR4?.[1] ?? "null").replace(/,\s*([\]\}])/g, "$1")) as [number, number][];
-  let maxDelta = 0;
-  for (let i = 0; i < Math.min(r4head.length, r4.length); i++)
-    maxDelta = Math.max(maxDelta, haversineM({ lat: r4head[i][0], lon: r4head[i][1] }, r4[i]));
-  ok(r4head.length === r4.length && maxDelta < 2, `r4 intacto (${r4.length} pts, Δmáx ${maxDelta.toFixed(1)} m)`);
+  // --- r4 con la portería La Pirámide MOVIDA por el cliente (2026-11-13):
+  // el trazado arranca/termina en la nueva coordenada (nodo Zañartu) ---
+  ok(haversineM(r4[0], LA_PIRAMIDE) <= 30, `r4 nace en el acceso La Pirámide (nuevo, ${haversineM(r4[0], LA_PIRAMIDE).toFixed(0)} m)`);
 
   // --- r5: vuelta completa, sin bajada Pío Nono ni Carlos Reed ---
   ok(haversineM(r5[0], PIO) <= 40, "r5 nace en Pío Nono");
@@ -210,7 +204,31 @@ async function main() {
   const salidaPv = RISK_ZONES.find((z) => z.id === "salida-pv")!;
   ok(salidaPv.position.lat === -33.416209 && salidaPv.position.lon === -70.619256, "Salida Pedro de Valdivia en -33.416209, -70.619256");
   const corte = CAPA_NORMATIVA.find((x) => x.id === "corte-tupahue")!;
-  ok(haversineM(corte.position, PUENTE_TUPAHUE_CUMBRE) < 1, "Corte horario (Tupahue → Cumbre) EN el puente de Pedro Bannen");
+  // Cliente (2026-11-13): el MARCADOR de la capa va en su coordenada; el
+  // CORTE de ruteo sigue anclado en el nodo real del puente (reglasParque).
+  ok(
+    haversineM(corte.position, { lat: -33.416203, lon: -70.622936 }) < 1,
+    "Marcador corte horario en la coordenada del cliente (-33.416203, -70.622936)"
+  );
+  ok(
+    haversineM(PUENTE_TUPAHUE_CUMBRE, { lat: -33.416121, lon: -70.623005 }) < 1,
+    "Corte de RUTEO sigue anclado en el puente Mackenna-Bannen (PUENTE_TUPAHUE_CUMBRE)"
+  );
+
+  // --- bajadas control 30 km/h (cliente 2026-11-13): «que se vean los 3» ---
+  ok(BAJADAS_30.length === 3, `bajadas control 30 km/h: ${BAJADAS_30.length}/3 precomputadas`);
+  const b30 = (id: string) => BAJADAS_30.find((b) => b.id === id);
+  const antilen = { lat: -33.409051, lon: -70.61374 }; // cima Chacarillas (Piscina Antilén)
+  const plazaAntilen = { lat: -33.40758, lon: -70.61121 }; // Plaza Antilén
+  const bPir = b30("b30-piramide");
+  ok(!!bPir && haversineM(bPir.coords[0], antilen) <= 60 && haversineM(bPir.coords[bPir.coords.length - 1], LA_PIRAMIDE) <= 30,
+    `bajada Cima Chacarillas → La Pirámide (${bPir ? bPir.distKm.toFixed(2) : "?"} km, nace ${bPir ? haversineM(bPir.coords[0], antilen).toFixed(0) : "?"} m de la cima, cierra ${bPir ? haversineM(bPir.coords[bPir.coords.length - 1], LA_PIRAMIDE).toFixed(0) : "?"} m del acceso)`);
+  const bPdv = b30("b30-pdv");
+  ok(!!bPdv && haversineM(bPdv.coords[0], plazaAntilen) <= 60 && haversineM(bPdv.coords[bPdv.coords.length - 1], PDV) <= 30,
+    `bajada Plaza Antilén → PdV Norte (${bPdv ? bPdv.distKm.toFixed(2) : "?"} km)`);
+  const bPio = b30("b30-pionono");
+  ok(!!bPio && haversineM(bPio.coords[0], PLAZA_MEXICO_POS) <= 60 && haversineM(bPio.coords[bPio.coords.length - 1], PIO) <= 30,
+    `bajada Plaza México → Pío Nono (${bPio ? bPio.distKm.toFixed(2) : "?"} km)`);
 
   console.log(fails ? `\n${fails} FALLAS` : "\nTODO OK");
   process.exit(fails ? 1 : 0);
