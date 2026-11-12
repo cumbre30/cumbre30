@@ -213,12 +213,13 @@ export function StatsTab({ onGoPro }: { onGoPro: () => void }) {
                 </div>
               ) : (
                 <Card className="p-4 text-center text-xs text-muted-foreground">
-                  Sube el cerro con GPS real y tus tiempos por segmento aparecerán aquí.
+                  Pedalea el cerro con GPS real y tus tiempos por segmento aparecerán aquí.
                 </Card>
               )
             ) : (
               <>
-                {/* Los 3 segmentos existen: el nivel gratis los ve bloqueados */}
+                {/* Todos los segmentos existen (subidas + bajadas 30 + enduro):
+                    el nivel gratis los ve bloqueados */}
                 <div className="flex flex-col gap-2">
                   {SEGMENTS.map((def) => (
                     <Card key={def.id} className="flex items-center gap-3 p-3.5">

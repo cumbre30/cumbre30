@@ -58,7 +58,7 @@ export const CONTACT_EMAIL = "contacto.cumbre30@gmail.com";
 export const PRO_BENEFITS = [
   "Export GPX de tus viajes con GPS (Strava, Garmin, Komoot)",
   "Constancias PDF ilimitadas (gratis: 3 al mes)",
-  "Segmentos del cerro: Pío Nono → Plaza México con récord personal e historial",
+  "Segmentos del cerro: 4 subidas y las 3 bajadas del control 30 km/h con récord personal e historial",
   "Buscador universal: escribe cualquier dirección y la ruta ciclable se traza sola + marcadores en el mapa",
   "Historial ilimitado de viajes (gratis: los últimos 20)",
   "Estadísticas avanzadas: resumen mes a mes con desnivel y comparación",

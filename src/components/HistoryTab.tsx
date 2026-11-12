@@ -665,16 +665,18 @@ export function HistoryTab({
                   ))}
                 </ul>
                 <p className="mt-2 text-[11px] text-muted-foreground">
-                  Se detectan solos: graba tu viaje con GPS y si pasas por el acceso del segmento
+                  Se detectan solos: graba tu viaje con GPS y si pasas por el inicio del segmento
                   hasta la meta, queda cronometrado con récord personal e historial.
                 </p>
               </>
             ) : (
               <>
                 <p className="mt-1 leading-relaxed text-muted-foreground">
-                  Cronometraje oficial de tus subidas - Pío Nono → Plaza México, Pedro de Valdivia
-                  Norte → Plaza México y el tramo Antilén → Plaza México - con récord personal, contador de
-                  intentos e historial de tiempos. Aplican solo a viajes grabados con GPS.
+                  Cronometraje oficial de tus subidas (Pío Nono, Pedro de Valdivia Norte, Antilén y
+                  La Pirámide, todas → Plaza México) y de las 3 bajadas del control 30 km/h
+                  (Plaza México → Pío Nono, Antilén → Pedro de Valdivia y Chacarillas → La
+                  Pirámide) - con récord personal, contador de intentos e historial de tiempos.
+                  Aplican solo a viajes grabados con GPS.
                 </p>
                 <Button
                   onClick={onGoPro}
