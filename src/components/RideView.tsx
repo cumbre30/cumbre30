@@ -601,10 +601,14 @@ export function RideView(p: Props) {
             <div className="mt-2.5">
               <p className="text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground">Parque y apoyo</p>
               <div className="mt-1.5 grid grid-cols-3 gap-2">
-                <a href="tel:+56227301404" className="flex flex-col items-center gap-1 rounded-lg border border-border bg-card py-3 text-center hover:border-emerald-500/70">
-                  <Phone className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                  <span className="text-[13px] font-bold tabular-nums text-foreground">+56 2 2730 1404</span>
-                  <span className="text-[10px] text-muted-foreground">Parquemet</span>
+                {/* Número oficial de EMERGENCIAS del parque (cliente 2026-11-13,
+                    insignia roja «EMERGENCIAS 1466»): reemplaza a la antigua
+                    línea de informaciones +56 2 2730 1404. Estilo rojo como
+                    los números nacionales de urgencia. */}
+                <a href="tel:1466" className="flex flex-col items-center gap-1 rounded-lg border border-border bg-card py-3 text-center hover:border-red-500/70">
+                  <Phone className="h-4 w-4 text-red-600 dark:text-red-400" />
+                  <span className="text-[13px] font-bold tabular-nums text-foreground">1466</span>
+                  <span className="text-[10px] text-muted-foreground">Emergencias Parquemet</span>
                 </a>
                 <a href="tel:+56226543200" className="flex flex-col items-center gap-1 rounded-lg border border-border bg-card py-3 text-center hover:border-emerald-500/70">
                   <Phone className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
@@ -640,9 +644,9 @@ export function RideView(p: Props) {
             )}
             {sosMsg && <p className="mt-2 text-xs font-medium text-emerald-600 dark:text-emerald-400" role="status">{sosMsg}</p>}
             <p className="mt-3 text-[11px] leading-relaxed text-muted-foreground">
-              Si puedes, avisa también al personal del parque (accesos y casetas). El teléfono de Parquemet es de
-              informaciones (9:00 a 17:00); ante una urgencia llama siempre al 133. Tu QR Pedalea Seguro pegado en la
-              bici ayuda a que te identifiquen rápido.
+              Si puedes, avisa también al personal del parque (accesos y casetas). El 1466 es la línea de emergencias
+              oficial de Parquemet; ante una urgencia llama también al 133. Tu QR Pedalea Seguro pegado en la bici
+              ayuda a que te identifiquen rápido.
             </p>
           </Card>
         </div>
