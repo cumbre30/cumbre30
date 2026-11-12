@@ -119,7 +119,7 @@ export const CAPA_RUTAS: CapaRuta[] = [
     tipo: "pavimento",
     nivel: "Exigente",
     detalle:
-      "Travesía desde Acceso Zapadores bajando por Avenida La Montaña a Tupahue, hasta el puente Mackenna-Bannen (corte horario fin de semana), y descenso final por Av. Carlos Martner y Av. Abate Molina a Pedro de Valdivia Norte. Sin Plaza México ni Carlos Reed.",
+      "Travesía desde Acceso Zapadores bajando por Avenida La Montaña a Tupahue, hasta el puente Mackenna-Bannen (corte horario fin de semana), y descenso recto por Av. Gabriela Mistral y Av. Abate Molina a Pedro de Valdivia Norte. Sin Plaza México ni Carlos Reed.",
     emoji: "🚴",
     color: "#0ea5e9",
   },

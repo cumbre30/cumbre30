@@ -1,7 +1,9 @@
 // E2E — lote del cliente 2026-11-12 (tarde):
 //  1) Minimapa: SOLO los accesos en «Ir a…» (sin opciones de ruta).
-//  2) Capa Rutas: Ruta 1 (3.4 km) y Ruta 3 (5.5 km) trazan desde/hacia
-//     PDV por Av. Abate Molina — SIN la línea recta del puente sintético.
+//  2) Capa Rutas: Ruta 1 (3.4 km) y Ruta 3 (4.8 km) trazan desde/hacia
+//     PDV por Av. Abate Molina — SIN la línea recta del puente sintético
+//     y SIN el tramo hacia Tupahue (bajada recta por Gabriela Mistral,
+//     cliente 2026-11-12 noche).
 //  3) Navegación en vivo: desde la ladera poniente (fin del ex puente)
 //     a PdV Norte llega por caminos reales (sin la recta de 318 m).
 import { chromium } from "playwright";

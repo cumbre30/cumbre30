@@ -200,6 +200,14 @@ const NOMBRES_CORREDOR_PIO =
   /^(Pío Nono|Pio Nono|Avenida Alberto Mackenna|Camino Pío Nono - Plaza México|Terraza Bellavista|Explanada|Paseo Peatonal Cumbre|Camino Siete Palabras|Sendero El Excursionista|Camino El Excursionista)/;
 /** Corredor del corte cumbre: Av. Pedro Bannen (Tupahue → Plaza México). */
 const NOMBRES_BANNEN = /^Avenida Pedro Bannen/;
+/** Av. Gabriela Mistral: corredor propio de bajada puente/Tupahue →
+ *  Abate Molina → PdV Norte (cliente 2026-11-12: r3 «debe seguir recto
+ *  con dirección a PDV»). NO es parte del ascenso Pío Nono: su arranque
+ *  roza el puente y su primer tramo baja al sur DENTRO de la banda del
+ *  corredor, así que el gradiente al ancla la bloqueaba en falso y la
+ *  bajada se iba por Martner/Abate alto. Exención por nombre, mismo
+ *  patrón que Bannen. */
+const NOMBRES_GABRIELA_MISTRAL = /^Avenida Gabriela Mistral/;
 /** Banda del corredor para conectores sin nombre (m a un nodo de cadena). */
 const BANDA_NODO_M = 40;
 
@@ -285,15 +293,18 @@ export function crearDirOk(
     const len = haversineM({ lat: uLat, lon: uLon }, { lat: vLat, lon: vLon });
     const esPioNombre = NOMBRES_CORREDOR_PIO.test(name);
     const esBannenNombre = NOMBRES_BANNEN.test(name);
-    // OJO: junto al puente de Tupahue el tramo final de Mackenna y la
-    // bajada de Bannen corren paralelos (~200 m): una arista de Bannen
-    // NO se puede proyectar sobre las cadenas de Pío Nono (y
-    // viceversa) — la orientación se decide por el NOMBRE de la vía.
+    const esGabrielaNombre = NOMBRES_GABRIELA_MISTRAL.test(name);
+    // OJO: junto al puente de Tupahue el tramo final de Mackenna y las
+    // bajadas de Bannen y Gabriela Mistral corren paralelos (~200 m): una
+    // arista de Bannen o de Gabriela Mistral NO se puede orientar con las
+    // cadenas de Pío Nono (y viceversa) — la orientación se decide por el
+    // NOMBRE de la vía.
     // --- 1. Pío Nono sólo subida (24/7): bloquear el descenso ---
-    // Excepción: la tablilla del puente (cruzar hacia Bannen NO es bajar
+    // Excepciones: la tablilla del puente (cruzar hacia Bannen NO es bajar
     // por Pío Nono — sin ella el acercamiento al corte desde el lado
-    // Tupahue quedaba bloqueado).
-    if (pioActivo && !esBannenNombre && !enTablilla(uLat, uLon, vLat, vLon)) {
+    // Tupahue quedaba bloqueado) y Av. Gabriela Mistral (corredor de
+    // bajada propio hacia PdV Norte, ver NOMBRES_GABRIELA_MISTRAL).
+    if (pioActivo && !esBannenNombre && !esGabrielaNombre && !enTablilla(uLat, uLon, vLat, vLon)) {
       const enCorredor =
         esPioNombre || (enBandaCorredor(cadenasPio, uLat, uLon) && enBandaCorredor(cadenasPio, vLat, vLon));
       if (enCorredor && esParque(u, uLat, uLon) && esParque(v, vLat, vLon)) {
@@ -376,6 +387,7 @@ export function debugDirOk(
   const len = haversineM({ lat: uLat, lon: uLon }, { lat: vLat, lon: vLon });
   const partes: string[] = [];
   if (o.pioNonoSoloSubida) {
+    const exenta = NOMBRES_BANNEN.test(name) || NOMBRES_GABRIELA_MISTRAL.test(name);
     const enCorredor =
       NOMBRES_CORREDOR_PIO.test(name) ||
       (enBandaCorredor(cadenasPio, uLat, uLon) && enBandaCorredor(cadenasPio, vLat, vLon));
@@ -385,7 +397,7 @@ export function debugDirOk(
       const tv = proyectarCadena(c, vLat, vLon);
       if (tu !== null || tv !== null) cadeInfo.push(`(tu=${tu?.toFixed(0) ?? "-"} tv=${tv?.toFixed(0) ?? "-"})`);
     }
-    partes.push(`pio: enCorredor=${enCorredor} cadenas=[${cadeInfo.join(" ")}]`);
+    partes.push(`pio: enCorredor=${enCorredor} exentaNombre=${exenta} cadenas=[${cadeInfo.join(" ")}]`);
   }
   if (o.corteCumbre) {
     const esBannen =

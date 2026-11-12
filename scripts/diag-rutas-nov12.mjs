@@ -84,7 +84,7 @@ async function main() {
   ok(/Ruta 1 · Clásica Cumbre por Pedro de Valdivia/.test(bodyRutas), "capa Rutas: Ruta 1 presente");
   ok(/3\.4 km/.test(bodyRutas), `capa Rutas: Ruta 1 con trazado (3.4 km, sube por Av. Abate Molina)`);
   ok(/5\.1 km/.test(bodyRutas), `capa Rutas: Ruta 2 = minimapa Plaza México (5.1 km)`);
-  ok(/5\.5 km/.test(bodyRutas), `capa Rutas: Ruta 3 Zapadores→puente→PdV (5.5 km, baja por Av. Abate Molina)`);
+  ok(/4\.8 km/.test(bodyRutas), `capa Rutas: Ruta 3 Zapadores→puente→PdV (4.8 km, recto por Gabriela Mistral + Abate Molina)`);
   ok(/3\.4 km/.test(bodyRutas), `capa Rutas: Ruta 4 intacta (3.4 km)`);
   ok(/19\.6 km/.test(bodyRutas), `capa Rutas: Ruta 5 vuelta completa (19.6 km)`);
 
