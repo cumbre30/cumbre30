@@ -83,7 +83,7 @@ async function main() {
   const bodyRutas = await panel.innerText();
   ok(/Ruta 1 · Clásica Cumbre por Pedro de Valdivia/.test(bodyRutas), "capa Rutas: Ruta 1 presente");
   ok(/3\.4 km/.test(bodyRutas), `capa Rutas: Ruta 1 con trazado (3.4 km, sube por Av. Abate Molina)`);
-  ok(/5\.0 km/.test(bodyRutas), `capa Rutas: Ruta 2 = minimapa Plaza México (5.0 km)`);
+  ok(/5\.1 km/.test(bodyRutas), `capa Rutas: Ruta 2 = minimapa Plaza México (5.1 km, nace en la esquina de entrada Pío Nono 2026-11-13)`);
   ok(/4\.6 km/.test(bodyRutas), `capa Rutas: Ruta 3 Zapadores→PdV (4.6 km, SIEMPRE por Av. Abate Molina: Jardín Japonés + Salida PdV, sin Martner)`);
   ok(/3\.1 km/.test(bodyRutas), `capa Rutas: Ruta 4 desde la portería La Pirámide del cliente (3.1 km)`);
   ok(/18\.8 km/.test(bodyRutas), `capa Rutas: Ruta 5 vuelta completa (18.8 km, accesos Pío Nono/La Pirámide del cliente 2026-11-13)`);

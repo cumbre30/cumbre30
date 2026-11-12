@@ -127,9 +127,14 @@ export type Gate = {
  *  borde del polígono (2026-11-11). Los 3 primeros conservan sus
  *  coordenadas calibradas originales. */
 export const GATES: Gate[] = [
-  // Coordenada exacta del cliente (2026-11-13): portería Pío Nono. El nodo
-  // del grafo más cercano es n5335 (Av. Alberto Mackenna, a 6 m).
-  { id: "pio-nono", name: "Acceso Pío Nono", position: { lat: -33.430462, lon: -70.636212 }, ciclistas: true },
+  // Punto marcado por el cliente (2026-11-13, captura de navegación): la
+  // ESQUINA DE ENTRADA Pío Nono × Av. Alberto Mackenna (-33.4306903,
+  // -70.6362729), donde la ruta de navegación termina junto al 450 de
+  // Pío Nono (dirección oficial del acceso, parquemet.cl) y nace el
+  // camino de entrada al parque (way 919288128, barrera levadiza
+  // 573719300 a 25 m; Parada Buses Panorámicos 8441915693 a 25 m).
+  // Nodo del grafo n5334 a 0 m. Antes: -33.430462,-70.636212.
+  { id: "pio-nono", name: "Acceso Pío Nono", position: { lat: -33.4306903, lon: -70.6362729 }, ciclistas: true },
   // Acceso Pedro de Valdivia Norte: la portería queda EN EL CRUCE de
   // Av. El Cerro con Av. Pedro de Valdivia Norte, donde comienza el
   // Paseo Metropolitano - Sendero Pedro de Valdivia Norte (ladera).
@@ -138,12 +143,13 @@ export const GATES: Gate[] = [
   // Av. El Cerro × Av. PdV Norte (-33.415461, -70.617414, a 2 m), así
   // que el ruteo ancla directo en el cruce.
   { id: "pv-norte", name: "Acceso Pedro de Valdivia Norte", position: { lat: -33.415479, lon: -70.617402 }, ciclistas: true },
-  // Acceso La Pirámide (Vitacura): coordenada exacta del cliente
-  // (2026-11-13), portería al final de Camino La Pirámide. El nodo del
-  // grafo más cercano es n49273 (Av. Manuel Zañartu, a 9 m, dentro del
-  // parque), a ~190 m al sur de la punta del way OSM 445801999 que se
-  // usaba antes (-33.38642, -70.60179).
-  { id: "la-piramide", name: "Acceso La Pirámide", position: { lat: -33.3881236831842, lon: -70.60168398128492 }, ciclistas: true },
+  // Acceso La Pirámide (Vitacura): punto marcado por el cliente (2026-11-13,
+  // captura de navegación) = POI OSM «Acceso La Pirámide ParqueMet» (node
+  // 12223582943) en Av. Manuel Zañartu: -33.3882651, -70.6015948. El nodo
+  // del grafo más cercano es n50353 (a 5 m, sobre la vía «Acceso Parque
+  // Metropolitano sector La Pirámide», n46906 a 14 m). Antes:
+  // -33.3881236831842, -70.60168398128492 (n49273 Zañartu a 9 m).
+  { id: "la-piramide", name: "Acceso La Pirámide", position: { lat: -33.3882651, lon: -70.6015948 }, ciclistas: true },
   // Los 6 accesos restantes del mapa oficial de Parquemet. Posición
   // = nodo OSM de la calle del acceso a menor distancia del borde
   // del polígono (extracción 2026-11-11, scripts/extract-parque.py).
@@ -407,9 +413,10 @@ export const NAV_DESTINATIONS: { id: string; name: string; position: LatLng }[] 
   // en bici más alta de la ruta de la cumbre.
   { id: "plaza-mexico", name: "⛲ Plaza México", position: { lat: -33.4234, lon: -70.6327 } },
   // Acceso La Pirámide (Vitacura): misma posición que GATES - ver
-  // la nota con fuentes en GATES.
-  { id: "la-piramide", name: "🚴 Acceso La Pirámide", position: { lat: -33.3881236831842, lon: -70.60168398128492 } },
-  { id: "pio-nono", name: "🚴 Acceso Pío Nono", position: { lat: -33.430462, lon: -70.636212 } },
+  // la nota con fuentes en GATES (POI OSM «Acceso La Pirámide
+  // ParqueMet», punto marcado por el cliente 2026-11-13).
+  { id: "la-piramide", name: "🚴 Acceso La Pirámide", position: { lat: -33.3882651, lon: -70.6015948 } },
+  { id: "pio-nono", name: "🚴 Acceso Pío Nono", position: { lat: -33.4306903, lon: -70.6362729 } },
   { id: "pv-norte", name: "🚴 Acceso Pedro de Valdivia Norte", position: { lat: -33.415479, lon: -70.617402 } },
   { id: "antiluen", name: "🏊 Piscina Antilén", position: { lat: -33.409051, lon: -70.61374 } },
   { id: "jardin-japones", name: "🏯 Jardín Japonés", position: { lat: -33.413345, lon: -70.614692 } },

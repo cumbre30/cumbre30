@@ -58,18 +58,20 @@ export default function SenderosBloque({ query, onSetDest }: Props) {
         {senderos.map((s) => (
           <li key={s.id} className="flex items-center gap-1.5 border-b border-border/40 py-1.5 last:border-0">
             <button
-              onClick={() => s.cabeza && onSetDest?.({ name: s.nombre, position: s.cabeza })}
+              onClick={() => s.cabeza && s.tipo !== "peatonal" && onSetDest?.({ name: s.nombre, position: s.cabeza })}
               className="min-w-0 flex-1 truncate text-left text-xs text-foreground hover:text-emerald-600 dark:hover:text-emerald-400"
               title={s.nota ?? s.nombre}
             >
               {TIPO_EMOJI[s.tipo]} {s.nombre}{" "}
               <span className="text-[10px] text-muted-foreground">
                 {distFmt(s)}
-                {s.tipo === "peatonal" ? " · solo peatones" : ""}
+                {s.tipo === "peatonal" ? " · solo peatones (sin ruta)" : ""}
                 {s.largoOficialM != null && s.largoMedidoM == null ? " · geometría parcial" : ""}
               </span>
             </button>
-            {s.cabeza && filaRuta(s.nombre, s.cabeza)}
+            {/* Senderos peatonales (cliente 2026-11-13): «no para ruta» —
+                sin botón «Ruta»; se ven en la capa del mapa. */}
+            {s.cabeza && s.tipo !== "peatonal" && filaRuta(s.nombre, s.cabeza)}
           </li>
         ))}
         {lugares.map((p) => (

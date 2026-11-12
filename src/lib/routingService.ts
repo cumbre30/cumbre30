@@ -16,6 +16,7 @@ import { CAPA_RUTAS } from "@/lib/mapLayers";
 import { RUTAS_TRAZADOS } from "@/lib/rutasTrazados";
 import { estadoParque } from "@/lib/horario";
 import { GATE_PIO_NONO, PLAZA_MEXICO_POS, PUENTE_TUPAHUE_CUMBRE, conVueltaEnU, crearDirOk } from "@/lib/reglasParque";
+import { SEND_PEATONALES_BLOCK } from "@/lib/senderos";
 
 /** Distancia máx. al grafo local para usar el motor propio. */
 const GRAPH_COVER_M = 900;
@@ -442,6 +443,9 @@ export const PAV_DEST_OPTS = {
     /^Ruta Nativa/,
     /^Avenida Carlos Reed/,
     /^Carlos Reed/,
+    // Los 8 senderos peatonales del cliente (2026-11-13) fuera de la
+    // navegación: «tenerlos bloqueados en las indicaciones».
+    ...SEND_PEATONALES_BLOCK,
   ],
   edgeOk: corredorOk,
 };
@@ -453,7 +457,7 @@ export const PAV_DEST_OPTS = {
 export const PAV_DEST_RELAX = {
   allowedCls: new Set([...CLASES_PAVIMENTO, "cycleway"]),
   nameAllow: [...NOMBRES_PERMITIDOS_PAV, /^Sendero Ciclista/],
-  nameBlock: [/^Sendero (?!Ciclista)(?!El Excursionista)/, /^Ruta Nativa/],
+  nameBlock: [/^Sendero (?!Ciclista)(?!El Excursionista)/, /^Ruta Nativa/, ...SEND_PEATONALES_BLOCK],
   edgeOk: corredorOk,
 };
 
@@ -845,8 +849,12 @@ export async function computePresetRoute(
   const opts = {
     nodeOk: inside,
     edgeDirOk: dirOk,
+    // Senderos peatonales bloqueados en TODOS los reroutes (cliente
+    // 2026-11-13: «tenerlos bloqueados en las indicaciones») — incluido
+    // MTB, cuyo único límite son esos 8 senderos.
+    nameBlock: SEND_PEATONALES_BLOCK,
     ...(ruta.tipo === "pavimento"
-      ? { allowedCls: CLASES_PAVIMENTO, nameAllow: NOMBRES_PERMITIDOS_PAV, nameBlock: [/^Sendero Ciclista /], edgeOk: corredorOk }
+      ? { allowedCls: CLASES_PAVIMENTO, nameAllow: NOMBRES_PERMITIDOS_PAV, nameBlock: [/^Sendero Ciclista /, ...SEND_PEATONALES_BLOCK], edgeOk: corredorOk }
       : {}),
   };
 
@@ -919,7 +927,7 @@ export async function computePresetRoute(
     if (!legInterno) {
       // respaldo: sin restricción de vía (mantiene la regla de parque y la
       // direccionalidad: Pío Nono sólo subida y corte horario cumbre)
-      legInterno = findRoute(net, origenInterno, traceCoordsFull[0], { nodeOk: inside, edgeDirOk: dirOk });
+      legInterno = findRoute(net, origenInterno, traceCoordsFull[0], { nodeOk: inside, edgeDirOk: dirOk, nameBlock: SEND_PEATONALES_BLOCK });
     }
   }
   // Sin conexión hasta el inicio del trazado: la ruta se muestra COMPLETA

@@ -35,6 +35,7 @@ import {
   CAPA_RUTAS,
   BAJADAS_30,
   CAPA_URBANA,
+  CAPA_SENDEROS_PEATONALES,
   SUB_ETIQUETAS,
   rutaTrazado,
   type CapaPunto,
@@ -124,7 +125,7 @@ function RouteFitter({
   return null;
 }
 
-// ---- Capas del mapa: 5 menús desplegables (arquitectura GPX) ----
+// ---- Capas del mapa: 6 menús desplegables (arquitectura GPX) ----
 
 type MenuCapa = {
   id: string;
@@ -138,6 +139,7 @@ type MenuCapa = {
 const MENUS_CAPAS: MenuCapa[] = [
   { id: "accesos", titulo: "Accesos", sub: "Entradas y salidas oficiales", emoji: "🚪", items: CAPA_ACCESOS.length },
   { id: "rutas", titulo: "Rutas", sub: "Trazados de pavimento y circuitos MTB", emoji: "🛣️", items: CAPA_RUTAS.length },
+  { id: "senderos", titulo: "Senderos peatonales", sub: "Informativo · no son rutas ciclistas", emoji: "🥾", items: CAPA_SENDEROS_PEATONALES.length },
   { id: "pois", titulo: "Puntos de Interés", sub: "Cruces, servicios, miradores y alertas peatonales", emoji: "📍", items: CAPA_POIS.length },
   { id: "normativa", titulo: "Normativa y Seguridad", sub: "Cortes horarios, límites y soporte técnico", emoji: "🛡️", items: CAPA_NORMATIVA.length },
   { id: "urbana", titulo: "Conexión Urbana", sub: "Metro y ciclovías externas", emoji: "🏙️", items: CAPA_URBANA.length },
@@ -340,6 +342,35 @@ function CapasPanel({
                           </li>
                         );
                       })}
+                    </ul>
+                  </>
+                )}
+
+                {m.id === "senderos" && (
+                  <>
+                    <div className="mb-1 flex items-center justify-between gap-2">
+                      <p className="text-[10px] text-muted-foreground">Informativo: solo peatones, nunca en las rutas ciclistas.</p>
+                      <SwitchCapa on={on} onClick={() => onVer("senderos")} label="senderos" />
+                    </div>
+                    <ul>
+                      {CAPA_SENDEROS_PEATONALES.map((s) => (
+                        <li key={s.id} className="flex items-center gap-1.5 py-1.5">
+                          <span aria-hidden className="shrink-0 text-[13px]">🥾</span>
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate text-xs text-foreground">{s.nombre}</span>
+                            <span className="block truncate text-[10px] text-muted-foreground">{s.detalle}</span>
+                          </span>
+                          <span className="h-0.5 w-4 shrink-0" style={{ borderTop: "2px dashed #92400e" }} aria-hidden />
+                          <button
+                            onClick={() => onFocus({ kind: "ruta", coords: s.coords })}
+                            aria-label={`Encuadrar ${s.nombre}`}
+                            title="Encuadrar el sendero en el mapa"
+                            className="shrink-0 rounded border border-border px-1.5 py-1 text-muted-foreground hover:border-emerald-500 hover:text-emerald-600"
+                          >
+                            <Eye className="h-3.5 w-3.5" />
+                          </button>
+                        </li>
+                      ))}
                     </ul>
                   </>
                 )}
@@ -741,7 +772,7 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
   // Encuadre único de la ruta recién trazada desde el buscador
   const pendingFitRef = useRef(false);
   // Capas del mapa (arquitectura GPX): visibilidad por capa/ruta
-  const [capasVis, setCapasVis] = useState<Record<string, boolean>>({ accesos: true });
+  const [capasVis, setCapasVis] = useState<Record<string, boolean>>({ accesos: true, senderos: true });
   const [focus, setFocus] = useState<Focus>(null);
   const last = track.length > 0 ? track[track.length - 1] : null;
   // Sin fix aún: el centro por defecto es el parque. Con fix GPS la
@@ -1194,6 +1225,25 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
                     </Tooltip>
                   </Polyline>
                 </Fragment>
+              );
+            })}
+
+          {/* Senderos peatonales (cliente 2026-11-13: «para tenerlos verlos
+              pero no para ruta»): línea café punteada, informativa — NINGÚN
+              ruteo los usa (SEND_PEATONALES_BLOCK en senderos.ts). */}
+          {capasVis["senderos"] &&
+            CAPA_SENDEROS_PEATONALES.map((s) => {
+              if (s.coords.length < 2) return null;
+              return (
+                <Polyline
+                  key={`sp-${s.id}`}
+                  positions={s.coords.map((c) => [c.lat, c.lon] as [number, number])}
+                  pathOptions={{ color: "#92400e", weight: 3, opacity: 0.85, dashArray: "3 8", lineCap: "round" }}
+                >
+                  <Tooltip direction="top">
+                    <span className="text-xs font-medium">🥾 {s.nombre} · peatonal</span>
+                  </Tooltip>
+                </Polyline>
               );
             })}
 

@@ -19,8 +19,8 @@ const distToRoad = (p: { lat: number; lon: number }) => {
 
 const zorro = SENDEROS.find((s) => s.id === "zorro-vidal")!;
 console.log("=== a) Sendero Zorro Vidal vs camino b30-pionono ===");
-console.log(`pts: ${zorro.pts.length} · cabeza (sector Pío Nono): ${zorro.cabeza.lat},${zorro.cabeza.lon}`);
-const rows = zorro.pts.map((c, i) => ({ i, lat: c[0], lon: c[1], d: distToRoad({ lat: c[0], lon: c[1] }) }));
+console.log(`pts: ${zorro.pts!.length} · cabeza: ${zorro.cabeza!.lat},${zorro.cabeza!.lon}`);
+const rows = zorro.pts!.map((c, i) => ({ i, lat: c[0], lon: c[1], d: distToRoad({ lat: c[0], lon: c[1] }) }));
 for (const r of rows) console.log(`  pt ${String(r.i).padStart(2)} (${r.lat},${r.lon}) → ${r.d.toFixed(0)} m del camino`);
 
 // b) subida directa La Pirámide → Plaza México

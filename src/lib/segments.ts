@@ -107,7 +107,7 @@ const BAJADAS_30_META: Record<
 const BAJADAS_30_EXTREMOS: Record<string, { start: LatLng; end: LatLng }> = {
   "b30-pionono": {
     start: { lat: -33.423652, lon: -70.632435 }, // Plaza México
-    end: { lat: -33.430509, lon: -70.636233 }, // portería Pío Nono (a 6 m)
+    end: { lat: -33.43069, lon: -70.636273 }, // esquina de entrada Pío Nono (GATE 0 m)
   },
   "b30-pdv": {
     start: { lat: -33.407511, lon: -70.611222 }, // Plaza Antilén

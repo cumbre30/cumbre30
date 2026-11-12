@@ -107,14 +107,14 @@ export function AppDrawer({
       <div
         onClick={onClose}
         aria-hidden
-        className={`fixed inset-0 z-[60] bg-black/60 transition-opacity duration-200 ${
+        className={`fixed inset-0 z-[800] bg-black/60 transition-opacity duration-200 ${
           open ? "opacity-100" : "pointer-events-none opacity-0"
         }`}
       />
       <aside
         aria-label="Menú principal"
         aria-hidden={!open}
-        className={`fixed inset-y-0 left-0 z-[61] flex w-[84%] max-w-[340px] flex-col overflow-y-auto border-r border-border bg-sidebar pb-6 pt-[max(14px,env(safe-area-inset-top))] transition-transform duration-300 ease-out ${
+        className={`fixed inset-y-0 left-0 z-[801] flex w-[84%] max-w-[340px] flex-col overflow-y-auto border-r border-border bg-sidebar pb-6 pt-[max(14px,env(safe-area-inset-top))] transition-transform duration-300 ease-out ${
           open ? "translate-x-0" : "-translate-x-full"
         }`}
       >

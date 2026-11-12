@@ -7,6 +7,12 @@
 // aún no se publica: al confirmarse se marca enduroOficial aquí.
 // Las polilíneas son referencias de contexto; el ruteo propio
 // sigue usando el grafo completo.
+// 2026-11-13 (cliente): los 8 senderos PEATONALES del cerro (Zorro
+// Vidal 1,2 km · Ermitaño 0,4 · Anáhuac 0,3 · Mapuche 1,3 ·
+// Gabriela Mistral 0,2 · Boy Scout 0,5 · Atacameño 1,6 · El
+// Carbón 8,0) pasan a tipo "peatonal": se muestran en la capa
+// «Senderos peatonales» del mapa (informativa) pero NUNCA se usan
+// para rutar — ver SEND_PEATONALES_BLOCK al final del archivo.
 // ============================================================
 
 import type { LatLng } from "./park";
@@ -33,7 +39,7 @@ export type Sendero = {
 
 export const SENDEROS: Sendero[] = [
   {
-    id: "zorro-vidal", nombre: "Sendero Zorro Vidal", tipo: "ciclista",
+    id: "zorro-vidal", nombre: "Sendero Zorro Vidal", tipo: "peatonal", // cliente 2026-11-13: peatonal, fuera de las rutas
     largoOficialM: 1200, largoMedidoM: 1182,
     cabeza: { lat: -33.42651, lon: -70.63765 },
     pts: [
@@ -110,7 +116,7 @@ export const SENDEROS: Sendero[] = [
     nota: null,
   },
   {
-    id: "mapuche", nombre: "Sendero Mapuche", tipo: "ciclista",
+    id: "mapuche", nombre: "Sendero Mapuche", tipo: "peatonal", // cliente 2026-11-13: peatonal, fuera de las rutas
     largoOficialM: 1300, largoMedidoM: 1100,
     cabeza: { lat: -33.41781, lon: -70.62392 },
     pts: [
@@ -210,7 +216,7 @@ export const SENDEROS: Sendero[] = [
     nota: "La geometría OSM en 3 tramos; se usa el principal.",
   },
   {
-    id: "boy-scout", nombre: "Sendero del Boy Scout", tipo: "ciclista",
+    id: "boy-scout", nombre: "Sendero del Boy Scout", tipo: "peatonal", // cliente 2026-11-13: peatonal, fuera de las rutas
     largoOficialM: 500, largoMedidoM: 673,
     cabeza: { lat: -33.41281, lon: -70.62209 },
     pts: [
@@ -296,10 +302,39 @@ export const SENDEROS: Sendero[] = [
     nota: null,
   },
   {
-    id: "anahuac", nombre: "Sendero Anáhuac", tipo: "ciclista",
-    largoOficialM: 300, largoMedidoM: null,
-    cabeza: null, pts: null, enduroOficial: null,
-    nota: "Tramo corto en OSM; el sendero completo es mayor.",
+    id: "anahuac", nombre: "Sendero Anáhuac", tipo: "peatonal", // cliente 2026-11-13: peatonal, fuera de las rutas
+    largoOficialM: 300, largoMedidoM: 282,
+    // Cabeza: la curva Anáhuac sobre Av. Pedro Bannen (nodo n3346 del
+    // grafo), donde nace el ramal sin salida (Lote G, 2026-11-12).
+    cabeza: { lat: -33.41689, lon: -70.623351 },
+    pts: [
+      // Geometría OSM 2026-11-13: way 1014654439 (path) + 749555976
+      // (path) + 888762642 (living_street «Anáhuac»; el ramal interno
+      // «Casa Anáhuac» 888762643 queda en la nota, es una puntas).
+      [-33.418867, -70.62507],
+      [-33.418823, -70.625009],
+      [-33.41872, -70.624909],
+      [-33.418583, -70.62486],
+      [-33.418446, -70.624883],
+      [-33.418348, -70.624857],
+      [-33.418267, -70.624874],
+      [-33.418149, -70.624857],
+      [-33.418067, -70.624737],
+      [-33.417971, -70.62456],
+      [-33.417898, -70.624394],
+      [-33.417692, -70.624183],
+      [-33.417589, -70.62394],
+      [-33.417437, -70.623751],
+      [-33.417368, -70.623706],
+      [-33.417295, -70.623664],
+      [-33.417245, -70.623634],
+      [-33.41709, -70.623461],
+      [-33.417035, -70.6234],
+      [-33.416965, -70.623357],
+      [-33.41689, -70.623351],
+    ],
+    enduroOficial: null,
+    nota: "Tramo medido del stem OSM (path + living_street Anáhuac); el ramal interno «Casa Anáhuac» (52 m) muere en la Casa de la Cultura.",
   },
   {
     id: "zorzal", nombre: "Sendero Ciclista El Zorzal", tipo: "ciclista",
@@ -709,13 +744,29 @@ export const SENDEROS: Sendero[] = [
     nota: "Sendero de subida (su nombre lo dice).",
   },
   {
-    id: "gabriela-mistral", nombre: "Sendero Gabriela Mistral", tipo: "ciclista",
-    largoOficialM: 200, largoMedidoM: null,
-    cabeza: null, pts: null, enduroOficial: null,
-    nota: null,
+    id: "gabriela-mistral", nombre: "Sendero Gabriela Mistral", tipo: "peatonal", // cliente 2026-11-13: peatonal, fuera de las rutas
+    largoOficialM: 200, largoMedidoM: 85,
+    // Sector Jardín Mapulemu / Plaza Gabriela Mistral (ladera oriente,
+    // a ~300 m del POI Plaza Gabriela Mistral del cliente). Cabeza =
+    // extremo sur del tramo OSM nombrado.
+    cabeza: { lat: -33.415171, lon: -70.617565 },
+    pts: [
+      // Geometría OSM 2026-11-13 (grafo propio, tramo nombrado).
+      [-33.415171, -70.617565],
+      [-33.414951, -70.617517],
+      [-33.414851, -70.617469],
+      [-33.414769, -70.617418],
+      [-33.414681, -70.617325],
+      [-33.41458, -70.617275],
+      [-33.414518, -70.617347],
+      [-33.414504, -70.617479],
+      [-33.414455, -70.617552],
+    ],
+    enduroOficial: null,
+    nota: "Geometría parcial (tramo OSM nombrado, 85 m); el sendero completo es de ~200 m.",
   },
   {
-    id: "ermitano", nombre: "Sendero El Ermitaño", tipo: "ciclista",
+    id: "ermitano", nombre: "Sendero El Ermitaño", tipo: "peatonal", // cliente 2026-11-13: peatonal, fuera de las rutas
     largoOficialM: 400, largoMedidoM: 300,
     cabeza: { lat: -33.41971, lon: -70.63358 },
     pts: [
@@ -1199,7 +1250,7 @@ export const SENDEROS: Sendero[] = [
     nota: "Solo peatones: no es sendero de bici.",
   },
   {
-    id: "el-carbon", nombre: "Sendero Cerro El Carbón", tipo: "ciclista",
+    id: "el-carbon", nombre: "Sendero Cerro El Carbón", tipo: "peatonal", // cliente 2026-11-13: peatonal, fuera de las rutas
     largoOficialM: 8000, largoMedidoM: 514,
     cabeza: { lat: -33.38358, lon: -70.6034 },
     pts: [
@@ -1279,4 +1330,35 @@ export const SENDEROS: Sendero[] = [
 /** Accesos verificables en park.ts (GATES). */
 export function senderosConRuta(): Sendero[] {
   return SENDEROS.filter((s) => s.cabeza !== null);
+}
+
+/** Los 8 senderos PEATONALES que el cliente (2026-11-13) sacó de las
+ *  rutas: «Los senderos peatonales que no debemos considerar son:
+ *  Zorro Vidal 1,2 km · Ermitaño 0,4 · Anáhuac 0,3 · Mapuche 1,3 ·
+ *  Gabriela Mistral 0,2 · Boy Scout 0,5 · Atacameño 1,6 · El Carbón 8».
+ *  Se muestran en la capa «Senderos peatonales» (informativa) pero
+ *  NINGÚN ruteo debe usarlos — ni generación de rutas predefinidas,
+ *  ni navegación a destinos, ni reroute de presets, ni MTB.
+ *  nameBlock gana sobre cualquier otro filtro en routing.ts (edgePasses).
+ *  OJO: «Avenida Gabriela Mistral» (corredor ciclista de r3) y el
+ *  «Pasaje Gabriela Mistral» urbano NO están bloqueados — sólo el
+ *  sendero peatonal del sector Mapulemu. */
+export const SEND_PEATONALES_BLOCK: RegExp[] = [
+  /^Sendero Zorro Vidal/,
+  /^Sendero Mapuche/,
+  /^Sendero del Boy Scout/,
+  /^Sendero Anáhuac/,
+  /^Anáhuac$/, // living_street del ramal (el nombre corto)
+  /^Casa Anáhuac/, // ramal interno sin salida a la Casa de la Cultura
+  /^Sendero Gabriela Mistral/,
+  /^Sendero El Ermitaño/,
+  /^Sendero Peatonal Atacameño/,
+  /^Sendero Cerro El Carbón/,
+  /^Sendero a Cerro El Carbón/,
+  /^Escaleras a Cerro El Carbón/,
+];
+
+/** Los senderos peatonales con geometría para la capa del mapa. */
+export function senderosPeatonales(): Sendero[] {
+  return SENDEROS.filter((s) => s.tipo === "peatonal" && s.pts && s.pts.length > 1);
 }

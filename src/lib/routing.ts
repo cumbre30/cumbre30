@@ -250,12 +250,22 @@ function nearestEdge(
   const kx = Math.cos((p.lat * Math.PI) / 180);
   let best: { u: number; v: number; cls: string; name: string; ciclovia: boolean; point: LatLng; distM: number } | null = null;
   let bestD = Infinity;
+  // Mejor arista que pasa por CLASE/NOMBRE puros (sin rescate corredorOk):
+  // si existe a distancia comparable, se prefiere sobre una arista rescatada
+  // por el corredor geométrico — el rescate puede caer en una vereda sin
+  // nombre que deja al A* aislado (Anáhuac 2026-11-13: con los senderos
+  // peatonales bloqueados, el anclaje rescatado a 28 m moría en el ramal
+  // mientras Av. Pedro Bannen quedaba a 29 m).
+  let bestEstricta: { u: number; v: number; cls: string; name: string; ciclovia: boolean; point: LatLng; distM: number } | null = null;
+  let bestDEstricta = Infinity;
+  const optsSinRescate: FindRouteOpts | undefined = opts && opts.edgeOk ? { ...opts, edgeOk: undefined } : opts;
   for (let i = 0; i < net.edges.length; i++) {
     const [a, b, clsIdx, nameIdx, ciclo] = net.edges[i];
     const na = net.nodes[a];
     const nb = net.nodes[b];
     const info = { cls: net.classes[clsIdx] ?? "residential", name: net.names[nameIdx] ?? "" };
-    if (!edgePasses(info, opts, (na[0] + nb[0]) / 2, (na[1] + nb[1]) / 2)) continue;
+    const midLat = (na[0] + nb[0]) / 2, midLon = (na[1] + nb[1]) / 2;
+    if (!edgePasses(info, opts, midLat, midLon)) continue;
     if (opts?.nodeOk && (!opts.nodeOk(na[0], na[1]) || !opts.nodeOk(nb[0], nb[1]))) continue;
     const ax = na[1] * kx, ay = na[0];
     const bx = nb[1] * kx, by = nb[0];
@@ -278,8 +288,15 @@ function nearestEdge(
         distM: dM,
       };
     }
+    if (edgePasses(info, optsSinRescate, midLat, midLon) && dM < bestDEstricta) {
+      bestDEstricta = dM;
+      bestEstricta = { u: a, v: b, cls: info.cls, name: info.name, ciclovia: ciclo === 1, point: { lat: na[0] + (nb[0] - na[0]) * t, lon: na[1] + (nb[1] - na[1]) * t }, distM: dM };
+    }
   }
-  return best && best.distM <= maxM ? best : null;
+  const lim = (r: { u: number; v: number; cls: string; name: string; ciclovia: boolean; point: LatLng; distM: number }) => (r.distM <= maxM ? r : null);
+  // Anclaje estricto preferido si está a ≤25 m del rescatado (o mejor).
+  if (bestEstricta && best && bestEstricta.distM <= best.distM + 25) return lim(bestEstricta);
+  return best ? lim(best) : null;
 }
 
 /** Ruta óptima (A*) con preferencia por ciclovías.

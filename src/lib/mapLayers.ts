@@ -23,6 +23,7 @@
 
 import { GATES, RISK_ZONES, type LatLng } from "./park";
 import { BAJADAS_CONTROL_30, RUTAS_TRAZADOS } from "./rutasTrazados";
+import { senderosPeatonales } from "./senderos";
 
 // ------------------------------------------------------------
 // Destinos del MINIMAPA (limpieza pedida por el cliente, 2026-11-12):
@@ -508,3 +509,29 @@ export const CAPA_URBANA: CapaPuntoBase[] = [
     position: { lat: -33.388756, lon: -70.599442 },
   },
 ];
+
+// ------------------------------------------------------------
+// CAPA 6 · SENDEROS PEATONALES (informativa, NO ciclista)
+// Los 8 senderos que el cliente (2026-11-13) sacó de las rutas:
+// «estos senderos los podrías incluir en la capa del mapa como
+// Senderos peatonales para tenerlos verlos pero no para ruta».
+// Se dibujan como línea café punteada; NINGÚN ruteo los usa
+// (SEND_PEATONALES_BLOCK en senderos.ts).
+// ------------------------------------------------------------
+
+export type SenderoPeatonalCapa = {
+  id: string;
+  nombre: string;
+  detalle: string;
+  /** Largo oficial Parquemet en km (etiqueta del trazado). */
+  largoKm: number;
+  coords: LatLng[];
+};
+
+export const CAPA_SENDEROS_PEATONALES: SenderoPeatonalCapa[] = senderosPeatonales().map((s) => ({
+  id: s.id,
+  nombre: s.nombre,
+  detalle: `Sendero peatonal de ${((s.largoOficialM ?? 0) / 1000).toLocaleString("es-CL", { maximumFractionDigits: 1 })} km (mapa oficial Parquemet): solo peatones, no forma parte de las rutas ciclistas de la app.`,
+  largoKm: Number((((s.largoMedidoM ?? s.largoOficialM) ?? 0) / 1000).toFixed(2)),
+  coords: (s.pts ?? []).map(([lat, lon]) => ({ lat, lon })),
+}));

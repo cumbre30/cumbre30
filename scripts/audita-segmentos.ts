@@ -74,7 +74,7 @@ for (const c of tracePionono) {
 }
 ok(minZorro > zorro.radiusEndM, `camino Plaza México → Pío Nono pasa a ${minZorro.toFixed(0)} m de la meta Zorro Vidal (radio ${zorro.radiusEndM} m): sin cross-trigger`);
 // ... y la meta nueva sigue DENTRO del sendero (a ≤25 m de algún punto del trazado del sendero)
-const zorroPts = SENDEROS.find((s) => s.id === "zorro-vidal")!.pts.map((c) => ({ lat: c[0], lon: c[1] }));
+const zorroPts = SENDEROS.find((s) => s.id === "zorro-vidal")!.pts!.map((c) => ({ lat: c[0], lon: c[1] }));
 const dZorroSendero = Math.min(...zorroPts.map((p) => haversineM(p, zorro.end)));
 ok(dZorroSendero <= 25, `meta Zorro Vidal a ${dZorroSendero.toFixed(0)} m del trazado del sendero`);
 

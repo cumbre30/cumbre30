@@ -20,6 +20,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { findRoute, haversineM, type FindRouteOpts, type Network, type NetNode, type NetEdge, type LatLng } from "../src/lib/routing";
 import { PARK_POLYGON } from "../src/lib/park";
+import { SEND_PEATONALES_BLOCK } from "../src/lib/senderos";
 import { aplicarPuentes } from "../src/lib/puentesGrafo";
 import { crearDirOk, PUENTE_TUPAHUE_CUMBRE } from "../src/lib/reglasParque";
 
@@ -90,11 +91,18 @@ const OPTS_PAV: FindRouteOpts = {
     // aún no implementados, fuera del trazado pavimento
     /^Avenida Carlos Reed/,
     /^Carlos Reed/,
+    // Senderos PEATONALES fuera de TODAS las rutas (cliente 2026-11-13):
+    // Zorro Vidal, Mapuche, Boy Scout, Anáhuac, Gabriela Mistral,
+    // Ermitaño, Atacameño, El Carbón — capa informativa, no ciclista.
+    ...SEND_PEATONALES_BLOCK,
   ],
   // Pío Nono sólo subida (24/7)
   edgeDirOk: crearDirOk(net, { pioNonoSoloSubida: true, corteCumbre: false }),
 };
-const OPTS_MTB: FindRouteOpts = {}; // sin restricción de vía
+// MTB: senderos ciclistas SÍ, pero los 8 senderos PEATONALES del
+// cliente (2026-11-13) quedan bloqueados igual — la auditoría detectó
+// que mtb1/mtb2 cruzaban Boy Scout y Atacameño y mtb4 tocaba Boy Scout.
+const OPTS_MTB: FindRouteOpts = { nameBlock: [...SEND_PEATONALES_BLOCK] };
 
 // --- dentro del parque con tolerancia 80 m (los accesos quedan sobre el borde) ---
 const poly = PARK_POLYGON.map((p) => [p.lat, p.lon] as [number, number]);
@@ -132,20 +140,25 @@ const OPTS_MTB_PARK: FindRouteOpts = { ...OPTS_MTB, nodeOk };
 const OPTS_PAV_PARK_LIBRE: FindRouteOpts = {
   allowedCls: CLASES_PAVIMENTO,
   nameAllow: NOMBRES_PERMITIDOS_PAV,
-  nameBlock: OPTS_PAV.nameBlock,
+  nameBlock: [...(OPTS_PAV.nameBlock ?? [])],
   nodeOk,
 };
 
 // --- puntos clave (posiciones verificadas del proyecto / grafo real) ---
 const P = {
-  // Coordenada exacta del cliente (2026-11-13); nodo del grafo n5335 a 6 m.
-  pioNono: { lat: -33.430462, lon: -70.636212 },
+  // Punto marcado por el cliente (2026-11-13, captura de navegación): la
+  // esquina de entrada Pío Nono × Av. Alberto Mackenna (-33.4306903,
+  // -70.6362729), junto al 450 de Pío Nono; nodo del grafo n5334 a 0 m.
+  pioNono: { lat: -33.4306903, lon: -70.6362729 },
   // Acceso Pedro de Valdivia Norte: coordenada exacta del cliente
   // (2026-11-12), portería en el cruce Av. El Cerro × Av. PdV Norte
   // (GATES pv-norte). Los trazados r1/r3/r5 nacen/terminan aquí.
   pdvNorte: { lat: -33.415479, lon: -70.617402 },
-  // Coordenada exacta del cliente (2026-11-13); nodo del grafo n49273 a 9 m.
-  laPiramide: { lat: -33.3881236831842, lon: -70.60168398128492 },
+  // Punto marcado por el cliente (2026-11-13, captura de navegación) =
+  // POI OSM «Acceso La Pirámide ParqueMet» (node 12223582943) en Av.
+  // Manuel Zañartu; nodo del grafo n50353 a 5 m sobre la vía «Acceso
+  // Parque Metropolitano sector La Pirámide».
+  laPiramide: { lat: -33.3882651, lon: -70.6015948 },
   zapadores: { lat: -33.399921, lon: -70.620406 },
   plazaMexico: { lat: -33.4234, lon: -70.6327 },
   anfiteatro: { lat: -33.40401, lon: -70.60956 },
