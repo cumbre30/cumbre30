@@ -93,34 +93,44 @@ export function useNavEngine(position: LatLng | null, running: boolean): NavEngi
 
   /** Calcula ruta desde `origin`; descarta resultados de cálculos viejos.
    *  Con destino predefinido (capa Rutas) usa el trazado precomputado:
-   *  acceso ciclista más cercano → ruta dentro del cerro. */
+   *  acceso ciclista más cercano → ruta dentro del cerro.
+   *  Blindaje: cualquier excepción deja el estado limpio y avisa — la UI
+   *  NUNCA queda pegada en «cargando» (queja del cliente 2026-11-12). */
   const compute = useCallback(async (origin: LatLng, d: NavDest, kind: "gps" | "fallback") => {
     const seq = ++calcSeqRef.current;
     setLoading(true);
     lastCalcRef.current = Date.now();
-    const preset = (d as NavDestPreset).preset;
-    const res = preset
-      ? await computePresetRoute(origin, preset)
-      : await computeRoute(origin, d.position);
-    if (seq !== calcSeqRef.current) return; // llegó uno más nuevo
-    setLoading(false);
-    if (!res.route) {
+    try {
+      const preset = (d as NavDestPreset).preset;
+      const res = preset
+        ? await computePresetRoute(origin, preset)
+        : await computeRoute(origin, d.position);
+      if (seq !== calcSeqRef.current) return; // llegó uno más nuevo
+      if (!res.route) {
+        setRoute(null);
+        setProvisional(false);
+        setNote(res.error ?? "No encontramos una ruta ciclable hasta ese destino.");
+        return;
+      }
+      setRoute(res.route);
+      originUsedRef.current = origin;
+      setProvisional(kind === "fallback");
+      // Aviso del cliente (corte horario con vuelta en U, Pío Nono sólo
+      // subida…) tiene prioridad sobre el aviso de partida provisional.
+      setNote(
+        res.aviso ??
+          (kind === "fallback"
+            ? "Partida provisional desde el Acceso Pío Nono - activa tu GPS para rutear desde tu ubicación."
+            : null)
+      );
+    } catch {
+      if (seq !== calcSeqRef.current) return; // llegó uno más nuevo
       setRoute(null);
       setProvisional(false);
-      setNote(res.error ?? "No encontramos una ruta ciclable hasta ese destino.");
-      return;
+      setNote("No pudimos trazar la ruta ahora. Revisa tu conexión e inténtalo de nuevo.");
+    } finally {
+      if (seq === calcSeqRef.current) setLoading(false);
     }
-    setRoute(res.route);
-    originUsedRef.current = origin;
-    setProvisional(kind === "fallback");
-    // Aviso del cliente (corte horario con vuelta en U, Pío Nono sólo
-    // subida…) tiene prioridad sobre el aviso de partida provisional.
-    setNote(
-      res.aviso ??
-        (kind === "fallback"
-          ? "Partida provisional desde el Acceso Pío Nono - activa tu GPS para rutear desde tu ubicación."
-          : null)
-    );
   }, []);
 
   const setDestination = useCallback(

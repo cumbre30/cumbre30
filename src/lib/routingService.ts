@@ -494,41 +494,60 @@ export function corredorPav(net?: Network | null): Map<string, number[][]> {
     if (!t) continue;
     for (const [lat, lon] of t.coords) push(lat, lon);
   }
-  if (net) {
-    for (const [a, b, , ni] of net.edges) {
-      const name = net.names[ni] ?? "";
-      if (!name || !NOMBRES_RED_PAV_PARQUE.test(name)) continue;
-      push(net.nodes[a][0], net.nodes[a][1]);
-      push(net.nodes[b][0], net.nodes[b][1]);
-    }
-    // Expansión transitiva ACOTADA: los conectores sin nombre entre las
-    // vías del Paseo (y sus conectores) se agregan siguiendo el grafo,
-    // rondas de crecimiento ~una arista. Incluye path/track sin nombre
-    // (la cadena del ascenso Pío Nono → Plaza México intercala tramos
-    // etiquetados path) con radio más justo; nunca "Sendero …" ni
-    // "Ruta Nativa" nombrados (el corredor no abre senderos).
-    for (let ronda = 0; ronda < 3; ronda++) {
-      let agregados = 0;
-      for (const [a, b, ci, ni] of net.edges) {
-        const name = net.names[ni] ?? "";
-        if (/^(Sendero (?!Ciclista)(?!El Excursionista)|Ruta Nativa)/.test(name)) continue;
-        const cls = net.classes[ci];
-        const esCamino = cls === "footway" || cls === "pedestrian" || cls === "service";
-        const esSenda = cls === "path" || cls === "track";
-        if (!esCamino && !esSenda) continue;
-        const pa = net.nodes[a];
-        const pb = net.nodes[b];
-        const mid = { lat: (pa[0] + pb[0]) / 2, lon: (pa[1] + pb[1]) / 2 };
-        if (!enCorredorPav(mid.lat, mid.lon, esCamino ? 45 : 30)) continue;
-        if (!enCorredorPav(pa[0], pa[1], 0.001)) { push(pa[0], pa[1]); agregados++; }
-        if (!enCorredorPav(pb[0], pb[1], 0.001)) { push(pb[0], pb[1]); agregados++; }
-      }
-      if (!agregados) break;
-    }
-    corredorGrid = grid;
+  if (!net) {
+    // sin net: rejilla solo con trazados (se reconstruye si luego llega net;
+    // NO se cachea para no bloquear la expansión completa del arranque con
+    // la red real).
     return grid;
   }
-  // sin net: rejilla solo con trazados (se reconstruye si luego llega net)
+  // Proyección contra LA MISMA rejilla en construcción (antes cada chequeo
+  // re-entraba en corredorPav() y reconstruía la rejilla base desde cero:
+  // cientos de miles de reconstrucciones ≈ 45 s congelando el hilo — el
+  // «se queda pegado» al generar la primera ruta del cliente, 2026-11-12).
+  const celdaEn = (lat: number, lon: number, radioM: number): boolean => {
+    const ci = Math.round(lat / cell);
+    const cj = Math.round(lon / cell);
+    for (let di = -1; di <= 1; di++)
+      for (let dj = -1; dj <= 1; dj++) {
+        const arr = grid.get(`${ci + di}:${cj + dj}`);
+        if (!arr) continue;
+        for (const [la, lo] of arr) {
+          if (haversineM({ lat, lon }, { lat: la, lon: lo }) <= radioM) return true;
+        }
+      }
+    return false;
+  };
+  for (const [a, b, , ni] of net.edges) {
+    const name = net.names[ni] ?? "";
+    if (!name || !NOMBRES_RED_PAV_PARQUE.test(name)) continue;
+    push(net.nodes[a][0], net.nodes[a][1]);
+    push(net.nodes[b][0], net.nodes[b][1]);
+  }
+  // Expansión transitiva ACOTADA: los conectores sin nombre entre las
+  // vías del Paseo (y sus conectores) se agregan siguiendo el grafo,
+  // rondas de crecimiento ~una arista. Incluye path/track sin nombre
+  // (la cadena del ascenso Pío Nono → Plaza México intercala tramos
+  // etiquetados path) con radio más justo; nunca "Sendero …" ni
+  // "Ruta Nativa" nombrados (el corredor no abre senderos).
+  for (let ronda = 0; ronda < 3; ronda++) {
+    let agregados = 0;
+    for (const [a, b, ci, ni] of net.edges) {
+      const name = net.names[ni] ?? "";
+      if (/^(Sendero (?!Ciclista)(?!El Excursionista)|Ruta Nativa)/.test(name)) continue;
+      const cls = net.classes[ci];
+      const esCamino = cls === "footway" || cls === "pedestrian" || cls === "service";
+      const esSenda = cls === "path" || cls === "track";
+      if (!esCamino && !esSenda) continue;
+      const pa = net.nodes[a];
+      const pb = net.nodes[b];
+      const mid = { lat: (pa[0] + pb[0]) / 2, lon: (pa[1] + pb[1]) / 2 };
+      if (!celdaEn(mid.lat, mid.lon, esCamino ? 45 : 30)) continue;
+      if (!celdaEn(pa[0], pa[1], 0.001)) { push(pa[0], pa[1]); agregados++; }
+      if (!celdaEn(pb[0], pb[1], 0.001)) { push(pb[0], pb[1]); agregados++; }
+    }
+    if (!agregados) break;
+  }
+  corredorGrid = grid;
   return grid;
 }
 

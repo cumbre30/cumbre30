@@ -183,11 +183,15 @@ const VIA = {
   tupahue: { lat: -33.417135, lon: -70.623511 },
   // Avenida La Montaña (Zapadores ↔ ladera poniente, residential)
   laMontana: { lat: -33.40501, lon: -70.61772 },
-  // Arranque de Av. Gabriela Mistral en el puente Bannen (GM ∩ Bannen):
-  // ancla de la BAJADA RECTA de r3 hacia PdV Norte (cliente 2026-11-12:
-  // «hay un tramo hacia Tupahue que debes borrar, debe seguir recto con
-  // dirección a PDV»). GM baja a Abate Molina y de ahí a PdV Norte.
-  gabrielaBannen: { lat: -33.416062, lon: -70.622767 },
+  // Av. Abate Molina junto al Jardín Japonés (nodo n30354 del grafo, a
+  // 41 m de la zona de riesgo): ancla de la BAJADA de r3 que sigue SIEMPRE
+  // por Abate Molina (cliente 2026-11-12: «no debe desviarse a Carlos
+  // Martner debe seguir por abate Molina siempre»), pasando por las 2
+  // zonas de riesgo del descenso: Jardín Japonés y Salida Pedro de
+  // Valdivia. La única arista «Avenida Carlos Martner» que queda en el
+  // trazado es la junta de 2 m del cruce La Montaña ∩ Martner ∩ Abate
+  // Molina (topología OSM del empalme, invisible en el mapa).
+  abateMolinaJJ: { lat: -33.413715, lon: -70.614624 },
   // La Rotonda del circuito (control QR MTB del GPX del cliente, sobre el anillo)
   laRotonda: { lat: -33.4093, lon: -70.6213 },
   // Anillo Paseo Metropolitano (tronco poniente)
@@ -232,17 +236,17 @@ const defs: Record<string, LatLng[] | null> = {
   // puente entre las Bannen paralelas (Tupahue) → Av. Pedro Bannen →
   // Plaza México.
   r2: routeWithVias("r2", P.pioNono, [VIA.mackenna, PUENTE_TUPAHUE_CUMBRE], P.plazaMexico, OPTS_PAV_PARK),
-  // R3 Pavimento: Zapadores → Avenida La Montaña → puente Mackenna-Bannen
-  // (Tupahue) y de ahí SEGUIR RECTO hacia PdV Norte: bajada por Av.
-  // Gabriela Mistral y Av. Abate Molina (cliente 2026-11-12: «hay un
-  // tramo hacia Tupahue que debes borrar, debe seguir recto con dirección
-  // a PDV» — fuera el tramo Martner ↔ Abate Molina alto que se metía al
-  // interior del cerro y volvía). Sin trazado a Plaza México ni por
-  // Carlos Reed.
+  // R3 Pavimento: Zapadores → Avenida La Montaña → el empalme sigue
+  // SIEMPRE por Av. Abate Molina hasta PdV Norte (cliente 2026-11-12:
+  // «no debe desviarse a Carlos Martner debe seguir por abate Molina
+  // siempre»), pasando por las 2 zonas de riesgo de la bajada: Jardín
+  // Japonés (33 m) y Salida Pedro de Valdivia (8 m). Sin puente
+  // Mackenna-Bannen ni Gabriela Mistral (fuera del trazado desde el
+  // mismo día), sin Plaza México ni Carlos Reed.
   r3: routeWithVias(
     "r3",
     P.zapadores,
-    [VIA.laMontana, PUENTE_TUPAHUE_CUMBRE, VIA.gabrielaBannen],
+    [VIA.laMontana, VIA.abateMolinaJJ],
     P.pdvNorte,
     OPTS_PAV_PARK
   ),

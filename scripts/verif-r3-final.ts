@@ -5,7 +5,7 @@ import { aplicarPuentes } from "../src/lib/puentesGrafo";
 import { crearDirOk } from "../src/lib/reglasParque";
 
 const raw = JSON.parse(readFileSync("public/red-ciclista.json", "utf8")) as {
-  classes: string[]; names: string[]; nodes: NetNode[]; edges: NetEdge[];
+  classes: string[]; names: string[]; nodes: NetNode[]; edges: NetEdge[]; cicloviaPolylines: number[][];
 };
 const PENALTY: Record<string, number> = {
   cycleway: 0.65, path: 0.9, footway: 1.35, pedestrian: 1.1, track: 1.0,

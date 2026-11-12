@@ -1,7 +1,9 @@
 // Audita los trazados regenerados contra los criterios del cliente (2026-11-12):
 //  · r1: nace/termina en el ACCESO PDV (cruce Av. El Cerro × PdV Norte) y llega a Plaza México, sin Carlos Reed
 //  · r2: el mismo trazado que la navegación a Plaza México del minimapa (Pío Nono → Mackenna → puente → Bannen)
-//  · r3: Zapadores → puente Mackenna-Bannen → baja a PDV; SIN Plaza México ni Carlos Reed
+//  · r3: Zapadores → La Montaña → SIEMPRE Av. Abate Molina a PDV (sin Martner,
+//        sin puente, sin Gabriela Mistral), pasando Jardín Japonés y Salida PDV;
+//        SIN Plaza México ni Carlos Reed
 //  · r4: intacto (OK para el cliente)
 //  · r5: Pío Nono sólo subida, sin bajada Pío Nono, sin Carlos Reed, cierre en PDV
 //  · círculos amarillos (RISK_ZONES) en la capa Normativa y Seguridad
@@ -97,15 +99,28 @@ async function main() {
     ok(false, "no se pudo reproducir la navegación del minimapa");
   }
 
-  // --- r3: Zapadores → puente → PDV, sin Plaza México ni Carlos Reed ---
+  // --- r3: Zapadores → La Montaña → Abate Molina SIEMPRE → PDV ---
+  // Cliente 2026-11-12: «no debe desviarse a Carlos Martner debe seguir por
+  // abate Molina siempre. Está ruta pasa por 2 zonas de riesgo (jardín
+  // japonés y salida PDV)».
   ok(haversineM(r3[0], ZAPADORES) <= 30, `r3 nace en Zapadores (${haversineM(r3[0], ZAPADORES).toFixed(0)} m)`);
   ok(haversineM(r3[r3.length - 1], PDV) <= 40, `r3 termina en el acceso PdV Norte (${haversineM(r3[r3.length - 1], PDV).toFixed(0)} m)`);
-  ok(minDist(r3, PUENTE_TUPAHUE_CUMBRE) <= 25, "r3 toca el puente Mackenna-Bannen");
+  ok(minDist(r3, PUENTE_TUPAHUE_CUMBRE) > 200, `r3 NO se desvía al puente Mackenna-Bannen (${minDist(r3, PUENTE_TUPAHUE_CUMBRE).toFixed(0)} m)`);
+  const JJ_ZONE = { lat: -33.413345, lon: -70.614692 }; // zona de riesgo Jardín Japonés (radio 120 m)
+  const SP_ZONE = { lat: -33.416209, lon: -70.619256 }; // zona de riesgo Salida Pedro de Valdivia (radio 130 m)
+  ok(minDist(r3, JJ_ZONE) <= 120, `r3 pasa por Jardín Japonés (${minDist(r3, JJ_ZONE).toFixed(0)} m, zona 120 m)`);
+  ok(minDist(r3, SP_ZONE) <= 130, `r3 pasa por Salida Pedro de Valdivia (${minDist(r3, SP_ZONE).toFixed(0)} m, zona 130 m)`);
+  // punto medio del antiguo tramo Martner (junction → puente) y de Av. Gabriela
+  // Mistral: el nuevo trazado no debe pasar por ahí
+  const MARTNER_MEDIO = { lat: -33.415426, lon: -70.621316 };
+  ok(minDist(r3, MARTNER_MEDIO) > 100, `r3 sin el tramo Carlos Martner al puente (${minDist(r3, MARTNER_MEDIO).toFixed(0)} m)`);
   ok(minDist(r3, PLAZA_MEXICO_POS) > 400, `r3 NO llega a Plaza México (${minDist(r3, PLAZA_MEXICO_POS).toFixed(0)} m)`);
 
-  // --- r4 intacto (referencia HEAD) ---
-  const head = readFileSync("/tmp/r4-head.json", "utf8");
-  const r4head = (JSON.parse(head) as { coords: [number, number][] }).coords;
+  // --- r4 intacto (referencia git HEAD del trazado) ---
+  const { execFileSync } = await import("node:child_process");
+  const head = execFileSync("git", ["show", "HEAD:src/lib/rutasTrazados.ts"], { encoding: "utf8" });
+  const mR4 = head.match(/"r4": \{\s*"coords": (\[[\s\S]*?\]),\s*"distKm"/);
+  const r4head = JSON.parse((mR4?.[1] ?? "null").replace(/,\s*([\]\}])/g, "$1")) as [number, number][];
   let maxDelta = 0;
   for (let i = 0; i < Math.min(r4head.length, r4.length); i++)
     maxDelta = Math.max(maxDelta, haversineM({ lat: r4head[i][0], lon: r4head[i][1] }, r4[i]));
