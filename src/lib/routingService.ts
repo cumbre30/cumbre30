@@ -409,8 +409,9 @@ const NOMBRES_PERMITIDOS_PAV = [
   /^Camino /,
   /^Antilen$/,
   /^Rotonda /,
-  // puentes del grafo (explanadas de acceso)
-  /^Acceso (Pedro de Valdivia Norte|La Pirámide|sector Tupahue)$/,
+  // puentes del grafo (explanadas de acceso; el enlace «sector Tupahue»
+  // se eliminó por pedido del cliente: dibujaba una línea recta de 318 m)
+  /^Acceso (Pedro de Valdivia Norte|La Pirámide)$/,
 ];
 
 /** Vías pavimentadas nombradas del parque que también alimentan el

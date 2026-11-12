@@ -36,26 +36,33 @@ async function main() {
   await p1.waitForTimeout(4500);
   const sel = p1.locator("select[aria-label='Ir a']");
   await sel.waitFor({ timeout: 15000 });
-  let opts = await sel.locator("optgroup[label='Opciones de ruta'] option").allTextContents();
-  ok(opts.length === 3, `minimapa: 3 opciones de ruta (${opts.length})`);
+  // Cliente (2026-11-12 tarde): en el minimapa SOLO los accesos — las
+  // opciones de ruta se retiraron del dropdown (siguen como alternativas
+  // de voz en el corte horario).
+  let opts = await sel.locator("option").allTextContents();
+  ok((await sel.locator("optgroup").count()) === 0, "minimapa: sin optgroups (solo accesos)");
   ok(
-    opts[0]?.includes("Gabriela Mistral"),
-    `con GPS en Tupahue la primera es Av. Gabriela Mistral: ${opts.join(" | ")}`
+    opts.filter((t) => t.includes("🚴")).length === 4,
+    `minimapa: 4 accesos (${opts.join(" | ")})`
+  );
+  ok(
+    !opts.some((t) => /Plaza México|Gabriela Mistral|Carlos Martner/.test(t)),
+    "minimapa: sin opciones de ruta"
   );
   await p1.screenshot({ path: `${OUT}/minimapa-opciones.png` });
   await ctx1.close();
 
-  // sin GPS: orden fijo 1-2-3 (Plaza México · Gabriela Mistral · Martner)
+  // sin GPS: el dropdown sigue mostrando solo los accesos
   const ctx1b = await browser.newContext({ viewport: { width: 390, height: 844 } });
   const p1b = await ctx1b.newPage();
   await p1b.goto(BASE, { waitUntil: "networkidle" });
   await p1b.waitForTimeout(2500);
   const sel1b = p1b.locator("select[aria-label='Ir a']");
   await sel1b.waitFor({ timeout: 15000 });
-  opts = await sel1b.locator("optgroup[label='Opciones de ruta'] option").allTextContents();
+  opts = await sel1b.locator("option").allTextContents();
   ok(
-    opts[0]?.includes("Plaza México") && opts[1]?.includes("Gabriela Mistral") && opts[2]?.includes("Carlos Martner"),
-    `sin GPS el orden fijo es 1-2-3: ${opts.join(" | ")}`
+    opts.filter((t) => t.includes("🚴")).length === 4,
+    `sin GPS también solo accesos: ${opts.join(" | ")}`
   );
   await ctx1b.close();
 
@@ -75,9 +82,9 @@ async function main() {
   await p2.waitForTimeout(600);
   const bodyRutas = await panel.innerText();
   ok(/Ruta 1 · Clásica Cumbre por Pedro de Valdivia/.test(bodyRutas), "capa Rutas: Ruta 1 presente");
-  ok(/3\.0 km/.test(bodyRutas), `capa Rutas: Ruta 1 con trazado (3.0 km)`);
+  ok(/3\.4 km/.test(bodyRutas), `capa Rutas: Ruta 1 con trazado (3.4 km, sube por Av. Abate Molina)`);
   ok(/5\.1 km/.test(bodyRutas), `capa Rutas: Ruta 2 = minimapa Plaza México (5.1 km)`);
-  ok(/4\.5 km/.test(bodyRutas), `capa Rutas: Ruta 3 Zapadores→puente→PdV (4.5 km)`);
+  ok(/5\.5 km/.test(bodyRutas), `capa Rutas: Ruta 3 Zapadores→puente→PdV (5.5 km, baja por Av. Abate Molina)`);
   ok(/3\.4 km/.test(bodyRutas), `capa Rutas: Ruta 4 intacta (3.4 km)`);
   ok(/19\.6 km/.test(bodyRutas), `capa Rutas: Ruta 5 vuelta completa (19.6 km)`);
 

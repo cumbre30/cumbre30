@@ -21,30 +21,16 @@
 //     corredores del GPX (Tupahue, El Ermitaño, Pa' Arriba…).
 // ============================================================
 
-import { GATES, NAV_DESTINATIONS, RISK_ZONES, type LatLng } from "./park";
+import { GATES, RISK_ZONES, type LatLng } from "./park";
 import { RUTAS_TRAZADOS } from "./rutasTrazados";
 import { PUENTE_TUPAHUE_CUMBRE } from "./reglasParque";
 
 // ------------------------------------------------------------
-// OPCIONES DE RUTA del minimapa (cliente, 2026-11-12):
-//   1- Plaza México · 2- Av. Gabriela Mistral (conecta con PdV
-//   Norte) · 3- Av. Carlos Martner. Se ofrecen «según donde se
-//   mueva el usuario»: el minimapa las ordena por cercanía a la
-//   posición GPS del ciclista.
-// ------------------------------------------------------------
-
-const IDS_OPCIONES_RUTA = ["plaza-mexico", "av-gabriela-mistral", "av-carlos-martner"];
-
-export const MINIMAP_OPCIONES: { id: string; name: string; position: LatLng }[] = IDS_OPCIONES_RUTA.map((id) => {
-  const d = NAV_DESTINATIONS.find((x) => x.id === id);
-  if (!d) throw new Error(`Destino de opción de ruta no encontrado: ${id}`);
-  return { id: d.id, name: d.name, position: d.position };
-});
-
-// ------------------------------------------------------------
-// Destinos del MINIMAPA (limpieza pedida por el cliente): solo
-// Plaza México y los accesos habilitados para ciclistas. El
-// listado completo vive en el mapa general (pestaña Explorar).
+// Destinos del MINIMAPA (limpieza pedida por el cliente, 2026-11-12):
+// SOLO los accesos habilitados para ciclistas — sin opciones de ruta ni
+// otros destinos (el listado completo vive en el mapa general, pestaña
+// Explorar). Las alternativas de voz del corte horario (Av. Gabriela
+// Mistral / Av. Carlos Martner) siguen vivas en routingService.
 // ------------------------------------------------------------
 
 export const MINIMAP_ACCESOS: { id: string; name: string; position: LatLng }[] = GATES.filter((g) => g.ciclistas).map((g) => ({
@@ -53,10 +39,7 @@ export const MINIMAP_ACCESOS: { id: string; name: string; position: LatLng }[] =
   position: g.position,
 }));
 
-export const MINIMAP_DESTINOS: { id: string; name: string; position: LatLng }[] = [
-  ...MINIMAP_OPCIONES,
-  ...MINIMAP_ACCESOS,
-];
+export const MINIMAP_DESTINOS: { id: string; name: string; position: LatLng }[] = MINIMAP_ACCESOS;
 
 // ------------------------------------------------------------
 // CAPA 1 · ACCESOS OFICIALES HABILITADOS PARA CICLISTAS (4)
@@ -114,7 +97,7 @@ export const CAPA_RUTAS: CapaRuta[] = [
     tipo: "pavimento",
     nivel: "Fluida y directa",
     detalle:
-      "Subida fluida y directa desde el Acceso Pedro de Valdivia Norte (cruce Av. El Cerro × Av. PdV Norte) pasando por Tupahue hasta Plaza México.",
+      "Subida fluida y directa desde el Acceso Pedro de Valdivia Norte (cruce Av. El Cerro × Av. PdV Norte): sube por Av. Abate Molina y Av. Gabriela Mistral, cruza a Av. Pedro Bannen en Tupahue y llega a Plaza México.",
     emoji: "🚴",
     color: "#0ea5e9",
   },
@@ -136,7 +119,7 @@ export const CAPA_RUTAS: CapaRuta[] = [
     tipo: "pavimento",
     nivel: "Exigente",
     detalle:
-      "Travesía desde Acceso Zapadores bajando por Avenida La Montaña a Tupahue, hasta el puente Mackenna-Bannen (corte horario fin de semana), y descenso final a Pedro de Valdivia Norte. Sin Plaza México ni Carlos Reed.",
+      "Travesía desde Acceso Zapadores bajando por Avenida La Montaña a Tupahue, hasta el puente Mackenna-Bannen (corte horario fin de semana), y descenso final por Av. Carlos Martner y Av. Abate Molina a Pedro de Valdivia Norte. Sin Plaza México ni Carlos Reed.",
     emoji: "🚴",
     color: "#0ea5e9",
   },

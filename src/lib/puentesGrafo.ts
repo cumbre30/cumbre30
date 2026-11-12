@@ -41,9 +41,12 @@ export type Puente = {
  *  · Acceso La Pirámide: la bocha/rotonda de ingreso no está unida al
  *    Tramo Jardín Japonés / Pirámide (387 m del sector de ingreso sin
  *    mapear); el camino real parte justo después de la portería.
- *  · Acceso sector Tupahue (poniente): el fin del camino Comodoro
- *    Merino Benítez no está unido al cruz de Casa Anáhuac (~300 m del
- *    sector de ingreso sin mapear en OSM). */
+ *  · (Eliminado 2026-11-12, cliente: «hay una ruta recta trazada,
+ *    verificar que lo produce y borrarla») el antiguo enlace sintético
+ *    «Acceso sector Tupahue» dibujaba una línea RECTA de 318 m entre el
+ *    fin del camino Comodoro Merino Benítez y la Cruz de Casa Anáhuac:
+ *    sin él el motor traza el enlace real por Av. Abate Molina y Av.
+ *    Gabriela Mistral desde el acceso PdV Norte. */
 export const PUENTES: Puente[] = [
   {
     nombre: "Acceso Pedro de Valdivia Norte",
@@ -54,11 +57,6 @@ export const PUENTES: Puente[] = [
     nombre: "Acceso La Pirámide",
     a: { lat: -33.38642, lon: -70.60179 }, // Rotonda La Pirámide (portería)
     b: { lat: -33.3899, lon: -70.60162 }, // Tramo Jardín Japonés / Pirámide (parque)
-  },
-  {
-    nombre: "Acceso sector Tupahue",
-    a: { lat: -33.4195, lon: -70.6214 }, // Comodoro Arturo Merino Benítez (poniente)
-    b: { lat: -33.4174, lon: -70.6237 }, // driveway Casa Anáhuac / cruz de Tupahue
   },
   {
     // Ascenso Pío Nono → Plaza México: Terraza Bellavista quedó como isla
