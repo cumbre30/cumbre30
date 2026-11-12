@@ -2,7 +2,13 @@
 // 1) Activa la capa Normativa y Seguridad → verifica el ítem del control
 //    con su detalle de las 3 bajadas.
 // 2) Vuelca las polilíneas rojas (#dc2626) visibles: deben ser 3.
-// 3) Capturas: bajada Plaza México → Pío Nono y zona Antilén/La Pirámide.
+// 3) «Borra el punto 🐢 en el mapa, dejar sólo en la capa»: cero marcadores
+//    🐢 en el mapa, mientras el resto de la capa (📱 🛠 ⚠) sigue pintada.
+// 4) Tocar «centrar» del ítem del control activa la capa y enmarca los 3
+//    corredores rojos.
+// 5) Advertencia Jardín Japonés trasladada a -33.413703, -70.614831.
+// Capturas: bajada Plaza México → Pío Nono, zona Antilén/La Pirámide y
+// encuadre de los 3 corredores.
 import { chromium } from "playwright";
 
 const BASE = "http://localhost:3000/";
@@ -54,6 +60,21 @@ async function main() {
   });
   console.log(rojas >= 3 ? `✓ ${rojas} trazados rojos visibles (>=3)` : `✗ solo ${rojas} trazados rojos visibles`);
 
+  // «borra el punto 🐢 en el mapa, dejar sólo en la capa»: cero marcadores
+  // 🐢 en el mapa con la capa activada; el resto de la capa sigue pintada.
+  const marcadores = await p.evaluate(() => {
+    const icons = Array.from(document.querySelectorAll(".leaflet-marker-icon"));
+    const porTexto = (t) => icons.filter((el) => (el.textContent ?? "").includes(t)).length;
+    return { tortuga: porTexto("🐢"), qr: porTexto("📱"), soporte: porTexto("🛠"), advertencias: porTexto("⚠") };
+  });
+  const okSinTortuga = marcadores.tortuga === 0;
+  console.log(okSinTortuga ? "✓ sin marcador 🐢 en el mapa (solo capa)" : `✗ ${marcadores.tortuga} marcadores 🐢 visibles en el mapa`);
+  const okResto = marcadores.qr >= 1 && marcadores.soporte >= 3;
+  console.log(okResto ? `✓ resto de la capa pintado (📱 ${marcadores.qr} · 🛠 ${marcadores.soporte})` : `✗ faltan marcadores de la capa: ${JSON.stringify(marcadores)}`);
+
+  // Advertencia Jardín Japonés y encuadre del control: al final, para no
+  // alterar el estado del panel del flujo original (se reabre abajo).
+
   // colapsar panel y capturar la bajada Plaza México → Pío Nono
   await p.locator("button:has-text('Capas del mapa')").first().click();
   await p.waitForTimeout(500);
@@ -76,7 +97,41 @@ async function main() {
   await p.screenshot({ path: `${OUT}/b30-antilen.png` });
   console.log("captura b30-antilen.png");
 
-  const fallos = [okItem, okDetalle, rojas >= 3].filter((x) => !x).length;
+  // --- Advertencia Jardín Japonés trasladada: abrir de nuevo el panel, ---
+  // volar a la coordenada nueva y dejar el círculo amarillo en pantalla.
+  await p.locator("button:has-text('Capas del mapa')").first().click();
+  await p.waitForTimeout(500);
+  const normSummary3 = p.locator("details[data-capa='normativa'] > summary");
+  await normSummary3.scrollIntoViewIfNeeded();
+  await normSummary3.click();
+  await p.waitForTimeout(500);
+  const filaJJ = p.locator("button[aria-label='Centrar mapa en Advertencia: Jardín Japonés']");
+  await filaJJ.scrollIntoViewIfNeeded();
+  await filaJJ.click();
+  await p.waitForTimeout(2200);
+  await p.screenshot({ path: `${OUT}/b30-jardin-japones.png` });
+  console.log("captura b30-jardin-japones.png");
+
+  // --- tocar «centrar» del ítem del control: activa la capa y enmarca ---
+  // los 3 corredores rojos (sin punto propio en el mapa).
+  const fila30 = p.locator("button[aria-label^='Centrar mapa en Control velocidad']");
+  await fila30.scrollIntoViewIfNeeded();
+  await fila30.click();
+  await p.waitForTimeout(2600);
+  await p.locator("button:has-text('Capas del mapa')").first().click();
+  await p.waitForTimeout(500);
+  await p.screenshot({ path: `${OUT}/b30-encuadre-3-corredores.png` });
+  console.log("captura b30-encuadre-3-corredores.png");
+  const rojasEncuadre = await p.evaluate(() => {
+    const paths = Array.from(document.querySelectorAll("path[stroke='#dc2626'], path[stroke='rgb(220, 38, 38)']"));
+    return paths.filter((el) => {
+      const d = el.getAttribute("d") ?? "";
+      return d.length > 40 && !/^M0 0$/.test(d);
+    }).length;
+  });
+  console.log(rojasEncuadre >= 3 ? `✓ tras tocar el ítem: ${rojasEncuadre} corredores rojos en cuadro` : `✗ encuadre sin los 3 corredores (${rojasEncuadre})`);
+
+  const fallos = [okItem, okDetalle, rojas >= 3, okSinTortuga, okResto, rojasEncuadre >= 3].filter((x) => !x).length;
   console.log(fallos === 0 ? "\nTODO OK" : `\n${fallos} FALLAS`);
   await browser.close();
   process.exit(fallos === 0 ? 0 : 1);

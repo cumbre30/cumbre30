@@ -227,6 +227,9 @@ export type CapaPuntoBase = {
   detalle: string;
   emoji: string;
   position: LatLng;
+  /** Item listado en la capa pero SIN marcador en el mapa (cliente
+   *  2026-11-13: «borra el punto 🐢 en el mapa, dejar sólo en la capa»). */
+  sinMarcador?: boolean;
 };
 
 export type CapaPunto = CapaPuntoBase & {
@@ -390,7 +393,11 @@ export const CAPA_NORMATIVA: CapaPuntoBase[] = [
     detalle:
       "Límite máximo de 30 km/h en las 3 bajadas principales, fiscalizado por Carabineros (plan Pedalea Seguro): Cima Chacarillas → Acceso La Pirámide, Plaza Antilén → Acceso Pedro de Valdivia Norte y Plaza México → Acceso Pío Nono. Al activar la capa se pintan los 3 trazados en rojo.",
     emoji: "🐢",
-    // posición GPX referencial (bajada principal)
+    // Sin punto en el mapa (cliente 2026-11-13): los 3 trazados rojos son
+    // ahora la representación del control. El ítem queda en la capa y al
+    // elegirlo se enmarcan los 3 corredores (MapView·enfocar).
+    sinMarcador: true,
+    // Posición referencial de la bajada principal (no se dibuja).
     position: { lat: -33.4202, lon: -70.625 },
   },
   {

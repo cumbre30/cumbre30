@@ -154,7 +154,11 @@ const COLOR_NORMATIVA = "#be123c";
 const COLOR_URBANA = "#7c3aed";
 
 /** Enfoque pedido desde el panel: centrar un punto o encuadrar una ruta. */
-type Focus = { kind: "punto"; p: LatLng } | { kind: "ruta"; coords: LatLng[] } | null;
+type Focus =
+  | { kind: "punto"; p: LatLng }
+  | { kind: "ruta"; coords: LatLng[] }
+  | { kind: "control30"; coords: LatLng[] }
+  | null;
 
 function FocusHandler({ focus }: { focus: Focus }) {
   const map = useMap();
@@ -369,7 +373,16 @@ function CapasPanel({
                     </div>
                     <ul>
                       {CAPA_NORMATIVA.map((p) => (
-                        <FilaPunto key={p.id} p={p} color={COLOR_NORMATIVA} onFocus={() => onFocus({ kind: "punto", p: p.position })} />
+                        <FilaPunto
+                          key={p.id}
+                          p={p}
+                          color={COLOR_NORMATIVA}
+                          onFocus={() =>
+                            p.id === "control-30"
+                              ? onFocus({ kind: "control30", coords: BAJADAS_30.flatMap((b) => b.coords) })
+                              : onFocus({ kind: "punto", p: p.position })
+                          }
+                        />
                       ))}
                     </ul>
                   </>
@@ -867,12 +880,24 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
   };
 
   const enfocar = (f: Focus) => {
+    // Control 30 km/h: no tiene punto en el mapa (cliente 2026-11-13,
+    // «dejar sólo en la capa») — al elegirlo se activa la capa Normativa
+    // y se enmarcan los 3 corredores rojos de las bajadas.
+    if (f && f.kind === "control30") {
+      setCapasVis((prev) => ({ ...prev, normativa: true }));
+      setFocus({ kind: "ruta", coords: f.coords });
+      return;
+    }
     setFocus(f);
   };
 
   /** Marcadores de una capa de puntos con popup (nombre, detalle y «Ruta aquí»). */
   const puntoMarkers = (pts: CapaPuntoBase[], colorOf: (pt: CapaPuntoBase) => string) =>
-    pts.map((pt) => (
+    pts
+      // Items con sinMarcador (control 30 km/h) se listan en la capa pero
+      // no se pintan: su representación son los trazados rojos.
+      .filter((pt) => !pt.sinMarcador)
+      .map((pt) => (
       <Marker key={pt.id} position={[pt.position.lat, pt.position.lon]} icon={poiIcon(pt.emoji, colorOf(pt))}>
         <Popup>
           <div className="min-w-[190px] text-[13px]">

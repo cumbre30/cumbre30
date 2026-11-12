@@ -106,7 +106,7 @@ async function main() {
   ok(haversineM(r3[0], ZAPADORES) <= 30, `r3 nace en Zapadores (${haversineM(r3[0], ZAPADORES).toFixed(0)} m)`);
   ok(haversineM(r3[r3.length - 1], PDV) <= 40, `r3 termina en el acceso PdV Norte (${haversineM(r3[r3.length - 1], PDV).toFixed(0)} m)`);
   ok(minDist(r3, PUENTE_TUPAHUE_CUMBRE) > 200, `r3 NO se desvía al puente Mackenna-Bannen (${minDist(r3, PUENTE_TUPAHUE_CUMBRE).toFixed(0)} m)`);
-  const JJ_ZONE = { lat: -33.413345, lon: -70.614692 }; // zona de riesgo Jardín Japonés (radio 55 m, cliente 2026-11-13)
+  const JJ_ZONE = { lat: -33.413703, lon: -70.614831 }; // zona de riesgo Jardín Japonés (radio 55 m, coordenada cliente 2026-11-13)
   const SP_ZONE = { lat: -33.416209, lon: -70.619256 }; // zona de riesgo Salida Pedro de Valdivia (radio 55 m)
   ok(minDist(r3, JJ_ZONE) <= 55, `r3 pasa por Jardín Japonés (${minDist(r3, JJ_ZONE).toFixed(0)} m, zona 55 m)`);
   ok(minDist(r3, SP_ZONE) <= 55, `r3 pasa por Salida Pedro de Valdivia (${minDist(r3, SP_ZONE).toFixed(0)} m, zona 55 m)`);
@@ -229,6 +229,11 @@ async function main() {
   const bPio = b30("b30-pionono");
   ok(!!bPio && haversineM(bPio.coords[0], PLAZA_MEXICO_POS) <= 60 && haversineM(bPio.coords[bPio.coords.length - 1], PIO) <= 30,
     `bajada Plaza México → Pío Nono (${bPio ? bPio.distKm.toFixed(2) : "?"} km)`);
+  // cliente 2026-11-13: «borra el punto 🐢 en el mapa, dejar sólo en la capa»
+  const ctrl30 = CAPA_NORMATIVA.find((x) => x.id === "control-30");
+  ok(!!ctrl30 && ctrl30.sinMarcador === true, "control 30 km/h sin punto en el mapa (solo capa + 3 trazados rojos)");
+  const jjCapa = CAPA_NORMATIVA.find((x) => x.id === "riesgo-jardin-japones");
+  ok(!!jjCapa && haversineM(jjCapa.position, JJ_ZONE) < 1, `Advertencia Jardín Japonés trasladada a -33.413703, -70.614831 (${jjCapa ? jjCapa.position.lat + "," + jjCapa.position.lon : "falta"})`);
 
   console.log(fails ? `\n${fails} FALLAS` : "\nTODO OK");
   process.exit(fails ? 1 : 0);

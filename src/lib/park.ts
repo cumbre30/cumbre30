@@ -325,7 +325,9 @@ export const RISK_ZONES: RiskZone[] = [
   {
     id: "jardin-japones",
     name: "Jardín Japonés",
-    position: { lat: -33.413345, lon: -70.614692 },
+    // Coordenada exacta del cliente (2026-11-13): queda a ~19 m del nodo
+    // n30354 de Av. Abate Molina (vía de r3), dentro de la zona 55 m.
+    position: { lat: -33.413703, lon: -70.614831 },
     radiusM: 55,
     voice: "Jardín Japonés a la vista. Peatones cruzando.",
   },
