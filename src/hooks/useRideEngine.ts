@@ -9,7 +9,7 @@ import {
   RISK_ZONES,
   type LatLng,
 } from "@/lib/park";
-import { Ema, SpeedKalman, haversineM, pointInPolygon } from "@/lib/geo";
+import { Ema, SpeedKalman, haversineM, pointInPolygon, distToPolygonM } from "@/lib/geo";
 import { PARK_HOURS } from "@/lib/park";
 import { estadoParque } from "@/lib/horario";
 import { GATE_PIO_NONO, PUENTE_TUPAHUE_CUMBRE, enCorredorPioNono } from "@/lib/reglasParque";
@@ -192,8 +192,20 @@ export function useRideEngine() {
         e.vehStreakSec = 0;
       }
 
-      // 5) Geofence del parque
-      const inside = pointInPolygon(fix, PARK_POLYGON);
+      // 5) Geofence del parque (con HISTERÉSIS anti-parpadeo).
+      //    La frontera corre pegada a caminos reales (Av. El Cerro,
+      //    Canal El Carmen, Av. La Montaña) y las porterías caen casi
+      //    exactamente sobre la línea: con el ruido del GPS (±10-15 m)
+      //    el estado dentro/fuera alternaba en cada fix y la bitácora
+      //    se llenaba de «Ingresando/Saliendo» fantasma. Ahora para
+      //    cambiar de lado hay que superar 18 m de profundidad real
+      //    hacia el nuevo lado (distancia a la frontera del polígono).
+      const rawInside = pointInPolygon(fix, PARK_POLYGON);
+      const dFront = distToPolygonM(fix, PARK_POLYGON);
+      const GEO_HISTERESIS_M = 18;
+      const inside = e.inside
+        ? rawInside || dFront > GEO_HISTERESIS_M // seguir dentro salvo 18 m reales afuera
+        : rawInside && dFront > GEO_HISTERESIS_M; // entrar solo 18 m reales adentro
       if (inside !== e.inside) {
         e.inside = inside;
         if (inside) {
@@ -208,13 +220,27 @@ export function useRideEngine() {
       // los desafíos del parque (un ride de ruta que roza el borde no cuenta).
       if (inside) e.parkDistanceM += dValid;
 
-      // 6) Accesos (cercanía < 80 m)
+      // 6) Accesos (cercanía < 80 m). Indicación según la normativa
+      //    vigente (actualización Parquemet nov 2026): la credencial QR
+      //    ya NO se pide en los accesos (solo rige para los senderos de
+      //    enduro desde dic 2026). Ahora se informa si el acceso es o no
+      //    de los 4 exclusivos ciclistas y, fuera de horario, el cierre.
       for (const gate of GATES) {
         const d = haversineM(fix, gate.position);
         const last = e.gateLastTrigger[gate.id] ?? 0;
         if (d < 80 && fix.t - last > 120_000) {
           e.gateLastTrigger[gate.id] = fix.t;
-          logEvent("gate", `Cerca de ${gate.name}: ten lista tu credencial de enrolamiento`);
+          const cerrado = !estadoParque(new Date(fix.t)).abierto;
+          if (cerrado) {
+            logEvent("gate", `Cerca de ${gate.name}: el parque está cerrado para ciclistas (06:00-20:30)`);
+            alerts.speak(`gate-${gate.id}`, "El parque está cerrado para ciclistas. El ingreso es de 6 a 20 y 30.", 60);
+          } else if (gate.ciclistas) {
+            logEvent("gate", `Cerca de ${gate.name}: acceso exclusivo de ciclistas · casco y luces puestos`);
+            alerts.speak(`gate-${gate.id}`, "Acceso exclusivo de ciclistas. Casco y luces puestos.", 60);
+          } else {
+            logEvent("gate", `Cerca de ${gate.name}: sin ingreso en bici · entra por Zapadores, PdV Norte, Pío Nono o La Pirámide`);
+            alerts.speak(`gate-${gate.id}`, "Este acceso no permite el ingreso de bicicletas. Usa Zapadores, Pedro de Valdivia Norte, Pío Nono o La Pirámide.", 60);
+          }
         }
       }
 
@@ -226,7 +252,7 @@ export function useRideEngine() {
         if (d >= zone.radiusM && d < zone.radiusM + 100 && fix.t - last > 150_000) {
           e.zoneLastTrigger[zone.id] = fix.t;
           logEvent("zone", `${zone.name} a ~100 metros`);
-          alerts.speak(`zone-approach-${zone.id}`, `Zona de fiscalización a 100 metros: ${zone.name}.`, 30);
+          alerts.speak(`zone-approach-${zone.id}`, `Zona de riesgo a 100 metros: ${zone.name}.`, 30);
         }
         if (d < zone.radiusM && fix.t - last > 150_000) {
           e.zoneLastTrigger[zone.id] = fix.t;

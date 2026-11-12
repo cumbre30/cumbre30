@@ -390,8 +390,10 @@ export function RideView(p: Props) {
 
       {/* BOTÓN PRINCIPAL (punto 7 del brief): fijo abajo, flotando sobre
           el contenido. La pantalla scrollea completa y el botón siempre
-          queda a la vista, sobre la barra de navegación inferior. */}
-      <div className="pointer-events-none fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+58px)] z-[45]">
+          queda a la vista, sobre la barra de navegación inferior.
+          bottom 80px = nav real (~69 px) + holgura (antes 58 px: el botón
+          tapaba la mitad superior del nav). */}
+      <div className="pointer-events-none fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+80px)] z-[45]">
         <div className="pointer-events-auto mx-auto max-w-md px-4">
           <div className="pointer-events-none absolute inset-x-0 -top-8 bottom-0 -z-10 bg-gradient-to-t from-background via-background/85 to-transparent" />
           {idle ? (

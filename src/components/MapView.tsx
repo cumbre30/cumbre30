@@ -1051,13 +1051,18 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
         />
       </div>
 
-      {/* Capas del mapa flotantes (abajo): 5 menús desplegables + generar ruta */}
-      <div className="absolute inset-x-2 bottom-[calc(64px+env(safe-area-inset-bottom))] z-[690]">
+      {/* Capas del mapa flotantes (abajo): 5 menús desplegables + generar ruta.
+          bottom 80px = nav real (~69 px) + holgura; antes quedaba a 64 y
+          tapaba la barra inferior al hacer scroll el documento (queja del
+          cliente 2026-11-11: "al mover la búsqueda o el botón de capas se
+          superpone a la información"). */}
+      <div className="absolute inset-x-2 bottom-[calc(80px+env(safe-area-inset-bottom))] z-[690]">
         <CapasPanel vis={capasVis} onVer={toggleCapa} onFocus={enfocar} onGenerarRuta={generarRuta} />
       </div>
 
-      {/* Mapa a pantalla completa (bajo header y barra inferior) */}
-      <div className="absolute inset-x-0 top-0 bottom-[calc(56px+env(safe-area-inset-bottom))] z-0">
+      {/* Mapa a pantalla completa (bajo header y barra inferior): 72 px
+          cubre la altura real del nav inferior (~69 px) + 3 px de aire. */}
+      <div className="absolute inset-x-0 top-0 bottom-[calc(72px+env(safe-area-inset-bottom))] z-0">
         <MapContainer
           center={[center.lat, center.lon]}
           zoom={14}

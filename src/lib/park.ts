@@ -13,6 +13,13 @@
 // ingreso en bici (ACCESOS_CICLISTAS / Gate.ciclistas), restricción
 // cumbre-Tupahue solo FDS y festivos, y plan "Pedalea Seguro"
 // (PEDALEA_SEGURO) vigente desde diciembre de 2026.
+// 2026-11-12: auditoría de la GEOCERCA contra el límite oficial OSM
+// (way/168227059, 536 nodos): cero desviaciones > 20 m en el resto
+// del contorno y sin autointersecciones; única corrección = portería
+// + rotonda del Acceso La Pirámide ahora dentro del polígono (ver
+// comentario en PARK_POLYGON). El motor de ride agrega histéresis de
+// 18 m para que la frontera pegada a caminos reales no alterne
+// «Ingresando/Saliendo» con el ruido del GPS.
 // ============================================================
 
 export const LIMIT_KMH = 30;
@@ -81,7 +88,20 @@ export const PARK_POLYGON: LatLng[] = [
   { lat: -33.391781, lon: -70.606836 }, { lat: -33.391331, lon: -70.60645 }, { lat: -33.390771, lon: -70.604281 },
   { lat: -33.389666, lon: -70.602816 }, { lat: -33.389419, lon: -70.602108 }, { lat: -33.389191, lon: -70.602144 },
   { lat: -33.38939, lon: -70.602947 }, { lat: -33.388881, lon: -70.60267 }, { lat: -33.388581, lon: -70.602289 },
-  { lat: -33.388594, lon: -70.601966 }, { lat: -33.3868, lon: -70.601671 }, { lat: -33.38666, lon: -70.601289 },
+  { lat: -33.388594, lon: -70.601966 }, { lat: -33.3868, lon: -70.601671 },
+  // Portería + rotonda del Acceso La Pirámide DENTRO de la geocerca
+  // (2026-11-12, auditoría de la geocerca): el límite OSM cortaba
+  // 43-62 m antes de la portería y el ciclista llegaba al acceso en
+  // «modo libre». Se envuelve el óvalo de la rotonda (bbox
+  // lat -33.38613..-33.38662 · lon -70.60180..-70.60121) con ~10-20 m
+  // de margen: portería al poniente, norte de la rotonda y salida
+  // oriente dejando la Av. Santa Cruz (ciudad) fuera. El resto del
+  // contorno sigue el límite OSM tal cual.
+  { lat: -33.38642, lon: -70.60193 },
+  { lat: -33.38613, lon: -70.6018 },
+  { lat: -33.38602, lon: -70.6015 },
+  { lat: -33.3861, lon: -70.60115 },
+  { lat: -33.38666, lon: -70.601289 },
   { lat: -33.387751, lon: -70.600866 }, { lat: -33.388312, lon: -70.600223 }, { lat: -33.388902, lon: -70.600245 },
   { lat: -33.389173, lon: -70.600704 }, { lat: -33.389102, lon: -70.601128 }, { lat: -33.388475, lon: -70.601801 },
   { lat: -33.389486, lon: -70.601908 }, { lat: -33.389943, lon: -70.601395 }, { lat: -33.390803, lon: -70.6013 },
@@ -97,10 +117,15 @@ export type Gate = {
   ciclistas?: boolean;
 };
 
-/** Accesos principales donde Parquemet fiscaliza / pide enrolamiento.
- *  Posiciones derivadas del grafo OSM propio: nodo de la calle del
- *  acceso más cercano al borde del polígono (2026-11-11). Los 3
- *  primeros conservan sus coordenadas calibradas originales. */
+/** Accesos del parque. `ciclistas: true` marca los ÚNICOS 4 con
+ *  ingreso en bicicleta (normativa Parquemet nov 2026: Zapadores,
+ *  Pedro de Valdivia Norte, Pío Nono y La Pirámide). Desde esa
+ *  actualización NO se pide credencial/enrolamiento en los accesos:
+ *  el registro QR rige solo para los senderos de enduro desde
+ *  diciembre de 2026 (ver PEDALEA_SEGURO). Posiciones derivadas del
+ *  grafo OSM propio: nodo de la calle del acceso más cercano al
+ *  borde del polígono (2026-11-11). Los 3 primeros conservan sus
+ *  coordenadas calibradas originales. */
 export const GATES: Gate[] = [
   { id: "pio-nono", name: "Acceso Pío Nono", position: { lat: -33.430691, lon: -70.63592 }, ciclistas: true },
   // Acceso Pedro de Valdivia Norte: la portería queda EN EL CRUCE de

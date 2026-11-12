@@ -28,6 +28,37 @@ export function pointInPolygon(p: LatLng, poly: LatLng[]): boolean {
 }
 
 /**
+ * Distancia en metros del punto a la FRONTERA del polígono (la arista
+ * más cercana). Sirve para la histéresis de la geocerca: la frontera
+ * corre pegada a caminos reales (Av. El Cerro, Canal El Carmen,
+ * porterías) y el ruido del GPS alternaba el estado dentro/fuera en
+ * cada fix aunque el punto casi no se moviera. Con la distancia al
+ * borde el motor exige profundidad real para cambiar de lado.
+ * Métrica local aproximada para Santiago (1° lat ≈ 110540 m,
+ * 1° lon ≈ 93500 m · cos 33.41°): error < 0.2 % en la zona del parque.
+ */
+export function distToPolygonM(p: LatLng, poly: LatLng[]): number {
+  const KLAT = 110540;
+  const KLON = 93500 * Math.cos(toRad(33.41)); // latitud del parque
+  let best = Infinity;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const ax = (poly[j].lon - p.lon) * KLON;
+    const ay = (poly[j].lat - p.lat) * KLAT;
+    const bx = (poly[i].lon - p.lon) * KLON;
+    const by = (poly[i].lat - p.lat) * KLAT;
+    const dx = bx - ax;
+    const dy = by - ay;
+    const L2 = dx * dx + dy * dy;
+    const t = L2 === 0 ? 0 : Math.max(0, Math.min(1, -(ax * dx + ay * dy) / L2));
+    const px = ax + t * dx;
+    const py = ay + t * dy;
+    const d = Math.hypot(px, py);
+    if (d < best) best = d;
+  }
+  return best;
+}
+
+/**
  * Filtro de Kalman escalar para suavizar la velocidad (m/s).
  * - Q: ruido de proceso (aceleración del ciclista)
  * - R: ruido de medición (GPS)

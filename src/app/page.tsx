@@ -180,7 +180,7 @@ export default function Home() {
   );
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col">
+    <div className="min-h-dvh bg-background text-foreground flex flex-col">
       {/* Header compacto (brief §2.1): marca · GPS · plan · menú */}
       <header className="sticky top-0 z-40 bg-background/95 backdrop-blur border-b border-border">
         <div className="max-w-md mx-auto px-4 py-3 flex items-center gap-3">
@@ -214,7 +214,7 @@ export default function Home() {
       <main
         className={
           screen === "explorar"
-            ? "flex min-h-0 flex-1 flex-col w-full max-w-md mx-auto"
+            ? "flex min-h-0 flex-1 flex-col w-full max-w-md mx-auto overflow-hidden"
             : "flex-1 w-full max-w-md mx-auto px-4 pt-4 pb-28"
         }
       >
