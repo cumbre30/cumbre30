@@ -63,11 +63,9 @@ export const APPS: AppCatalogo[] = [
     descripcionBreve:
       "Cumbre30 es un ciclocomputador de apoyo al ciclista: registra tus pedaleos con GPS y te acompaña con avisos informativos del Parque Metropolitano de Santiago, como el límite de 30 km/h. Todo funciona sin señal: descarga la app y pedalea con GPS aunque no tengas datos móviles.",
     imagenes: [
-      { src: "/apps/cumbre30/01-ride.jpg", alt: "Pantalla Ride de Cumbre30: mapa en vivo, velocidad y botón para iniciar el ride" },
-      { src: "/apps/cumbre30/02-explorar.jpg", alt: "Explorar: mapa del Parque Metropolitano con búsqueda de direcciones y capas" },
-      { src: "/apps/cumbre30/03-desafios.jpg", alt: "Desafíos y recompensas de Cumbre30 con niveles y pines" },
-      { src: "/apps/cumbre30/04-qr.jpg", alt: "Credencial QR Pedalea Seguro (Parquemet) guardada en Cumbre30" },
-      { src: "/apps/cumbre30/05-perfil.jpg", alt: "Perfil de Cumbre30 con inicio de sesión y creación de cuenta" },
+      { src: "/apps/cumbre30/01-ride.jpg", alt: "Pantalla Ride del ciclocomputador Cumbre30: velocidad, mapa en vivo, botón SOS y estadísticas del ride" },
+      { src: "/apps/cumbre30/02-mapa.jpg", alt: "Mapa de Cumbre30 con búsqueda de direcciones y capas de rutas, senderos, accesos y puntos de interés" },
+      { src: "/apps/cumbre30/03-perfil.jpg", alt: "Perfil de Cumbre30 con inicio de sesión y creación de cuenta para guardar tus rides y logros" },
     ],
     version: APP_VERSION,
     versionCode: APP_VERSION_CODE,
@@ -89,9 +87,13 @@ export const APPS: AppCatalogo[] = [
       },
       {
         titulo: "Novedades de esta versión",
+        // Sólo la última versión + build, con las mejoras de la app en
+        // resumen (sin ajustes de operación/web). La versión sale de
+        // appVersion.ts para que quede sincronizada sola.
         cuerpo:
-          "v1.8.7 (versionCode 33):\n• Textos revisados: Cumbre30 se presenta como ciclocomputador de apoyo al ciclista; la información del Parque Metropolitano es referencial y no oficial\n• Mejoras de estilo en las páginas legales de la web\n\nv1.8.6 (versionCode 32):\n• Ahora puedes entrar con tu cuenta Cumbre30 de la web (cumbregeo.cl) usando el mismo correo y contraseña: la cuenta se copia al teléfono con tu perfil y logros\n• Nota en el inicio de sesión para cuentas creadas en la web\n\nv1.8.5 (versionCode 31):\n• Corrección importante: el inicio de sesión (Google y correo) dentro de la app Android vuelve a funcionar; las cuentas se guardan en tu teléfono\n• Preparación para Google Play: versión de tienda con compras dentro de la app\n\nv1.8.4 (versionCode 30):\n• Aviso por voz al entrar a las bajadas fiscalizadas de 30 km/h y avisos de ingreso/cierre del parque según horario\n• Nueva capa de mapas: Paseo Metropolitano (8 tramos mixtos peatonales y ciclistas)\n• Desafíos: nueva Serie Metropolitana (El anillo, Ida y vuelta, Cuatro anillos) y reto diario Vuelta al anillo\n• Teléfono de emergencias del parque actualizado a 1466 (línea oficial Parquemet)\n• Trazados MTB 1 y MTB 2 afinados: bajan los senderos reales completos\n• Estadísticas Pro afinadas y mejoras de estabilidad\n\n" +
-          "v1.8.3 (versionCode 29):\n• Temas de color para toda la app y pantalla ride personalizable: velocímetro digital, arco, dial o aguja, en tamaño normal, grande o gigante (Cumbre30 Pro)\n• SOS ampliado: Parquemet, Municipalidad de Providencia y Salud Responde además de 133, 131 y 132\n• Datos oficiales del parque: accesos, cumbres, senderos enduro y horario de ciclistas\n• Descenso limpio: resumen cuando recorres el parque respetando los 30 km/h\n• Mejoras de estabilidad\n\nv1.8.2 (versionCode 28):\n• Nueva marca: Cumbre GEO - sitio oficial cumbregeo.cl\n• Compra Pro con entrega automática: tu código llega solo al correo tras pagar\n• Mejoras de estabilidad",
+          `v${APP_VERSION} (${APP_VERSION_CODE}):\n` +
+          "• Presentación actualizada en toda la app: Cumbre30 ahora se describe como ciclocomputador de apoyo al ciclista y la información del Parque Metropolitano se muestra como referencial\n" +
+          "• Textos revisados en la pantalla de ride, alertas SOS, ayuda y en los archivos que exporta la app (GPX y PDF del ride)",
       },
     ],
     // APK directo: ACTIVO - descarga desde Google Drive (link del cliente,

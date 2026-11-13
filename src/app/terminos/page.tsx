@@ -5,14 +5,14 @@ import Link from "next/link";
 // /terminos - Términos y Condiciones de Cumbre30.
 // Página estática (sin APIs dinámicas) para que también exista
 // dentro del export del APK. Mismo formato que /privacidad.
-// Aclara la independencia de Cumbre GEO respecto a Parquemet
-// y demás marcas e instituciones mencionadas en la app.
+// Incluye el Aviso de No Afiliación respecto a Parquemet y demás
+// marcas e instituciones mencionadas en la app.
 // ============================================================
 
 export const metadata: Metadata = {
   title: "Términos y Condiciones - Cumbre30",
   description:
-    "Términos de uso de Cumbre30: independencia de marcas (Parquemet y otros), uso responsable del ciclista, cuentas, plan Pro, propiedad intelectual y responsabilidad.",
+    "Términos de uso de Cumbre30: aviso de no afiliación (Parquemet y otras marcas), uso responsable del ciclista, cuentas, plan Pro, propiedad intelectual y responsabilidad.",
   // Favicon de esta página: logo de la app Cumbre30 (el resto del sitio
   // usa la marca Cumbre GEO definida en layout.tsx).
   icons: {
@@ -60,18 +60,19 @@ export default function TerminosPage() {
         </p>
       </Section>
 
-      <Section title="Somos independientes: sin relación con Parquemet ni otras marcas">
+      <Section title="Aviso de No Afiliación">
         <p>
-          <span className="font-medium text-foreground">Cumbre GEO y Cumbre30 son productos independientes.</span> No
-          tenemos ninguna relación, acuerdo, patrocinio, respaldo ni representación con el{" "}
-          <span className="font-medium text-foreground">Parque Metropolitano de Santiago (Parquemet)</span> ni con
-          ninguna otra institución pública o empresa privada.
+          Cumbre30 es una herramienta digital desarrollada de forma independiente con fines exclusivamente
+          informativos y recreativos. No tenemos ninguna relación, acuerdo, patrocinio, respaldo ni representación
+          oficial con el <span className="font-medium text-foreground">Parque Metropolitano de Santiago (Parquemet)</span>,
+          ni con ninguna otra institución pública o empresa privada mencionada en la plataforma.
         </p>
         <p>
-          Los nombres, marcas, logotipos e instituciones que aparecen en la app o en este sitio (Parquemet, Pedalea
-          Seguro, Carabineros de Chile, Salud Responde, Google, Android, Google Play, Mercado Pago, OpenStreetMap y
-          otros) son propiedad de sus respectivos titulares y se mencionan únicamente con fines informativos o de
-          compatibilidad. Ninguna de esas marcas respalda ni es responsable de Cumbre30.
+          Los nombres “Parque Metropolitano de Santiago” y “Parquemet”, así como todos los demás nombres
+          comerciales, marcas, logotipos, servicios y atracciones referenciados en esta aplicación, son marcas
+          registradas o propiedad intelectual de sus respectivos titulares estatales o privados. Su mención en
+          Cumbre30 tiene un carácter meramente descriptivo y referencial para orientar y ubicar geográficamente las
+          rutas y puntos de interés del Cerro San Cristóbal, sin que ello implique vínculo oficial alguno.
         </p>
       </Section>
 
