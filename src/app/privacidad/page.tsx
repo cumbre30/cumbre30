@@ -18,7 +18,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   return (
     <section className="mt-6">
       <h2 className="text-base font-bold text-foreground">{title}</h2>
-      <div className="mt-2 space-y-2 text-[13.5px] leading-relaxed text-muted-foreground">{children}</div>
+      <div className="mt-2 space-y-2 text-justify text-[13.5px] leading-relaxed text-muted-foreground">{children}</div>
     </section>
   );
 }
@@ -28,14 +28,14 @@ export default function PrivacidadPage() {
     <main className="mx-auto min-h-dvh w-full max-w-2xl px-5 py-10">
       <p className="text-[11px] font-bold uppercase tracking-widest text-emerald-600 dark:text-emerald-400">Cumbre30</p>
       <h1 className="mt-1 text-2xl font-bold text-foreground">Política de Privacidad</h1>
-      <p className="mt-2 text-sm text-muted-foreground">
-        Ciclocomputador para pedalear el Cerro San Cristóbal con el límite de 30 km/h. Última actualización:
-        noviembre de 2026.
+      <p className="mt-2 text-sm text-justify text-muted-foreground">
+        Ciclocomputador de apoyo al ciclista, con avisos informativos del Parque Metropolitano de Santiago. Última
+        actualización: noviembre de 2026.
       </p>
 
       <Section title="Quién es responsable">
         <p>
-          Cumbre30 es una aplicación independiente de apoyo al ciclista del Parque Metropolitano de Santiago. Para
+          Cumbre30 es una aplicación independiente de apoyo al ciclista. Para
           cualquier consulta sobre tus datos escribe a{" "}
           <a href="mailto:contacto.cumbre30@gmail.com" className="font-medium text-emerald-600 underline-offset-2 hover:underline dark:text-emerald-400">
             contacto.cumbre30@gmail.com
@@ -106,7 +106,7 @@ export default function PrivacidadPage() {
 
       <Section title="Eliminación de cuenta y datos">
         <p>
-          Puedes eliminar tu cuenta y todos sus datos en cualquier momento desde la app (Perfil → Mis datos →
+          Puedes eliminar tu cuenta y todos sus datos en cualquier momento desde la app (Perfil › Mis datos ›
           Eliminar cuenta) o desde la página{" "}
           <Link href="/eliminar-cuenta" className="font-medium text-emerald-600 underline-offset-2 hover:underline dark:text-emerald-400">
             Eliminar cuenta
@@ -133,8 +133,8 @@ export default function PrivacidadPage() {
 
       <Section title="Términos de uso">
         <p>
-          Las reglas del servicio —independencia de marcas como Parquemet, uso responsable, cuentas, plan Pro y
-          responsabilidad— están en los{" "}
+          Las reglas del servicio (independencia de marcas como Parquemet, uso responsable, cuentas, plan Pro y
+          responsabilidad) están en los{" "}
           <Link href="/terminos" className="font-medium text-emerald-600 underline-offset-2 hover:underline dark:text-emerald-400">
             Términos y Condiciones
           </Link>

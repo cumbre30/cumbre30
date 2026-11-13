@@ -13,13 +13,19 @@ export const metadata: Metadata = {
   title: "Términos y Condiciones - Cumbre30",
   description:
     "Términos de uso de Cumbre30: independencia de marcas (Parquemet y otros), uso responsable del ciclista, cuentas, plan Pro, propiedad intelectual y responsabilidad.",
+  // Favicon de esta página: logo de la app Cumbre30 (el resto del sitio
+  // usa la marca Cumbre GEO definida en layout.tsx).
+  icons: {
+    icon: [{ url: "/icons/icon-192.png", type: "image/png" }],
+    apple: "/icons/icon-192.png",
+  },
 };
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="mt-6">
       <h2 className="text-base font-bold text-foreground">{title}</h2>
-      <div className="mt-2 space-y-2 text-[13.5px] leading-relaxed text-muted-foreground">{children}</div>
+      <div className="mt-2 space-y-2 text-justify text-[13.5px] leading-relaxed text-muted-foreground">{children}</div>
     </section>
   );
 }
@@ -27,9 +33,18 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 export default function TerminosPage() {
   return (
     <main className="mx-auto min-h-dvh w-full max-w-2xl px-5 py-10">
+      {/* Logo de la app Cumbre30 (a pedido del cliente: esta página lleva
+          la marca de la app, no la del sitio). */}
+      <img
+        src="/icons/icon-512.png"
+        alt="Logo de Cumbre30"
+        width={56}
+        height={56}
+        className="mb-4 rounded-2xl"
+      />
       <p className="text-[11px] font-bold uppercase tracking-widest text-emerald-600 dark:text-emerald-400">Cumbre30</p>
       <h1 className="mt-1 text-2xl font-bold text-foreground">Términos y Condiciones</h1>
-      <p className="mt-2 text-sm text-muted-foreground">
+      <p className="mt-2 text-sm text-justify text-muted-foreground">
         Las reglas de uso de Cumbre30 y de la web cumbregeo.cl. Última actualización: noviembre de 2026.
       </p>
 
@@ -40,8 +55,8 @@ export default function TerminosPage() {
           <a href="mailto:contacto.cumbre30@gmail.com" className="font-medium text-emerald-600 underline-offset-2 hover:underline dark:text-emerald-400">
             contacto.cumbre30@gmail.com
           </a>{" "}
-          o contáctanos por WhatsApp al +56 9 4296 1619. Al descargar, instalar o usar Cumbre30 —en el teléfono o en la
-          web— aceptas estos términos.
+          o contáctanos por WhatsApp al +56 9 4296 1619. Al descargar, instalar o usar Cumbre30, ya sea en el
+          teléfono o en la web, aceptas estos términos.
         </p>
       </Section>
 
@@ -53,17 +68,19 @@ export default function TerminosPage() {
           ninguna otra institución pública o empresa privada.
         </p>
         <p>
-          Los nombres, marcas, logotipos e instituciones que aparecen en la app o en este sitio —Parquemet, Pedalea
+          Los nombres, marcas, logotipos e instituciones que aparecen en la app o en este sitio (Parquemet, Pedalea
           Seguro, Carabineros de Chile, Salud Responde, Google, Android, Google Play, Mercado Pago, OpenStreetMap y
-          otros— son propiedad de sus respectivos titulares y se mencionan únicamente con fines informativos o de
+          otros) son propiedad de sus respectivos titulares y se mencionan únicamente con fines informativos o de
           compatibilidad. Ninguna de esas marcas respalda ni es responsable de Cumbre30.
         </p>
       </Section>
 
       <Section title="Qué es Cumbre30 y qué no es">
         <p>
-          Cumbre30 es un ciclocomputador personal de apoyo para pedalear el Cerro San Cristóbal: registra tu ride con
-          GPS, muestra tu velocidad y estadísticas, entrega avisos informativos y guarda tu credencial Pedalea Seguro.
+          Cumbre30 es un ciclocomputador personal de apoyo al ciclista: registra tu ride con GPS, muestra tu
+          velocidad y estadísticas, entrega avisos informativos y guarda tu credencial Pedalea Seguro. Puedes usarlo
+          donde quieras pedalear; además incluye información referencial del Parque Metropolitano de Santiago, como
+          el límite de 30 km/h, sus accesos y sus horarios.
         </p>
         <p>
           <span className="font-medium text-foreground">No es un instrumento oficial de medición ni un canal oficial
@@ -135,7 +152,7 @@ export default function TerminosPage() {
         <p>
           Cumbre30 se entrega “tal cual”, sin garantías de disponibilidad o exactitud. Haremos nuestro mejor esfuerzo
           para que funcione bien, pero no respondemos por daños derivados de su uso o de su indisponibilidad,
-          incluyendo —a título ejemplificativo— accidentes, multas, rides no registrados, pérdida de datos o decisiones
+          incluyendo, a título ejemplificativo, accidentes, multas, rides no registrados, pérdida de datos o decisiones
           tomadas confiando en la información de la app. La ley chilena rige estos términos y los tribunales de
           Santiago son competentes para cualquier disputa.
         </p>
@@ -143,7 +160,7 @@ export default function TerminosPage() {
 
       <Section title="Fin del servicio y eliminación de cuenta">
         <p>
-          Puedes dejar de usar la app y eliminar tu cuenta cuando quieras desde Perfil → Mis datos → Eliminar cuenta, o
+          Puedes dejar de usar la app y eliminar tu cuenta cuando quieras desde Perfil › Mis datos › Eliminar cuenta, o
           desde la página{" "}
           <Link href="/eliminar-cuenta" className="font-medium text-emerald-600 underline-offset-2 hover:underline dark:text-emerald-400">
             Eliminar cuenta

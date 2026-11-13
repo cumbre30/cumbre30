@@ -429,7 +429,7 @@ export default function GeoSite({
                   {appPlanes.nombre} <span style={{ color: "var(--acento)" }}>Pro</span>
                 </h3>
                 <p style={{ color: "var(--gris)", margin: "4px 0 0" }}>
-                  El ciclocomputador del cerro San Cristóbal, con todo desbloqueado.
+                  El ciclocomputador de apoyo al ciclista, con todo desbloqueado.
                 </p>
 
                 <p style={{ fontSize: "3rem", fontWeight: 800, color: "var(--verde-osc)", margin: "20px 0 0", lineHeight: 1 }}>

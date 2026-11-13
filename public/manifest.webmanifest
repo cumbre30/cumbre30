@@ -1,8 +1,8 @@
 {
   "id": "cumbre30",
-  "name": "Cumbre30 - Ciclocomputador Cerro San Cristóbal",
+  "name": "Cumbre30 - Ciclocomputador de apoyo al ciclista",
   "short_name": "Cumbre30",
-  "description": "Ciclocomputador con límite de velocidad 30 km/h del Parque Metropolitano, alertas de voz, zonas de riesgo, sensores Bluetooth y credencial de enrolamiento.",
+  "description": "Ciclocomputador de apoyo al ciclista, con avisos informativos del Parque Metropolitano (límite 30 km/h), alertas de voz, zonas de riesgo, sensores Bluetooth y credencial de enrolamiento.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

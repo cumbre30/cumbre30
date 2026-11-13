@@ -21,7 +21,7 @@ export function buildRideGpxBlob(r: RideSummary): Blob | null {
   if (!track || track.length < 2) return null;
 
   const day = r.dateISO.slice(0, 10);
-  const name = `Cumbre30 - Cerro San Cristóbal ${day}`;
+  const name = `Cumbre30 - Ride ${day}`;
   const desc =
     `${r.distanceKm.toFixed(1)} km · máx ${r.maxKmh.toFixed(1)} km/h · ` +
     `prom ${r.avgKmh.toFixed(1)} km/h · +${Math.round(r.gainM)} m · ` +

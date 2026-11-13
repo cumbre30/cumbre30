@@ -96,7 +96,7 @@ export function licenseEmailHtml(email: string, code: string): string {
   <div style="font-family:Arial,Helvetica,sans-serif;max-width:520px;margin:0 auto;color:#241A11">
     <p style="text-align:center;letter-spacing:.35em;font-weight:900;margin:24px 0 2px">CUMBRE<span style="font-weight:300">GEO</span></p>
     <h1 style="text-align:center;font-size:22px;margin:16px 0 6px">Tu código Cumbre30 Pro 🚴</h1>
-    <p style="text-align:center;font-size:14px;color:#5a5248">¡Gracias por apoyar la app del cerro San Cristóbal!</p>
+    <p style="text-align:center;font-size:14px;color:#5a5248">¡Gracias por apoyar Cumbre30, tu ciclocomputador de apoyo al ciclista!</p>
     <div style="background:#F2EAD9;border:1.5px solid #35B85F;border-radius:14px;padding:18px;text-align:center;margin:20px 0">
       <p style="margin:0;font-size:12px;color:#8A6A4F;text-transform:uppercase;letter-spacing:.2em">Código · pago único · para siempre</p>
       <p style="margin:10px 0 0;font-size:24px;font-weight:900;letter-spacing:.08em;font-family:'Courier New',monospace">${code}</p>

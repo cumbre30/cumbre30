@@ -56,7 +56,7 @@ export async function buildShareImage(opts: {
   ctx.fillText("30", 60 + ctx.measureText("Cumbre").width + 18, 190);
   ctx.fillStyle = "#a1a1aa";
   ctx.font = "500 40px system-ui, sans-serif";
-  ctx.fillText("Ciclocomputador · Cerro San Cristóbal", 60, 260);
+  ctx.fillText("Ciclocomputador de apoyo al ciclista", 60, 260);
 
   // Titular
   ctx.fillStyle = "#fafafa";

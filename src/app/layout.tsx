@@ -16,9 +16,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Cumbre30 - Ciclocomputador Cerro San Cristóbal",
+  title: "Cumbre30 - Ciclocomputador de apoyo al ciclista",
   description:
-    "Ciclocomputador en el celular con geofencing del Parque Metropolitano: límite 30 km/h, alertas de voz y vibración, zonas de riesgo y credencial digital Pedalea Seguro (QR de Parquemet).",
+    "Ciclocomputador de apoyo al ciclista en el celular: registra tus pedaleos con GPS y te acompaña con avisos informativos del Parque Metropolitano de Santiago (límite 30 km/h), alertas de voz y vibración, zonas de riesgo y credencial digital Pedalea Seguro (QR de Parquemet).",
   applicationName: "Cumbre30",
   manifest: "/manifest.webmanifest",
   appleWebApp: {

@@ -167,7 +167,7 @@ export async function buildRidePdf(r: RideSummary, identity?: RideIdentity): Pro
   center("CUMBRE30 · APLICACIÓN DE REGISTRO DE CICLISMO", 8, false, [120, 120, 120], 4.4);
   center("CONSTANCIA DE REGISTRO DE TRAYECTO EN BICICLETA", 14, true, [10, 10, 10], 6.4);
   center(
-    "Ámbito: Parque Metropolitano de Santiago (Cerro San Cristóbal) · límite de velocidad para bicicletas: 30 km/h",
+    "Ámbito informativo: Parque Metropolitano de Santiago · límite de velocidad para bicicletas: 30 km/h",
     9, false, [100, 100, 100], 4.6
   );
   doc.setDrawColor(30, 30, 30);

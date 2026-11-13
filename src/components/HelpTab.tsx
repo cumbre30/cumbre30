@@ -120,7 +120,7 @@ export function HelpTab() {
           <Mountain className="h-4 w-4 text-emerald-500" /> ¿Gestionas un parque o ciclovía?
         </div>
         <p className="text-[13px] leading-relaxed text-muted-foreground">
-          Cumbre30 nació para el Cerro San Cristóbal, pero el motor es reutilizable: geocercas, límite
+          Cumbre30 nació como ciclocomputador de apoyo al ciclista, y el motor es reutilizable: geocercas, límite
           de velocidad con avisos, constancias y una app propia para tu parque. Cuéntanos tu caso y
           armamos un prototipo.
         </p>
@@ -193,7 +193,7 @@ export function HelpTab() {
       )}
 
       <p className="text-center text-[10.5px] text-muted-foreground/60">
-        Cumbre30 · Ciclocomputador del Cerro San Cristóbal · Parque Metropolitano de Santiago
+        Cumbre30 · Ciclocomputador de apoyo al ciclista · cumbregeo.cl
       </p>
     </div>
   );

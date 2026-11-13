@@ -206,7 +206,7 @@ export function RideView(p: Props) {
 
   const compartirUbicacion = async () => {
     if (!p.position) return;
-    const txt = `Estoy pedaleando en el cerro San Cristóbal. Mi ubicación: https://maps.google.com/?q=${p.position.lat.toFixed(5)},${p.position.lon.toFixed(5)}`;
+    const txt = `Estoy pedaleando. Mi ubicación: https://maps.google.com/?q=${p.position.lat.toFixed(5)},${p.position.lon.toFixed(5)}`;
     try {
       if (navigator.share) {
         await navigator.share({ title: "Mi ubicación - Cumbre30", text: txt });

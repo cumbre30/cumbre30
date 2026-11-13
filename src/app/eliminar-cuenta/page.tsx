@@ -20,7 +20,7 @@ export default function EliminarCuentaPage() {
       <p className="text-[11px] font-bold uppercase tracking-widest text-emerald-600 dark:text-emerald-400">Cumbre30</p>
       <h1 className="mt-1 text-2xl font-bold text-foreground">Eliminar cuenta</h1>
 
-      <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
+      <p className="mt-4 text-sm leading-relaxed text-justify text-muted-foreground">
         Al eliminar tu cuenta se borran definitivamente tu correo, tu nombre de usuario, tus kilómetros, logros,
         pines y todo el historial de viajes asociado. Si eras el único usuario del dispositivo, también se elimina la
         licencia Pro guardada en él. La acción es irreversible y no podemos recuperar nada después.
@@ -28,16 +28,16 @@ export default function EliminarCuentaPage() {
 
       <div className="mt-8 rounded-lg border border-border bg-card/60 p-5">
         <h2 className="text-sm font-bold text-foreground">Eliminar desde la app (recomendado)</h2>
-        <p className="mt-2 text-[13.5px] leading-relaxed text-muted-foreground">
-          En la app Android o web: abre <span className="font-medium text-foreground">Perfil</span> →{" "}
-          <span className="font-medium text-foreground">Mis datos</span> → al final encontrarás la zona{" "}
+        <p className="mt-2 text-[13.5px] leading-relaxed text-justify text-muted-foreground">
+          En la app Android o web: abre <span className="font-medium text-foreground">Perfil</span> ›{" "}
+          <span className="font-medium text-foreground">Mis datos</span> › al final encontrarás la zona{" "}
           <span className="font-medium text-foreground">“Eliminar cuenta”</span> con confirmación en dos pasos.
         </p>
       </div>
 
       <div className="mt-4 rounded-lg border border-border bg-card/60 p-5">
         <h2 className="text-sm font-bold text-foreground">Eliminar desde la web ahora</h2>
-        <p className="mt-2 text-[13.5px] leading-relaxed text-muted-foreground">
+        <p className="mt-2 text-[13.5px] leading-relaxed text-justify text-muted-foreground">
           Si tienes sesión iniciada en la web con la cuenta que quieres borrar, puedes hacerlo aquí mismo:
         </p>
         <div className="mt-3">
@@ -45,7 +45,7 @@ export default function EliminarCuentaPage() {
         </div>
       </div>
 
-      <p className="mt-6 text-[13px] leading-relaxed text-muted-foreground">
+      <p className="mt-6 text-[13px] leading-relaxed text-justify text-muted-foreground">
         ¿Problemas o prefieres que lo hagamos nosotros? Escríbenos a{" "}
         <a href="mailto:contacto.cumbre30@gmail.com" className="font-medium text-emerald-600 hover:underline dark:text-emerald-400">
           contacto.cumbre30@gmail.com

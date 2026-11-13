@@ -191,7 +191,7 @@ export default function Home() {
             <h1 className="font-bold leading-tight tracking-tight">
               Cumbre<span className="text-emerald-600 dark:text-emerald-400">30</span>
             </h1>
-            <p className="text-[11px] text-muted-foreground leading-tight">Cerro San Cristóbal</p>
+            <p className="text-[11px] text-muted-foreground leading-tight truncate">Ciclocomputador de apoyo al ciclista</p>
           </div>
           <div className="ml-auto flex items-center gap-2">
             <GpsChip status={ride.gpsStatus} simRunning={status === "running" && ride.source === "sim"} />
