@@ -4,18 +4,25 @@
 #
 # Flujo completo, idempotente, sobrevive reciclajes del sandbox:
 #   1. Export estático web (STATIC_EXPORT=1) → build-static/
-#      · Las rutas API server-only (api/mp, api/pro) se mueven a
-#        un dir temporal durante el export y se restauran con trap:
-#        en el APK no sirven (la app llama a cumbregeo.cl) y sin
-#        force-static rompen `output: export`.
+#      · NEXT_PUBLIC_STATIC=1: auth y logros por localStorage dentro
+#        del APK (¡CRÍTICO! sin esta bandera isOfflineMode() es false,
+#        el login por correo y Google quedan rotos en el APK - build
+#        30 salió así; el fix entró en build 31).
+#      · NEXT_PUBLIC_PLAY_BUILD=PLAY_BUILD (default 0): build para
+#        Google Play (1) usa Play Billing y oculta pagos externos.
+#      · Las rutas API server-only se mueven a un dir temporal durante
+#        el export y se restauran con trap: en el APK no sirven
+#        (la app llama a cumbregeo.cl) y sin force-static rompen
+#        `output: export`.
 #   2. npx cap sync android (copia build-static + plugins nativos)
 #   3. Gradle assembleRelease + bundleRelease (firma release:
 #      android/cumbre30-release.keystore vía keystore.properties)
 #
 # Requisitos: bash scripts/setup-android-env.sh (JDK 21 + SDK).
 #
-# Uso:  bash scripts/build-android.sh
-# Salida: download/cumbre30-v<ver>-code<code>.apk / .aab
+# Uso:  PLAY_BUILD=0 bash scripts/build-android.sh   → APK directa (pagos web)
+#       PLAY_BUILD=1 bash scripts/build-android.sh   → variante Play Store
+# Salida: download/cumbre30-v<ver>-code<code>[-play].apk / .aab
 # ============================================================
 set -euo pipefail
 cd /home/z/my-project
@@ -48,8 +55,12 @@ restore_api() {
 trap restore_api EXIT
 
 mv "$API_DIR" "$TMP_API/"
-echo "[1/3] Export estático web (src/app/api excluida temporalmente)..."
-STATIC_EXPORT=1 npx next build
+PLAY_BUILD="${PLAY_BUILD:-0}"
+ARTIFACT_SUFFIX=""
+if [ "$PLAY_BUILD" = "1" ]; then ARTIFACT_SUFFIX="-play"; fi
+
+echo "[1/3] Export estático web (STATIC + NEXT_PUBLIC_STATIC=1 + PLAY_BUILD=$PLAY_BUILD)..."
+NEXT_PUBLIC_STATIC=1 STATIC_EXPORT=1 NEXT_PUBLIC_PLAY_BUILD="$PLAY_BUILD" npx next build
 restore_api
 trap - EXIT
 [ -f build-static/index.html ] || { echo "ERROR: build-static/index.html no existe"; exit 1; }
@@ -73,8 +84,8 @@ AAB="$PWD/app/build/outputs/bundle/release/app-release.aab"
 cd ..
 VERSION=$(rg -o 'versionName "([^"]+)"' -r '$1' android/app/build.gradle)
 CODE=$(rg -o 'versionCode ([0-9]+)' -r '$1' android/app/build.gradle)
-OUT_APK="download/cumbre30-v${VERSION}-code${CODE}.apk"
-OUT_AAB="download/cumbre30-v${VERSION}-code${CODE}.aab"
+OUT_APK="download/cumbre30-v${VERSION}-code${CODE}${ARTIFACT_SUFFIX}.apk"
+OUT_AAB="download/cumbre30-v${VERSION}-code${CODE}${ARTIFACT_SUFFIX}.aab"
 cp "$APK" "$OUT_APK"
 cp "$AAB" "$OUT_AAB"
 

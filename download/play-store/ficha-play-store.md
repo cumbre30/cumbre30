@@ -17,7 +17,7 @@ están en esta misma carpeta (`capturas/`, `feature-graphic-1024x500.png`,
 | Correo de contacto | contacto.cumbre30@gmail.com |
 | Teléfono | +56 9 4296 1619 (WhatsApp) |
 | Sitio web | **https://cumbregeo.cl** (redirige a `/geo`, el sitio de Cumbre GEO: apps, detalles y planes) |
-| Versión a subir | v1.8.4 (versionCode 30) - AAB listo: `cumbre30-v1.8.4-code30.aab` (generado con `bash scripts/build-android.sh`, firma release) |
+| Versión a subir | v1.8.5 (versionCode 31) - AAB listo: `cumbre30-v1.8.5-code31-play.aab` (generado con `PLAY_BUILD=1 bash scripts/build-android.sh`, firma release) |
 
 ## Descripción corta (≤80 caracteres)
 
@@ -160,11 +160,19 @@ política de Google Play para funciones digitales):
    `POST /api/pro/send-code`; manual de última instancia: `gen-license.mjs`.
 3. **Nada de links de compra dentro de la app**: Planes muestra los pasos
    ("paga en la web oficial → recibe código → actívalo aquí") sin enlace;
-   HelpTab conserva contacto de soporte (permitido). El AAB lo genera
-   `PLAY_BUILD=1 bash scripts/export-web.sh` antes de `npx cap sync android`
-   y `bundleRelease`; el APK directo va sin el flag (assembleDebug).
+   HelpTab conserva contacto de soporte (permitido). El AAB de Play lo genera
+   `PLAY_BUILD=1 bash scripts/build-android.sh` (export + sync + bundleRelease en
+   un solo paso, con NEXT_PUBLIC_STATIC=1 incluido desde build 31); el APK directo
+   va con PLAY_BUILD=0.
 
 ## Notas de la versión (para el release de Play)
+
+v1.8.5 (versionCode 31):
+
+```
+• Corrección importante: el inicio de sesión (Google y correo) dentro de la app Android vuelve a funcionar; las cuentas se guardan en tu teléfono
+• Preparación para Google Play: versión de tienda con compras dentro de la app
+```
 
 v1.8.4 (versionCode 30):
 
