@@ -87,6 +87,7 @@ export const APPS: AppCatalogo[] = [
       {
         titulo: "Novedades de esta versión",
         cuerpo:
+          "v1.8.4 (versionCode 30):\n• Aviso por voz al entrar a las bajadas fiscalizadas de 30 km/h y avisos de ingreso/cierre del parque según horario\n• Nueva capa de mapas: Paseo Metropolitano (8 tramos mixtos peatonales y ciclistas)\n• Desafíos: nueva Serie Metropolitana (El anillo, Ida y vuelta, Cuatro anillos) y reto diario Vuelta al anillo\n• Teléfono de emergencias del parque actualizado a 1466 (línea oficial Parquemet)\n• Trazados MTB 1 y MTB 2 afinados: bajan los senderos reales completos\n• Estadísticas Pro afinadas y mejoras de estabilidad\n\n" +
           "v1.8.3 (versionCode 29):\n• Temas de color para toda la app y pantalla ride personalizable: velocímetro digital, arco, dial o aguja, en tamaño normal, grande o gigante (Cumbre30 Pro)\n• SOS ampliado: Parquemet, Municipalidad de Providencia y Salud Responde además de 133, 131 y 132\n• Datos oficiales del parque: accesos, cumbres, senderos enduro y horario de ciclistas\n• Descenso limpio: resumen cuando recorres el parque respetando los 30 km/h\n• Mejoras de estabilidad\n\nv1.8.2 (versionCode 28):\n• Nueva marca: Cumbre GEO - sitio oficial cumbregeo.cl\n• Compra Pro con entrega automática: tu código llega solo al correo tras pagar\n• Mejoras de estabilidad",
       },
     ],

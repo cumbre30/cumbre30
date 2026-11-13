@@ -64,8 +64,9 @@ echo "[3/3] Gradle assembleRelease + bundleRelease (firma release)..."
 cd android
 ./gradlew assembleRelease bundleRelease --no-daemon --init-script "$GRADLE_INIT"
 
-APK="app/build/outputs/apk/release/app-release.apk"
-AAB="app/build/outputs/bundle/release/app-release.aab"
+# Rutas ABSOLUTAS: el bloque de copia corre tras `cd ..`
+APK="$PWD/app/build/outputs/apk/release/app-release.apk"
+AAB="$PWD/app/build/outputs/bundle/release/app-release.aab"
 [ -f "$APK" ] || { echo "ERROR: no se generó $APK"; exit 1; }
 [ -f "$AAB" ] || { echo "ERROR: no se generó $AAB"; exit 1; }
 

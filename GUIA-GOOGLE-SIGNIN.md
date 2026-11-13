@@ -99,7 +99,7 @@ o simplemente pídeme el rebuild cuando cambies el Client ID.
 |---|---|
 | "Not implemented" al tocar el botón | APK anterior a la v1.4.1 (los plugins nativos se registraban tarde). Instala la v1.4.1+. |
 | Al elegir la cuenta la app se cierra (o "vuelve" a otra app como Descargas) | APK anterior a la v1.4.2: el callback recibía un `Intent` en vez del `ActivityResult` de Capacitor 8 y el app crasheaba al recibir la respuesta. Instala la v1.4.2+. |
-| "Google no reconoce esta app (código 10)" | El SHA-1 o el paquete no coinciden. Revisa el paso 3a (debe ser el mismo proyecto que el client Web). |
+| "Google no reconoce esta app (código 10)" | El SHA-1 o el paquete no coinciden. Desde v1.8.3 las APK se firman con el **keystore release** (`cumbre30-release.keystore`, SHA-1 `96:29:F6:76:0F:A6:D8:99:42:42:4A:01:D0:83:4C:22:55:92:3F:74`): el cliente OAuth Android de Cloud Console debe tener **ambas** huellas (debug D6:D0:BB:… y release 96:29:F6:…). Edita el cliente en Credentials → tu cliente Android → agrega la huella y guarda. Además: si la pantalla de consentimiento sigue en Testing, el correo que prueba debe estar en Test users. Tras guardar, espera unos minutos (Google cachea la config) y reintenta. Cuando la app se distribuya por Play, agrega también el SHA-1 de la App signing key de Play Console (Setup → App signing). |
 | El botón avisa que falta el Client ID | Paso 4 no aplicado o la APK no se recompiló. |
 | "Sin conexión con Google" | Sin internet al momento de entrar; los rides nunca la necesitan, solo este botón. |
 | Cancelaste el selector | Solo vuelve a intentarlo (código 12501, no es error). |

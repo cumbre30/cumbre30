@@ -17,7 +17,7 @@ están en esta misma carpeta (`capturas/`, `feature-graphic-1024x500.png`,
 | Correo de contacto | contacto.cumbre30@gmail.com |
 | Teléfono | +56 9 4296 1619 (WhatsApp) |
 | Sitio web | **https://cumbregeo.cl** (redirige a `/geo`, el sitio de Cumbre GEO: apps, detalles y planes) |
-| Versión a subir | v1.8.3 (versionCode 29) - generar `cumbre30-v1.8.3-code29.aab` con `PLAY_BUILD=1 bash scripts/export-web.sh` + `npx cap sync android` + `bundleRelease` (el APK directo 29 ya va sin el flag) |
+| Versión a subir | v1.8.4 (versionCode 30) - AAB listo: `cumbre30-v1.8.4-code30.aab` (generado con `bash scripts/build-android.sh`, firma release) |
 
 ## Descripción corta (≤80 caracteres)
 
@@ -165,6 +165,17 @@ política de Google Play para funciones digitales):
    y `bundleRelease`; el APK directo va sin el flag (assembleDebug).
 
 ## Notas de la versión (para el release de Play)
+
+v1.8.4 (versionCode 30):
+
+```
+• Aviso por voz al entrar a las bajadas fiscalizadas de 30 km/h y avisos de ingreso/cierre del parque según horario
+• Nueva capa de mapas: Paseo Metropolitano (8 tramos mixtos peatonales y ciclistas)
+• Desafíos: nueva Serie Metropolitana (El anillo, Ida y vuelta, Cuatro anillos) y reto diario Vuelta al anillo
+• Teléfono de emergencias del parque actualizado a 1466 (línea oficial Parquemet)
+• Trazados MTB 1 y MTB 2 afinados: bajan los senderos reales completos
+• Estadísticas Pro afinadas y mejoras de estabilidad
+```
 
 v1.8.3 (versionCode 29):
 
