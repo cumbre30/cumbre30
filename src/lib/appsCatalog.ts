@@ -94,18 +94,18 @@ export const APPS: AppCatalogo[] = [
           "v1.8.3 (versionCode 29):\n• Temas de color para toda la app y pantalla ride personalizable: velocímetro digital, arco, dial o aguja, en tamaño normal, grande o gigante (Cumbre30 Pro)\n• SOS ampliado: Parquemet, Municipalidad de Providencia y Salud Responde además de 133, 131 y 132\n• Datos oficiales del parque: accesos, cumbres, senderos enduro y horario de ciclistas\n• Descenso limpio: resumen cuando recorres el parque respetando los 30 km/h\n• Mejoras de estabilidad\n\nv1.8.2 (versionCode 28):\n• Nueva marca: Cumbre GEO - sitio oficial cumbregeo.cl\n• Compra Pro con entrega automática: tu código llega solo al correo tras pagar\n• Mejoras de estabilidad",
       },
     ],
-    // APK directo: ACTIVO - descarga desde Google Drive (link del cliente).
-    // La URL "usercontent + confirm=t" baja el archivo de un clic, sin la
-    // pantalla de advertencia de Drive ("Download anyway"). El link de
-    // visor original, por si hay que compartirlo:
-    //   https://drive.google.com/file/d/12fdozlu1CY5HSAt-3VVrDAxz8v5fYKDz/view?usp=drive_link
+    // APK directo: ACTIVO - descarga desde Google Drive (link del cliente,
+    // v1.8.7 code 33). La URL "usercontent + confirm=t" baja el archivo de
+    // un clic, sin la pantalla de advertencia de Drive ("Download anyway").
+    // El link de visor original, por si hay que compartirlo:
+    //   https://drive.google.com/file/d/1vv25ViRPFuBFugZAsPMQtjN0BrU0CJcb/view?usp=drive_link
     // Para publicar otro APK: sube el archivo nuevo a Drive, compártelo
     // "Cualquiera con el enlace" y reemplaza el id de la URL de abajo.
     // Alternativa futura (GitHub Releases): dejar url: "/api/apk" y definir
     // la variable APK_DOWNLOAD_URL en el hosting (DEPLOY.md · paso 6).
     apk: {
       disponible: true,
-      url: "https://drive.usercontent.google.com/download?id=12fdozlu1CY5HSAt-3VVrDAxz8v5fYKDz&export=download&confirm=t",
+      url: "https://drive.usercontent.google.com/download?id=1vv25ViRPFuBFugZAsPMQtjN0BrU0CJcb&export=download&confirm=t",
       nota: "",
     },
     planes: { publicado: true, url: "/cumbre30pro" },
