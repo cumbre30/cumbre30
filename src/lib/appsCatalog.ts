@@ -87,13 +87,37 @@ export const APPS: AppCatalogo[] = [
       },
       {
         titulo: "Novedades de esta versión",
-        // Sólo la última versión + build, con las mejoras de la app en
-        // resumen (sin ajustes de operación/web). La versión sale de
-        // appVersion.ts para que quede sincronizada sola.
+        // Sólo la última versión + build (salen de appVersion.ts, quedan
+        // sincronizados solos) + lista de funcionalidades definida por el
+        // cliente. Nota: la línea del banner de horario venía duplicada en
+        // el texto original y se dejó una sola vez.
         cuerpo:
           `v${APP_VERSION} (${APP_VERSION_CODE}):\n` +
-          "• Presentación actualizada en toda la app: Cumbre30 ahora se describe como ciclocomputador de apoyo al ciclista y la información del Parque Metropolitano se muestra como referencial\n" +
-          "• Textos revisados en la pantalla de ride, alertas SOS, ayuda y en los archivos que exporta la app (GPX y PDF del ride)",
+          "• Ajustes varios, experiencia del usuario.\n" +
+          "• Banner de clima (temperatura + condición) y banner de avisos colapsable en la pantalla Ride.\n" +
+          "• Banner de horario: avisos de ingreso y cierre del parque según el horario vigente.\n" +
+          "• Pantalla Ride personalizable.\n" +
+          "• Temas que permiten cambiar el color para toda la app.\n" +
+          "• Sesión unificada.\n" +
+          "• Fix de login.\n" +
+          "• Aviso por voz al entrar a las bajadas fiscalizadas de 30 km/h.\n" +
+          "• Nuevo diseño pantalla principal ride.\n" +
+          "• Mejoras de estabilidad y errores de trazado.\n" +
+          "• Estadísticas afinadas.\n" +
+          "• SOS ampliado con números de emergencia, funcionalidad nueva para compartir ubicación actual.\n" +
+          "• Capas con datos del parque: accesos, cumbres, senderos enduro y horario de ciclistas.\n" +
+          "• Pestaña QR: cargar y mostrar el QR Pedalea Seguro a mano.\n" +
+          "• Exportación GPX de rides y estadísticas por nivel.\n" +
+          "• Login con Google\n" +
+          "• Pantalla completa inmersiva.\n" +
+          "• Constancia PDF de cada viaje realizado en el cerro.\n" +
+          "• Navegación mejorada, hora llegada y km totales.\n" +
+          "• Login cumbre30\n" +
+          "• Mapa\n" +
+          "• Geocercas.\n" +
+          "• Aviso por voz.\n" +
+          "• Viaje modo gps.\n" +
+          "• Viaje modo demo.",
       },
     ],
     // APK directo: ACTIVO - descarga desde Google Drive (link del cliente,
