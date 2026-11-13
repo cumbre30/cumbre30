@@ -27,11 +27,11 @@ export const metadata: Metadata = {
     title: "Cumbre30",
   },
   icons: {
-    icon: [
-      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
-      { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
-    ],
-    apple: "/icons/apple-touch-icon.png",
+    // Favicon del sitio (pestaña del navegador): marca Cumbre GEO
+    // (montaña verde + sol ámbar). El ícono de la app Cumbre30 sigue
+    // en /icons/icon-*.png vía manifest.webmanifest para la PWA.
+    icon: [{ url: "/icons/cumbre-geo.svg", type: "image/svg+xml" }],
+    apple: "/icons/cumbre-geo.svg",
   },
 };
 

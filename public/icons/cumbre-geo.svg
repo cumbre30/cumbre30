@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Favicon de Cumbre GEO: misma marca del header de /geo
+     (montaña verde #14453d + sol ámbar #e8a33d) sobre tile crema. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+  <rect width="24" height="24" rx="5" fill="#f6f4ef"/>
+  <path d="M3 19L10 6l4 7 2-3 5 9H3z" fill="#14453d"/>
+  <circle cx="18" cy="5" r="2" fill="#e8a33d"/>
+</svg>

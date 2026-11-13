@@ -47,6 +47,8 @@ export type AppCatalogo = {
   enlaces?: {
     contacto: string;
     privacidad: string;
+    /** Términos y condiciones de uso (opcional: se muestra solo si existe). */
+    terminos?: string;
     eliminarCuenta: string;
   } | null;
 };
@@ -61,10 +63,11 @@ export const APPS: AppCatalogo[] = [
     descripcionBreve:
       "Cumbre30 es el ciclocomputador pensado para pedalear el Cerro San Cristóbal del Parque Metropolitano de Santiago, respetando el límite de 30 km/h. Todo funciona sin señal: descarga la app y pedalea con GPS aunque no tengas datos móviles en el cerro.",
     imagenes: [
-      { src: "/apps/cumbre30/01-ride-mapa.png", alt: "Ciclocomputador de Cumbre30 con mapa y velocidad en el cerro" },
-      { src: "/apps/cumbre30/02-explorar.png", alt: "Explorar destinos y rutas del Parque Metropolitano" },
-      { src: "/apps/cumbre30/03-desafios.png", alt: "Desafíos y recompensas de Cumbre30" },
-      { src: "/apps/cumbre30/04-perfil.png", alt: "Perfil del ciclista con credencial digital" },
+      { src: "/apps/cumbre30/01-ride.jpg", alt: "Pantalla Ride de Cumbre30: mapa en vivo, velocidad y botón para iniciar el ride" },
+      { src: "/apps/cumbre30/02-explorar.jpg", alt: "Explorar: mapa del Parque Metropolitano con búsqueda de direcciones y capas" },
+      { src: "/apps/cumbre30/03-desafios.jpg", alt: "Desafíos y recompensas de Cumbre30 con niveles y pines" },
+      { src: "/apps/cumbre30/04-qr.jpg", alt: "Credencial QR Pedalea Seguro (Parquemet) guardada en Cumbre30" },
+      { src: "/apps/cumbre30/05-perfil.jpg", alt: "Perfil de Cumbre30 con inicio de sesión y creación de cuenta" },
     ],
     version: APP_VERSION,
     versionCode: APP_VERSION_CODE,
@@ -95,14 +98,14 @@ export const APPS: AppCatalogo[] = [
     // La URL "usercontent + confirm=t" baja el archivo de un clic, sin la
     // pantalla de advertencia de Drive ("Download anyway"). El link de
     // visor original, por si hay que compartirlo:
-    //   https://drive.google.com/file/d/1JVMc-6oSKQBAP3iYi0cp1caFhbMz-_8u/view?usp=drivesdk
+    //   https://drive.google.com/file/d/12fdozlu1CY5HSAt-3VVrDAxz8v5fYKDz/view?usp=drive_link
     // Para publicar otro APK: sube el archivo nuevo a Drive, compártelo
     // "Cualquiera con el enlace" y reemplaza el id de la URL de abajo.
     // Alternativa futura (GitHub Releases): dejar url: "/api/apk" y definir
     // la variable APK_DOWNLOAD_URL en el hosting (DEPLOY.md · paso 6).
     apk: {
       disponible: true,
-      url: "https://drive.usercontent.google.com/download?id=1JVMc-6oSKQBAP3iYi0cp1caFhbMz-_8u&export=download&confirm=t",
+      url: "https://drive.usercontent.google.com/download?id=12fdozlu1CY5HSAt-3VVrDAxz8v5fYKDz&export=download&confirm=t",
       nota: "",
     },
     planes: { publicado: true, url: "/cumbre30pro" },
@@ -111,6 +114,7 @@ export const APPS: AppCatalogo[] = [
     enlaces: {
       contacto: `mailto:${CONTACT_EMAIL}`,
       privacidad: "/privacidad",
+      terminos: "/terminos",
       eliminarCuenta: "/eliminar-cuenta",
     },
   },

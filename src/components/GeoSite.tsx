@@ -44,6 +44,7 @@ import {
   KeyRound,
   Lock,
   Mail,
+  ScrollText,
   ShieldCheck,
   ShoppingBag,
   Trash2,
@@ -258,7 +259,7 @@ export default function GeoSite({
         {/* Hero */}
         <div className="hero">
           <div className="contenedor">
-            <h1>Aplicaciones 100% offline para el aire libre</h1>
+            <h1>Tecnología para descubrir</h1>
             <p>Desarrollamos herramientas que funcionan donde no llega la señal: en la montaña, en el bosque, en la ruta.</p>
             <div className="chips">
               {CHIPS.map((chip) => (
@@ -365,7 +366,7 @@ export default function GeoSite({
           </div>
         </section>
 
-        <footer>Cumbre GEO · Aplicaciones offline para el aire libre</footer>
+        <footer>© 2026 Cumbre GEO · Tecnología para descubrir. Todos los derechos reservados.</footer>
       </div>
 
       {/* ═══════════ VISTA: PLANES ═══════════ */}
@@ -590,7 +591,7 @@ export default function GeoSite({
           )}
         </div>
 
-        <footer>Cumbre GEO · Aplicaciones offline para el aire libre</footer>
+        <footer>© 2026 Cumbre GEO · Tecnología para descubrir. Todos los derechos reservados.</footer>
       </div>
 
       {/* ═══════════ MODAL: DETALLE DE APP ═══════════ */}
@@ -684,6 +685,16 @@ export default function GeoSite({
                   >
                     <ShieldCheck style={{ width: 15, height: 15 }} aria-hidden /> Privacidad
                   </a>
+                  {app.enlaces.terminos && (
+                    <a
+                      className="enlace-app"
+                      href={app.enlaces.terminos}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <ScrollText style={{ width: 15, height: 15 }} aria-hidden /> Términos y condiciones
+                    </a>
+                  )}
                   <a
                     className="enlace-app"
                     href={app.enlaces.eliminarCuenta}

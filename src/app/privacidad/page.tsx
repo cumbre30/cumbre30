@@ -131,6 +131,17 @@ export default function PrivacidadPage() {
         </p>
       </Section>
 
+      <Section title="Términos de uso">
+        <p>
+          Las reglas del servicio —independencia de marcas como Parquemet, uso responsable, cuentas, plan Pro y
+          responsabilidad— están en los{" "}
+          <Link href="/terminos" className="font-medium text-emerald-600 underline-offset-2 hover:underline dark:text-emerald-400">
+            Términos y Condiciones
+          </Link>
+          .
+        </p>
+      </Section>
+
       <p className="mt-10 text-xs text-muted-foreground">
         ¿Dudas? <a href="mailto:contacto.cumbre30@gmail.com" className="text-emerald-600 hover:underline dark:text-emerald-400">contacto.cumbre30@gmail.com</a>
       </p>

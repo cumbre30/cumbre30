@@ -66,6 +66,10 @@ export default function EliminarCuentaPage() {
         Lee la{" "}
         <Link href="/privacidad" className="text-emerald-600 hover:underline dark:text-emerald-400">
           Política de Privacidad
+        </Link>{" "}
+        y los{" "}
+        <Link href="/terminos" className="text-emerald-600 hover:underline dark:text-emerald-400">
+          Términos y Condiciones
         </Link>
         .
       </p>
