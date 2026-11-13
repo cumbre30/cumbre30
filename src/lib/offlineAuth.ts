@@ -11,7 +11,7 @@
 import { bikeOnly, historyStore, removeRidesForAccount, ridesForAccount, type RideSummary } from "@/lib/history";
 import { ACHIEVEMENT_BY_CODE, evaluateAchievements, isPinId, normalizeCodes, statsFromRides, type PinId } from "@/lib/pins";
 import { isProActive } from "@/lib/proLicense";
-import { validateUsername, usernameLocked } from "@/lib/username";
+import { USERNAME_RE, validateUsername, usernameLocked } from "@/lib/username";
 import type { MeData, MeUser } from "@/hooks/useMe";
 
 const USERS_KEY = "cumbre30-offline-users-v1";
@@ -249,6 +249,94 @@ export async function offlineLogin(payload: { email?: string; password?: string 
   ensureRecoveryCode(user); // cuentas creadas antes del código de recuperación
   setSession(email);
   return null;
+}
+
+// ---------- importación de la cuenta web (cumbregeo.cl) ----------
+
+// La APK guarda sus cuentas en el teléfono (localStorage), pero muchas
+// personas crearon su cuenta Cumbre30 en el sitio web. Al iniciar sesión
+// con un correo que no existe localmente y con internet disponible,
+// verificamos contra el servidor e importamos la cuenta al teléfono:
+// usuario, pin, datos de la bici y logros. Los km/rides siguen siendo
+// por dispositivo (el historial no se transfiere).
+const SERVER_ORIGIN = "https://cumbregeo.cl";
+
+type WebLoginPayload = {
+  username?: string;
+  email?: string;
+  selectedPin?: string;
+  bikeBrand?: string | null;
+  bikeType?: string | null;
+  bikeModel?: string | null;
+  bikeSize?: string | null;
+  bikeColor?: string | null;
+  achievements?: string[];
+};
+
+function cleanStr(v: unknown): string | null {
+  const s = typeof v === "string" ? v.trim().slice(0, 40) : "";
+  return s.length ? s : null;
+}
+
+/**
+ * Intenta importar la cuenta web al teléfono. Devuelve true si la
+ * cuenta quedó creada y con sesión iniciada; false si no corresponde
+ * (ya hay cuenta local, sin red, credenciales inválidas) — en ese
+ * caso la llamada mostró su propio mensaje.
+ */
+export async function offlineImportWebAccount(payload: { email?: string; password?: string }): Promise<boolean> {
+  const email = (payload.email ?? "").trim().toLowerCase();
+  const password = payload.password ?? "";
+  if (!email || !password) return false;
+
+  // Si ya existe una cuenta local con ese correo, el error real es su
+  // contraseña local (se arregla con el código de recuperación), no
+  // hay que sobreescribir nada.
+  if (readUsers()[email]) return false;
+
+  try {
+    const r = await fetch(`${SERVER_ORIGIN}/api/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+      signal: AbortSignal.timeout(12_000),
+    });
+    if (!r.ok) return false;
+    const d = (await r.json()) as WebLoginPayload;
+    const webEmail = (d.email ?? "").trim().toLowerCase();
+    let username = (d.username ?? "").trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(webEmail) || !username) return false;
+    // El nombre debe cumplir las reglas locales; si no, se deriva del correo.
+    if (!USERNAME_RE.test(username)) username = "";
+
+    const users = readUsers();
+    const user: OfflineUser = {
+      id: `off-${randomHex(8)}`,
+      email: webEmail,
+      username: username && !Object.values(users).some((u) => u.username === username)
+        ? username
+        : uniqueUsernameFrom(webEmail, users),
+      passwordHash: await hashPassword(password), // misma clave, hasheada local
+      selectedPin: isPinId(d.selectedPin ?? "") ? (d.selectedPin as string) : "clasico",
+      bikeBrand: cleanStr(d.bikeBrand),
+      bikeType: cleanStr(d.bikeType),
+      bikeModel: cleanStr(d.bikeModel),
+      bikeSize: cleanStr(d.bikeSize),
+      bikeColor: cleanStr(d.bikeColor),
+      createdAt: new Date().toISOString(),
+      provider: "local",
+      recoveryCode: newRecoveryCode(),
+    };
+    users[user.email] = user;
+    writeJSON(USERS_KEY, users);
+    if (Array.isArray(d.achievements) && d.achievements.length) {
+      offlineUnlockAchievements(d.achievements);
+    }
+    setSession(user.email);
+    return true;
+  } catch {
+    return false; // sin red o servidor caído: queda el error local
+  }
 }
 
 // ---------- inicio de sesión con Google (offline) ----------

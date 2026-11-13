@@ -413,6 +413,11 @@ export default function ProfileTab() {
               ¿Olvidaste tu contraseña?
             </button>
           )}
+          {mode === "login" && offline && (
+            <p className="text-[11px] leading-snug text-muted-foreground text-center">
+              ¿Creaste tu cuenta en la web (cumbregeo.cl)? Entra con el mismo correo y contraseña: la cuenta se copia a este teléfono con tus logros y tu perfil.
+            </p>
+          )}
 
           <div className="flex items-center gap-3 pt-1">
             <div className="h-px flex-1 bg-muted" />

@@ -5,7 +5,7 @@
 // En el APK (export estático) todo va por offlineAuth (localStorage).
 
 import { useSyncExternalStore } from "react";
-import { isOfflineMode, offlineChangeUsername, offlineDeleteAccount, offlineForgotReset, offlineGoogleSignIn, offlineLogin, offlineLogout, offlineMe, offlineRegister } from "@/lib/offlineAuth";
+import { isOfflineMode, offlineChangeUsername, offlineDeleteAccount, offlineForgotReset, offlineGoogleSignIn, offlineImportWebAccount, offlineLogin, offlineLogout, offlineMe, offlineRegister } from "@/lib/offlineAuth";
 
 export type MeUser = {
   id: string;
@@ -109,7 +109,16 @@ export async function authAction(kind: "login" | "register", payload: Record<str
   try {
     if (isOfflineMode()) {
       const err = kind === "login" ? await offlineLogin(payload) : await offlineRegister(payload);
-      if (err) return err;
+      if (err) {
+        // APK: si el correo no existe en el teléfono puede ser una
+        // cuenta creada en la web (cumbregeo.cl). Con internet, la
+        // verificamos contra el servidor e importamos la cuenta.
+        if (kind === "login" && (await offlineImportWebAccount(payload))) {
+          await refreshMe();
+          return null;
+        }
+        return err;
+      }
       await refreshMe();
       return null;
     }
