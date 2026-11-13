@@ -14,6 +14,36 @@
       "has": [{ "type": "host", "value": "www.cumbregeo.cl" }],
       "destination": "/geo",
       "permanent": false
+    },
+    {
+      "source": "/privacidad",
+      "destination": "/geo/cumbre30/privacidad",
+      "permanent": true
+    },
+    {
+      "source": "/terminos",
+      "destination": "/geo/cumbre30/terminos",
+      "permanent": true
+    },
+    {
+      "source": "/eliminar-cuenta",
+      "destination": "/geo/cumbre30/eliminar-cuenta",
+      "permanent": true
+    },
+    {
+      "source": "/geo/Cumbre30/:p*",
+      "destination": "/geo/cumbre30/:p*",
+      "permanent": true
+    },
+    {
+      "source": "/geo/cumbre30",
+      "destination": "/geo",
+      "permanent": false
+    },
+    {
+      "source": "/geo/cumbre30/",
+      "destination": "/geo",
+      "permanent": false
     }
   ],
   "headers": [

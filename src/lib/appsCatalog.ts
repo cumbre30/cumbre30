@@ -139,9 +139,12 @@ export const APPS: AppCatalogo[] = [
     // detalle de Cumbre30 (no en el footer del sitio).
     enlaces: {
       contacto: `mailto:${CONTACT_EMAIL}`,
-      privacidad: "/privacidad",
-      terminos: "/terminos",
-      eliminarCuenta: "/eliminar-cuenta",
+      // Rutas por app (/geo/cumbre30/...) para diferenciar la información
+      // entre apps de Cumbre GEO. La raíz (/privacidad, etc.) redirige a
+      // estas en la web y sigue existiendo dentro del export del APK.
+      privacidad: "/geo/cumbre30/privacidad",
+      terminos: "/geo/cumbre30/terminos",
+      eliminarCuenta: "/geo/cumbre30/eliminar-cuenta",
     },
   },
   {

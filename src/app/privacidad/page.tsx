@@ -6,12 +6,21 @@ import Link from "next/link";
 // Página estática (sin APIs dinámicas) para que también exista
 // dentro del export del APK. URL requerida por Google Play
 // Console (Política de privacidad en Contenido de la app).
+// Ruta canónica por app: /geo/cumbre30/privacidad (vercel.json
+// redirige esta raíz hacia allí; la raíz se mantiene para el APK
+// ya publicado y para el export offline).
 // ============================================================
 
 export const metadata: Metadata = {
   title: "Política de Privacidad - Cumbre30",
   description:
     "Cómo Cumbre30 trata tus datos: cuenta, recorridos GPS, licencia Pro y eliminación de cuenta.",
+  // Favicon de esta página: logo de la app Cumbre30 (el resto del sitio
+  // usa la marca Cumbre GEO definida en layout.tsx). Igual que /terminos.
+  icons: {
+    icon: [{ url: "/icons/icon-192.png", type: "image/png" }],
+    apple: "/icons/icon-192.png",
+  },
 };
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
@@ -26,6 +35,14 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 export default function PrivacidadPage() {
   return (
     <main className="mx-auto min-h-dvh w-full max-w-2xl px-5 py-10">
+      {/* Logo de la app Cumbre30 (mismo tratamiento que /terminos). */}
+      <img
+        src="/icons/icon-512.png"
+        alt="Logo de Cumbre30"
+        width={56}
+        height={56}
+        className="mb-4 rounded-2xl"
+      />
       <p className="text-[11px] font-bold uppercase tracking-widest text-emerald-600 dark:text-emerald-400">Cumbre30</p>
       <h1 className="mt-1 text-2xl font-bold text-foreground">Política de Privacidad</h1>
       <p className="mt-2 text-sm text-justify text-muted-foreground">

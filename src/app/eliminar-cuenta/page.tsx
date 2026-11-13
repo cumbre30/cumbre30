@@ -7,16 +7,33 @@ import { DeleteAccountWebButton } from "./DeleteAccountWebButton";
 // URL que Google Play pide declarar en Seguridad de datos
 // (eliminación de cuenta). Estática: el APK también la incluye,
 // aunque ahí el flujo real vive en Perfil → Mis datos.
+// Ruta canónica por app: /geo/cumbre30/eliminar-cuenta
+// (vercel.json redirige esta raíz hacia allí; la raíz se mantiene
+// para el APK ya publicado y para el export offline).
 // ============================================================
 
 export const metadata: Metadata = {
   title: "Eliminar cuenta - Cumbre30",
   description: "Elimina definitivamente tu cuenta de Cumbre30 y todos sus datos.",
+  // Favicon de esta página: logo de la app Cumbre30 (el resto del sitio
+  // usa la marca Cumbre GEO definida en layout.tsx). Igual que /terminos.
+  icons: {
+    icon: [{ url: "/icons/icon-192.png", type: "image/png" }],
+    apple: "/icons/icon-192.png",
+  },
 };
 
 export default function EliminarCuentaPage() {
   return (
     <main className="mx-auto min-h-dvh w-full max-w-2xl px-5 py-10">
+      {/* Logo de la app Cumbre30 (mismo tratamiento que /terminos). */}
+      <img
+        src="/icons/icon-512.png"
+        alt="Logo de Cumbre30"
+        width={56}
+        height={56}
+        className="mb-4 rounded-2xl"
+      />
       <p className="text-[11px] font-bold uppercase tracking-widest text-emerald-600 dark:text-emerald-400">Cumbre30</p>
       <h1 className="mt-1 text-2xl font-bold text-foreground">Eliminar cuenta</h1>
 
