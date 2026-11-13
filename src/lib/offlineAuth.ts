@@ -453,6 +453,7 @@ export function offlineMe(): MeData | null {
     maxRideKm: Number(statsRaw.maxRideKm.toFixed(1)),
     weekendRides: statsRaw.weekendRides,
     totalHours: Number(statsRaw.totalHours.toFixed(1)),
+    totalParkKm: Number(statsRaw.totalParkKm.toFixed(1)),
     lastRideDate: rides[0]?.dateISO ?? null,
     incidentCount: 0,
   };

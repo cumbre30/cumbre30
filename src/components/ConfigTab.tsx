@@ -157,7 +157,7 @@ export function ConfigTab({
         <Row icon={soundOn ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />} title="Pitidos de velocidad" sub="Suena al acercarte al límite de 30 km/h">
           <Toggle on={soundOn} onChange={onToggleSound} label="Pitidos de velocidad" />
         </Row>
-        <Row icon={voiceOn ? <Mic className="h-5 w-5" /> : <MicOff className="h-5 w-5" />} title="Avisos de voz" sub="Zonas de riesgo, geocercas y excesos">
+        <Row icon={voiceOn ? <Mic className="h-5 w-5" /> : <MicOff className="h-5 w-5" />} title="Avisos de voz" sub="Zonas de riesgo, geocercas, bajadas 30, horario y excesos">
           <Toggle on={voiceOn} onChange={onToggleVoice} label="Avisos de voz" />
         </Row>
       </Card>

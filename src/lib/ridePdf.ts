@@ -188,7 +188,7 @@ export async function buildRidePdf(r: RideSummary, identity?: RideIdentity): Pro
 
   // ----- II. Identificación del registro -----
   section("II. IDENTIFICACIÓN DEL REGISTRO");
-  kv("Aplicación:", `Cumbre30, versión ${APP_VERSION} (registro local del teléfono; sin servidor)`);
+  kv("Aplicación:", `Cumbre30, versión ${APP_VERSION} (registro generado en el teléfono del ciclista; respaldado en su cuenta cuando tiene sesión iniciada)`);
   kv("ID del registro:", r.id);
   kv("Origen de los datos:", r.source === "gps"
     ? "Receptor GPS del teléfono del ciclista (posicionamiento satelital; velocidad por efecto Doppler con filtrado digital)."
@@ -222,8 +222,8 @@ export async function buildRidePdf(r: RideSummary, identity?: RideIdentity): Pro
     `La presente constancia ha sido generada automáticamente por la aplicación Cumbre30, versión ${APP_VERSION}, ` +
     "instalada en el teléfono móvil del ciclista, a partir de las lecturas del receptor GPS del propio dispositivo " +
     "obtenidas durante el trayecto indicado. Los datos se registraron al momento de la actividad, sin intervención " +
-    "manual posterior, y se conservan de forma local en el teléfono; la aplicación no opera servidores ni modifica " +
-    "el registro una vez emitido."
+    "manual posterior, se conservan en el teléfono y se respaldan en la cuenta del usuario cuando inicia sesión; " +
+    "la emisión de esta constancia no modifica el registro."
   );
   para(
     "La velocidad se determina por efecto Doppler a partir de la señal satelital, con filtrado digital para reducir " +
@@ -302,7 +302,7 @@ export async function buildRidePdf(r: RideSummary, identity?: RideIdentity): Pro
     doc.setFontSize(7.5);
     doc.setTextColor(130, 130, 130);
     doc.text(
-      `Constancia generada por Cumbre30 v${APP_VERSION} · documento autogenerado por su titular · registro local del dispositivo`,
+      `Constancia generada por Cumbre30 v${APP_VERSION} · documento autogenerado por su titular · registro del dispositivo del ciclista`,
       105, 287, { align: "center" }
     );
     doc.text(`Página ${i} de ${pages}`, 105, 291, { align: "center" });

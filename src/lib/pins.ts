@@ -14,7 +14,8 @@ export type PinId =
   | "brote" | "dorsal" | "zorro" | "bosque"
   | "medalla" | "picnic" | "zen"
   | "credencial"
-  | "reloj" | "amanecer" | "atardecer" | "cronista";
+  | "reloj" | "amanecer" | "atardecer" | "cronista"
+  | "anillo" | "paseo" | "metro";
 
 export type PinDef = {
   id: PinId;
@@ -57,6 +58,11 @@ export const PINS: Record<PinId, PinDef> = {
   credencial: { id: "credencial", name: "Pedalea Seguro", emoji: "🪪", color: "#34d399", desc: "Reto: carga tu QR Pedalea Seguro de Parquemet en la pestaña Credencial." },
   picnic: { id: "picnic", name: "Picnic", emoji: "🧺", color: "#d6d3d1", desc: "Reto: 8 rides en sábado o domingo." },
   zen: { id: "zen", name: "Zen", emoji: "🧘", color: "#2dd4bf", desc: "Reto: 5 rides dentro del parque sin exceder los 30 km/h." },
+  // Serie Metropolitana (Paseo Metropolitano, capa nueva 2026-11-13:
+  // anillo de 10,9 km medidos, uso mixto peatonal y ciclista)
+  anillo: { id: "anillo", name: "Anillo", emoji: "⭕", color: "#14b8a6", desc: "Serie Metropolitana · una vuelta al anillo del Paseo Metropolitano (10,9 km en el parque)." },
+  paseo: { id: "paseo", name: "Paseo Metropolitano", emoji: "🛤️", color: "#0d9488", desc: "Serie Metropolitana · ida y vuelta al anillo (21,8 km en el parque)." },
+  metro: { id: "metro", name: "Gran Metropolitano", emoji: "🎡", color: "#0f766e", desc: "Serie Metropolitana · cuatro anillos en las piernas (43,6 km en el parque)." },
   // Serie Horas
   reloj: { id: "reloj", name: "Reloj de arena", emoji: "⏳", color: "#a78bfa", desc: "Serie Horas · 10 horas pedaleando." },
   amanecer: { id: "amanecer", name: "Amanecer", emoji: "🌅", color: "#f472b6", desc: "Serie Horas · 25 horas pedaleando." },
@@ -85,7 +91,8 @@ export type MetricKey =
   | "maxKmh"
   | "maxRideKm"
   | "weekendRides"
-  | "totalHours";
+  | "totalHours"
+  | "totalParkKm";
 
 // ---- Niveles del ciclista (km acumulados con GPS real) ----
 
@@ -205,6 +212,22 @@ export const SERIES: Series[] = [
     ],
   },
   {
+    // Nueva (2026-11-13): celebra la capa «Paseo Metropolitano», el
+    // anillo mixto peatonal/ciclista del cerro (10,9 km medidos; los
+    // tramos oficiales suman 6,94 km y Parquemet proyecta ~20 km).
+    // Métrica: km pedaleados DENTRO del parque (inParkKm), igual base
+    // que el resto de los desafíos del parque.
+    id: "metropolitana",
+    name: "Serie Metropolitana",
+    emoji: "🛤️",
+    accent: "teal",
+    tiers: [
+      { code: "met_109", name: "El anillo", desc: "Suma 10,9 km dentro del parque: una vuelta completa al anillo del Paseo Metropolitano.", metric: "totalParkKm", goal: 10.9, reward: "anillo" },
+      { code: "met_218", name: "Ida y vuelta", desc: "Suma 21,8 km dentro del parque: dos vueltas al anillo del Paseo Metropolitano.", metric: "totalParkKm", goal: 21.8, reward: "paseo", pro: true },
+      { code: "met_436", name: "Cuatro anillos", desc: "Suma 43,6 km dentro del parque: cuatro vueltas al anillo. Todo el Paseo Metropolitano en las piernas.", metric: "totalParkKm", goal: 43.6, reward: "metro", pro: true },
+    ],
+  },
+  {
     id: "vigia",
     name: "Serie Vigía",
     emoji: "📢",
@@ -304,6 +327,10 @@ export type AchievementStats = {
   weekendRides: number;
   /** Horas totales pedaleadas (suma de elapsedSec / 3600). */
   totalHours: number;
+  /** Km pedaleados dentro de la geocerca del parque (suma de
+   *  inParkKm). Base de la Serie Metropolitana (Paseo
+   *  Metropolitano, 2026-11-13). */
+  totalParkKm: number;
   incidentCount: number;
 };
 
@@ -352,6 +379,7 @@ export function statsFromRides(
   let nightRides = 0;
   let dawnRides = 0;
   let weekendRides = 0;
+  let totalParkKm = 0;
   for (const r of rides) {
     // Viaje en vehículo motorizado (confirmado al guardar): no aporta a
     // ninguna métrica de desafíos ni de estadísticas del ciclista.
@@ -373,6 +401,10 @@ export function statsFromRides(
       const enoughKm = parkKm != null ? parkKm >= 2 : (r.distanceKm ?? 0) >= 2;
       if ((r.overLimitSec ?? 0) === 0 && enoughKm) cleanParkRides++;
     }
+    // Km DENTRO del parque: base de la Serie Metropolitana. Se suma
+    // en TODOS los rides en bici con medición (independiente del
+    // umbral de «entró al parque» de los desafíos de rides).
+    totalParkKm += Math.max(0, r.inParkKm ?? 0);
     const d = new Date(r.dateISO);
     // Hora local de Chile (aprox. UTC-3)
     const clHour = (d.getUTCHours() + 21) % 24;
@@ -381,7 +413,7 @@ export function statsFromRides(
     const clDay = new Date(d.getTime() - 3 * 3600_000).getUTCDay(); // 0 dom, 6 sáb
     if (clDay === 0 || clDay === 6) weekendRides++;
   }
-  return { totalKm, rideCount, maxKmh, totalGainM, parkRides, cleanParkRides, nightRides, dawnRides, maxRideKm, weekendRides, totalHours, incidentCount };
+  return { totalKm, rideCount, maxKmh, totalGainM, parkRides, cleanParkRides, nightRides, dawnRides, maxRideKm, weekendRides, totalHours, totalParkKm, incidentCount };
 }
 
 /**
@@ -456,6 +488,7 @@ export const TIME_SERIES: TimeSeries[] = [
     challenges: [
       { id: "d_ride_1", scope: "dia", name: "Rueda del día", desc: "Completa 1 ride hoy.", metric: "rides", goal: 1 },
       { id: "d_km_5", scope: "dia", name: "Cinco al día", desc: "Pedalea 5 km hoy.", metric: "km", goal: 5 },
+      { id: "d_anillo", scope: "dia", name: "Vuelta al anillo", desc: "Pedalea 10,9 km hoy: una vuelta al anillo del Paseo Metropolitano.", metric: "km", goal: 10.9 },
     ],
   },
   {

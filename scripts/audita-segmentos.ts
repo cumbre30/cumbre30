@@ -1,12 +1,16 @@
 // Auditoría de los segmentos del cerro (2026-11-13) tras trasladar
 // porterías y agregar las 3 bajadas del control 30 km/h.
+// Actualización 2026-11-13 (tarde): se retiran los 2 segmentos de
+// senderos de tierra (Zorro Vidal · bajada y Mapuche · bajada) a
+// pedido del cliente («son personales»): quedan 7 segmentos
+// (4 subidas + 3 bajadas del control 30).
 // 1) Coherencia de datos: inicios anclados a GATES, extremos de las
 //    bajadas 30 = extremos de BAJADAS_CONTROL_30, metas de bajada en
-//    las porterías, sin cross-trigger con Zorro Vidal.
+//    las porterías.
 // 2) Detección con pistas sintéticas: 1 esfuerzo por bajada 30, la
 //    subida La Pirámide → Plaza México sobre la ruta real del grafo
-//    (findRoute), Zorro Vidal con la meta nueva, subida invertida no
-//    cuenta, descenso demasiado rápido se descarta.
+//    (findRoute), subida invertida no cuenta, descenso demasiado
+//    rápido se descarta.
 import {
   SEGMENTS,
   detectEfforts,
@@ -14,7 +18,6 @@ import {
 } from "../src/lib/segments";
 import { GATES } from "../src/lib/park";
 import { BAJADAS_CONTROL_30 } from "../src/lib/rutasTrazados";
-import { SENDEROS } from "../src/lib/senderos";
 import { haversineM } from "../src/lib/geo";
 import * as fs from "fs";
 import { findRoute, type Network, type NetEdge } from "../src/lib/routing";
@@ -31,11 +34,11 @@ const seg = (id: string) => SEGMENTS.find((s) => s.id === id)!;
 const dist = (a: { lat: number; lon: number }, b: { lat: number; lon: number }) => haversineM(a, b);
 
 // ---------- 1) Datos ----------
-ok(SEGMENTS.length === 9, `9 segmentos definidos (${SEGMENTS.length})`);
+ok(SEGMENTS.length === 7, `7 segmentos definidos (${SEGMENTS.length}): 4 subidas + 3 bajadas del control 30 (sin los personales Zorro Vidal y Mapuche, retirados 2026-11-13)`);
 const subidas = SEGMENTS.filter((s) => (s.dir ?? "subida") === "subida");
 const bajadas = SEGMENTS.filter((s) => s.dir === "bajada");
 ok(subidas.length === 4, `4 subidas (${subidas.length})`);
-ok(bajadas.length === 5, `5 bajadas: 3 del control 30 + 2 enduro (${bajadas.length})`);
+ok(bajadas.length === 3, `3 bajadas del control 30 (${bajadas.length})`);
 
 // Inicios de subida anclados a GATES / Piscina Antilén
 ok(seg("pio-nono-plaza-mexico").start.lat === gate("pio-nono").lat && seg("pio-nono-plaza-mexico").start.lon === gate("pio-nono").lon,
@@ -63,20 +66,8 @@ ok(dist(seg("b30-pionono").start, { lat: -33.4234, lon: -70.6327 }) < 60, "b30-p
 ok(dist(seg("b30-pdv").start, { lat: -33.40758, lon: -70.61121 }) < 60, "b30-pdv arranca en Plaza Antilén");
 ok(dist(seg("b30-piramide").start, { lat: -33.409051, lon: -70.61374 }) < 60, "b30-piramide arranca en la cima Chacarillas (Antilén)");
 
-// Cross-trigger: el ciclista que baja por el CAMINO (b30-pionono) NO debe
-// generar intento de Zorro Vidal: la meta del sendero quedó (2026-11-13)
-// en un punto a 168 m del camino, fuera del radio de 130 m.
-const zorro = seg("zorro-vidal-bajada");
-const tracePionono = BAJADAS_CONTROL_30.find((b) => b.id === "b30-pionono")!.coords;
-let minZorro = Infinity;
-for (const c of tracePionono) {
-  minZorro = Math.min(minZorro, haversineM({ lat: c[0], lon: c[1] }, zorro.end));
-}
-ok(minZorro > zorro.radiusEndM, `camino Plaza México → Pío Nono pasa a ${minZorro.toFixed(0)} m de la meta Zorro Vidal (radio ${zorro.radiusEndM} m): sin cross-trigger`);
-// ... y la meta nueva sigue DENTRO del sendero (a ≤25 m de algún punto del trazado del sendero)
-const zorroPts = SENDEROS.find((s) => s.id === "zorro-vidal")!.pts!.map((c) => ({ lat: c[0], lon: c[1] }));
-const dZorroSendero = Math.min(...zorroPts.map((p) => haversineM(p, zorro.end)));
-ok(dZorroSendero <= 25, `meta Zorro Vidal a ${dZorroSendero.toFixed(0)} m del trazado del sendero`);
+// Los segmentos personales retirados ya NO existen en el catálogo
+ok(!seg("zorro-vidal-bajada") && !seg("mapuche-bajada"), "segmentos personales Zorro Vidal y Mapuche retirados del catálogo");
 
 // ---------- 2) Detección sintética ----------
 let rideSeq = 0;
@@ -168,19 +159,9 @@ if (rSubida) {
   ok(eLP.length === 1 && eLP[0].gainM >= 60, `La Pirámide → Plaza México: +${eLP.length ? eLP[0].gainM.toFixed(0) : "?"} m ≥ umbral 60`);
 }
 
-// 2c. Zorro Vidal con la meta nueva: el sendero real (SENDEROS) genera 1
-// intento y el camino pavimentado NO genera ninguno (regresión).
-const ptsDesc = [...zorroPts].reverse().slice(0, zorroPts.length - 21); // pt67 (plaza) → pt21 (nueva meta)
-const rideZorro = mkRide(synth(ptsDesc.map((p) => [p.lat, p.lon] as [number, number]), 845, 746, 15));
-const eZ = detectEfforts(rideZorro, zorro);
-ok(eZ.length === 1, `Zorro Vidal: 1 intento en el sendero real (${eZ.length})`);
-ok(eZ.length === 1 && eZ[0].distanceM > 350 && eZ[0].distanceM < 700, `Zorro Vidal: distancia ${eZ.length ? eZ[0].distanceM.toFixed(0) : "?"} m (detail ~0,6 km)`);
-const rideCamino = mkRide(synth(tracePionono, 848, 706, 20));
-ok(detectEfforts(rideCamino, zorro).length === 0, "Zorro Vidal: el camino pavimentado NO genera intento (regresión cross-trigger)");
-
-// 2d. Resumen Pro: 9 segmentos, con PB en los sintéticos cargados
+// 2c. Resumen Pro: 7 segmentos, con PB en los sintéticos cargados
 const stats = computeSegmentStats([mkRide(synth(BAJADAS_CONTROL_30.find((b) => b.id === "b30-piramide")!.coords, 800, 755, 20))]);
-ok(stats.length === 9, `computeSegmentStats devuelve los 9 (${stats.length})`);
+ok(stats.length === 7, `computeSegmentStats devuelve los 7 (${stats.length})`);
 ok(stats.find((s) => s.def.id === "b30-piramide")?.count === 1, "b30-piramide cuenta el intento sintético");
 ok(stats.find((s) => s.def.id === "b30-pionono")?.count === 0, "b30-pionono sin intentos en ese viaje");
 

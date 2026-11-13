@@ -160,6 +160,30 @@ export function sunsetFor(now: Date): Date {
   return new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()) + sunsetMinUTC * 60000);
 }
 
+/**
+ * Minutos que faltan para el cierre de ciclistas de hoy (PARK_HOURS.cierraMin,
+ * 20:30) resueltos en hora de Santiago. Negativo: el parque ya cerró.
+ * Lo usa el motor de ride para los avisos de voz «al límite del horario»
+ * (cliente 2026-11-13: avisos de ingreso/cierre cerca del límite).
+ */
+export function minutosParaCierre(now: Date = new Date()): number {
+  return PARK_HOURS.cierraMin - minutosDelDiaEnSantiago(now);
+}
+
+/** "20 y 30" (cierraMin 1230) - texto de voz del horario de cierre,
+ *  mismo estilo de lectura que el aviso de accesos («de 6 a 20 y 30»). */
+export function cierraVozText(): string {
+  const m = PARK_HOURS.cierraMin;
+  const mm = m % 60;
+  return mm === 0 ? `${Math.floor(m / 60)}` : `${Math.floor(m / 60)} y ${mm}`;
+}
+
+/** "20:30" - hora de cierre en texto para la bitácora. */
+export function cierraHoraTexto(): string {
+  const m = PARK_HOURS.cierraMin;
+  return `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+}
+
 export type EstadoParque = {
   /** ¿Dentro del horario de ingreso (06:00-20:30)? */
   abierto: boolean;

@@ -38,6 +38,8 @@ export type MeStats = {
   weekendRides: number;
   /** Horas totales pedaleadas. */
   totalHours: number;
+  /** Km pedaleados dentro del parque (Serie Metropolitana). */
+  totalParkKm: number;
   lastRideDate: string | null;
   incidentCount: number;
 };

@@ -11,7 +11,7 @@ import {
 } from "@/lib/park";
 import { Ema, SpeedKalman, haversineM, pointInPolygon, distToPolygonM } from "@/lib/geo";
 import { PARK_HOURS } from "@/lib/park";
-import { estadoParque } from "@/lib/horario";
+import { estadoParque, minutosParaCierre, cierraVozText, cierraHoraTexto } from "@/lib/horario";
 import { GATE_PIO_NONO, PUENTE_TUPAHUE_CUMBRE, enCorredorPioNono } from "@/lib/reglasParque";
 import { alerts } from "@/lib/alertEngine";
 import { RideNative, isNativeApp, type PluginListenerHandleLike } from "@/lib/rideNative";
@@ -111,6 +111,15 @@ export function useRideEngine() {
     puenteStreak: 0,
     puenteStreakD: null as number | null,
     puenteLastTrigger: 0,
+    // Avisos nuevos del cliente (2026-11-13): bajadas fiscalizadas del
+    // control 30 km/h (voz al entrar a descender por un corredor rojo)
+    // y horario al límite (cierre próximo / parque cerrado). El módulo
+    // de corredores se carga con import() dinámico en start(): el
+    // trazado (~5.000 pares) NO va en el bundle principal.
+    b30Mod: null as typeof import("@/lib/bajadas30") | null,
+    b30LastTrigger: {} as Record<string, number>,
+    horarioLastCheck: 0,
+    horarioVoiceLast: {} as Record<string, number>,
   });
 
   const logEvent = useCallback((kind: RideEvent["kind"], text: string) => {
@@ -357,6 +366,59 @@ export function useRideEngine() {
         e.puenteStreakD = null;
       }
 
+      // 7c) Bajadas fiscalizadas del control 30 km/h (cliente
+      //     2026-11-13: «aviso por voz cuando se esté bajando por una
+      //     ruta de 30 km»): al entrar a DESCENDER por uno de los 3
+      //     corredores rojos (capa Normativa y Seguridad), voz de
+      //     recordatorio del límite. Requiere pendiente de bajada real
+      //     (≤ -0,8 %) y movimiento: pedalear plano junto al corredor
+      //     no avisa. Cooldown 4 min por corredor.
+      if (inside && vKmh > 3 && e.slopeEma.value < -0.8 && e.b30Mod) {
+        const hit = e.b30Mod.enBajada30(fix.lat, fix.lon);
+        if (hit && fix.t - (e.b30LastTrigger[hit.id] ?? 0) > 240_000) {
+          e.b30LastTrigger[hit.id] = fix.t;
+          logEvent("warn", `Bajada fiscalizada: ${hit.nombre} · control 30 km/h`);
+          alerts.speak(
+            `b30-${hit.id}`,
+            "Entrando a la bajada fiscalizada. Control de 30 kilómetros por hora.",
+            30
+          );
+        }
+      }
+
+      // 7d) Horario al límite (cliente 2026-11-13: «avisos de
+      //     ingreso/cierre si se está al límite en el horario»):
+      //     dentro del parque, cierre próximo (≤ 30 min) o parque ya
+      //     cerrado (desde las 20:30), con voz cada 10 min mientras
+      //     dure la condición. El aviso de INGRESO fuera de horario
+      //     vive en start().
+      if (inside && fix.t - e.horarioLastCheck > 30_000) {
+        e.horarioLastCheck = fix.t;
+        const mC = minutosParaCierre(new Date(fix.t));
+        if (mC <= 0) {
+          if (fix.t - (e.horarioVoiceLast["cerrado"] ?? 0) > 600_000) {
+            e.horarioVoiceLast["cerrado"] = fix.t;
+            logEvent("danger", `Parque cerrado (${cierraHoraTexto()}): el horario de ciclistas terminó`);
+            alerts.speak(
+              "horario-cerrado",
+              `El parque ya cerró. El ingreso de ciclistas es hasta las ${cierraVozText()}.`,
+              60
+            );
+          }
+        } else if (mC <= 30) {
+          if (fix.t - (e.horarioVoiceLast["proximo"] ?? 0) > 600_000) {
+            e.horarioVoiceLast["proximo"] = fix.t;
+            const min5 = Math.max(5, Math.round(mC / 5) * 5);
+            logEvent("warn", `Al límite del horario: el parque cierra a las ${cierraHoraTexto()} (${mC} min)`);
+            alerts.speak(
+              "horario-proximo",
+              `Atención: el parque cierra a las ${cierraVozText()}. Te quedan ${min5} minutos.`,
+              60
+            );
+          }
+        }
+      }
+
       // 8) Máquina de estados de velocidad (solo dentro del parque)
       let nextState: SpeedState = "ok";
       if (e.inside) {
@@ -560,6 +622,10 @@ export function useRideEngine() {
       e.puenteStreak = 0;
       e.puenteStreakD = null;
       e.puenteLastTrigger = 0;
+      e.b30Mod = null;
+      e.b30LastTrigger = {};
+      e.horarioLastCheck = 0;
+      e.horarioVoiceLast = {};
       e.paused = false;
       setSource(src);
       setEvents([]);
@@ -579,6 +645,29 @@ export function useRideEngine() {
       setPosition(null);
       setStatus("running");
       logEvent("info", src === "gps" ? "Ride iniciado con GPS real" : "Ride iniciado en modo demo");
+      // Corredores de las bajadas 30: carga perezosa (import dinámico,
+      // el trazado no viaja en el bundle principal).
+      void import("@/lib/bajadas30")
+        .then((m) => { engine.current.b30Mod = m; })
+        .catch(() => { /* sin detección de bajadas esta sesión */ });
+      // Aviso de horario al INICIAR (ingreso fuera de horario o al
+      // límite del cierre).
+      const mInicio = minutosParaCierre();
+      if (mInicio <= 0) {
+        logEvent("warn", `Ride fuera de horario: ${PARK_HOURS.msgCierre}`);
+        alerts.speak(
+          "horario-inicio",
+          `Estás fuera del horario del parque. El ingreso de ciclistas es de ${PARK_HOURS.abreMin / 60} a ${cierraVozText()}.`,
+          4
+        );
+      } else if (mInicio <= 30) {
+        logEvent("warn", `Ride al límite del horario: cierre a las ${cierraHoraTexto()} (${mInicio} min)`);
+        alerts.speak(
+          "horario-inicio",
+          `Atención: el parque cierra a las ${cierraVozText()}. Te quedan ${Math.max(5, Math.round(mInicio / 5) * 5)} minutos.`,
+          4
+        );
+      }
       void alerts.requestWakeLock();
       if (src === "gps") startGps();
       else startSim();

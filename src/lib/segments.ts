@@ -19,6 +19,11 @@
 // 30 km/h - los mismos corredores rojos de la capa Normativa y
 // Seguridad; la auditoría scripts/audita-segmentos.ts los mantiene
 // sincronizados con el trazado.
+// 2026-11-13 (tarde): los 2 segmentos de senderos de tierra
+// (Zorro Vidal · bajada y Mapuche · bajada) se RETIRAN a pedido del
+// cliente: «son personales». Quedan las 4 subidas oficiales y las 3
+// bajadas del control 30 km/h; los senderos siguen en el mapa como
+// capa informativa (senderos.ts), solo dejan de ser segmentos Pro.
 // ============================================================
 
 import { haversineM } from "./geo";
@@ -42,8 +47,8 @@ export type SegmentDef = {
   /** Tiempo plausible del intento (s): fuera de este rango se descarta. */
   minTimeSec: number;
   maxTimeSec: number;
-  /** Dirección del intento: "subida" (default) o "bajada" para los
-   *  senderos de enduro (2026-11-11). */
+  /** Dirección del intento: "subida" (default) o "bajada" (bajadas
+   *  del control 30 km/h, 2026-11-13). */
   dir?: "subida" | "bajada";
   /** true: trazado preliminar, pendiente de la publicación oficial
    *  de Parquemet (5 rutas de enduro, antes del 15 de diciembre). */
@@ -201,46 +206,11 @@ export const SEGMENTS: SegmentDef[] = [
       },
     ];
   }),
-  // ---- Senderos de tierra (enduro) ----
-  // Extremos tomados de la geometría OSM de cada sendero
-  // (scripts/extract-parque.py, 2026-11-11). Son trazados
-  // preliminares: Parquemet aún no publica las 5 rutas de enduro
-  // oficiales (obligatorio desde el 15 de diciembre); al
-  // confirmarse se ajustan start/end y se marcan como oficiales.
-  {
-    id: "zorro-vidal-bajada",
-    name: "Zorro Vidal · bajada",
-    detail: "Descenso de tierra desde Plaza México por el sendero: ~0,6 km y -100 m (meta antes de la confluencia con el camino).",
-    start: { lat: -33.42394, lon: -70.63269 }, // cabeza alta (borde Plaza México)
-    // 2026-11-13: la meta ya NO es la salida al sector Pío Nono
-    // (-33.42651, -70.63765): el camino pavimentado Plaza México → Pío
-    // Nono pasa a 1 m de ese punto y todo descenso por el camino
-    // generaba un intento falso de este sendero. La meta sube al punto
-    // del sendero que queda a 168 m del camino (fuera del radio 130),
-    // verificado punto a punto contra el trazado b30-pionono.
-    end: { lat: -33.42164, lon: -70.63496 }, // sendero, 168 m del camino
-    radiusStartM: 110,
-    radiusEndM: 130,
-    minGainM: 60, // caída real hasta aquí ~100 m (antes 80 sobre -140)
-    minTimeSec: 60,
-    maxTimeSec: 900,
-    dir: "bajada",
-    preliminar: true,
-  },
-  {
-    id: "mapuche-bajada",
-    name: "Mapuche · bajada",
-    detail: "Descenso de tierra desde la zona Anáhuac hacia el camino: ~1,1 km y -35 m.",
-    start: { lat: -33.41781, lon: -70.62392 }, // cabeza alta (sector Anáhuac)
-    end: { lat: -33.42405, lon: -70.62944 }, // salida al camino
-    radiusStartM: 110,
-    radiusEndM: 130,
-    minGainM: 20,
-    minTimeSec: 60,
-    maxTimeSec: 900,
-    dir: "bajada",
-    preliminar: true,
-  },
+  // Nota 2026-11-13: los segmentos de senderos de tierra (Zorro Vidal
+  // y Mapuche) se retiraron a pedido del cliente: eran personales y
+  // Parquemet aún no publica el reglamento enduro. Si vuelven, sus
+  // extremos verificados quedan en la historia de git (commit previo)
+  // y en scripts/audita-segmentos.ts de esa época.
 ];
 
 export type SegmentEffort = {

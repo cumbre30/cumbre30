@@ -59,7 +59,7 @@ for (const esperado of [
   "Sendero Pedro de Valdivia Norte",
   "Tramo Pedro de Valdivia Norte",
   "Tramo Jardín Japonés / Pirámide",
-  "Conector El Ermitaño – La Cascada",
+  "Conector El Ermitaño · La Cascada",
   "Sendero La Cascada",
 ]) {
   if (!filas.some((f) => f.includes(esperado))) throw new Error(`FALTA fila: ${esperado}`);

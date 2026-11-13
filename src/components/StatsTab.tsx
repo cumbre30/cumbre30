@@ -29,11 +29,12 @@ import { SubTabs } from "@/components/SubTabs";
 function Kpi({ icon, label, value, unit }: { icon: React.ReactNode; label: string; value: string; unit?: string }) {
   return (
     <Card className="p-3.5">
-      <div className="flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground">
+      {/* Texto centrado (cliente 2026-11-13): etiqueta y valor al centro de la tarjeta. */}
+      <div className="flex items-center justify-center gap-1.5 text-center text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground">
         {icon}
         {label}
       </div>
-      <p className="mt-1.5 font-mono text-[22px] font-bold leading-none tabular-nums text-foreground">
+      <p className="mt-1.5 text-center font-mono text-[22px] font-bold leading-none tabular-nums text-foreground">
         {value}
         {unit && <span className="ml-1 font-sans text-[11px] font-semibold text-muted-foreground">{unit}</span>}
       </p>

@@ -89,6 +89,8 @@ export async function GET() {
       maxRideKm: Number(stats.maxRideKm.toFixed(1)),
       weekendRides: stats.weekendRides,
       totalHours: Number(stats.totalHours.toFixed(1)),
+      // Km dentro del parque: Serie Metropolitana (Paseo Metropolitano).
+      totalParkKm: Number(stats.totalParkKm.toFixed(1)),
       lastRideDate: rides[0]?.dateISO.toISOString() ?? null,
       incidentCount,
     },

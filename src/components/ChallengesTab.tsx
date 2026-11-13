@@ -153,16 +153,20 @@ function SeriesRow({
   );
 }
 
+/** Número con decimales a la chilena: "10,9" · enteros sin decimal. */
+const numFmt = (v: number): string =>
+  v.toLocaleString("es-CL", { maximumFractionDigits: 1 });
+
 /** Formatea el valor de un desafío con fecha según su métrica. */
 function timeValueFmt(metric: TimeChallenge["metric"], v: number): string {
   if (metric === "rides") return `${Math.round(v)}`;
-  if (metric === "km") return `${v.toFixed(1)} km`;
+  if (metric === "km") return `${numFmt(v)} km`;
   return `${Math.round(v).toLocaleString("es-CL")} m`;
 }
 
 function timeGoalFmt(c: TimeChallenge): string {
   if (c.metric === "rides") return `${c.goal} rides`;
-  if (c.metric === "km") return `${c.goal} km`;
+  if (c.metric === "km") return `${numFmt(c.goal)} km`;
   return `${c.goal.toLocaleString("es-CL")} m`;
 }
 
@@ -305,6 +309,9 @@ export default function ChallengesTab({ onGoPerfil, onGoPro }: { onGoPerfil: () 
     maxRideKm: me.stats.maxRideKm,
     weekendRides: me.stats.weekendRides,
     totalHours: me.stats.totalHours,
+    // Respuestas /api/me antiguas sin la métrica nueva: 0 (la Serie
+    // Metropolitana arranca a medir desde esta versión).
+    totalParkKm: me.stats.totalParkKm ?? 0,
     incidentCount: me.stats.incidentCount,
   };
   const unlocked = normalizeCodes(me.achievements.map((a) => a.code));
