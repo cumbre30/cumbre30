@@ -1,21 +1,31 @@
 // ============================================================
-// Init-script de Gradle: inyecta los espejos de aliyun en todos
-// los proyectos (classpath de buildscript y dependencias).
-// Motivo: mavenCentral responde HTTP 429 (rate-limit) desde IPs
-// de infraestructura compartida; los espejos aliyun son accesibles.
+// Init-script de Gradle: repos en orden de confiabilidad para
+// el sandbox (IP compartida: mavenCentral a veces responde 429
+// y los espejos aliyun a veces 504). dl.google.com funciona
+// directo; tencent/huawei de respaldo y aliyun al final.
+// Un 5xx desactiva SOLO ese repo en Gradle y sigue con el
+// siguiente, por eso la lista larga.
 // Uso:
-//   ./gradlew assembleDebug --init-script ../scripts/gradle-mirror-init.gradle
+//   ./gradlew assembleRelease --init-script ../scripts/gradle-mirror-init.gradle
 // ============================================================
 
 allprojects {
     buildscript {
         repositories {
-            maven { url 'https://maven.aliyun.com/repository/public' }
+            maven { url 'https://dl.google.com/android/maven2' }
+            maven { url 'https://mirrors.cloud.tencent.com/nexus/repository/maven-public/' }
+            maven { url 'https://repo.huaweicloud.com/repository/maven/' }
+            mavenCentral()
             maven { url 'https://maven.aliyun.com/repository/google' }
+            maven { url 'https://maven.aliyun.com/repository/public' }
         }
     }
     repositories {
-        maven { url 'https://maven.aliyun.com/repository/public' }
+        maven { url 'https://dl.google.com/android/maven2' }
+        maven { url 'https://mirrors.cloud.tencent.com/nexus/repository/maven-public/' }
+        maven { url 'https://repo.huaweicloud.com/repository/maven/' }
+        mavenCentral()
         maven { url 'https://maven.aliyun.com/repository/google' }
+        maven { url 'https://maven.aliyun.com/repository/public' }
     }
 }
