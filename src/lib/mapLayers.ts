@@ -24,6 +24,7 @@
 import { GATES, RISK_ZONES, type LatLng } from "./park";
 import { BAJADAS_CONTROL_30, RUTAS_TRAZADOS } from "./rutasTrazados";
 import { senderosPeatonales } from "./senderos";
+import { PASEO_METROPOLITANO_TRAMOS } from "./paseoMetropolitano";
 
 // ------------------------------------------------------------
 // Destinos del MINIMAPA (limpieza pedida por el cliente, 2026-11-12):
@@ -535,3 +536,43 @@ export const CAPA_SENDEROS_PEATONALES: SenderoPeatonalCapa[] = senderosPeatonale
   largoKm: Number((((s.largoMedidoM ?? s.largoOficialM) ?? 0) / 1000).toFixed(2)),
   coords: (s.pts ?? []).map(([lat, lon]) => ({ lat, lon })),
 }));
+
+// ------------------------------------------------------------
+// CAPA 7 · PASEO METROPOLITANO (uso MIXTO: peatones + ciclistas)
+// (cliente 2026-11-13: «hay varios tramos en el cerro con el
+// nombre de paseo metropolitano, crea una nueva categoría en la
+// capa de mapas… son mixtos: peatonal y ciclista, algunos
+// conectan con rutas pavimentadas y MTB»).
+// Datos en SU PROPIA variable (paseoMetropolitano.ts) — no toca
+// SENDEROS ni la capa «Senderos peatonales». Categoría INFORMATIVA
+// como la anterior: los tramos ya viven en el grafo OSM propio y
+// ninguna regla de ruteo cambia. Se dibuja como línea verde-azul
+// (teal) de guion-punto, distinta del pavimento (azul), MTB
+// (naranja punteado), senderos peatonales (café punteado fino) y
+// bajadas 30 (rojo).
+// ------------------------------------------------------------
+
+export type TramoPaseoMetCapa = {
+  id: string;
+  nombre: string;
+  detalle: string;
+  /** Fuente del tramo (mapa oficial, parquemet.cl u OSM). */
+  origen: string;
+  /** Largo medido del tramo en km (etiqueta del trazado). */
+  largoKm: number;
+  coords: LatLng[];
+};
+
+export const CAPA_PASEO_METROPOLITANO: TramoPaseoMetCapa[] = PASEO_METROPOLITANO_TRAMOS.map((t) => {
+  const oficial = t.largoOficialM != null
+    ? ` · oficial ${(t.largoOficialM / 1000).toLocaleString("es-CL", { maximumFractionDigits: 1 })} km`
+    : "";
+  return {
+    id: t.id,
+    nombre: t.nombre,
+    detalle: `Uso mixto (peatones + ciclistas) · ${(t.largoMedidoM / 1000).toLocaleString("es-CL", { maximumFractionDigits: 2 })} km medidos${oficial}. Conecta: ${t.conexiones.join(" · ")}.`,
+    origen: t.origen,
+    largoKm: Number((t.largoMedidoM / 1000).toFixed(2)),
+    coords: t.segmentos.flat().map(([lat, lon]) => ({ lat, lon })),
+  };
+});

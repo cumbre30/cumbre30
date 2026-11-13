@@ -36,6 +36,7 @@ import {
   BAJADAS_30,
   CAPA_URBANA,
   CAPA_SENDEROS_PEATONALES,
+  CAPA_PASEO_METROPOLITANO,
   SUB_ETIQUETAS,
   rutaTrazado,
   type CapaPunto,
@@ -125,7 +126,8 @@ function RouteFitter({
   return null;
 }
 
-// ---- Capas del mapa: 6 menús desplegables (arquitectura GPX) ----
+// ---- Capas del mapa: 7 menús desplegables (arquitectura GPX +
+//      Paseo Metropolitano, cliente 2026-11-13) ----
 
 type MenuCapa = {
   id: string;
@@ -140,6 +142,7 @@ const MENUS_CAPAS: MenuCapa[] = [
   { id: "accesos", titulo: "Accesos", sub: "Entradas y salidas oficiales", emoji: "🚪", items: CAPA_ACCESOS.length },
   { id: "rutas", titulo: "Rutas", sub: "Trazados de pavimento y circuitos MTB", emoji: "🛣️", items: CAPA_RUTAS.length },
   { id: "senderos", titulo: "Senderos peatonales", sub: "Informativo · no son rutas ciclistas", emoji: "🥾", items: CAPA_SENDEROS_PEATONALES.length },
+  { id: "paseo-met", titulo: "Paseo Metropolitano", sub: "Uso mixto: peatones y ciclistas · anillo del cerro", emoji: "🛤️", items: CAPA_PASEO_METROPOLITANO.length },
   { id: "pois", titulo: "Puntos de Interés", sub: "Cruces, servicios, miradores y alertas peatonales", emoji: "📍", items: CAPA_POIS.length },
   { id: "normativa", titulo: "Normativa y Seguridad", sub: "Cortes horarios, límites y soporte técnico", emoji: "🛡️", items: CAPA_NORMATIVA.length },
   { id: "urbana", titulo: "Conexión Urbana", sub: "Metro y ciclovías externas", emoji: "🏙️", items: CAPA_URBANA.length },
@@ -365,6 +368,37 @@ function CapasPanel({
                             onClick={() => onFocus({ kind: "ruta", coords: s.coords })}
                             aria-label={`Encuadrar ${s.nombre}`}
                             title="Encuadrar el sendero en el mapa"
+                            className="shrink-0 rounded border border-border px-1.5 py-1 text-muted-foreground hover:border-emerald-500 hover:text-emerald-600"
+                          >
+                            <Eye className="h-3.5 w-3.5" />
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                )}
+
+                {m.id === "paseo-met" && (
+                  <>
+                    <div className="mb-1 flex items-center justify-between gap-2">
+                      <p className="text-[10px] text-muted-foreground">
+                        Tramos mixtos (peatones + ciclistas) del anillo del cerro; algunos conectan con pavimento y MTB. Informativa: no cambia el ruteo.
+                      </p>
+                      <SwitchCapa on={on} onClick={() => onVer("paseo-met")} label="paseo-met" />
+                    </div>
+                    <ul>
+                      {CAPA_PASEO_METROPOLITANO.map((t) => (
+                        <li key={t.id} className="flex items-center gap-1.5 py-1.5">
+                          <span aria-hidden className="shrink-0 text-[13px]">🚶‍♂️</span>
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate text-xs text-foreground">{t.nombre}</span>
+                            <span className="block truncate text-[10px] text-muted-foreground">{t.detalle}</span>
+                          </span>
+                          <span className="h-0.5 w-4 shrink-0" style={{ borderTop: "2px dashed #0d9488" }} aria-hidden />
+                          <button
+                            onClick={() => onFocus({ kind: "ruta", coords: t.coords })}
+                            aria-label={`Encuadrar ${t.nombre}`}
+                            title="Encuadrar el tramo en el mapa"
                             className="shrink-0 rounded border border-border px-1.5 py-1 text-muted-foreground hover:border-emerald-500 hover:text-emerald-600"
                           >
                             <Eye className="h-3.5 w-3.5" />
@@ -772,7 +806,7 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
   // Encuadre único de la ruta recién trazada desde el buscador
   const pendingFitRef = useRef(false);
   // Capas del mapa (arquitectura GPX): visibilidad por capa/ruta
-  const [capasVis, setCapasVis] = useState<Record<string, boolean>>({ accesos: true, senderos: true });
+  const [capasVis, setCapasVis] = useState<Record<string, boolean>>({ accesos: true, senderos: true, "paseo-met": true });
   const [focus, setFocus] = useState<Focus>(null);
   const last = track.length > 0 ? track[track.length - 1] : null;
   // Sin fix aún: el centro por defecto es el parque. Con fix GPS la
@@ -1242,6 +1276,26 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
                 >
                   <Tooltip direction="top">
                     <span className="text-xs font-medium">🥾 {s.nombre} · peatonal</span>
+                  </Tooltip>
+                </Polyline>
+              );
+            })}
+
+          {/* Paseo Metropolitano (cliente 2026-11-13: nueva categoría
+              para los tramos mixtos peatón+bici del anillo): línea teal
+              de guion-punto, datos en su propia variable
+              (paseoMetropolitano.ts) — informativa, el ruteo no cambia. */}
+          {capasVis["paseo-met"] &&
+            CAPA_PASEO_METROPOLITANO.map((t) => {
+              if (t.coords.length < 2) return null;
+              return (
+                <Polyline
+                  key={`pm-${t.id}`}
+                  positions={t.coords.map((c) => [c.lat, c.lon] as [number, number])}
+                  pathOptions={{ color: "#0d9488", weight: 4, opacity: 0.9, dashArray: "14 7 3 7", lineCap: "round" }}
+                >
+                  <Tooltip direction="top">
+                    <span className="text-xs font-medium">🚶‍♂️ {t.nombre} · {t.largoKm.toLocaleString("es-CL")} km · uso mixto</span>
                   </Tooltip>
                 </Polyline>
               );
