@@ -10,9 +10,9 @@ import GeoSite from "@/components/GeoSite";
 // ============================================================
 
 export const metadata: Metadata = {
-  title: "Cumbre GEO - Aplicaciones 100% offline para el aire libre",
+  title: "Cumbre GEO - Tecnología para descubrir",
   description:
-    "Qué hacemos y cómo lo hacemos: aplicaciones 100% offline, sin publicidad, con motor GPS propio y cartografía open source. Conoce Cumbre30, sus detalles y sus planes.",
+    "Qué hacemos y cómo lo hacemos: tecnología para descubrir, con motor GPS propio, cartografía open source y herramientas que funcionan sin señal. Conoce Cumbre30, sus detalles y sus planes.",
 };
 
 export default async function GeoPage({
