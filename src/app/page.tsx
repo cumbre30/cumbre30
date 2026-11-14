@@ -24,6 +24,7 @@ import { PlanesTab } from "@/components/PlanesTab";
 import { StatsTab } from "@/components/StatsTab";
 import { ConfigTab } from "@/components/ConfigTab";
 import { HelpTab } from "@/components/HelpTab";
+import { AmigosTab } from "@/components/AmigosTab";
 import { FallOverlay } from "@/components/FallOverlay";
 import { useRideEngine, type Source } from "@/hooks/useRideEngine";
 import { useMe } from "@/hooks/useMe";
@@ -76,7 +77,7 @@ const ChallengesTab = dynamic(() => import("@/components/ChallengesTab"), {
 /** Destinos de la barra inferior (los 3 del brief). */
 type TabScreen = "ride" | "explorar" | "acceso";
 /** Sub-pantallas accesibles desde el menú lateral. */
-type SubScreen = MenuScreen; // historial | stats | premios | perfil | config | ayuda | planes
+type SubScreen = MenuScreen; // historial | stats | premios | amigos | perfil | config | ayuda | planes
 type Screen = TabScreen | SubScreen;
 
 /** Claves i18n de las sub-pantallas del menú lateral. */
@@ -84,6 +85,7 @@ const SUB_KEYS: Record<SubScreen, string> = {
   historial: "menu.historial",
   stats: "menu.stats",
   premios: "menu.premios",
+  amigos: "menu.amigos",
   perfil: "menu.perfil",
   config: "menu.config",
   ayuda: "menu.ayuda",
@@ -293,6 +295,7 @@ export default function Home() {
                 onGoPro={() => go("planes")} // desafíos Pro → comparación FREE/PRO
               />
             )}
+            {screen === "amigos" && <AmigosTab onGoPerfil={() => go("perfil")} />}
             {screen === "perfil" && <ProfileTab />}
             {screen === "config" && (
               <ConfigTab

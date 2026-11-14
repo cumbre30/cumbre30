@@ -1,50 +1,97 @@
 "use client";
 
 // ============================================================
-// Amigos - menú lateral (movido desde Perfil). Listado con km,
-// logros y último viaje + botón para agregar por nombre de usuario.
-// Requiere servidor de cuenta: en el APK offline se explica.
+// Amigos - menú lateral. Listado con km, logros y último viaje +
+// botón para agregar por nombre de usuario (conexión mutua e
+// inmediata). Funciona en la web (cookies de sesión) y en el APK
+// (token Bearer del servidor de cuenta vía apiUrl()).
 // ============================================================
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Award, LogIn, Trash2, UserPlus, Users } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useMe } from "@/hooks/useMe";
 import { isOfflineMode } from "@/lib/offlineAuth";
+import { apiUrl } from "@/lib/backend";
+import { serverToken } from "@/lib/cloudSync";
 import { PINS, DEFAULT_PIN, type PinId } from "@/lib/pins";
 
+type FriendRow = {
+  username: string;
+  selectedPin: string | null;
+  totalKm: number;
+  rideCount: number;
+  maxKmh: number;
+  achievementCount: number;
+  lastRideDate: string | null;
+};
+
 export function AmigosTab({ onGoPerfil }: { onGoPerfil?: () => void }) {
-  const { me, ready, refresh } = useMe();
+  const { me, ready } = useMe();
+  const [friends, setFriends] = useState<FriendRow[] | null>(null); // null = cargando
+  const [listError, setListError] = useState(false);
   const [friendName, setFriendName] = useState("");
   const [friendError, setFriendError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
+  const offline = isOfflineMode();
+  const url = apiUrl("/api/friends");
+  // APK sin origen de servidor (sin override ni origen horneado): sin amigos
+  const noBackend = url === null;
+  // Sesión utilizable: web por cookie (me), APK por token Bearer vigente
+  const hasSession = offline ? !!serverToken() : !!me;
+  const canUse = url !== null && hasSession;
+
+  const load = useCallback(async () => {
+    if (url === null || !hasSession) return;
+    try {
+      const headers: Record<string, string> = {};
+      const tok = offline ? serverToken() : null;
+      if (tok) headers.Authorization = `Bearer ${tok}`;
+      const r = await fetch(url, { headers });
+      if (!r.ok) {
+        setListError(true);
+        setFriends((f) => f ?? []);
+        return;
+      }
+      const d = (await r.json()) as { friends?: FriendRow[] };
+      setFriends(d.friends ?? []);
+      setListError(false);
+    } catch {
+      setListError(true);
+      setFriends((f) => f ?? []);
+    }
+  }, [url, hasSession, offline]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
   const addFriend = async () => {
     setFriendError(null);
-    if (isOfflineMode()) {
-      setFriendError("Los amigos no están disponibles en la app sin servidor.");
-      return;
-    }
-    if (!me) {
+    if (!canUse || url === null) {
       setFriendError("Inicia sesión para agregar amigos.");
       return;
     }
     setBusy(true);
     try {
-      const r = await fetch("/api/friends", {
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      const tok = offline ? serverToken() : null;
+      if (tok) headers.Authorization = `Bearer ${tok}`;
+      const r = await fetch(url, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({ username: friendName }),
       });
-      const d = (await r.json()) as { error?: string };
+      const d = (await r.json().catch(() => ({}))) as { error?: string };
       if (!r.ok) {
         setFriendError(d.error ?? "No pudimos agregarlo.");
         return;
       }
       setFriendName("");
-      await refresh();
+      await load();
     } catch {
       setFriendError("Sin conexión con el servidor.");
     } finally {
@@ -53,29 +100,36 @@ export function AmigosTab({ onGoPerfil }: { onGoPerfil?: () => void }) {
   };
 
   const removeFriend = async (username: string) => {
+    if (url === null) return;
     try {
-      await fetch(`/api/friends?username=${encodeURIComponent(username)}`, { method: "DELETE" });
-      await refresh();
+      const headers: Record<string, string> = {};
+      const tok = offline ? serverToken() : null;
+      if (tok) headers.Authorization = `Bearer ${tok}`;
+      await fetch(`${url}?username=${encodeURIComponent(username)}`, { method: "DELETE", headers });
+      await load();
     } catch {
-      // sin conexión
+      // sin conexión: la lista queda como está
     }
   };
 
-  // APK offline: sin servidor no hay amigos
-  if (isOfflineMode()) {
+  // APK sin servidor de cuenta configurado: no hay a quién conectar
+  if (noBackend) {
     return (
       <Card className="bg-card/80 border-border p-6 text-center">
         <Users className="mx-auto mb-2 h-6 w-6 text-muted-foreground" />
         <p className="text-sm font-medium text-foreground">Amigos</p>
         <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">
-          Los amigos no están disponibles en la app sin servidor. Tus km y logros se guardan igual
-          en este teléfono.
+          Los amigos necesitan el servidor de cuenta. Configúralo en Perfil → Cuenta →
+          Servidor de cuenta y vuelve a esta pantalla.
         </p>
       </Card>
     );
   }
 
-  if (ready && !me) {
+  // Sin sesión utilizable (web sin cookie o APK sin token): invitación a
+  // entrar. En la web esperamos a que useMe resuelva (evita destello).
+  const showLoginCta = url !== null && !hasSession && (offline || ready);
+  if (showLoginCta) {
     return (
       <Card className="bg-card/80 border-border p-6 text-center">
         <Users className="mx-auto mb-2 h-6 w-6 text-muted-foreground" />
@@ -100,7 +154,9 @@ export function AmigosTab({ onGoPerfil }: { onGoPerfil?: () => void }) {
       <Card className="bg-card/80 border-border p-4">
         <div className="mb-3 flex items-center gap-2">
           <Users className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-          <p className="text-sm font-medium text-foreground">Tus amigos {me ? `(${me.friends.length})` : ""}</p>
+          <p className="text-sm font-medium text-foreground">
+            Tus amigos {friends ? `(${friends.length})` : ""}
+          </p>
         </div>
         <div className="mb-3 flex gap-2">
           <Input
@@ -122,15 +178,20 @@ export function AmigosTab({ onGoPerfil }: { onGoPerfil?: () => void }) {
           </Button>
         </div>
         {friendError && <p className="mb-2 text-xs text-red-600 dark:text-red-400">{friendError}</p>}
-        {!me ? (
+        {listError && (
+          <p className="mb-2 text-xs text-red-600 dark:text-red-400">
+            No pudimos cargar la lista. Revisa tu conexión y vuelve a intentar.
+          </p>
+        )}
+        {friends === null ? (
           <p className="text-xs text-muted-foreground">Cargando amigos…</p>
-        ) : me.friends.length === 0 ? (
+        ) : friends.length === 0 ? (
           <p className="text-xs text-muted-foreground">
             Aún no tienes amigos. Agrega a alguien por su nombre de usuario para ver sus km y logros.
           </p>
         ) : (
           <ul className="max-h-72 space-y-2 overflow-y-auto pr-1">
-            {me.friends.map((f) => {
+            {friends.map((f) => {
               const fp = PINS[(f.selectedPin as PinId) ?? DEFAULT_PIN] ?? PINS[DEFAULT_PIN];
               return (
                 <li key={f.username} className="rounded-lg border border-border bg-background/60 p-3">
@@ -161,8 +222,8 @@ export function AmigosTab({ onGoPerfil }: { onGoPerfil?: () => void }) {
         )}
       </Card>
       <p className="text-[11px] leading-relaxed text-muted-foreground/80">
-        Alguien tiene que agregarte también para que se vean mutuamente. El nombre de usuario se
-        cambia en Perfil (1 vez cada 30 días).
+        Al agregar a alguien la conexión es mutua e inmediata: verás sus km y logros, y aparecerás
+        en su lista. El nombre de usuario se cambia en Perfil (1 vez cada 30 días).
       </p>
     </div>
   );

@@ -103,6 +103,16 @@ function readToken(): SyncToken | null {
   }
 }
 
+/** Token Bearer vigente para llamadas a la API desde el APK (null si no hay). */
+export function serverToken(): string | null {
+  return readToken()?.token ?? null;
+}
+
+/** Correo de la cuenta vinculada al servidor (null si no hay token vigente). */
+export function serverEmail(): string | null {
+  return readToken()?.email ?? null;
+}
+
 function setToken(t: SyncToken): void {
   try {
     window.localStorage.setItem(TOKEN_KEY, JSON.stringify(t));

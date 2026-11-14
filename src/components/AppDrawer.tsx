@@ -22,6 +22,7 @@ import {
   Settings,
   Trophy,
   UserRound,
+  Users,
   X,
 } from "lucide-react";
 import { bikeOnly, historyStore, ridesForAccount } from "@/lib/history";
@@ -31,6 +32,7 @@ export type MenuScreen =
   | "historial"
   | "stats"
   | "premios"
+  | "amigos"
   | "perfil"
   | "config"
   | "ayuda"
@@ -154,6 +156,7 @@ export function AppDrawer({
           <MenuItem icon={<History className="h-5 w-5" />} label="Mis viajes" onClick={() => go("historial")} />
           <MenuItem icon={<ChartLine className="h-5 w-5" />} label="Estadísticas generales" onClick={() => go("stats")} />
           <MenuItem icon={<Trophy className="h-5 w-5" />} label="Desafíos y recompensas" onClick={() => go("premios")} />
+          <MenuItem icon={<Users className="h-5 w-5" />} label="Amigos" hint="Km y logros de tus pares" onClick={() => go("amigos")} />
         </div>
 
         {/* Zona 3: Cuenta - Perfil abre subsecciones (datos/pagos) */}

@@ -90,6 +90,7 @@ const D: Record<string, E> = {
   "menu.historial": ["Mis viajes", "My rides", "Meus passeios"],
   "menu.stats": ["Estadísticas generales", "Overall statistics", "Estatísticas gerais"],
   "menu.premios": ["Desafíos y recompensas", "Challenges and rewards", "Desafios e recompensas"],
+  "menu.amigos": ["Amigos", "Friends", "Amigos"],
   "menu.perfil": ["Perfil", "Profile", "Perfil"],
   "menu.config": ["Configuración", "Settings", "Configurações"],
   "menu.ayuda": ["Ayuda y contacto", "Help and contact", "Ajuda e contato"],
