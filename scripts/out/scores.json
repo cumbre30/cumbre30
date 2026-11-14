@@ -1,0 +1,128 @@
+[
+  {
+    "id": "ice",
+    "nombre": "Contactos ICE + alerta por caída",
+    "eje": "Seguridad y emergencia",
+    "impacto": 5,
+    "esfuerzo": 2,
+    "ola": 1,
+    "indice": 8
+  },
+  {
+    "id": "mod",
+    "nombre": "Moderación comunitaria de incidencias",
+    "eje": "Comunidad",
+    "impacto": 4,
+    "esfuerzo": 2,
+    "ola": 1,
+    "indice": 6
+  },
+  {
+    "id": "fc",
+    "nombre": "Zonas de esfuerzo con sensor BT",
+    "eje": "Datos e integraciones",
+    "impacto": 4,
+    "esfuerzo": 2,
+    "ola": 1,
+    "indice": 6
+  },
+  {
+    "id": "push",
+    "nombre": "Notificaciones push / locales",
+    "eje": "Notificaciones",
+    "impacto": 4,
+    "esfuerzo": 3,
+    "ola": 1,
+    "indice": 5
+  },
+  {
+    "id": "racha",
+    "nombre": "Rachas de actividad y reactivación",
+    "eje": "Retención",
+    "impacto": 3,
+    "esfuerzo": 1,
+    "ola": 1,
+    "indice": 5
+  },
+  {
+    "id": "vlm",
+    "nombre": "Clasificación de fotos con IA (VLM)",
+    "eje": "Inteligencia artificial",
+    "impacto": 4,
+    "esfuerzo": 3,
+    "ola": 2,
+    "indice": 5
+  },
+  {
+    "id": "strava",
+    "nombre": "Exportación a Strava / archivo FIT",
+    "eje": "Datos e integraciones",
+    "impacto": 4,
+    "esfuerzo": 3,
+    "ola": 2,
+    "indice": 5
+  },
+  {
+    "id": "nube",
+    "nombre": "Respaldo y restauración en la nube",
+    "eje": "Nube y continuidad",
+    "impacto": 5,
+    "esfuerzo": 5,
+    "ola": 3,
+    "indice": 5
+  },
+  {
+    "id": "bat",
+    "nombre": "Modo ahorro de batería en ride",
+    "eje": "Experiencia y rendimiento",
+    "impacto": 3,
+    "esfuerzo": 2,
+    "ola": 1,
+    "indice": 4
+  },
+  {
+    "id": "rank",
+    "nombre": "Ranking de segmentos",
+    "eje": "Comunidad",
+    "impacto": 4,
+    "esfuerzo": 4,
+    "ola": 2,
+    "indice": 4
+  },
+  {
+    "id": "resumen",
+    "nombre": "Resumen semanal generado con IA",
+    "eje": "Inteligencia artificial",
+    "impacto": 3,
+    "esfuerzo": 2,
+    "ola": 2,
+    "indice": 4
+  },
+  {
+    "id": "vivo",
+    "nombre": "Ride en vivo compartido",
+    "eje": "Seguridad y emergencia",
+    "impacto": 4,
+    "esfuerzo": 4,
+    "ola": 3,
+    "indice": 4
+  },
+  {
+    "id": "voz",
+    "nombre": "Comandos por voz durante el ride",
+    "eje": "Experiencia y rendimiento",
+    "impacto": 3,
+    "esfuerzo": 3,
+    "ola": 3,
+    "indice": 3
+  },
+  {
+    "id": "heat",
+    "nombre": "Heatmap anual de pedaleos",
+    "eje": "Datos e integraciones",
+    "impacto": 3,
+    "esfuerzo": 3,
+    "ola": 3,
+    "indice": 3
+  }
+]
