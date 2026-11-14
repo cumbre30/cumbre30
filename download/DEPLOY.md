@@ -68,7 +68,7 @@ DATABASE_URL="postgresql://…neon.tech/neondb?sslmode=require" npx prisma db pu
 | `GMAIL_USER` | `contacto.cumbre30@gmail.com` |
 | `GMAIL_APP_PASSWORD` | contraseña de aplicación de Google (16 caracteres) |
 | `MP_SYNC_TOKEN` | secreto aleatorio: `openssl rand -hex 32` |
-| `APK_DOWNLOAD_URL` | URL directa del APK — hoy el link de Google Drive ya va en `appsCatalog.ts`; esta variable queda para GitHub Releases (paso 6) y la descarga dentro de la app (`/api/apk`) |
+| `APK_DOWNLOAD_URL` | **Bórrala si existe**: apuntaba al link de Drive. El código ya redirige por defecto al Release "latest" de GitHub (`/api/apk`); esta variable solo para sobreescribir manualmente |
 
 ## Paso 4 · Deploy
 
@@ -90,19 +90,24 @@ DATABASE_URL="postgresql://…neon.tech/neondb?sslmode=require" npx prisma db pu
 
 Detalle completo de credenciales en `download/autogestion-codigos.md`.
 
-## Paso 6 · El APK en GitHub Releases
+## Paso 6 · El APK en GitHub Releases (automático)
 
-El APK (53 MB) no puede vivir dentro de las funciones serverless de Vercel:
+El APK (~55 MB) no vive dentro de las funciones serverless de Vercel:
+se hospeda en GitHub Releases y **todo el ciclo es automático** desde
+nov 2026:
 
-1. GitHub → tu repo → **Releases → Create a new release**.
-2. Crea el tag `v1.8.2`, título `Cumbre30 v1.8.2 (build 28)`, adjunta
-   `cumbre30-v1.8.2-code28.apk` y publica.
-3. Copia la URL del asset (botón derecho → copiar dirección del enlace,
-   termina en `…/download/v1.8.2/cumbre30-v1.8.2-code28.apk`).
-4. Ponla en la variable `APK_DOWNLOAD_URL` en Vercel y re-despliega.
-   `/api/apk` redirige ahí — eso alimenta la descarga de actualizaciones
-   **dentro de la app**; el botón de la landing `/geo` ya está activo
-   apuntando directo a Google Drive desde `appsCatalog.ts`.
+1. Al publicar un tag `v*` (`git push origin vX.Y.Z`), el workflow
+   `build-apk.yml` construye el APK y **crea el Release solo**, con dos
+   assets: `cumbre30-vX.Y.Z-codeN.apk` y `cumbre30-latest.apk`.
+2. `/api/apk` redirige por defecto a
+   `…/releases/latest/download/cumbre30-latest.apk` (URL fija en código,
+   no requiere variable de entorno) — alimenta tanto el botón de la
+   landing `/geo` como la descarga de actualizaciones dentro de la app.
+3. Para publicar una versión nueva: actualizar `src/lib/appVersion.ts`
+   y `android/app/build.gradle` (versionName/versionCode), commit, y
+   `git tag vX.Y.Z && git push origin vX.Y.Z`. Nada más.
+4. En Vercel **borra** `APK_DOWNLOAD_URL` si aún apunta a Drive: el
+   default del código manda cuando la variable no existe.
 
 ## Paso 7 · Ficha de Google Play
 
