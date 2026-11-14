@@ -2,7 +2,8 @@
 # Export estático de la web para el APK (Capacitor).
 # Las rutas API (Prisma/cookies) no existen en el APK: se excluyen temporalmente.
 set -e
-cd /home/z/my-project
+# Raíz del proyecto relativa al propio script (funciona local y en CI).
+cd "$(dirname "$0")/.."
 
 if [ -d src/app/api ]; then
   mv src/app/api /tmp/api-routes-apk-backup
