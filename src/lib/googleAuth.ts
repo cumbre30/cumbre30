@@ -57,7 +57,7 @@ export async function nativeGoogleSignIn(): Promise<GoogleAcct> {
   if (GOOGLE_WEB_CLIENT_ID.length < 10) {
     throw new Error(
       "El inicio con Google aún no está activado: falta el Client ID. " +
-        "Sigue la guía GUIA-GOOGLE-SIGNIN.md y pégalo en src/lib/googleAuth.ts."
+        "Sigue la guía GUIA-GOOGLE-SIGNIN.md y pégalo en src/lib/googleClientId.ts."
     );
   }
   try {
