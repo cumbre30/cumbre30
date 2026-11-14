@@ -6,7 +6,10 @@
 // ============================================================
 
 import { db } from "@/lib/db";
-import webpush from "web-push";
+// Turbopack (build de Vercel) exige exports nombrados: el import por
+// defecto de web-push (CommonJS) no se resuelve estáticamente y
+// rompe `next build` con "The export default was not found".
+import { sendNotification, setVapidDetails } from "web-push";
 import { asegurarTablaPush } from "@/lib/pushTabla";
 
 export type PushPayload = { title: string; body: string; url?: string };
@@ -48,13 +51,13 @@ export async function enviarPush(
     ...(opts?.userId ? [opts.userId] : [])
   )) as { endpoint: string; p256dh: string; auth: string }[];
 
-  webpush.setVapidDetails(cfg.subject, cfg.publicKey, cfg.privateKey);
+  setVapidDetails(cfg.subject, cfg.publicKey, cfg.privateKey);
   let enviados = 0;
   let caducados = 0;
   await Promise.all(
     subs.map(async (s) => {
       try {
-        await webpush.sendNotification(
+        await sendNotification(
           { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
           JSON.stringify(payload),
           { TTL: 24 * 3600 }
