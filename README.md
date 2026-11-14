@@ -10,6 +10,8 @@ App Android nativa (APK) + vista web, construida con Next.js y Capacitor. Traza 
 - **Límite 30 km/h**: geocercas del parque, alertas sonoras/voz, resumen de excesos por ride.
 - **Inicio de sesión con Google** (APK): selector de cuentas nativo, sin Firebase ni servidor; si ya tienes cuenta con el mismo correo se enlaza y conservas km y logros. Requiere configurar el Client ID (ver `GUIA-GOOGLE-SIGNIN.md`).
 - **Cuenta local sin servidor**: registro/login guardado en el teléfono (PBKDF2 100k), credencial QR Pedalea Seguro (solo guarda la imagen que emite Parquemet), logros y pines evaluados localmente.
+- **Sync de progreso con la cuenta**: los km y logros del APK quedan enlazados a la cuenta — base IndexedDB con cola outbox que se sube sola al servidor (token Bearer); al iniciar sesión en cualquier teléfono recuperas todo tu progreso.
+- **Amigos**: conexión mutua por nombre de usuario; cada uno ve los km totales, rides, velocidad máxima y logros del otro. Funciona en la web (cookies) y en el APK (token del servidor de cuenta).
 - **Reportes de incidencias** en el mapa (baches, perros, obstáculos) con modo local si no hay conexión.
 - **Temas y pantalla ride (Pro)**: color de la app completo (Cerro, Andes, Atardecer, Lila, Grafito), velocímetro personalizable (digital, arco, dial o aguja; tamaños grande y gigante) y altura del minimapa. En Configuración, con vista previa; persiste en el teléfono. La píldora compacta de modo (MODO PARQUE/LIBRE, pausa, exceso) reemplaza al banner grande en la pantalla ride.
 - **SOS ampliado**: tarjeta de emergencia con 133/131/132 más Parquemet, Municipalidad de Providencia y Salud Responde, y compartir la ubicación GPS actual.
