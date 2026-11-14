@@ -101,7 +101,7 @@ const D: Record<string, E> = {
   "ride.pausar": ["Pausar", "Pause", "Pausar"],
   "ride.reanudar": ["Reanudar", "Resume", "Retomar"],
   "ride.finalizarAria": ["Finalizar y guardar ride", "Finish and save ride", "Finalizar e salvar pedal"],
-  "ride.fuenteLeyenda": ["Fuente: {0} · cámbiala en Configuración", "Source: {0} · change it in Settings", "Fonte: {0} · mude em Configurações"],
+  "ride.fuenteLeyenda": ["Fuente: {0} (GPS en la app · demo en la web)", "Source: {0} (GPS in the app · demo on the web)", "Fonte: {0} (GPS no app · demo na web)"],
   "ride.demo": ["Demo", "Demo", "Demo"],
   "ride.gpsReal": ["GPS real", "Real GPS", "GPS real"],
   "ride.distancia": ["Distancia", "Distance", "Distância"],

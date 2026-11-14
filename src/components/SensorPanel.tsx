@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Bluetooth, BluetoothConnected, BluetoothOff, HeartPulse, Gauge, Loader2, Info } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { btSupported, connectHeartRate, connectWheelSpeed } from "@/lib/sensors";
+import { btSupported, connectHeartRate, connectWheelSpeed, isNativeBle } from "@/lib/sensors";
 
 type Status = "idle" | "connecting" | "connected" | "error";
 
@@ -24,6 +24,7 @@ export function SensorPanel({
   const [spdName, setSpdName] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const supported = btSupported();
+  const native = isNativeBle();
 
   const connectHr = async () => {
     setError(null);
@@ -116,6 +117,13 @@ export function SensorPanel({
           </p>
         )}
         {error && <p className="text-xs text-red-300 flex items-start gap-1.5"><BluetoothOff className="h-3.5 w-3.5 mt-0.5 shrink-0" />{error}</p>}
+        {native && !error && (
+          <p className="text-[11px] text-zinc-500 flex items-start gap-1.5">
+            <Info className="h-3 w-3 mt-0.5 shrink-0" />
+            Bluetooth nativo de Android: al tocar Emparejar se piden los permisos
+            y se abre el selector de dispositivos del sistema.
+          </p>
+        )}
         {supported && !error && (
           <p className="text-[11px] text-zinc-500 flex items-start gap-1.5">
             <Info className="h-3 w-3 mt-0.5 shrink-0" />

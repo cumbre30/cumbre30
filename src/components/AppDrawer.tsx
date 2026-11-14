@@ -163,7 +163,7 @@ export function AppDrawer({
         <div className="mt-3 px-3">
           <p className="px-1 pb-1 pt-2 text-[10.5px] font-extrabold uppercase tracking-widest text-muted-foreground/70">Cuenta</p>
           <MenuItem icon={<UserRound className="h-5 w-5" />} label="Perfil" hint="Datos y pagos" onClick={() => go("perfil")} />
-          <MenuItem icon={<Settings className="h-5 w-5" />} label="Configuración" hint="Demo / GPS, sonido y voz" onClick={() => go("config")} />
+          <MenuItem icon={<Settings className="h-5 w-5" />} label="Configuración" hint="Sonido, voz y temas" onClick={() => go("config")} />
           <MenuItem icon={<HelpCircle className="h-5 w-5" />} label="Ayuda y contacto" hint="Consultas y prototipos" onClick={() => go("ayuda")} />
         </div>
 
@@ -183,7 +183,7 @@ export function AppDrawer({
         </div>
 
         <div className="mt-auto px-4 pt-6 text-center text-[10.5px] leading-relaxed text-muted-foreground/60">
-          Cumbre30 · ciclocomputador del cerro
+          Cumbre30 · Sube tu límite
           <br />
           {gpsCount} {gpsCount === 1 ? "viaje registrado" : "viajes registrados"}
         </div>

@@ -16,9 +16,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Cumbre30 - Ciclocomputador de apoyo al ciclista",
+  title: "Cumbre30 — SUBE TU LÍMITE",
   description:
-    "Ciclocomputador de apoyo al ciclista en el celular: registra tus pedaleos con GPS y te acompaña con avisos informativos del Parque Metropolitano de Santiago (límite 30 km/h), alertas de voz y vibración, zonas de riesgo y credencial digital Pedalea Seguro (QR de Parquemet).",
+    "Sube tu límite pedaleando: registra tus rides con GPS y te acompaña con avisos informativos del Parque Metropolitano de Santiago (límite 30 km/h), alertas de voz y vibración, zonas de riesgo y credencial digital Pedalea Seguro (QR de Parquemet).",
   applicationName: "Cumbre30",
   manifest: "/manifest.webmanifest",
   appleWebApp: {

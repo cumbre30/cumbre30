@@ -429,7 +429,7 @@ export default function GeoSite({
                   {appPlanes.nombre} <span style={{ color: "var(--acento)" }}>Pro</span>
                 </h3>
                 <p style={{ color: "var(--gris)", margin: "4px 0 0" }}>
-                  El ciclocomputador de apoyo al ciclista, con todo desbloqueado.
+                  Sube tu límite: todo desbloqueado de una vez, para siempre.
                 </p>
 
                 <p style={{ fontSize: "3rem", fontWeight: 800, color: "var(--verde-osc)", margin: "20px 0 0", lineHeight: 1 }}>
@@ -622,6 +622,23 @@ export default function GeoSite({
             </div>
 
             <div className="modal-cuerpo">
+              {/* Demo en vivo (v1.11.0): la web corre la app en modo demo
+                  en el navegador — probar sin instalar. Solo Cumbre30. */}
+              {app.id === "cumbre30" && (
+                <>
+                  <a
+                    href="/demo"
+                    className="btn btn-secundario apk-btn"
+                  >
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" aria-hidden>
+                      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2" />
+                      <path d="M10 8.5v7l6-3.5-6-3.5z" fill="currentColor" />
+                    </svg>
+                    Probar demo en el navegador
+                  </a>
+                  <p className="apk-nota">Prueba en línea la subida Pío Nono → Plaza México, sin instalar nada.</p>
+                </>
+              )}
               {/* APK: activo con el link de Google Drive del catálogo.
                   La prop apkActivo queda como vía alternativa para el
                   flujo /api/apk + APK_DOWNLOAD_URL (DEPLOY.md · paso 6). */}

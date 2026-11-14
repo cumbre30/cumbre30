@@ -127,7 +127,20 @@ export default function Home() {
   const [soundOn, setSoundOn] = useState(true);
   const [voiceOn, setVoiceOn] = useState(true);
   const [historyKey, setHistoryKey] = useState(0);
-  const [source, setSource] = useState<Source>("sim");
+  // Separación web/APK (v1.11.0): el APK es el producto GPS — el demo se
+  // prueba en vivo en la web (botón "Probar demo" del modal en /geo) y la
+  // web corre el demo por defecto. Escape hatch de desarrollo: ?gps=1.
+  const [source] = useState<Source>(() => {
+    if (process.env.NEXT_PUBLIC_STATIC === "1") return "gps";
+    try {
+      if (typeof window !== "undefined" && new URLSearchParams(window.location.search).has("gps")) {
+        return "gps";
+      }
+    } catch {
+      // sin window: default
+    }
+    return "sim";
+  });
 
   const status = ride.status; // idle | running | paused
   const active = status !== "idle"; // el ride (o su pausa) está en curso
@@ -299,8 +312,6 @@ export default function Home() {
             {screen === "perfil" && <ProfileTab />}
             {screen === "config" && (
               <ConfigTab
-                source={source}
-                onSource={setSource}
                 soundOn={soundOn}
                 onToggleSound={toggleSound}
                 voiceOn={voiceOn}

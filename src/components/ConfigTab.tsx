@@ -2,8 +2,10 @@
 
 // ============================================================
 // Configuración - el Brief (§2) manda las herramientas de prueba
-// fuera de la pantalla Ride: fuente Demo/GPS, pitidos y avisos de
-// voz viven aquí; el header del ride queda compacto.
+// fuera de la pantalla Ride: pitidos y avisos de voz viven aquí;
+// el header del ride queda compacto. La fuente Demo/GPS ya no se
+// elige aquí (v1.11.0): la decide la plataforma (web = demo,
+// APK = GPS).
 // Se agrega la tarjeta "Temas y pantalla ride" (Pro): color de la
 // app, estilo y tamaño del velocímetro y altura del minimapa.
 // Las opciones Pro muestran una nota y el acceso a Planes; solo
@@ -11,7 +13,7 @@
 // ============================================================
 
 import { useState } from "react";
-import { Volume2, VolumeX, Mic, MicOff, FlaskConical, Info, Mail, Moon, Palette, Lock, Languages, Siren, UserPlus, UserRound, BellRing, HeartPulse } from "lucide-react";
+import { Volume2, VolumeX, Mic, MicOff, Info, Mail, Moon, Palette, Lock, Languages, Siren, UserPlus, UserRound, BellRing, HeartPulse } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Speedometer } from "@/components/Speedometer";
 import { ThemeIconButton } from "@/components/ThemeToggle";
@@ -40,7 +42,6 @@ import {
   type SpeedoStyle,
   type ThemeColorId,
 } from "@/lib/rideTheme";
-import type { Source } from "@/hooks/useRideEngine";
 
 function Row({ icon, title, sub, children }: { icon: React.ReactNode; title: string; sub?: string; children: React.ReactNode }) {
   return (
@@ -115,8 +116,6 @@ function Seg<T extends string>({
 }
 
 export function ConfigTab({
-  source,
-  onSource,
   soundOn,
   onToggleSound,
   voiceOn,
@@ -124,8 +123,6 @@ export function ConfigTab({
   pro,
   onGoPro,
 }: {
-  source: Source;
-  onSource: (s: Source) => void;
   soundOn: boolean;
   onToggleSound: () => void;
   voiceOn: boolean;
@@ -195,27 +192,6 @@ export function ConfigTab({
   return (
     <div className="flex flex-col gap-4">
       <Card className="p-0">
-        <Row
-          icon={<FlaskConical className="h-5 w-5" />}
-          title={t("cfg.fuenteDatos")}
-          sub={t("cfg.fuenteDatosSub")}
-        >
-          <div className="flex shrink-0 overflow-hidden rounded-lg border border-border">
-            {(["sim", "gps"] as Source[]).map((s) => (
-              <button
-                key={s}
-                role="radio"
-                aria-checked={source === s}
-                onClick={() => onSource(s)}
-                className={`px-3 py-2 text-[11.5px] font-bold transition-colors ${
-                  source === s ? "bg-emerald-600 text-(--c30-on-accent)" : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                {s === "sim" ? t("ride.demo") : t("ride.gpsReal")}
-              </button>
-            ))}
-          </div>
-        </Row>
         <Row icon={soundOn ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />} title={t("cfg.pitidos")} sub={t("cfg.pitidosSub")}>
           <Toggle on={soundOn} onChange={onToggleSound} label={t("cfg.pitidos")} />
         </Row>
@@ -470,10 +446,6 @@ export function ConfigTab({
           <span />
         </Row>
       </Card>
-
-      <p className="px-1 text-[11.5px] leading-relaxed text-muted-foreground">
-        {t("cfg.demoNota")}
-      </p>
     </div>
   );
 }
