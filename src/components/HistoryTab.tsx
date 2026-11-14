@@ -38,6 +38,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { formatClock } from "@/lib/geo";
 import { clearHistory, FREE_RIDE_LIMIT, historyStore, ridesForAccount, type RideSummary } from "@/lib/history";
 import { buildRidePdf, type RideIdentity } from "@/lib/ridePdf";
+import { buildConstanciaPayload, constanciaHash, registerConstancia } from "@/lib/constancia";
 import { shareOrDownloadFile } from "@/lib/shareFile";
 import { buildRideGpxBlob } from "@/lib/gpx";
 import { buildShareImage, sharePngBlob } from "@/lib/shareImage";
@@ -231,6 +232,17 @@ export function HistoryTab({
       });
       incrConstancia();
       setConstCount(constanciaCount());
+      // Registro en línea (best-effort): la verificación pública
+      // cumbregeo.cl/verificar consulta este registro para confirmar
+      // que la constancia fue emitida por la app. Si no hay conexión,
+      // el QR del PDF sigue siendo válido por integridad.
+      try {
+        const payload = buildConstanciaPayload(r, identity);
+        const hash = await constanciaHash(payload);
+        void registerConstancia(payload, hash);
+      } catch {
+        // sin registro en línea: el QR sigue válido por integridad
+      }
       setPdfMsg(
         res === "shared"
           ? "Constancia lista: envíala por correo o guárdala en tu teléfono desde el panel de Android."

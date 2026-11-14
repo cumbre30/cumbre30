@@ -14,6 +14,7 @@
 // ============================================================
 
 import { useEffect, useState } from "react";
+import { t } from "@/lib/i18n";
 
 const LAT = -33.408; // mismo punto que horario.ts (centro del parque)
 const LON = -70.636;
@@ -26,19 +27,20 @@ export type Clima = {
   actualizado: Date;
 };
 
-/** Etiqueta en español para el código WMO (weather_code de Open-Meteo). */
+/** Etiqueta localizada del código WMO (weather_code de Open-Meteo).
+ *  Usa el idioma activo (selector de idioma); fallback español. */
 export function etiquetaClima(code: number): string {
-  if (code === 0) return "Despejado";
-  if (code === 1 || code === 2) return "Parcialmente nublado";
-  if (code === 3) return "Nublado";
-  if (code === 45 || code === 48) return "Neblina";
-  if (code >= 51 && code <= 57) return "Llovizna";
-  if (code >= 61 && code <= 67) return "Lluvia";
-  if (code >= 71 && code <= 77) return "Nieve";
-  if (code >= 80 && code <= 82) return "Chubascos";
-  if (code === 85 || code === 86) return "Nieve en chubascos";
-  if (code >= 95) return "Tormenta";
-  return "Clima";
+  if (code === 0) return t("clima.despejado");
+  if (code === 1 || code === 2) return t("clima.parcial");
+  if (code === 3) return t("clima.nublado");
+  if (code === 45 || code === 48) return t("clima.neblina");
+  if (code >= 51 && code <= 57) return t("clima.llovizna");
+  if (code >= 61 && code <= 67) return t("clima.lluvia");
+  if (code >= 71 && code <= 77) return t("clima.nieve");
+  if (code >= 80 && code <= 82) return t("clima.chubascos");
+  if (code === 85 || code === 86) return t("clima.nieveChubascos");
+  if (code >= 95) return t("clima.tormenta");
+  return t("clima.generico");
 }
 
 function leerCache(): Clima | null {

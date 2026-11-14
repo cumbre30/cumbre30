@@ -13,6 +13,7 @@
 
 import { Capacitor } from "@capacitor/core";
 import { LIMIT_KMH } from "./park";
+import { ttsLocale } from "./i18n";
 import { RideNative, isNativeApp } from "./rideNative";
 
 // Plugins nativos con import dinámico: sus implementaciones web tocan
@@ -227,19 +228,22 @@ class AlertEngine {
     const now = Date.now();
     if (now - (this.lastSpeakAt[key] ?? 0) < minIntervalSec * 1000) return;
     this.lastSpeakAt[key] = now;
+    // Idioma activo (selector de idioma para turistas): es-CL / en-US / pt-BR.
+    const locale = ttsLocale();
     // APK nativo: motor TTS de Android (el WebView no implementa speechSynthesis).
     if (isNative()) {
       void loadTts().then((tts) => {
         if (!tts) return;
         tts.TextToSpeech.speak({
           text,
-          lang: "es-CL",
+          lang: locale,
           rate: 1.05,
           pitch: 1,
           volume: 1,
         }).catch(async () => {
-          // Algunos dispositivos no tienen voz es-CL: probar genérico es-.
-          try { await tts.TextToSpeech.speak({ text, lang: "es-ES", rate: 1.05, pitch: 1, volume: 1 }); } catch { /* sin TTS */ }
+          // Fallback por familia de idioma: es-CL→es-ES · en-US→en-GB · pt-BR→pt-PT.
+          const alt = locale.startsWith("es") ? "es-ES" : locale.startsWith("en") ? "en-GB" : "pt-PT";
+          try { await tts.TextToSpeech.speak({ text, lang: alt, rate: 1.05, pitch: 1, volume: 1 }); } catch { /* sin TTS */ }
         });
       });
       return;
@@ -247,13 +251,14 @@ class AlertEngine {
     if (!("speechSynthesis" in window)) return;
     try {
       const u = new SpeechSynthesisUtterance(text);
-      u.lang = "es-CL";
+      u.lang = locale;
       u.rate = 1.05;
       u.pitch = 1;
       u.volume = 1;
       const voices = window.speechSynthesis.getVoices();
-      const es = voices.find((v) => v.lang?.toLowerCase().startsWith("es"));
-      if (es) u.voice = es;
+      const pref = voices.find((v) => v.lang?.toLowerCase().startsWith(locale.slice(0, 2)))
+        ?? voices.find((v) => v.lang?.toLowerCase().startsWith("es"));
+      if (pref) u.voice = pref;
       window.speechSynthesis.cancel();
       window.speechSynthesis.speak(u);
     } catch {

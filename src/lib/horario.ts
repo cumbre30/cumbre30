@@ -187,10 +187,18 @@ export function cierraHoraTexto(): string {
 export type EstadoParque = {
   /** ¿Dentro del horario de ingreso (06:00-20:30)? */
   abierto: boolean;
-  /** Aviso para el banner de ride (null: nada que avisar). */
+  /** Aviso para el banner de ride (null: nada que avisar).
+   *  Texto en español - para i18n usar `key` + `params`. */
   aviso: string | null;
   /** Nivel del aviso para la UI. */
   nivel: "info" | "luz" | "cierre" | "tupa";
+  /** Clave i18n del aviso (2026-11-14, selector de idioma):
+   *  cerrado → aviso.msgCierre + aviso.fiscalizacion
+   *  anochece → horario.anochece
+   *  luces → horario.llevaLuces (params.sunset = "19:43")
+   *  tupahue → aviso.msgTupahue */
+  key: "cerrado" | "anochece" | "luces" | "tupahue" | null;
+  params: { sunset?: string };
 };
 
 /**
@@ -211,6 +219,8 @@ export function estadoParque(now: Date = new Date()): EstadoParque {
       abierto: false,
       aviso: `${PARK_HOURS.msgCierre} Las luces y el casco se fiscalizan.`,
       nivel: "cierre",
+      key: "cerrado",
+      params: {},
     };
   }
   if (paraAtardecer <= 0) {
@@ -218,6 +228,8 @@ export function estadoParque(now: Date = new Date()): EstadoParque {
       abierto: true,
       aviso: "Ya anochece: luces encendidas, fiscalización activa al caer la tarde.",
       nivel: "luz",
+      key: "anochece",
+      params: {},
     };
   }
   if (paraAtardecer <= 45) {
@@ -225,11 +237,13 @@ export function estadoParque(now: Date = new Date()): EstadoParque {
       abierto: true,
       aviso: `Anochece a las ${horaSantiago(sunsetFor(now))} · lleva luces`,
       nivel: "luz",
+      key: "luces",
+      params: { sunset: horaSantiago(sunsetFor(now)) },
     };
   }
   // Restricción cumbre por Tupahue: SOLO fines de semana y festivos.
   if (min >= PARK_HOURS.cumbreTupahueBloqueaMin && esFinDeSemanaOFestivo(now)) {
-    return { abierto: true, aviso: PARK_HOURS.msgCumbreTupahue, nivel: "tupa" };
+    return { abierto: true, aviso: PARK_HOURS.msgCumbreTupahue, nivel: "tupa", key: "tupahue", params: {} };
   }
-  return { abierto: true, aviso: null, nivel: "info" };
+  return { abierto: true, aviso: null, nivel: "info", key: null, params: {} };
 }

@@ -26,7 +26,8 @@ import {
   useMap,
   useMapEvents,
 } from "react-leaflet";
-import { Crosshair, AlertTriangle, Trash2, X, Search, MapPin, Flag, Crown, Lock, Layers, ChevronDown, Eye } from "lucide-react";
+import { Crosshair, AlertTriangle, Trash2, X, Search, MapPin, Flag, Crown, Lock, Layers, ChevronDown, Eye, Share2 } from "lucide-react";
+import { apiUrl } from "@/lib/backend";
 import { NAV_DESTINATIONS, PARK_POLYGON, RISK_ZONES, type LatLng } from "@/lib/park";
 import {
   CAPA_ACCESOS,
@@ -43,7 +44,7 @@ import {
   type CapaPuntoBase,
 } from "@/lib/mapLayers";
 import { PINS, DEFAULT_PIN } from "@/lib/pins";
-import { INCIDENT_BY_ID, INCIDENT_TYPES, type IncidentTypeId } from "@/lib/incidents";
+import { INCIDENT_BY_ID, INCIDENT_TYPES, compartirReporte, type IncidentTypeId } from "@/lib/incidents";
 import { pointInPolygon } from "@/lib/geo";
 import { incidentIcon, userPinIcon, flagIcon, markIcon, poiIcon } from "@/lib/mapIcons";
 import { groupSegments, loadNetwork, type NavRoute, type Network } from "@/lib/routing";
@@ -834,8 +835,18 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
     const payload = { type, lat: pending.lat, lon: pending.lon };
     setPending(null);
     setReportMode(false);
+    // En el APK (export estático) /api no existe localmente: va al
+    // backend de la web (backendOrigin); si no hay backend configurado,
+    // el reporte queda local para sincronizarse más tarde.
+    const url = apiUrl("/api/incidents");
+    if (!url) {
+      guardarLocal(payload);
+      setStatus("Sin conexión: incidencia guardada solo en este dispositivo.");
+      setTimeout(() => setStatus(null), 5000);
+      return;
+    }
     try {
-      const r = await fetch("/api/incidents", {
+      const r = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -845,22 +856,27 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
       addIncident(d.incident);
       setStatus("Incidencia registrada y visible para todos ✓");
     } catch {
-      const local: IncidentItem = {
-        id: crypto.randomUUID(),
-        ...payload,
-        note: null,
-        createdAt: new Date().toISOString(),
-        username: "tú (local)",
-        authorPin: userPin ?? DEFAULT_PIN,
-        mine: true,
-        localOnly: true,
-      };
-      addIncident(local);
-      // persistir en la lista local
-      saveLocalIncidents([local, ...loadLocalIncidents()]);
+      guardarLocal(payload);
       setStatus("Sin conexión: incidencia guardada solo en este dispositivo.");
     }
     setTimeout(() => setStatus(null), 5000);
+  };
+
+  /** Guarda la incidencia solo en el dispositivo (offline / APK). */
+  const guardarLocal = (payload: { type: IncidentTypeId; lat: number; lon: number }) => {
+    const local: IncidentItem = {
+      id: crypto.randomUUID(),
+      ...payload,
+      note: null,
+      createdAt: new Date().toISOString(),
+      username: "tú (local)",
+      authorPin: userPin ?? DEFAULT_PIN,
+      mine: true,
+      localOnly: true,
+    };
+    addIncident(local);
+    // persistir en la lista local
+    saveLocalIncidents([local, ...loadLocalIncidents()]);
   };
 
   const deleteIncident = async (inc: IncidentItem) => {
@@ -869,11 +885,21 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
       return;
     }
     try {
-      await fetch(`/api/incidents?id=${encodeURIComponent(inc.id)}`, { method: "DELETE" });
+      const url = apiUrl(`/api/incidents?id=${encodeURIComponent(inc.id)}`);
+      if (url) await fetch(url, { method: "DELETE" });
       removeIncident(inc.id);
     } catch {
       setStatus("No pudimos eliminar la incidencia (sin conexión).");
       setTimeout(() => setStatus(null), 4000);
+    }
+  };
+
+  /** Canal ciudadano: mensaje listo para los canales oficiales. */
+  const enviarAParquemet = async (inc: IncidentItem) => {
+    const res = await compartirReporte(inc.type as IncidentTypeId, inc.lat, inc.lon, inc.createdAt);
+    if (res === "copied") {
+      setStatus("Mensaje copiado: envíalo a la línea 1466 o a los canales oficiales del parque.");
+      setTimeout(() => setStatus(null), 6000);
     }
   };
 
@@ -1035,12 +1061,20 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
                 </div>
                 {inc.note && <div className="mt-1 italic">“{inc.note}”</div>}
                 {inc.mine && (
-                  <button
-                    onClick={() => deleteIncident(inc)}
-                    className="mt-2 inline-flex items-center gap-1 text-red-600 font-medium hover:underline"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" /> Eliminar
-                  </button>
+                  <div className="mt-2 flex items-center gap-3">
+                    <button
+                      onClick={() => void enviarAParquemet(inc)}
+                      className="inline-flex items-center gap-1 font-medium text-emerald-600 hover:underline dark:text-emerald-400"
+                    >
+                      <Share2 className="h-3.5 w-3.5" /> Enviar a Parquemet
+                    </button>
+                    <button
+                      onClick={() => deleteIncident(inc)}
+                      className="inline-flex items-center gap-1 text-red-600 font-medium hover:underline"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" /> Eliminar
+                    </button>
+                  </div>
                 )}
               </div>
             </Popup>

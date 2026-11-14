@@ -11,9 +11,11 @@ import {
 } from "@/lib/park";
 import { Ema, SpeedKalman, haversineM, pointInPolygon, distToPolygonM } from "@/lib/geo";
 import { PARK_HOURS } from "@/lib/park";
-import { estadoParque, minutosParaCierre, cierraVozText, cierraHoraTexto } from "@/lib/horario";
+import { estadoParque, minutosParaCierre, cierraHoraTexto } from "@/lib/horario";
 import { GATE_PIO_NONO, PUENTE_TUPAHUE_CUMBRE, enCorredorPioNono } from "@/lib/reglasParque";
 import { alerts } from "@/lib/alertEngine";
+import { FallDetector, fallConfigOn } from "@/lib/fallDetect";
+import { t, vozHoraCierre, vozHoras } from "@/lib/i18n";
 import { RideNative, isNativeApp, type PluginListenerHandleLike } from "@/lib/rideNative";
 import { RideSimulator } from "@/lib/simulation";
 import { saveRide, type RideSummary, type TrackPt } from "@/lib/history";
@@ -37,6 +39,15 @@ const TICK_MS = 500;
 function pushEvent(list: RideEvent[], ev: RideEvent): RideEvent[] {
   return [...list.slice(-40), ev];
 }
+
+/** Zona de riesgo → clave de voz i18n (los nombres propios quedan en park.ts). */
+const ZONA_KEY: Record<string, string> = {
+  "anahuac": "zona.anahuac",
+  "antiluen": "zona.antiluen",
+  "jardin-japones": "zona.jardinJapones",
+  "salida-pv": "zona.salidaPv",
+  "zoologico": "zona.zoologico",
+};
 
 export function useRideEngine() {
   const [status, setStatus] = useState<RideStatus>("idle");
@@ -63,6 +74,10 @@ export function useRideEngine() {
   const [pendingConfirm, setPendingConfirm] = useState<RideSummary | null>(null);
   const pendingRef = useRef<RideSummary | null>(null);
   useEffect(() => { pendingRef.current = pendingConfirm; }, [pendingConfirm]);
+  // Detección de caída: alerta viva para el overlay "¿Estás bien?"
+  // (se renderiza a nivel de app en page.tsx). Las callbacks viven
+  // más abajo, tras la declaración de logEvent.
+  const [fallAlert, setFallAlert] = useState<{ at: number; help: boolean } | null>(null);
 
   // --- refs del motor ---
   const engine = useRef({
@@ -120,11 +135,22 @@ export function useRideEngine() {
     b30LastTrigger: {} as Record<string, number>,
     horarioLastCheck: 0,
     horarioVoiceLast: {} as Record<string, number>,
+    // Detección de caída (GPS): golpe + inmovilidad, ver fallDetect.ts.
+    fall: new FallDetector(),
   });
 
   const logEvent = useCallback((kind: RideEvent["kind"], text: string) => {
     setEvents((prev) => pushEvent(prev, { t: Date.now(), kind, text }));
   }, []);
+
+  const dismissFall = useCallback(() => {
+    setFallAlert(null);
+    logEvent("info", t("log.caidaBien"));
+  }, [logEvent]);
+  const requestFallHelp = useCallback(() => {
+    setFallAlert((prev) => (prev ? { ...prev, help: true } : prev));
+    logEvent("danger", t("log.caidaAyuda"));
+  }, [logEvent]);
 
   /** Procesa un fix (GPS real o simulado) con el mismo pipeline. */
   const processFix = useCallback(
@@ -195,7 +221,7 @@ export function useRideEngine() {
         if (e.vehStreakSec > e.vehStreakMax) e.vehStreakMax = e.vehStreakSec;
         if (!e.vehNotified && (e.vehStreakMax >= VEH_STREAK_SEC || e.vehSec >= VEH_TOTAL_SEC)) {
           e.vehNotified = true;
-          logEvent("warn", "Velocidad sostenida típica de vehículo: al guardar te preguntaremos");
+          logEvent("warn", t("log.vehiculo"));
         }
       } else {
         e.vehStreakSec = 0;
@@ -218,11 +244,11 @@ export function useRideEngine() {
       if (inside !== e.inside) {
         e.inside = inside;
         if (inside) {
-          logEvent("info", "Ingresando al Parque Metropolitano · límite 30 km/h");
-          alerts.speak("park-in", "Ingresando al Parque Metropolitano. Límite 30 kilómetros por hora.", 4);
+          logEvent("info", t("log.ingresoParque"));
+          alerts.speak("park-in", t("voz.ingresandoParque"), 4);
         } else {
-          logEvent("info", "Saliendo del parque · modo libre");
-          alerts.speak("park-out", "Saliendo del parque. Modo libre.", 4);
+          logEvent("info", t("log.salidaParque"));
+          alerts.speak("park-out", t("voz.saliendoParque"), 4);
         }
       }
       // Km efectivamente pedaleados DENTRO de la geocerca: es la base de
@@ -241,14 +267,14 @@ export function useRideEngine() {
           e.gateLastTrigger[gate.id] = fix.t;
           const cerrado = !estadoParque(new Date(fix.t)).abierto;
           if (cerrado) {
-            logEvent("gate", `Cerca de ${gate.name}: el parque está cerrado para ciclistas (06:00-20:30)`);
-            alerts.speak(`gate-${gate.id}`, "El parque está cerrado para ciclistas. El ingreso es de 6 a 20 y 30.", 60);
+            logEvent("gate", t("log.cercaGateCerrado", gate.name));
+            alerts.speak(`gate-${gate.id}`, t("voz.parqueCerrado"), 60);
           } else if (gate.ciclistas) {
-            logEvent("gate", `Cerca de ${gate.name}: acceso exclusivo de ciclistas · casco y luces puestos`);
-            alerts.speak(`gate-${gate.id}`, "Acceso exclusivo de ciclistas. Casco y luces puestos.", 60);
+            logEvent("gate", t("log.cercaGateCiclistas", gate.name));
+            alerts.speak(`gate-${gate.id}`, t("voz.accesoExclusivo"), 60);
           } else {
-            logEvent("gate", `Cerca de ${gate.name}: sin ingreso en bici · entra por Zapadores, PdV Norte, Pío Nono o La Pirámide`);
-            alerts.speak(`gate-${gate.id}`, "Este acceso no permite el ingreso de bicicletas. Usa Zapadores, Pedro de Valdivia Norte, Pío Nono o La Pirámide.", 60);
+            logEvent("gate", t("log.cercaGateNoBici", gate.name));
+            alerts.speak(`gate-${gate.id}`, t("voz.accesoNoBici"), 60);
           }
         }
       }
@@ -260,13 +286,14 @@ export function useRideEngine() {
         // Pre-aviso: 100 m antes de la zona (voz, sin detener el pedaleo)
         if (d >= zone.radiusM && d < zone.radiusM + 100 && fix.t - last > 150_000) {
           e.zoneLastTrigger[zone.id] = fix.t;
-          logEvent("zone", `${zone.name} a ~100 metros`);
-          alerts.speak(`zone-approach-${zone.id}`, `Zona de riesgo a 100 metros: ${zone.name}.`, 30);
+          logEvent("zone", t("log.zona100", zone.name));
+          alerts.speak(`zone-approach-${zone.id}`, t("voz.zona100", zone.name), 30);
         }
         if (d < zone.radiusM && fix.t - last > 150_000) {
           e.zoneLastTrigger[zone.id] = fix.t;
-          logEvent("zone", `Zona de riesgo: ${zone.name}`);
-          alerts.speak(`zone-${zone.id}`, zone.voice, 10);
+          logEvent("zone", t("log.zonaRiesgo", zone.name));
+          const zk = ZONA_KEY[zone.id];
+          alerts.speak(`zone-${zone.id}`, zk ? t(zk) : zone.voice, 10);
           alerts.beepTriple();
         }
       }
@@ -299,12 +326,8 @@ export function useRideEngine() {
               e.pioLastTrigger = fix.t;
               e.pioStreak = 0;
               e.pioStreakD = null;
-              logEvent("warn", "Bajada bloqueada: Pío Nono es sólo de subida");
-              alerts.speak(
-                "pio-bajada",
-                "Atención: por Pío Nono no se puede bajar. La bajada es por el puente de Tupahue hacia Pedro de Valdivia Norte.",
-                30
-              );
+              logEvent("warn", t("log.pioBajada"));
+              alerts.speak("pio-bajada", t("voz.pioBajada"), 30);
             }
           } else if (dPioPrev !== null && dPio > dPioPrev + 1) {
             e.pioStreak = 0;
@@ -332,13 +355,10 @@ export function useRideEngine() {
                 e.puenteLastTrigger = fix.t;
                 e.puenteStreak = 0;
                 e.puenteStreakD = null;
-                logEvent(
-                  "warn",
-                  "Corte horario: acceso a la cumbre por Tupahue cerrado desde las 13:30 (fin de semana y festivos)"
-                );
+                logEvent("warn", t("log.corteCumbre"));
                 alerts.speak(
                   "corte-cumbre",
-                  `${PARK_HOURS.msgCumbreTupahue} Alternativas según tu posición: Av. Gabriela Mistral o Av. Carlos Martner.`,
+                  `${t("aviso.msgTupahue")} ${t("voz.corteCumbreAlt")}`,
                   30
                 );
               }
@@ -377,10 +397,10 @@ export function useRideEngine() {
         const hit = e.b30Mod.enBajada30(fix.lat, fix.lon);
         if (hit && fix.t - (e.b30LastTrigger[hit.id] ?? 0) > 240_000) {
           e.b30LastTrigger[hit.id] = fix.t;
-          logEvent("warn", `Bajada fiscalizada: ${hit.nombre} · control 30 km/h`);
+          logEvent("warn", t("log.bajada30", hit.nombre));
           alerts.speak(
             `b30-${hit.id}`,
-            "Entrando a la bajada fiscalizada. Control de 30 kilómetros por hora.",
+            t("voz.bajada30"),
             30
           );
         }
@@ -398,10 +418,10 @@ export function useRideEngine() {
         if (mC <= 0) {
           if (fix.t - (e.horarioVoiceLast["cerrado"] ?? 0) > 600_000) {
             e.horarioVoiceLast["cerrado"] = fix.t;
-            logEvent("danger", `Parque cerrado (${cierraHoraTexto()}): el horario de ciclistas terminó`);
+            logEvent("danger", t("log.parqueCerrado", cierraHoraTexto()));
             alerts.speak(
               "horario-cerrado",
-              `El parque ya cerró. El ingreso de ciclistas es hasta las ${cierraVozText()}.`,
+              t("voz.parqueYaCerro", vozHoraCierre()),
               60
             );
           }
@@ -409,12 +429,31 @@ export function useRideEngine() {
           if (fix.t - (e.horarioVoiceLast["proximo"] ?? 0) > 600_000) {
             e.horarioVoiceLast["proximo"] = fix.t;
             const min5 = Math.max(5, Math.round(mC / 5) * 5);
-            logEvent("warn", `Al límite del horario: el parque cierra a las ${cierraHoraTexto()} (${mC} min)`);
+            logEvent("warn", t("log.horarioLimite", cierraHoraTexto(), mC));
             alerts.speak(
               "horario-proximo",
-              `Atención: el parque cierra a las ${cierraVozText()}. Te quedan ${min5} minutos.`,
+              t("voz.cierreProximo", vozHoraCierre(), min5),
               60
             );
+          }
+        }
+      }
+
+      // 7e) Detección de caída (2026-11-14, GPS puro): golpe + inmovilidad
+      //     dentro del parque. El detector decide con el antiruido de
+      //     fallDetect.ts; aquí solo disparamos el overlay y la voz.
+      if (fallConfigOn()) {
+        const trig = e.fall.update({ lat: fix.lat, lon: fix.lon, speedKmh: vKmh, t: fix.t });
+        if (trig) {
+          setFallAlert({ at: Date.now(), help: false });
+          logEvent("danger", t("log.caidaDetectada"));
+          alerts.speak("fall", t("voz.posibleCaida"), 3);
+          if (isNativeApp()) {
+            void RideNative.vibrate({ pattern: [0, 400, 200, 400, 200, 400], repeat: 0 }).catch(() =>
+              navigator.vibrate?.([400, 200, 400])
+            );
+          } else {
+            navigator.vibrate?.([400, 200, 400, 200, 400]);
           }
         }
       }
@@ -444,15 +483,15 @@ export function useRideEngine() {
       if (nextState !== e.state) {
         if (nextState === "caution") {
           alerts.startCaution();
-          alerts.speak("caution", `Precaución: vas a ${Math.round(vKmh)} kilómetros por hora. Límite 30.`, 10);
-          logEvent("warn", `Te acercas al límite: ${Math.round(vKmh)} km/h`);
+          alerts.speak("caution", t("voz.precaucion", Math.round(vKmh)), 10);
+          logEvent("warn", t("log.precaucion", Math.round(vKmh)));
         } else if (nextState === "over") {
           alerts.startOver();
-          alerts.speak("over", "Exceso de velocidad. Reduce a menos de 30 kilómetros por hora.", 6);
-          logEvent("danger", `¡Exceso! ${Math.round(vKmh)} km/h dentro del parque`);
+          alerts.speak("over", t("voz.exceso"), 6);
+          logEvent("danger", t("log.exceso", Math.round(vKmh)));
         } else {
           alerts.stopAll();
-          if (e.state !== "ok") logEvent("info", "Velocidad normalizada");
+          if (e.state !== "ok") logEvent("info", t("log.velocidadOk"));
         }
         e.state = nextState;
       }
@@ -490,7 +529,7 @@ export function useRideEngine() {
   const startWebGps = useCallback(() => {
     if (!("geolocation" in navigator)) {
       setGpsStatus("error");
-      logEvent("danger", "Este navegador no soporta geolocalización");
+      logEvent("danger", t("log.sinGeoloc"));
       return;
     }
     setGpsStatus("requesting");
@@ -521,10 +560,10 @@ export function useRideEngine() {
       (err) => {
         if (err.code === err.PERMISSION_DENIED) {
           setGpsStatus("denied");
-          logEvent("danger", "Permiso de ubicación denegado. Usa el Modo Demo para probar.");
+          logEvent("danger", t("log.permisoDenegado"));
         } else {
           setGpsStatus("error");
-          logEvent("warn", `GPS: ${err.message}`);
+          logEvent("warn", t("log.gpsError", err.message));
         }
       },
       { enableHighAccuracy: true, maximumAge: 0, timeout: 15000 }
@@ -558,9 +597,9 @@ export function useRideEngine() {
       });
       engine.current.nativeSub = sub;
       await RideNative.startLocation();
-      logEvent("info", "GPS nativo a 1 Hz: sigue activo con la pantalla bloqueada");
+      logEvent("info", t("log.gpsNativo"));
     } catch {
-      logEvent("warn", "GPS nativo no disponible: usando GPS del WebView");
+      logEvent("warn", t("log.gpsNativoFallback"));
       startWebGps();
     }
   }, [logEvent, processFix, startWebGps]);
@@ -586,7 +625,7 @@ export function useRideEngine() {
       const fix = e.sim.tick(dt);
       processFix(fix);
     }, TICK_MS);
-    logEvent("info", "Modo demo activo: Pío Nono → Plaza México → Pedro de Valdivia (12× tiempo real)");
+    logEvent("info", t("log.demoActivo"));
   }, [logEvent, processFix]);
 
   const start = useCallback(
@@ -626,6 +665,7 @@ export function useRideEngine() {
       e.b30LastTrigger = {};
       e.horarioLastCheck = 0;
       e.horarioVoiceLast = {};
+      e.fall.reset();
       e.paused = false;
       setSource(src);
       setEvents([]);
@@ -643,8 +683,9 @@ export function useRideEngine() {
       setMaxInParkKmh(null);
       setAccuracyM(null);
       setPosition(null);
+      setFallAlert(null);
       setStatus("running");
-      logEvent("info", src === "gps" ? "Ride iniciado con GPS real" : "Ride iniciado en modo demo");
+      logEvent("info", src === "gps" ? t("log.rideGps") : t("log.rideDemo"));
       // Corredores de las bajadas 30: carga perezosa (import dinámico,
       // el trazado no viaja en el bundle principal).
       void import("@/lib/bajadas30")
@@ -654,17 +695,17 @@ export function useRideEngine() {
       // límite del cierre).
       const mInicio = minutosParaCierre();
       if (mInicio <= 0) {
-        logEvent("warn", `Ride fuera de horario: ${PARK_HOURS.msgCierre}`);
+        logEvent("warn", t("log.fueraHorario", t("aviso.msgCierre")));
         alerts.speak(
           "horario-inicio",
-          `Estás fuera del horario del parque. El ingreso de ciclistas es de ${PARK_HOURS.abreMin / 60} a ${cierraVozText()}.`,
+          t("voz.fueraHorario", vozHoras().abre, vozHoraCierre()),
           4
         );
       } else if (mInicio <= 30) {
-        logEvent("warn", `Ride al límite del horario: cierre a las ${cierraHoraTexto()} (${mInicio} min)`);
+        logEvent("warn", t("log.horarioInicio", cierraHoraTexto(), mInicio));
         alerts.speak(
           "horario-inicio",
-          `Atención: el parque cierra a las ${cierraVozText()}. Te quedan ${Math.max(5, Math.round(mInicio / 5) * 5)} minutos.`,
+          t("voz.cierreProximo", vozHoraCierre(), Math.max(5, Math.round(mInicio / 5) * 5)),
           4
         );
       }
@@ -684,11 +725,12 @@ export function useRideEngine() {
     const e = engine.current;
     e.paused = true;
     e.state = "ok";
+    e.fall.reset(); // pausa esperada: no confundir con inmovilidad de caída
     alerts.stopAll();
     setStatus("paused");
     setSpeedState("ok");
     setSpeedKmh(0);
-    logEvent("info", "Ride en pausa - cronómetro detenido");
+    logEvent("info", t("log.pausa"));
   }, [status, logEvent]);
 
   /** Reanuda: resetea los filtros (Kalman/último fix) para que ni la
@@ -700,8 +742,9 @@ export function useRideEngine() {
     e.lastFix = null;
     e.prevSpeed = null;
     e.kalman.reset();
+    e.fall.reset(); // re-arma desde cero tras la pausa
     setStatus("running");
-    logEvent("info", "Ride reanudado");
+    logEvent("info", t("log.reanudado"));
   }, [status, logEvent]);
 
   // Refs espejo para leer los máximos al guardar
@@ -726,6 +769,8 @@ export function useRideEngine() {
       e.tickTimer = null;
     }
     e.sim = null;
+    e.fall.reset();
+    setFallAlert(null);
     alerts.stopAll();
     alerts.releaseWakeLock();
     // Un ride pausado también se guarda: la pausa no borra lo pedaleado.
@@ -761,7 +806,7 @@ export function useRideEngine() {
         track: source === "gps" && e.trackPts.length > 1 ? e.trackPts : undefined,
       };
       saveRide(summary);
-      logEvent("info", "Ride guardado en el historial");
+      logEvent("info", t("log.guardado"));
       void syncRideAfterSave(summary); // sube al servidor + logros si hay sesión
       if (vehicleSuspect) setPendingConfirm(summary);
     }
@@ -832,6 +877,7 @@ export function useRideEngine() {
     insidePark, speedState, overLimitSec, maxInParkKmh,
     events, track, position,
     pendingConfirm, confirmVehicle,
+    fallAlert, dismissFall, requestFallHelp,
     start, pause, resume, stop,
   };
 }

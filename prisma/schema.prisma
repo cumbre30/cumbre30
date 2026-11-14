@@ -1,5 +1,5 @@
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
   // "native" = el motor del sistema donde se genera (dev/sandbox).
   // "rhel-openssl-3.0.x" = el runtime de las funciones serverless de
   // Vercel (Amazon Linux 2023). Sin este target el build pasa pero el
@@ -18,28 +18,28 @@ datasource db {
 // ============================================================
 
 model User {
-  id           String   @id @default(cuid())
-  email        String   @unique
-  username     String   @unique
+  id                String    @id @default(cuid())
+  email             String    @unique
+  username          String    @unique
   // Regla: el nombre de usuario se puede cambiar solo 1 vez cada 30 días.
   // Las estadísticas quedan asociadas al correo/id, no al nombre.
   usernameChangedAt DateTime?
-  passwordHash String
-  selectedPin  String   @default("clasico")
+  passwordHash      String
+  selectedPin       String    @default("clasico")
   // Datos de la bicicleta
-  bikeBrand    String?
-  bikeType     String?
-  bikeModel    String?
-  bikeSize     String?
-  bikeColor    String?
-  createdAt    DateTime @default(now())
+  bikeBrand         String?
+  bikeType          String?
+  bikeModel         String?
+  bikeSize          String?
+  bikeColor         String?
+  createdAt         DateTime  @default(now())
 
   sessions     Session[]
   rides        Ride[]
   incidents    Incident[]
   achievements Achievement[]
-  initiated    Friendship[] @relation("friendInitiator")
-  received     Friendship[] @relation("friendReceiver")
+  initiated    Friendship[]  @relation("friendInitiator")
+  received     Friendship[]  @relation("friendReceiver")
 }
 
 model Session {
@@ -81,13 +81,12 @@ model ProDelivery {
   @@index([email])
 }
 
-
 model Ride {
   id           String   @id @default(cuid())
   userId       String
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   dateISO      DateTime
-  source       String   // "gps" | "sim"
+  source       String // "gps" | "sim"
   distanceKm   Float
   maxKmh       Float
   maxInParkKmh Float?
@@ -97,7 +96,7 @@ model Ride {
   inParkKm     Float?
   // True si el ride se registró en vehículo motorizado (sospecha del
   // motor confirmada por el usuario): no cuenta para desafíos ni stats.
-  motorized    Boolean @default(false)
+  motorized    Boolean  @default(false)
   // id del ride en el dispositivo (summary.id) para poder corregir el
   // flag motorizado desde el cliente (PATCH /api/rides).
   clientId     String?
@@ -114,7 +113,7 @@ model Incident {
   id        String   @id @default(cuid())
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  type      String   // pozo | vidrio | perro | cierre | arbol | peaton | otro
+  type      String // pozo | vidrio | perro | cierre | arbol | peaton | otro
   lat       Float
   lon       Float
   note      String?
@@ -143,4 +142,21 @@ model Achievement {
   unlockedAt DateTime @default(now())
 
   @@unique([userId, code])
+}
+
+// ============================================================
+// Registro en línea de constancias de trayecto (2026-11-14).
+// La app registra cada constancia emitida (POST /api/constancias)
+// y la página pública /verificar consulta por el hash SHA-256 para
+// confirmar que el documento fue emitido por la app ese día.
+// id = hash SHA-256 del contenido (64 hex): idempotente, una misma
+// constancia re-emitida no duplica filas.
+// ============================================================
+model Constancia {
+  id        String   @id // hash SHA-256 del payload (hex 64)
+  rideId    String
+  payload   Json
+  createdAt DateTime @default(now())
+
+  @@index([rideId])
 }

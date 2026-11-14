@@ -24,6 +24,7 @@ import { PlanesTab } from "@/components/PlanesTab";
 import { StatsTab } from "@/components/StatsTab";
 import { ConfigTab } from "@/components/ConfigTab";
 import { HelpTab } from "@/components/HelpTab";
+import { FallOverlay } from "@/components/FallOverlay";
 import { useRideEngine, type Source } from "@/hooks/useRideEngine";
 import { useMe } from "@/hooks/useMe";
 import { useNavEngine } from "@/hooks/useNavEngine";
@@ -32,6 +33,7 @@ import { applyThemeColor, useRideTheme } from "@/lib/rideTheme";
 import { linkRidesToAccount, setRideOwner } from "@/lib/history";
 import { courseHeading } from "@/lib/geo";
 import { alerts } from "@/lib/alertEngine";
+import { t, useLang } from "@/lib/i18n";
 import type { ProLockFeature } from "@/lib/planData";
 
 const Wallet = dynamic(() => import("@/components/Wallet"), {
@@ -76,30 +78,32 @@ type TabScreen = "ride" | "explorar" | "acceso";
 type SubScreen = MenuScreen; // historial | stats | premios | perfil | config | ayuda | planes
 type Screen = TabScreen | SubScreen;
 
-const SUB_TITLES: Record<SubScreen, string> = {
-  historial: "Mis viajes",
-  stats: "Estadísticas generales",
-  premios: "Desafíos y recompensas",
-  perfil: "Perfil",
-  config: "Configuración",
-  ayuda: "Ayuda y contacto",
-  planes: "Planes",
+/** Claves i18n de las sub-pantallas del menú lateral. */
+const SUB_KEYS: Record<SubScreen, string> = {
+  historial: "menu.historial",
+  stats: "menu.stats",
+  premios: "menu.premios",
+  perfil: "menu.perfil",
+  config: "menu.config",
+  ayuda: "menu.ayuda",
+  planes: "menu.planes",
 };
 
 function GpsChip({ status, simRunning }: { status: string; simRunning: boolean }) {
+  useLang(); // re-render al cambiar el idioma
   if (simRunning) {
     return (
       <span className="rounded-full border border-emerald-700 text-emerald-700 dark:text-emerald-300 px-2.5 py-1 text-[11px] font-medium" role="status">
-        Demo activo
+        {t("gps.demo")}
       </span>
     );
   }
   const map: Record<string, { text: string; cls: string }> = {
-    idle: { text: "GPS en espera", cls: "border-border text-muted-foreground" },
-    requesting: { text: "Buscando GPS…", cls: "border-amber-700 text-amber-700 dark:text-amber-300 animate-pulse" },
-    active: { text: "GPS activo", cls: "border-emerald-700 text-emerald-700 dark:text-emerald-300" },
-    denied: { text: "GPS denegado", cls: "border-red-700 text-red-700 dark:text-red-300" },
-    error: { text: "GPS sin señal", cls: "border-red-700 text-red-700 dark:text-red-300" },
+    idle: { text: t("gps.idle"), cls: "border-border text-muted-foreground" },
+    requesting: { text: t("gps.buscar"), cls: "border-amber-700 text-amber-700 dark:text-amber-300 animate-pulse" },
+    active: { text: t("gps.activo"), cls: "border-emerald-700 text-emerald-700 dark:text-emerald-300" },
+    denied: { text: t("gps.denegado"), cls: "border-red-700 text-red-700 dark:text-red-300" },
+    error: { text: t("gps.error"), cls: "border-red-700 text-red-700 dark:text-red-300" },
   };
   const s = map[status] ?? map.idle;
   return (
@@ -110,6 +114,7 @@ function GpsChip({ status, simRunning }: { status: string; simRunning: boolean }
 }
 
 export default function Home() {
+  useLang(); // re-render de header/nav al cambiar el idioma
   const ride = useRideEngine();
   const { me } = useMe();
   const { pro } = useProLicense();
@@ -191,14 +196,14 @@ export default function Home() {
             <h1 className="font-bold leading-tight tracking-tight">
               Cumbre<span className="text-emerald-600 dark:text-emerald-400">30</span>
             </h1>
-            <p className="text-[11px] text-muted-foreground leading-tight truncate">Ciclocomputador de apoyo al ciclista</p>
+            <p className="text-[11px] text-muted-foreground leading-tight truncate">{t("nav.subtitle")}</p>
           </div>
           <div className="ml-auto flex items-center gap-2">
             <GpsChip status={ride.gpsStatus} simRunning={status === "running" && ride.source === "sim"} />
             <PlanPill pro={pro.active} onClick={() => go("planes")} />
             <button
               onClick={() => setDrawerOpen(true)}
-              aria-label="Abrir menú"
+              aria-label={t("nav.abrirMenu")}
               className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground"
             >
               <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
@@ -261,8 +266,8 @@ export default function Home() {
         {screen === "acceso" && <Wallet />}
 
         {screen !== "ride" && screen !== "explorar" && screen !== "acceso" && (
-          <section aria-label={SUB_TITLES[screen]}>
-            <h2 className="mb-3 text-xl font-bold tracking-tight text-foreground">{SUB_TITLES[screen]}</h2>
+          <section aria-label={t(SUB_KEYS[screen])}>
+            <h2 className="mb-3 text-xl font-bold tracking-tight text-foreground">{t(SUB_KEYS[screen])}</h2>
             {screen === "planes" && <PlanesTab />}
             {screen === "historial" && (
               <HistoryTab
@@ -306,10 +311,10 @@ export default function Home() {
         className="fixed bottom-0 inset-x-0 z-40 border-t border-border bg-background/95 backdrop-blur pb-[env(safe-area-inset-bottom)]"
       >
         <div className="mx-auto grid max-w-md grid-cols-3 px-3 py-1.5">
-          <BottomTab icon={<Bike className="h-[22px] w-[22px]" />} label="Ride" on={screen === "ride"} onClick={() => go("ride")} />
-          <BottomTab icon={<MapIcon className="h-[22px] w-[22px]" />} label="Explorar" on={screen === "explorar"} onClick={() => go("explorar")} />
+          <BottomTab icon={<Bike className="h-[22px] w-[22px]" />} label={t("nav.ride")} on={screen === "ride"} onClick={() => go("ride")} />
+          <BottomTab icon={<MapIcon className="h-[22px] w-[22px]" />} label={t("nav.explorar")} on={screen === "explorar"} onClick={() => go("explorar")} />
           {/* "acceso" es el id interno histórico; visible: credencial Pedalea Seguro */}
-          <BottomTab icon={<QrCode className="h-[22px] w-[22px]" />} label="Credencial" on={screen === "acceso"} onClick={() => go("acceso")} />
+          <BottomTab icon={<QrCode className="h-[22px] w-[22px]" />} label={t("nav.credencial")} on={screen === "acceso"} onClick={() => go("acceso")} />
         </div>
       </nav>
 
@@ -328,6 +333,15 @@ export default function Home() {
 
       {/* ¿Fuiste en bici?: corrección del flag de vehículo detectado */}
       <VehicleConfirmModal pending={ride.pendingConfirm} onAnswer={ride.confirmVehicle} />
+
+      {/* Detección de caída (2026-11-14): overlay "¿Estás bien?" a nivel
+          de app, activo aunque el ciclista esté en otra pestaña. */}
+      <FallOverlay
+        alert={ride.fallAlert}
+        position={ride.position}
+        onDismiss={ride.dismissFall}
+        onHelp={ride.requestFallHelp}
+      />
     </div>
   );
 }

@@ -11,11 +11,13 @@
 // ============================================================
 
 import { useState } from "react";
-import { Volume2, VolumeX, Mic, MicOff, FlaskConical, Info, Mail, Moon, Palette, Lock } from "lucide-react";
+import { Volume2, VolumeX, Mic, MicOff, FlaskConical, Info, Mail, Moon, Palette, Lock, Languages, Siren } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Speedometer } from "@/components/Speedometer";
 import { ThemeIconButton } from "@/components/ThemeToggle";
 import { APP_VERSION, APP_VERSION_CODE } from "@/lib/appVersion";
+import { fallConfigOn, setFallConfigOn } from "@/lib/fallDetect";
+import { t, useLang, setLang, type Lang } from "@/lib/i18n";
 import {
   MINIMAP_SIZES,
   SPEEDO_SIZES,
@@ -122,9 +124,17 @@ export function ConfigTab({
   onGoPro: () => void;
 }) {
   const theme = useRideTheme();
+  const lang = useLang(); // re-render al cambiar el idioma
   const [proNote, setProNote] = useState<string | null>(null);
+  // Detección de caída: persistida en fallDetect (on por defecto).
+  const [fallOn, setFallOn] = useState(fallConfigOn());
+  const toggleFall = () => {
+    const v = !fallOn;
+    setFallOn(v);
+    setFallConfigOn(v);
+  };
 
-  const locked = (what: string) => setProNote(`${what} es parte de Cumbre30 Pro.`);
+  const locked = (what: string) => setProNote(t("cfg.proNota", what));
   const pick = <T extends string>(old: T, id: T, fn: (v: T) => void) => {
     if (id !== old) fn(id);
     setProNote(null);
@@ -135,8 +145,8 @@ export function ConfigTab({
       <Card className="p-0">
         <Row
           icon={<FlaskConical className="h-5 w-5" />}
-          title="Fuente de datos"
-          sub="Demo simula la subida Pío Nono → Plaza México. GPS real usa tu ubicación. Herramienta de prueba: ya no compite con el botón Iniciar."
+          title={t("cfg.fuenteDatos")}
+          sub={t("cfg.fuenteDatosSub")}
         >
           <div className="flex shrink-0 overflow-hidden rounded-lg border border-border">
             {(["sim", "gps"] as Source[]).map((s) => (
@@ -149,21 +159,48 @@ export function ConfigTab({
                   source === s ? "bg-emerald-600 text-(--c30-on-accent)" : "text-muted-foreground hover:text-foreground"
                 }`}
               >
-                {s === "sim" ? "Demo" : "GPS real"}
+                {s === "sim" ? t("ride.demo") : t("ride.gpsReal")}
               </button>
             ))}
           </div>
         </Row>
-        <Row icon={soundOn ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />} title="Pitidos de velocidad" sub="Suena al acercarte al límite de 30 km/h">
-          <Toggle on={soundOn} onChange={onToggleSound} label="Pitidos de velocidad" />
+        <Row icon={soundOn ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />} title={t("cfg.pitidos")} sub={t("cfg.pitidosSub")}>
+          <Toggle on={soundOn} onChange={onToggleSound} label={t("cfg.pitidos")} />
         </Row>
-        <Row icon={voiceOn ? <Mic className="h-5 w-5" /> : <MicOff className="h-5 w-5" />} title="Avisos de voz" sub="Zonas de riesgo, geocercas, bajadas 30, horario y excesos">
-          <Toggle on={voiceOn} onChange={onToggleVoice} label="Avisos de voz" />
+        <Row icon={voiceOn ? <Mic className="h-5 w-5" /> : <MicOff className="h-5 w-5" />} title={t("cfg.avisosVoz")} sub={t("cfg.avisosVozSub")}>
+          <Toggle on={voiceOn} onChange={onToggleVoice} label={t("cfg.avisosVoz")} />
+        </Row>
+        <Row icon={<Siren className="h-5 w-5" />} title={t("cfg.caida")} sub={t("cfg.caidaSub")}>
+          <Toggle on={fallOn} onChange={toggleFall} label={t("cfg.caida")} />
         </Row>
       </Card>
 
+      {/* ---- Selector de idioma (turistas, 2026-11-14): textos y voces ---- */}
       <Card className="p-0">
-        <Row icon={<Moon className="h-5 w-5" />} title="Tema" sub="Recomendado: oscuro, legible bajo el sol del cerro">
+        <div className="px-4 py-3.5">
+          <p className="text-[13.5px] font-semibold text-foreground">{t("cfg.idioma")}</p>
+          <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">{t("cfg.idiomaSub")}</p>
+          <div className="mt-2.5 flex flex-wrap gap-1.5">
+            {(["es", "en", "pt"] as Lang[]).map((l) => (
+              <button
+                key={l}
+                onClick={() => setLang(l)}
+                aria-pressed={lang === l}
+                className={`inline-flex items-center gap-1 rounded-lg border px-3 py-1.5 text-[12px] font-bold transition-colors ${
+                  lang === l
+                    ? "border-transparent bg-emerald-600 text-(--c30-on-accent)"
+                    : "border-border text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {l === "es" ? t("cfg.esp") : l === "en" ? t("cfg.eng") : t("cfg.port")}
+              </button>
+            ))}
+          </div>
+        </div>
+      </Card>
+
+      <Card className="p-0">
+        <Row icon={<Moon className="h-5 w-5" />} title={t("cfg.tema")} sub={t("cfg.temaSub")}>
           <ThemeIconButton />
         </Row>
       </Card>
@@ -172,14 +209,14 @@ export function ConfigTab({
       <Card className="p-0">
         <Row
           icon={<Palette className="h-5 w-5" />}
-          title="Temas y pantalla ride"
-          sub="Color de la app, velocímetro y minimapa. La personalización es de Cumbre30 Pro."
+          title={t("cfg.temas")}
+          sub={t("cfg.temasSub")}
         >
           <span />
         </Row>
 
         <div className="border-b border-border/60 px-4 py-3.5">
-          <p className="text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground">Color de la app</p>
+          <p className="text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground">{t("cfg.colorApp")}</p>
           <div className="mt-2.5 flex flex-wrap gap-2">
             {THEME_COLORS.map((c) => {
               const isLocked = c.proOnly && !pro;
@@ -204,7 +241,7 @@ export function ConfigTab({
         </div>
 
         <div className="border-b border-border/60 px-4 py-3.5">
-          <p className="text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground">Velocímetro</p>
+          <p className="text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground">{t("cfg.velocimetro")}</p>
           <div className="mt-2.5 flex flex-col gap-2.5">
             <Seg
               options={SPEEDO_STYLES}
@@ -224,12 +261,12 @@ export function ConfigTab({
           {/* Vista previa con 27 km/h (cerca del límite del parque) */}
           <div className="mt-3 rounded-xl border border-border/70 bg-background/50 px-3 py-3">
             <Speedometer speedKmh={27} idle={false} over={false} caution={true} inPark={true} style={theme.speedoStyle} size={theme.speedoSize} />
-            <p className="mt-1.5 text-center text-[10px] text-muted-foreground">Vista previa · 27 km/h en el parque</p>
+            <p className="mt-1.5 text-center text-[10px] text-muted-foreground">{t("cfg.vistaPrevia")}</p>
           </div>
         </div>
 
         <div className="px-4 py-3.5">
-          <p className="text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground">Minimapa</p>
+          <p className="text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground">{t("cfg.minimapa")}</p>
           <div className="mt-2.5">
             <Seg
               options={MINIMAP_SIZES}
@@ -246,13 +283,13 @@ export function ConfigTab({
             <Lock className="h-3.5 w-3.5 shrink-0" />
             <span className="min-w-0 flex-1">{proNote}</span>
             <button onClick={onGoPro} className="shrink-0 font-extrabold underline underline-offset-2">
-              Ver planes
+              {t("cfg.verPlanes")}
             </button>
           </div>
         )}
         {!pro && !proNote && (
           <p className="mx-4 mb-4 text-[11px] leading-relaxed text-muted-foreground">
-            Con Pro eliges el color de la app, el estilo (arco, dial o aguja) y el tamaño del velocímetro, y el minimapa grande.
+            {t("cfg.proFoot")}
           </p>
         )}
       </Card>
@@ -262,27 +299,26 @@ export function ConfigTab({
         <Row
           icon={<Info className="h-5 w-5" />}
           title="Cumbre30"
-          sub={`Versión ${APP_VERSION} · build ${APP_VERSION_CODE}`}
+          sub={t("cfg.acercaSub", APP_VERSION, APP_VERSION_CODE)}
         >
           <span className="shrink-0 rounded bg-emerald-600/15 px-2 py-1 text-[10px] font-extrabold tracking-widest text-emerald-700 dark:text-emerald-300">
             v{APP_VERSION}
           </span>
         </Row>
-        <Row icon={<Mail className="h-5 w-5" />} title="Contacto" sub="contacto.cumbre30@gmail.com · WhatsApp +56 9 4296 1619">
+        <Row icon={<Mail className="h-5 w-5" />} title={t("cfg.contacto")} sub={t("cfg.contactoSub")}>
           <span />
         </Row>
         <Row
           icon={<span className="text-base font-black tracking-tight text-foreground">CG</span>}
-          title="Cumbre GEO"
-          sub="Tecnología para descubrir. App independiente de apoyo al ciclista; no es oficial del Parque Metropolitano de Santiago."
+          title={t("cfg.cgeo")}
+          sub={t("cfg.cgeoSub")}
         >
           <span />
         </Row>
       </Card>
 
       <p className="px-1 text-[11.5px] leading-relaxed text-muted-foreground">
-        La fuente Demo existe para probar la app sin salir de casa. Los viajes demo se marcan como simulación en tu
-        historial y no emiten constancia PDF.
+        {t("cfg.demoNota")}
       </p>
     </div>
   );

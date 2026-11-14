@@ -1,0 +1,14 @@
+{
+  "_ayuda": "AVISOS OPERATIVOS DE CUMBRE30 - archivo editable por el equipo. Cada entrada de 'avisos' aparece en el banner de avisos de la pantalla Ride de todas las apps (web y APK) en ~5 minutos, sin actualizar el APK. Campos: id (único), nivel (info|warn|danger), texto (español), textoEn/textoPt (opcionales para turistas), desde/hasta (vigencia ISO opcional, ej. '2026-11-20T08:00:00-03:00'). 'actualizado' es la fecha de la última edición (solo informativo). Para publicar: editar este archivo y hacer deploy; el APK consulta https://cumbregeo.cl/avisos.json con caché de 5 minutos.",
+  "actualizado": "2026-11-14T09:00:00-03:00",
+  "avisos": [
+    {
+      "id": "ejemplo-formato",
+      "nivel": "info",
+      "texto": "Ejemplo de aviso operativo (este ejemplo tiene fecha 'hasta' vencida, por lo que no se muestra en la app).",
+      "textoEn": "Example operations notice (this sample has an expired 'hasta' date, so the app hides it).",
+      "textoPt": "Exemplo de aviso operacional (este exemplo tem data 'hasta' vencida, então o app não o exibe).",
+      "hasta": "2026-11-01T00:00:00-03:00"
+    }
+  ]
+}

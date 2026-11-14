@@ -18,7 +18,6 @@
 // ============================================================
 
 import dynamic from "next/dynamic";
-import { useMemo, useState } from "react";
 import {
   AlertTriangle,
   BadgeCheck,
@@ -55,12 +54,16 @@ import {
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Speedometer } from "@/components/Speedometer";
-import { ACCESOS_CICLISTAS, LIMIT_KMH, PARK_HOURS, PEDALEA_SEGURO } from "@/lib/park";
+import { ACCESOS_CICLISTAS, LIMIT_KMH, PEDALEA_SEGURO } from "@/lib/park";
 import { formatClock } from "@/lib/geo";
 import { formatStepRemaining, routeProgress, stepGlyph } from "@/lib/routing";
 import { estadoParque, horaSantiago } from "@/lib/horario";
 import { etiquetaClima, useClima } from "@/hooks/useClima";
 import { minimapHeight, useRideTheme } from "@/lib/rideTheme";
+import { alerts } from "@/lib/alertEngine";
+import { fetchAvisosOperativos, textoAviso, type AvisoOperativo } from "@/lib/avisos";
+import { t, useLang } from "@/lib/i18n";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { LatLng } from "@/lib/park";
 import type { RideEvent, RideStatus, Source, SpeedState } from "@/hooks/useRideEngine";
 import type { NavEngine } from "@/hooks/useNavEngine";
@@ -120,6 +123,7 @@ export function RideView(p: Props) {
   const idle = p.status === "idle";
   const over = p.speedState === "over";
   const caution = p.speedState === "caution";
+  const lang = useLang(); // re-render al cambiar el idioma (selector)
   const [sosOpen, setSosOpen] = useState(false);
   const [sosMsg, setSosMsg] = useState<string | null>(null);
   // Punto 4: banner de avisos colapsado a icono por defecto.
@@ -139,6 +143,39 @@ export function RideView(p: Props) {
   // funciona offline: muestra el último dato guardado con su hora.
   const { clima } = useClima();
 
+  // ---- Avisos operativos en tiempo real (2026-11-14) ----
+  // Fuente remota public/avisos.json en cumbregeo.cl; poll cada 5 min
+  // mientras la vista está montada + al volver la conexión. Los avisos
+  // de nivel danger se anuncian por voz una única vez por aviso.
+  const [ops, setOps] = useState<{ list: AvisoOperativo[]; actualizado: Date | null }>({
+    list: [],
+    actualizado: null,
+  });
+  const opsAnunciados = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    let vivo = true;
+    const cargar = async () => {
+      const r = await fetchAvisosOperativos(true);
+      if (!vivo) return;
+      setOps({ list: r.list, actualizado: r.actualizado });
+      for (const a of r.list) {
+        if (a.nivel === "danger" && !opsAnunciados.current.has(a.id)) {
+          opsAnunciados.current.add(a.id);
+          alerts.speak(`op-${a.id}`, t("voz.avisoOp", textoAviso(a)), 30);
+        }
+      }
+    };
+    void cargar();
+    const iv = setInterval(() => void cargar(), 5 * 60 * 1000);
+    const alConectar = () => void cargar();
+    window.addEventListener("online", alConectar);
+    return () => {
+      vivo = false;
+      clearInterval(iv);
+      window.removeEventListener("online", alConectar);
+    };
+  }, []);
+
   // Horario del parque + aviso de luces (cálculo offline, se
   // evalúa al montar la vista; el banner no necesita reloj vivo).
   const estado = useMemo(() => estadoParque(), []);
@@ -147,25 +184,31 @@ export function RideView(p: Props) {
     !idle && p.overLimitSec === 0 && p.maxInParkKmh !== null && p.maxInParkKmh <= LIMIT_KMH;
 
   // Punto 4: avisos activos para el banner colapsable. Combina el
-  // estado del parque (horario/luz/restricción Tupahue) con las
+  // estado del parque (horario/luz/restricción Tupahue, ahora i18n),
+  // los AVISOS OPERATIVOS en tiempo real (fuente remota) y las
   // advertencias vivas de la bitácora (warn/danger de los últimos
   // 30 minutos, sin repetir texto).
   const avisos = useMemo(() => {
-    type Aviso = { nivel: "info" | "warn" | "danger"; text: string };
+    type Aviso = { nivel: "info" | "warn" | "danger"; text: string; op?: boolean };
     const list: Aviso[] = [];
-    if (estado.aviso) {
-      list.push({
-        nivel: estado.nivel === "cierre" ? "danger" : estado.nivel === "luz" || estado.nivel === "tupa" ? "warn" : "info",
-        text: estado.aviso,
-      });
+    if (estado.key === "cerrado") {
+      list.push({ nivel: "danger", text: `${t("aviso.msgCierre")} ${t("aviso.fiscalizacion")}` });
+    } else if (estado.key === "anochece") {
+      list.push({ nivel: "warn", text: t("horario.anochece") });
+    } else if (estado.key === "luces") {
+      list.push({ nivel: "warn", text: t("horario.llevaLuces", estado.params.sunset ?? "") });
+    } else if (estado.key === "tupahue") {
+      list.push({ nivel: "warn", text: t("aviso.msgTupahue") });
     } else {
       // Parque abierto sin advertencia activa: el horario de ingreso y
       // la restricción Tupahue se muestran igual. Así el icono de avisos
       // nunca desaparece de la fila superior y el horario siempre está
       // a un toque (punto 4 del brief).
-      list.push({ nivel: "info", text: PARK_HOURS.msgCierre });
-      list.push({ nivel: "info", text: PARK_HOURS.msgCumbreTupahue });
+      list.push({ nivel: "info", text: t("aviso.msgCierre") });
+      list.push({ nivel: "info", text: t("aviso.msgTupahue") });
     }
+    // Avisos operativos remotos (ordenados por severidad desde avisos.ts)
+    for (const a of ops.list) list.push({ nivel: a.nivel, text: textoAviso(a), op: true });
     const limite = Date.now() - 30 * 60 * 1000;
     const vistos = new Set<string>();
     for (const ev of [...p.events].reverse()) {
@@ -177,7 +220,7 @@ export function RideView(p: Props) {
       if (list.length >= 4) break;
     }
     return list;
-  }, [estado, p.events]);
+  }, [estado, p.events, ops, lang]);
   const avisoPeor = avisos.some((a) => a.nivel === "danger") ? "danger" : avisos.some((a) => a.nivel === "warn") ? "warn" : "info";
   const avisoIconoCls =
     avisoPeor === "danger"
@@ -206,17 +249,17 @@ export function RideView(p: Props) {
 
   const compartirUbicacion = async () => {
     if (!p.position) return;
-    const txt = `Estoy pedaleando. Mi ubicación: https://maps.google.com/?q=${p.position.lat.toFixed(5)},${p.position.lon.toFixed(5)}`;
+    const txt = t("sos.compartirMsg", `https://maps.google.com/?q=${p.position.lat.toFixed(5)},${p.position.lon.toFixed(5)}`);
     try {
       if (navigator.share) {
-        await navigator.share({ title: "Mi ubicación - Cumbre30", text: txt });
-        setSosMsg("Ubicación compartida ✓");
+        await navigator.share({ title: t("sos.compartirTitulo"), text: txt });
+        setSosMsg(t("sos.okCompartida"));
       } else {
         await navigator.clipboard.writeText(txt);
-        setSosMsg("Ubicación copiada al portapapeles ✓");
+        setSosMsg(t("sos.okCopiada"));
       }
     } catch {
-      setSosMsg("No se pudo compartir; copia la ubicación de abajo.");
+      setSosMsg(t("sos.errorCompartir"));
     }
     setTimeout(() => setSosMsg(null), 5000);
   };
@@ -225,14 +268,14 @@ export function RideView(p: Props) {
   // grande que sature la pantalla ride). El modo es automático:
   // geocerca del parque; lo demás son estados de velocidad y pausa.
   const chip = paused
-    ? { cls: "border-sky-600/70 bg-sky-950/50 text-sky-300", icon: <Pause className="h-3.5 w-3.5" />, text: "EN PAUSA" }
+    ? { cls: "border-sky-600/70 bg-sky-950/50 text-sky-300", icon: <Pause className="h-3.5 w-3.5" />, text: t("chip.pausa") }
     : over
-      ? { cls: "border-red-600 bg-red-950/80 text-red-300 animate-pulse", icon: <ShieldAlert className="h-3.5 w-3.5" />, text: `EXCESO · límite ${LIMIT_KMH}` }
+      ? { cls: "border-red-600 bg-red-950/80 text-red-300 animate-pulse", icon: <ShieldAlert className="h-3.5 w-3.5" />, text: t("chip.exceso", LIMIT_KMH) }
       : caution
-        ? { cls: "border-amber-600/70 bg-amber-950/50 text-amber-300", icon: <ShieldAlert className="h-3.5 w-3.5" />, text: `PRECAUCIÓN · cerca del límite` }
+        ? { cls: "border-amber-600/70 bg-amber-950/50 text-amber-300", icon: <ShieldAlert className="h-3.5 w-3.5" />, text: t("chip.precaucion") }
         : p.insidePark
-          ? { cls: "border-emerald-600/60 bg-emerald-950/60 text-emerald-300", icon: <ShieldAlert className="h-3.5 w-3.5" />, text: `MODO PARQUE · ${LIMIT_KMH}` }
-          : { cls: "border-border bg-card/80 text-muted-foreground", icon: <Bike className="h-3.5 w-3.5" />, text: "MODO LIBRE" };
+          ? { cls: "border-emerald-600/60 bg-emerald-950/60 text-emerald-300", icon: <ShieldAlert className="h-3.5 w-3.5" />, text: t("chip.parque", LIMIT_KMH) }
+          : { cls: "border-border bg-card/80 text-muted-foreground", icon: <Bike className="h-3.5 w-3.5" />, text: t("chip.libre") };
 
   // Navegación viva: progreso para la lista de indicaciones
   const onRoute = !!p.nav.route && p.nav.route.coords.length > 1;
@@ -250,7 +293,7 @@ export function RideView(p: Props) {
         <div
           className="flex items-center gap-2 rounded-full border border-border bg-card/70 px-3 py-1.5"
           role="status"
-          aria-label={`Clima en el parque: ${etiquetaClima(clima.code)}, ${Math.round(clima.tempC)} grados`}
+          aria-label={t("clima.aria", etiquetaClima(clima.code), Math.round(clima.tempC))}
         >
           {climaIcono(clima.code)}
           <span className="font-mono text-sm font-bold tabular-nums text-foreground">
@@ -278,7 +321,7 @@ export function RideView(p: Props) {
         <button
           onClick={() => setAvisosOpen((v) => !v)}
           className={`relative inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border ${avisoIconoCls} ${avisosOpen ? "ring-2 ring-current/40" : ""}`}
-          aria-label={`${avisosOpen ? "Colapsar" : "Ver"} avisos y restricciones (${avisos.length})`}
+          aria-label={avisosOpen ? t("aviso.colapsarAria", avisos.length) : t("aviso.verAria", avisos.length)}
           aria-expanded={avisosOpen}
         >
           <AlertTriangle className="h-4 w-4" />
@@ -297,14 +340,19 @@ export function RideView(p: Props) {
 
       {/* Punto 4: banner de avisos completo (colapsado por defecto) */}
       {avisosOpen && (
-        <div className={`rounded-xl border p-3 ${avisoPanelCls}`} role="region" aria-label="Avisos y restricciones del parque">
+        <div className={`rounded-xl border p-3 ${avisoPanelCls}`} role="region" aria-label={t("aviso.panelAria")}>
           <div className="flex items-center gap-2">
             <AlertTriangle className="h-4 w-4 shrink-0" />
-            <p className="flex-1 text-[10px] font-extrabold uppercase tracking-widest">Avisos y restricciones</p>
+            <p className="flex-1 text-[10px] font-extrabold uppercase tracking-widest">{t("aviso.titulo")}</p>
+            {ops.actualizado && (
+              <span className="shrink-0 font-mono text-[9.5px] text-muted-foreground/80">
+                {t("aviso.actualizado", horaSantiago(ops.actualizado))}
+              </span>
+            )}
             <button
               onClick={() => setAvisosOpen(false)}
               className="rounded-full border border-border/60 p-1 text-muted-foreground hover:text-foreground"
-              aria-label="Colapsar banner de avisos"
+              aria-label={t("aviso.cerrarAria")}
             >
               <X className="h-3.5 w-3.5" />
             </button>
@@ -312,8 +360,13 @@ export function RideView(p: Props) {
           <ul className="mt-2 space-y-1.5">
             {avisos.map((a, i) => (
               <li key={i} className="flex items-start gap-2 text-xs leading-snug text-foreground/90">
-                <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${a.nivel === "danger" ? "bg-red-500" : a.nivel === "warn" ? "bg-amber-400" : "bg-sky-400"}`} />
-                {a.text}
+                <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${a.nivel === "danger" ? "bg-red-500" : a.nivel === "warn" ? "bg-amber-400" : a.op ? "bg-violet-400" : "bg-sky-400"}`} />
+                <span className="min-w-0 flex-1">{a.text}</span>
+                {a.op && (
+                  <span className="shrink-0 rounded bg-violet-600/15 px-1.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wide text-violet-600 dark:text-violet-300">
+                    {t("aviso.operativo")}
+                  </span>
+                )}
               </li>
             ))}
           </ul>
@@ -324,13 +377,13 @@ export function RideView(p: Props) {
             <p className="flex items-start gap-2 text-xs leading-snug text-foreground/90">
               <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-teal-400" />
               <span>
-                <span className="font-semibold text-foreground">Ingresa en bici solo por:</span>{" "}
-                {listaAccesosCiclistas}. Los demás accesos no habilitan ingreso de ciclistas.
+                <span className="font-semibold text-foreground">{t("aviso.ingresaBici")}</span>{" "}
+                {listaAccesosCiclistas}. {t("aviso.noHabilitan")}
               </span>
             </p>
             <p className="flex items-start gap-2 text-xs leading-snug text-foreground/90">
               <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-sky-400" />
-              {PEDALEA_SEGURO.msgNormas}
+              {t("aviso.msgPedalea")}
             </p>
           </div>
         </div>
@@ -371,7 +424,7 @@ export function RideView(p: Props) {
       <div className="grid grid-cols-2 gap-2.5">
         <Card className="p-3.5">
           <div className="flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground">
-            <Route className="h-3.5 w-3.5" /> Distancia
+            <Route className="h-3.5 w-3.5" /> {t("ride.distancia")}
           </div>
           <div className="mt-1 font-mono text-[26px] font-bold tabular-nums leading-none text-foreground">
             {p.distanceKm.toFixed(2)}
@@ -380,7 +433,7 @@ export function RideView(p: Props) {
         </Card>
         <Card className="p-3.5">
           <div className="flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground">
-            <Timer className="h-3.5 w-3.5" /> Tiempo
+            <Timer className="h-3.5 w-3.5" /> {t("ride.tiempo")}
           </div>
           <div className="mt-1 font-mono text-[26px] font-bold tabular-nums leading-none text-foreground">
             {formatClock(p.elapsedSec)}
@@ -402,10 +455,10 @@ export function RideView(p: Props) {
                 onClick={p.onStart}
                 className="h-16 w-full rounded-2xl bg-emerald-600 text-lg font-extrabold text-(--c30-on-accent) shadow-xl hover:bg-emerald-500"
               >
-                <Play className="h-6 w-6" /> Iniciar ride
+                <Play className="h-6 w-6" /> {t("ride.iniciar")}
               </Button>
               <p className="mt-1 text-center text-[11px] text-muted-foreground">
-                Fuente: {p.source === "sim" ? "Demo" : "GPS real"} · cámbiala en Configuración
+                {t("ride.fuenteLeyenda", p.source === "sim" ? t("ride.demo") : t("ride.gpsReal"))}
               </p>
             </div>
           ) : (
@@ -416,20 +469,20 @@ export function RideView(p: Props) {
                   variant="outline"
                   className="h-16 flex-1 rounded-2xl border-border bg-card text-base font-bold text-foreground shadow-xl hover:bg-accent"
                 >
-                  <Pause className="h-6 w-6" /> Pausar
+                  <Pause className="h-6 w-6" /> {t("ride.pausar")}
                 </Button>
               ) : (
                 <Button
                   onClick={p.onResume}
                   className="h-16 flex-1 rounded-2xl bg-emerald-600 text-base font-extrabold text-(--c30-on-accent) shadow-xl hover:bg-emerald-500"
                 >
-                  <Play className="h-6 w-6" /> Reanudar
+                  <Play className="h-6 w-6" /> {t("ride.reanudar")}
                 </Button>
               )}
               <Button
                 onClick={p.onFinish}
                 className="h-16 w-16 shrink-0 rounded-2xl bg-red-950/60 text-red-300 shadow-xl hover:bg-red-900"
-                aria-label="Finalizar y guardar ride"
+                aria-label={t("ride.finalizarAria")}
               >
                 <Square className="h-6 w-6" />
               </Button>
@@ -449,17 +502,17 @@ export function RideView(p: Props) {
       >
         <summary className="flex cursor-pointer select-none items-center gap-2 text-sm font-semibold text-foreground/90 list-none [&::-webkit-details-marker]:hidden">
           <Gauge className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-          Estadísticas y bitácora
+          {t("ride.cajaTitulo")}
           <ChevronDown className="ml-auto h-4 w-4 text-muted-foreground transition-transform group-open:rotate-180" />
         </summary>
-        <div className="mt-3 flex rounded-lg border border-border bg-background/50 p-0.5" role="tablist" aria-label="Filtro del viaje">
+        <div className="mt-3 flex rounded-lg border border-border bg-background/50 p-0.5" role="tablist" aria-label={t("ride.tabStats")}>
           <button
             role="tab"
             aria-selected={cajaTab === "stats"}
             onClick={() => setCajaTab("stats")}
             className={`inline-flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-bold transition-colors ${cajaTab === "stats" ? "bg-accent text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
           >
-            Estadísticas
+            {t("ride.tabStats")}
           </button>
           <button
             role="tab"
@@ -467,7 +520,7 @@ export function RideView(p: Props) {
             onClick={() => setCajaTab("bitacora")}
             className={`inline-flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-bold transition-colors ${cajaTab === "bitacora" ? "bg-accent text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
           >
-            <ScrollText className="h-3.5 w-3.5" /> Bitácora
+            <ScrollText className="h-3.5 w-3.5" /> {t("ride.tabBitacora")}
             {p.events.length > 0 && (
               <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-emerald-600 px-1 text-[9px] font-extrabold text-white">
                 {p.events.length}
@@ -478,23 +531,23 @@ export function RideView(p: Props) {
         {cajaTab === "stats" ? (
           <div className="mt-2.5">
             <div className="grid grid-cols-3 gap-2">
-              <Stat label="Máx" value={p.maxKmh.toFixed(1)} unit="km/h" icon={<TrendingUp className="h-3 w-3" />} />
-              <Stat label="Prom" value={p.avgKmh.toFixed(1)} unit="km/h" icon={<Gauge className="h-3 w-3" />} />
-              <Stat label="Desnivel" value={`+${Math.round(p.gainM)}`} unit="m" icon={<Mountain className="h-3 w-3" />} />
+              <Stat label={t("ride.statMax")} value={p.maxKmh.toFixed(1)} unit="km/h" icon={<TrendingUp className="h-3 w-3" />} />
+              <Stat label={t("ride.statProm")} value={p.avgKmh.toFixed(1)} unit="km/h" icon={<Gauge className="h-3 w-3" />} />
+              <Stat label={t("ride.statDesnivel")} value={`+${Math.round(p.gainM)}`} unit="m" icon={<Mountain className="h-3 w-3" />} />
               <Stat
-                label="Pendiente"
+                label={t("ride.statPendiente")}
                 value={`${p.slopePct > 0 ? "+" : ""}${p.slopePct.toFixed(1)}`}
                 unit="%"
                 icon={p.slopePct < 0 ? <TrendingDown className="h-3 w-3" /> : <TrendingUp className="h-3 w-3" />}
               />
-              <Stat label="Precisión GPS" value={p.accuracyM !== null ? `±${Math.round(p.accuracyM)}` : "-"} unit={p.accuracyM !== null ? "m" : undefined} icon={<Navigation className="h-3 w-3" />} />
-              <Stat label="En parque" value={idle ? "-" : p.insidePark ? "Sí" : "No"} icon={<ShieldAlert className="h-3 w-3" />} />
+              <Stat label={t("ride.statPrecision")} value={p.accuracyM !== null ? `±${Math.round(p.accuracyM)}` : "-"} unit={p.accuracyM !== null ? "m" : undefined} icon={<Navigation className="h-3 w-3" />} />
+              <Stat label={t("ride.statEnParque")} value={idle ? "-" : p.insidePark ? t("ride.statSi") : t("ride.statNo")} icon={<ShieldAlert className="h-3 w-3" />} />
             </div>
             {p.overLimitSec > 0 && (
               <Card className="mt-2.5 flex-row items-center justify-between border-red-900/70 bg-red-950/40 px-3 py-2.5">
                 <div className="flex items-center gap-2 text-red-300 text-xs font-semibold">
                   <ShieldAlert className="h-4 w-4" />
-                  Tiempo sobre el límite en el parque
+                  {t("ride.sobreLimite")}
                 </div>
                 <div className="font-mono text-base font-bold tabular-nums text-red-300">{formatClock(p.overLimitSec)}</div>
               </Card>
@@ -503,21 +556,22 @@ export function RideView(p: Props) {
               <Card className="mt-2.5 flex-row items-center justify-between border-emerald-800/70 bg-emerald-950/40 px-3 py-2.5">
                 <div className="flex items-center gap-2 text-emerald-300 text-xs font-semibold">
                   <BadgeCheck className="h-4 w-4" />
-                  Descenso limpio: respetaste los {LIMIT_KMH} km/h en el parque
+                  {t("ride.descensoLimpio", LIMIT_KMH)}
                 </div>
                 <BadgeCheck className="h-4 w-4 text-emerald-400" />
               </Card>
             )}
             {p.maxInParkKmh !== null && (
               <p className="mt-2 text-center text-[11px] text-muted-foreground">
-                Máxima dentro del parque: <span className="font-mono text-foreground/90">{p.maxInParkKmh.toFixed(1)} km/h</span>
+                {t("ride.maxParque")}{" "}
+                <span className="font-mono text-foreground/90">{p.maxInParkKmh.toFixed(1)} km/h</span>
               </p>
             )}
           </div>
         ) : (
           <ul className="mt-2.5 max-h-56 overflow-y-auto rounded-lg border border-border/70 divide-y divide-border/70" aria-label="Eventos del viaje">
             {p.events.length === 0 && (
-              <li className="px-4 py-6 text-center text-sm text-muted-foreground/80">Sin eventos aún - los avisos de zona, geocercas y excesos aparecerán aquí.</li>
+              <li className="px-4 py-6 text-center text-sm text-muted-foreground/80">{t("ride.sinEventos")}</li>
             )}
             {[...p.events].reverse().map((ev, i) => (
               <li key={`${ev.t}-${i}`} className="px-3.5 py-2.5 flex items-start gap-2.5 text-sm">
@@ -537,9 +591,9 @@ export function RideView(p: Props) {
         <details className="rounded-xl border border-border bg-card/70 p-3 group">
           <summary className="flex cursor-pointer select-none items-center gap-2 text-sm font-semibold text-foreground/90 list-none [&::-webkit-details-marker]:hidden">
             <ListTree className="h-4 w-4 text-sky-600 dark:text-sky-400" />
-            Indicaciones de la ruta ({p.nav.route.steps.length})
-            <span className="ml-auto text-[11px] text-muted-foreground font-normal group-open:hidden">ver todas</span>
-            <span className="ml-auto text-[11px] text-muted-foreground font-normal hidden group-open:inline">ocultar</span>
+            {t("ride.indicaciones", p.nav.route.steps.length)}
+            <span className="ml-auto text-[11px] text-muted-foreground font-normal group-open:hidden">{t("ride.verTodas")}</span>
+            <span className="ml-auto text-[11px] text-muted-foreground font-normal hidden group-open:inline">{t("ride.ocultar")}</span>
           </summary>
           <ol className="mt-3 space-y-1.5 max-h-52 overflow-y-auto pr-1">
             {p.nav.route.steps.map((s, i) => {
@@ -565,41 +619,41 @@ export function RideView(p: Props) {
 
       {/* Tarjeta de emergencia (funciona sin conexión: tel: y compartir) */}
       {sosOpen && (
-        <div className="fixed inset-0 z-[110] flex items-end justify-center bg-black/70 sm:items-center" role="dialog" aria-label="Emergencia">
+        <div className="fixed inset-0 z-[110] flex items-end justify-center bg-black/70 sm:items-center" role="dialog" aria-label={t("sos.titulo")}>
           <Card className="w-full max-w-md rounded-b-none rounded-t-2xl bg-background p-4 sm:rounded-2xl">
             <div className="flex items-center gap-2">
               <Siren className="h-5 w-5 text-red-600 dark:text-red-400" />
-              <p className="flex-1 font-bold text-foreground">Emergencia en el cerro</p>
+              <p className="flex-1 font-bold text-foreground">{t("sos.titulo")}</p>
               <button
                 onClick={() => setSosOpen(false)}
                 className="rounded-full border border-border p-1.5 text-muted-foreground hover:text-foreground"
-                aria-label="Cerrar tarjeta de emergencia"
+                aria-label={t("sos.cerrarAria")}
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
             <div className="mt-3">
-              <p className="text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground">Emergencias</p>
+              <p className="text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground">{t("sos.emergencias")}</p>
               <div className="mt-1.5 grid grid-cols-3 gap-2">
                 <a href="tel:133" className="flex flex-col items-center gap-1 rounded-lg border border-border bg-card py-3 text-center hover:border-red-500/70">
                   <Phone className="h-4 w-4 text-red-600 dark:text-red-400" />
                   <span className="text-sm font-bold text-foreground">133</span>
-                  <span className="text-[10px] text-muted-foreground">Carabineros</span>
+                  <span className="text-[10px] text-muted-foreground">{t("sos.carabineros")}</span>
                 </a>
                 <a href="tel:131" className="flex flex-col items-center gap-1 rounded-lg border border-border bg-card py-3 text-center hover:border-red-500/70">
                   <Phone className="h-4 w-4 text-red-600 dark:text-red-400" />
                   <span className="text-sm font-bold text-foreground">131</span>
-                  <span className="text-[10px] text-muted-foreground">Ambulancia</span>
+                  <span className="text-[10px] text-muted-foreground">{t("sos.ambulancia")}</span>
                 </a>
                 <a href="tel:132" className="flex flex-col items-center gap-1 rounded-lg border border-border bg-card py-3 text-center hover:border-red-500/70">
                   <Phone className="h-4 w-4 text-red-600 dark:text-red-400" />
                   <span className="text-sm font-bold text-foreground">132</span>
-                  <span className="text-[10px] text-muted-foreground">Bomberos</span>
+                  <span className="text-[10px] text-muted-foreground">{t("sos.bomberos")}</span>
                 </a>
               </div>
             </div>
             <div className="mt-2.5">
-              <p className="text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground">Parque y apoyo</p>
+              <p className="text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground">{t("sos.parqueYApoyo")}</p>
               <div className="mt-1.5 grid grid-cols-3 gap-2">
                 {/* Número oficial de EMERGENCIAS del parque (cliente 2026-11-13,
                     insignia roja «EMERGENCIAS 1466»): reemplaza a la antigua
@@ -608,17 +662,17 @@ export function RideView(p: Props) {
                 <a href="tel:1466" className="flex flex-col items-center gap-1 rounded-lg border border-border bg-card py-3 text-center hover:border-red-500/70">
                   <Phone className="h-4 w-4 text-red-600 dark:text-red-400" />
                   <span className="text-[13px] font-bold tabular-nums text-foreground">1466</span>
-                  <span className="text-[10px] text-muted-foreground">Emergencias Parquemet</span>
+                  <span className="text-[10px] text-muted-foreground">{t("sos.emergParquemet")}</span>
                 </a>
                 <a href="tel:+56226543200" className="flex flex-col items-center gap-1 rounded-lg border border-border bg-card py-3 text-center hover:border-emerald-500/70">
                   <Phone className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                   <span className="text-[13px] font-bold tabular-nums text-foreground">+56 2 2654 3200</span>
-                  <span className="text-[10px] text-muted-foreground">Mun. Providencia</span>
+                  <span className="text-[10px] text-muted-foreground">{t("sos.providencia")}</span>
                 </a>
                 <a href="tel:6003607777" className="flex flex-col items-center gap-1 rounded-lg border border-border bg-card py-3 text-center hover:border-emerald-500/70">
                   <Phone className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                   <span className="text-[13px] font-bold tabular-nums text-foreground">600 360 7777</span>
-                  <span className="text-[10px] text-muted-foreground">Salud Responde</span>
+                  <span className="text-[10px] text-muted-foreground">{t("sos.saludResponde")}</span>
                 </a>
               </div>
             </div>
@@ -628,7 +682,7 @@ export function RideView(p: Props) {
                   onClick={() => void compartirUbicacion()}
                   className="mt-3 w-full bg-emerald-600 hover:bg-emerald-500 text-(--c30-on-accent) font-semibold"
                 >
-                  <Share2 className="h-4 w-4 mr-2" /> Compartir mi ubicación
+                  <Share2 className="h-4 w-4 mr-2" /> {t("sos.compartir")}
                 </Button>
                 <div className="mt-2 flex items-center gap-2 rounded-lg border border-border bg-card/60 px-2.5 py-2">
                   <Copy className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
@@ -639,14 +693,12 @@ export function RideView(p: Props) {
               </>
             ) : (
               <p className="mt-3 text-xs text-muted-foreground">
-                Sin posición GPS aún: no se puede compartir ubicación. Acércate al acceso o caseta más cercana del parque.
+                {t("sos.sinGps")}
               </p>
             )}
             {sosMsg && <p className="mt-2 text-xs font-medium text-emerald-600 dark:text-emerald-400" role="status">{sosMsg}</p>}
             <p className="mt-3 text-[11px] leading-relaxed text-muted-foreground">
-              Si puedes, avisa también al personal del parque (accesos y casetas). El 1466 es la línea de emergencias
-              oficial de Parquemet; ante una urgencia llama también al 133. Tu QR Pedalea Seguro pegado en la bici
-              ayuda a que te identifiquen rápido.
+              {t("sos.nota")}
             </p>
           </Card>
         </div>

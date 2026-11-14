@@ -26,7 +26,8 @@ import "maplibre-gl/dist/maplibre-gl.css";
 // así que lo servimos nosotros: public/maplibre-gl-worker.mjs - mismo
 // archivo incluido en el APK como asset.
 setWorkerUrl("/maplibre-gl-worker.mjs?v=6.16.0");
-import { Crosshair, Plus, Route as RouteIcon, TriangleAlert, X } from "lucide-react";
+import { Crosshair, Plus, Route as RouteIcon, TriangleAlert, X, Phone } from "lucide-react";
+import { apiUrl } from "@/lib/backend";
 import { GATES, PARK_POLYGON, RISK_ZONES, type LatLng } from "@/lib/park";
 import { MINIMAP_ACCESOS } from "@/lib/mapLayers";
 import { DEFAULT_PIN, PINS, type PinId } from "@/lib/pins";
@@ -769,6 +770,19 @@ function ReportSheet({
         ))}
       </div>
       <p className="text-[10px] text-muted-foreground mt-2">Se registra con fecha y hora, y aparece en el mapa compartido.</p>
+      {/* Canal ciudadano (2026-11-14): para que el parque lo revise, la
+          línea oficial de emergencias queda a un toque. */}
+      <div className="mt-2 flex items-center gap-2 border-t border-border/60 pt-2">
+        <a
+          href="tel:1466"
+          className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-red-800/60 bg-red-950/40 px-2.5 py-1.5 text-[11px] font-bold text-red-300 hover:bg-red-900/50"
+        >
+          <Phone className="h-3.5 w-3.5" /> 1466
+        </a>
+        <p className="min-w-0 flex-1 text-[10px] leading-snug text-muted-foreground">
+          ¿Urgencia o peligro grande? Llama a la línea oficial de emergencias del parque y avisa al personal más cercano.
+        </p>
+      </div>
     </div>
   );
 }
@@ -842,6 +856,8 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
   );
 
   // ---- Reporte rápido de incidencias (botón amarillo) ----
+  // En el APK la llamada va al backend de la web (apiUrl); sin backend
+  // configurado, el reporte se guarda local en el dispositivo.
   const reportIncident = async (type: IncidentTypeId) => {
     if (!position) {
       setStatus("Aún sin GPS: no podemos fijar la ubicación del reporte.");
@@ -851,17 +867,7 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
     }
     setReportOpen(false);
     const payload = { type, lat: position.lat, lon: position.lon };
-    try {
-      const r = await fetch("/api/incidents", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      const d = (await r.json()) as { incident?: IncidentItem; error?: string };
-      if (!r.ok || !d.incident) throw new Error(d.error ?? "error");
-      addIncident(d.incident);
-      setStatus("Incidencia reportada ✓ visible para toda la comunidad");
-    } catch {
+    const guardarLocal = () => {
       const local: IncidentItem = {
         id: crypto.randomUUID(),
         ...payload,
@@ -875,6 +881,25 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
       addIncident(local);
       saveLocalIncidents([local, ...loadLocalIncidents()]);
       setStatus("Sin conexión: reporte guardado en este dispositivo.");
+    };
+    const url = apiUrl("/api/incidents");
+    if (!url) {
+      guardarLocal();
+      setTimeout(() => setStatus(null), 5000);
+      return;
+    }
+    try {
+      const r = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const d = (await r.json()) as { incident?: IncidentItem; error?: string };
+      if (!r.ok || !d.incident) throw new Error(d.error ?? "error");
+      addIncident(d.incident);
+      setStatus("Incidencia reportada ✓ visible para toda la comunidad");
+    } catch {
+      guardarLocal();
     }
     setTimeout(() => setStatus(null), 5000);
   };

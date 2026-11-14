@@ -16,13 +16,20 @@
 //   - Si el ride viene del modo demostración, se advierte en
 //     rojo que NO sirve como respaldo.
 //
-// Sin dependencias del DOM: también corre en Node (script de
-// ejemplo y pruebas).
+// 2026-11-14 (verificación en línea): membrete Cumbre30 con marca
+// gráfica, código corto C30-XXXX-XXXX y QR que apunta a
+// cumbregeo.cl/verificar#d=... (payload + hash). La página pública
+// /verificar confirma la integridad y el registro en línea.
+//
+// Sin dependencias del DOM (salvo el QR, isomórfico): también
+// corre en Node (script de ejemplo y pruebas).
 // ============================================================
 
 import { jsPDF } from "jspdf";
+import QRCode from "qrcode";
 import { APP_VERSION } from "./appVersion";
 import type { RideSummary } from "./history";
+import { buildConstanciaPayload, buildConstanciaEnlace } from "./constancia";
 
 export type RideIdentity = {
   name?: string;
@@ -97,14 +104,21 @@ function titleCase(d: string): string {
 export async function buildRidePdf(r: RideSummary, identity?: RideIdentity): Promise<jsPDF> {
   const id = resolveRideIdentity(identity);
   const emitted = new Date();
-  const verifCode = await sha256Hex(
-    JSON.stringify({ app: "cumbre30", v: APP_VERSION, ride: r, identity: id })
-  );
+
+  // ----- Verificación en línea: payload + hash + QR (2026-11-14) -----
+  const payload = buildConstanciaPayload(r, id);
+  const enlace = await buildConstanciaEnlace(payload);
+  const verifCode = enlace.hash; // SHA-256 del contenido (antes: hash del JSON interno)
+  const qrDataUrl = await QRCode.toDataURL(enlace.url, {
+    margin: 1,
+    width: 480,
+    errorCorrectionLevel: "L",
+  });
 
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   const M = 20; // margen
   const W = 210 - 2 * M;
-  let y = 26;
+  let y = 34; // arranca bajo el membrete
 
   const ensure = (h: number) => {
     if (y + h > 272) {
@@ -163,14 +177,37 @@ export async function buildRidePdf(r: RideSummary, identity?: RideIdentity): Pro
     y += 2.2;
   };
 
-  // ----- Encabezado -----
-  center("CUMBRE30 · APLICACIÓN DE REGISTRO DE CICLISMO", 8, false, [120, 120, 120], 4.4);
+  // ----- Membrete Cumbre30 (2026-11-14): banda superior con la marca
+  // de la app, equivalente a un papel membretado. Vector, sin assets.
+  doc.setFillColor(6, 78, 59); // esmeralda oscuro institucional
+  doc.rect(0, 0, 210, 26, "F");
+  doc.setDrawColor(255, 255, 255);
+  doc.setLineWidth(0.8);
+  doc.setLineJoin("round");
+  doc.triangle(14, 19.5, 20, 7.5, 26, 19.5, "S"); // cumbre mayor
+  doc.triangle(23, 19.5, 28.5, 11.5, 34, 19.5, "S"); // cumbre menor
+  doc.setFillColor(255, 255, 255);
+  doc.circle(20, 12.4, 1.1, "F"); // sol/cima
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(17);
+  doc.setTextColor(255, 255, 255);
+  doc.text("CUMBRE30", 40, 13.5);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8);
+  doc.setTextColor(210, 240, 228);
+  doc.text("Ciclocomputador de apoyo al ciclista", 40, 19);
+  doc.setFontSize(7.5);
+  doc.setTextColor(190, 225, 208);
+  doc.text("cumbregeo.cl", 190, 13.5, { align: "right" });
+  doc.text("Documento verificable en línea", 190, 18, { align: "right" });
+
+  // ----- Encabezado del documento -----
   center("CONSTANCIA DE REGISTRO DE TRAYECTO EN BICICLETA", 14, true, [10, 10, 10], 6.4);
   center(
     "Ámbito informativo: Parque Metropolitano de Santiago · límite de velocidad para bicicletas: 30 km/h",
     9, false, [100, 100, 100], 4.6
   );
-  doc.setDrawColor(30, 30, 30);
+  doc.setDrawColor(6, 78, 59);
   doc.setLineWidth(0.6);
   doc.line(M, y, M + W, y);
   y += 2;
@@ -245,8 +282,8 @@ export async function buildRidePdf(r: RideSummary, identity?: RideIdentity): Pro
     );
   }
 
-  // ----- V. Integridad -----
-  section("V. INTEGRIDAD DEL REGISTRO");
+  // ----- V. Integridad y verificación en línea -----
+  section("V. INTEGRIDAD DEL REGISTRO Y VERIFICACIÓN EN LÍNEA");
   para(
     "Código de verificación SHA-256 del contenido de esta constancia (datos del trayecto, identidad declarada y " +
     "versión de la aplicación al momento de la emisión):",
@@ -263,10 +300,45 @@ export async function buildRidePdf(r: RideSummary, identity?: RideIdentity): Pro
   }
   y += 1.5;
   para(
-    "Un receptor de este documento puede comparar este código con una constancia emitida previamente por la misma " +
-    "aplicación para constatar que no fue alterada con posterioridad a su emisión.",
+    "Un receptor de este documento puede comprobar la constancia en línea: escanee el código QR o ingrese el enlace " +
+    "en la verificación pública de Cumbre30 (cumbregeo.cl/verificar). El sistema reconstruye el código de integridad " +
+    "en el mismo dispositivo y, además, confirma contra el registro en línea de Cumbre30 que esta constancia fue " +
+    "emitida por la aplicación en la fecha de emisión indicada.",
     9
   );
+
+  // Código corto + URL + QR
+  ensure(58);
+  y += 1.5;
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(11);
+  doc.setTextColor(6, 78, 59);
+  doc.text(`Código corto: ${enlace.code}`, M, y);
+  y += 6.5;
+  doc.setFont("courier", "normal");
+  doc.setFontSize(7.2);
+  doc.setTextColor(80, 80, 80);
+  const urlLines = doc.splitTextToSize(enlace.url, W) as string[];
+  for (const l of urlLines.slice(0, 2)) {
+    doc.text(l, M, y);
+    y += 3.9;
+  }
+  y += 2.5;
+  // QR (34 mm) centrado con leyenda
+  const qrSize = 34;
+  doc.addImage(qrDataUrl, "PNG", 105 - qrSize / 2, y, qrSize, qrSize);
+  y += qrSize + 4.5;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8.5);
+  doc.setTextColor(110, 110, 110);
+  const leyenda = doc.splitTextToSize(
+    "Verificación pública: cumbregeo.cl/verificar · confirme el código corto " + enlace.code,
+    W
+  ) as string[];
+  for (const l of leyenda) {
+    doc.text(l, 105, y, { align: "center" });
+    y += 4.2;
+  }
 
   // ----- Firma -----
   ensure(34);
@@ -302,7 +374,7 @@ export async function buildRidePdf(r: RideSummary, identity?: RideIdentity): Pro
     doc.setFontSize(7.5);
     doc.setTextColor(130, 130, 130);
     doc.text(
-      `Constancia generada por Cumbre30 v${APP_VERSION} · documento autogenerado por su titular · registro del dispositivo del ciclista`,
+      `Constancia generada por Cumbre30 v${APP_VERSION} · documento autogenerado por su titular · verificable en cumbregeo.cl/verificar`,
       105, 287, { align: "center" }
     );
     doc.text(`Página ${i} de ${pages}`, 105, 291, { align: "center" });
