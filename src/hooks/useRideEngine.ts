@@ -15,6 +15,7 @@ import { estadoParque, minutosParaCierre, cierraHoraTexto } from "@/lib/horario"
 import { GATE_PIO_NONO, PUENTE_TUPAHUE_CUMBRE, enCorredorPioNono } from "@/lib/reglasParque";
 import { alerts } from "@/lib/alertEngine";
 import { FallDetector, fallConfigOn } from "@/lib/fallDetect";
+import { saltarFix, wakeLockSuspendido } from "@/lib/rideBateria";
 import { t, vozHoraCierre, vozHoras } from "@/lib/i18n";
 import { RideNative, isNativeApp, type PluginListenerHandleLike } from "@/lib/rideNative";
 import { RideSimulator } from "@/lib/simulation";
@@ -536,6 +537,8 @@ export function useRideEngine() {
     const id = navigator.geolocation.watchPosition(
       (pos) => {
         setGpsStatus("active");
+        // Modo ahorro: procesa 1 fix de cada 2 (≈0,5 Hz efectivo).
+        if (saltarFix(pos.timestamp)) return;
         const c = pos.coords;
         // Velocidad GPS (Doppler) si existe; si no, por delta de posición
         let kmh: number;
@@ -577,6 +580,8 @@ export function useRideEngine() {
     try {
       const sub = await RideNative.addListener("gpsfix", (f) => {
         setGpsStatus("active");
+        // Modo ahorro: procesa 1 fix de cada 2 (≈0,5 Hz efectivo).
+        if (saltarFix(f.t)) return;
         const eng = engine.current;
         // speed negativo o no finito = Doppler inválido → delta de posición
         const speedKmh =
@@ -709,7 +714,9 @@ export function useRideEngine() {
           4
         );
       }
-      void alerts.requestWakeLock();
+      // Modo ahorro de batería (Ola 1): pantalla apagable — no se
+      // solicita wake lock; la guía sigue por voz.
+      if (!wakeLockSuspendido()) void alerts.requestWakeLock();
       if (src === "gps") startGps();
       else startSim();
     },

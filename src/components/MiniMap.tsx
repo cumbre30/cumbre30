@@ -877,6 +877,9 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
         authorPin: userPin ?? DEFAULT_PIN,
         mine: true,
         localOnly: true,
+        confirmCount: 0,
+        resolvedCount: 0,
+        lastConfirmAt: null,
       };
       addIncident(local);
       saveLocalIncidents([local, ...loadLocalIncidents()]);

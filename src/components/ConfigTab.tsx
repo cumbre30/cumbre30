@@ -11,12 +11,22 @@
 // ============================================================
 
 import { useState } from "react";
-import { Volume2, VolumeX, Mic, MicOff, FlaskConical, Info, Mail, Moon, Palette, Lock, Languages, Siren } from "lucide-react";
+import { Volume2, VolumeX, Mic, MicOff, FlaskConical, Info, Mail, Moon, Palette, Lock, Languages, Siren, UserPlus, UserRound, BellRing, HeartPulse } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Speedometer } from "@/components/Speedometer";
 import { ThemeIconButton } from "@/components/ThemeToggle";
 import { APP_VERSION, APP_VERSION_CODE } from "@/lib/appVersion";
 import { fallConfigOn, setFallConfigOn } from "@/lib/fallDetect";
+import {
+  ICE_MAX,
+  getIceConfig,
+  iceValidationError,
+  removeIceContact,
+  setIceAuto,
+  upsertIceContact,
+  type IceConfig,
+} from "@/lib/iceContacts";
+import { getFcConfig, saveFcConfig, type FcConfig } from "@/lib/zonasFc";
 import { t, useLang, setLang, type Lang } from "@/lib/i18n";
 import {
   MINIMAP_SIZES,
@@ -133,6 +143,48 @@ export function ConfigTab({
     setFallOn(v);
     setFallConfigOn(v);
   };
+  // Contactos ICE (Ola 1): persistidos en iceContacts (auto on por defecto).
+  const [ice, setIce] = useState<IceConfig>(() => getIceConfig());
+  const [iceName, setIceName] = useState("");
+  const [icePhone, setIcePhone] = useState("");
+  const [iceErr, setIceErr] = useState<string | null>(null);
+  const addIce = () => {
+    const err = iceValidationError(iceName, icePhone);
+    if (err) {
+      setIceErr(err);
+      return;
+    }
+    setIceErr(null);
+    setIce(upsertIceContact(iceName, icePhone));
+    setIceName("");
+    setIcePhone("");
+  };
+  const toggleIceAuto = () => {
+    const v = !ice.auto;
+    setIceAuto(v);
+    setIce({ ...ice, auto: v });
+  };
+  // Zonas de esfuerzo (Ola 1): FC máxima y reposo para Karvonen.
+  const [fcCfg, setFcCfg] = useState<FcConfig>(() => getFcConfig());
+  const [fcMax, setFcMax] = useState(String(fcCfg.maxBpm));
+  const [fcReposo, setFcReposo] = useState(String(fcCfg.reposoBpm));
+  const [fcErr, setFcErr] = useState<string | null>(null);
+  const [fcOk, setFcOk] = useState(false);
+  const guardarFc = () => {
+    const maxBpm = Number(fcMax);
+    const reposoBpm = Number(fcReposo);
+    if (!(maxBpm >= 120 && maxBpm <= 230) || !(reposoBpm >= 30 && reposoBpm <= 120) || reposoBpm >= maxBpm - 20) {
+      setFcErr(t("cfg.fcErr"));
+      return;
+    }
+    setFcErr(null);
+    const saved = saveFcConfig({ maxBpm, reposoBpm });
+    setFcCfg(saved);
+    setFcMax(String(saved.maxBpm));
+    setFcReposo(String(saved.reposoBpm));
+    setFcOk(true);
+    setTimeout(() => setFcOk(false), 2500);
+  };
 
   const locked = (what: string) => setProNote(t("cfg.proNota", what));
   const pick = <T extends string>(old: T, id: T, fn: (v: T) => void) => {
@@ -173,6 +225,108 @@ export function ConfigTab({
         <Row icon={<Siren className="h-5 w-5" />} title={t("cfg.caida")} sub={t("cfg.caidaSub")}>
           <Toggle on={fallOn} onChange={toggleFall} label={t("cfg.caida")} />
         </Row>
+      </Card>
+
+      {/* ---- Contactos ICE (Ola 1): aviso a gente de confianza por caída ---- */}
+      <Card className="p-0">
+        <Row icon={<UserPlus className="h-5 w-5" />} title={t("cfg.ice")} sub={t("cfg.iceSub")}>
+          <span />
+        </Row>
+        <div className="border-b border-border/60 px-4 py-3.5">
+          <div className="flex flex-col gap-1.5">
+            {ice.contacts.map((c) => (
+              <div key={c.id} className="flex items-center gap-2 rounded-lg border border-border bg-card/60 px-2.5 py-2">
+                <UserRound className="h-4 w-4 shrink-0 text-muted-foreground" />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-[13px] font-semibold text-foreground">{c.name}</p>
+                  <p className="truncate text-[11px] text-muted-foreground">{c.phone}</p>
+                </div>
+                <button
+                  onClick={() => setIce(removeIceContact(c.id))}
+                  aria-label={`${t("cfg.iceQuitar")} ${c.name}`}
+                  className="shrink-0 rounded-lg border border-border px-2 py-1 text-[11px] font-bold text-muted-foreground hover:text-red-500"
+                >
+                  {t("cfg.iceQuitar")}
+                </button>
+              </div>
+            ))}
+            {ice.contacts.length === 0 && (
+              <p className="text-[11.5px] leading-snug text-muted-foreground">{t("cfg.iceEmpty", ICE_MAX)}</p>
+            )}
+          </div>
+          <div className="mt-2.5 flex flex-col gap-1.5">
+            <input
+              value={iceName}
+              onChange={(e) => setIceName(e.target.value)}
+              placeholder={t("cfg.iceNombre")}
+              maxLength={40}
+              className="w-full rounded-lg border border-border bg-card px-3 py-2 text-[13px] text-foreground outline-none focus:border-emerald-500"
+            />
+            <input
+              value={icePhone}
+              onChange={(e) => setIcePhone(e.target.value)}
+              placeholder={t("cfg.iceTelefono")}
+              maxLength={24}
+              inputMode="tel"
+              className="w-full rounded-lg border border-border bg-card px-3 py-2 text-[13px] text-foreground outline-none focus:border-emerald-500"
+            />
+            <button
+              onClick={addIce}
+              disabled={!iceName.trim() || !icePhone.trim()}
+              className="h-9 rounded-lg bg-emerald-600 text-[12px] font-bold text-white hover:bg-emerald-500 disabled:opacity-50"
+            >
+              {t("cfg.iceAgregar")}
+            </button>
+            {iceErr && (
+              <p className="text-[11px] font-semibold text-red-600 dark:text-red-400" role="alert">{iceErr}</p>
+            )}
+          </div>
+          <p className="mt-2 text-[10.5px] leading-snug text-muted-foreground">{t("cfg.iceNota")}</p>
+        </div>
+        <Row icon={<BellRing className="h-5 w-5" />} title={t("cfg.iceAuto")} sub={t("cfg.iceAutoSub")}>
+          <Toggle on={ice.auto} onChange={toggleIceAuto} label={t("cfg.iceAuto")} />
+        </Row>
+      </Card>
+
+      {/* ---- Zonas de esfuerzo (Ola 1): FC máxima y reposo del sensor BT ---- */}
+      <Card className="p-0">
+        <Row icon={<HeartPulse className="h-5 w-5" />} title={t("cfg.fc")} sub={t("cfg.fcSub")}>
+          <span />
+        </Row>
+        <div className="px-4 py-3.5">
+          <div className="grid grid-cols-2 gap-2">
+            <label className="flex flex-col gap-1">
+              <span className="text-[11px] font-bold text-muted-foreground">{t("cfg.fcMax")}</span>
+              <input
+                value={fcMax}
+                onChange={(e) => setFcMax(e.target.value.replace(/\D/g, "").slice(0, 3))}
+                inputMode="numeric"
+                placeholder="190"
+                className="w-full rounded-lg border border-border bg-card px-3 py-2 font-mono text-[13px] text-foreground outline-none focus:border-emerald-500"
+              />
+            </label>
+            <label className="flex flex-col gap-1">
+              <span className="text-[11px] font-bold text-muted-foreground">{t("cfg.fcReposo")}</span>
+              <input
+                value={fcReposo}
+                onChange={(e) => setFcReposo(e.target.value.replace(/\D/g, "").slice(0, 3))}
+                inputMode="numeric"
+                placeholder="60"
+                className="w-full rounded-lg border border-border bg-card px-3 py-2 font-mono text-[13px] text-foreground outline-none focus:border-emerald-500"
+              />
+            </label>
+          </div>
+          <button
+            onClick={guardarFc}
+            disabled={fcErr !== null}
+            className="mt-2.5 h-9 w-full rounded-lg bg-emerald-600 text-[12px] font-bold text-white hover:bg-emerald-500 disabled:opacity-50"
+          >
+            {fcOk ? t("cfg.fcOk") : t("cfg.fcGuardar")}
+          </button>
+          {fcErr && (
+            <p className="mt-1.5 text-[11px] font-semibold text-red-600 dark:text-red-400" role="alert">{fcErr}</p>
+          )}
+        </div>
       </Card>
 
       {/* ---- Selector de idioma (turistas, 2026-11-14): textos y voces ---- */}

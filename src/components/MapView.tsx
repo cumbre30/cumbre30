@@ -26,7 +26,7 @@ import {
   useMap,
   useMapEvents,
 } from "react-leaflet";
-import { Crosshair, AlertTriangle, Trash2, X, Search, MapPin, Flag, Crown, Lock, Layers, ChevronDown, Eye, Share2 } from "lucide-react";
+import { Crosshair, AlertTriangle, Trash2, X, Search, MapPin, Flag, Crown, Lock, Layers, ChevronDown, Eye, Share2, Check, RefreshCw } from "lucide-react";
 import { apiUrl } from "@/lib/backend";
 import { NAV_DESTINATIONS, PARK_POLYGON, RISK_ZONES, type LatLng } from "@/lib/park";
 import {
@@ -48,7 +48,7 @@ import { INCIDENT_BY_ID, INCIDENT_TYPES, compartirReporte, type IncidentTypeId }
 import { pointInPolygon } from "@/lib/geo";
 import { incidentIcon, userPinIcon, flagIcon, markIcon, poiIcon } from "@/lib/mapIcons";
 import { groupSegments, loadNetwork, type NavRoute, type Network } from "@/lib/routing";
-import { useIncidentFeed, addIncident, removeIncident, saveLocalIncidents, loadLocalIncidents, type IncidentItem } from "@/hooks/useIncidentFeed";
+import { useIncidentFeed, addIncident, removeIncident, saveLocalIncidents, loadLocalIncidents, voteIncident, incidentVoteOf, type IncidentItem } from "@/hooks/useIncidentFeed";
 import { isNativeMapPlatform } from "@/lib/nativeMapBridge";
 import NativeMapCanvas from "@/components/NativeMapCanvas";
 import { buildCicloFeature } from "@/lib/navCanvasLogic";
@@ -873,6 +873,9 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
       authorPin: userPin ?? DEFAULT_PIN,
       mine: true,
       localOnly: true,
+      confirmCount: 0,
+      resolvedCount: 0,
+      lastConfirmAt: null,
     };
     addIncident(local);
     // persistir en la lista local
@@ -1045,6 +1048,9 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
           hour: "2-digit",
           minute: "2-digit",
         });
+        const voto = incidentVoteOf(inc.id);
+        const confirmaciones = inc.confirmCount;
+        const resueltos = inc.resolvedCount;
         return (
           <Marker key={inc.id} position={[inc.lat, inc.lon]} icon={incidentIcon(inc.type)}>
             <Popup>
@@ -1060,6 +1066,40 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
                   {inc.localOnly ? " · solo local" : ""}
                 </div>
                 {inc.note && <div className="mt-1 italic">“{inc.note}”</div>}
+                {!inc.mine && (confirmaciones > 0 || resueltos > 0) && (
+                  <div className="mt-1 text-[11.5px] text-zinc-600">
+                    {confirmaciones > 0 && <span>✔ {confirmaciones} confirman · </span>}
+                    {resueltos > 0 && <span>✓ {resueltos} lo resolvieron</span>}
+                  </div>
+                )}
+                {!inc.mine && (
+                  <div className="mt-2 flex items-center gap-3">
+                    {voto === "confirm" ? (
+                      <span className="inline-flex items-center gap-1 font-medium text-emerald-600 dark:text-emerald-400">
+                        <Check className="h-3.5 w-3.5" /> Confirmada
+                      </span>
+                    ) : (
+                      <button
+                        onClick={() => void voteIncident(inc.id, "confirm")}
+                        className="inline-flex items-center gap-1 font-medium text-emerald-600 hover:underline dark:text-emerald-400"
+                      >
+                        <RefreshCw className="h-3.5 w-3.5" /> Sigue ahí
+                      </button>
+                    )}
+                    {voto === "resolved" ? (
+                      <span className="inline-flex items-center gap-1 font-medium text-zinc-500">
+                        <Check className="h-3.5 w-3.5" /> Resuelta
+                      </span>
+                    ) : (
+                      <button
+                        onClick={() => void voteIncident(inc.id, "resolved")}
+                        className="inline-flex items-center gap-1 text-zinc-600 font-medium hover:underline dark:text-zinc-400"
+                      >
+                        <Check className="h-3.5 w-3.5" /> Ya resuelto
+                      </button>
+                    )}
+                  </div>
+                )}
                 {inc.mine && (
                   <div className="mt-2 flex items-center gap-3">
                     <button
@@ -1081,7 +1121,7 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
           </Marker>
         );
       }),
-     
+
     [incidents, userPin]
   );
 

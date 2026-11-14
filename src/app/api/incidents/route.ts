@@ -3,33 +3,106 @@ export const dynamic = "force-dynamic";
 // Exportación estática (APK): la API vive en el despliegue web;
 // en el bundle estático esta ruta queda pre-renderizada como stub.
 
-
-
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth";
 import { isIncidentType } from "@/lib/incidents";
 
+const EDAD_EXPIRA_MS = 30 * 86_400_000; // 30 días sin confirmaciones
+const RESUELTOS_CIERRAN = 3; // 3 votos "ya resuelto" cierran el reporte
+
+/** ¿Falta una columna (db push pendiente en la base en línea)? */
+function esColumnaAusente(e: unknown): boolean {
+  const msg = String((e as Error)?.message ?? "");
+  return msg.includes("P2022") || /column.*does not exist/i.test(msg);
+}
+
+/** Columnas de moderación comunitaria (Ola 1): creación idempotente
+ *  espejando schema.prisma. La base en línea puede quedarse atrás del
+ *  código; con esto el primer intento tras el deploy se autorrepara.
+ *  Prisma crea INTEGER NOT NULL DEFAULT 0 y TIMESTAMP(3) NULL. */
+async function asegurarColumnas(): Promise<void> {
+  await db.$executeRawUnsafe(
+    `ALTER TABLE "Incident" ADD COLUMN IF NOT EXISTS "confirmCount" INTEGER NOT NULL DEFAULT 0`
+  );
+  await db.$executeRawUnsafe(
+    `ALTER TABLE "Incident" ADD COLUMN IF NOT EXISTS "resolvedCount" INTEGER NOT NULL DEFAULT 0`
+  );
+  await db.$executeRawUnsafe(
+    `ALTER TABLE "Incident" ADD COLUMN IF NOT EXISTS "lastConfirmAt" TIMESTAMP(3)`
+  );
+}
+
+/** Expiración automática: 30 días sin ninguna confirmación → inactivo.
+ *  La comunidad confirma frescura; el decaimiento hace el resto. */
+async function expirarViejas(): Promise<void> {
+  await db.incident.updateMany({
+    where: {
+      active: true,
+      confirmCount: 0,
+      resolvedCount: 0,
+      createdAt: { lt: new Date(Date.now() - EDAD_EXPIRA_MS) },
+    },
+    data: { active: false },
+  });
+}
+
+/** Fila completa de una incidencia para el feed (formato del cliente). */
+function aFeed(
+  i: { id: string; type: string; lat: number; lon: number; note: string | null; createdAt: Date; confirmCount: number; resolvedCount: number; lastConfirmAt: Date | null },
+  username: string,
+  authorPin: string,
+  mine: boolean
+) {
+  return {
+    id: i.id,
+    type: i.type,
+    lat: i.lat,
+    lon: i.lon,
+    note: i.note,
+    createdAt: i.createdAt.toISOString(),
+    confirmCount: i.confirmCount,
+    resolvedCount: i.resolvedCount,
+    lastConfirmAt: i.lastConfirmAt ? i.lastConfirmAt.toISOString() : null,
+    username,
+    authorPin,
+    mine,
+  };
+}
+
 export async function GET() {
-  const incidents = await db.incident.findMany({
-    where: { active: true },
-    orderBy: { createdAt: "desc" },
-    take: 300,
-    include: { user: { select: { username: true, selectedPin: true } } },
-  });
-  return NextResponse.json({
-    incidents: incidents.map((i) => ({
-      id: i.id,
-      type: i.type,
-      lat: i.lat,
-      lon: i.lon,
-      note: i.note,
-      createdAt: i.createdAt.toISOString(),
-      username: i.user.username,
-      authorPin: i.user.selectedPin,
-      mine: false,
-    })),
-  });
+  try {
+    await expirarViejas();
+    const incidents = await db.incident.findMany({
+      where: { active: true },
+      orderBy: { createdAt: "desc" },
+      take: 300,
+      include: { user: { select: { username: true, selectedPin: true } } },
+    });
+    return NextResponse.json({
+      incidents: incidents.map((i) => aFeed(i, i.user.username, i.user.selectedPin, false)),
+    });
+  } catch (e) {
+    if (esColumnaAusente(e)) {
+      // Autorreparo: añadir columnas de moderación y volver a intentar.
+      try {
+        await asegurarColumnas();
+        await expirarViejas();
+        const incidents = await db.incident.findMany({
+          where: { active: true },
+          orderBy: { createdAt: "desc" },
+          take: 300,
+          include: { user: { select: { username: true, selectedPin: true } } },
+        });
+        return NextResponse.json({
+          incidents: incidents.map((i) => aFeed(i, i.user.username, i.user.selectedPin, false)),
+        });
+      } catch {
+        return NextResponse.json({ incidents: [] });
+      }
+    }
+    return NextResponse.json({ incidents: [] });
+  }
 }
 
 export async function POST(req: Request) {
@@ -57,20 +130,62 @@ export async function POST(req: Request) {
     }
     return NextResponse.json({
       ok: true,
-      incident: {
-        id: inc.id,
-        type: inc.type,
-        lat: inc.lat,
-        lon: inc.lon,
-        note: inc.note,
-        createdAt: inc.createdAt.toISOString(),
-        username: me.username,
-        authorPin: me.selectedPin,
-        mine: true,
-      },
+      incident: aFeed(inc, me.username, me.selectedPin, true),
     });
-  } catch {
+  } catch (e) {
+    if (esColumnaAusente(e)) {
+      try {
+        await asegurarColumnas();
+        return NextResponse.json({ error: "Reintenta el reporte." }, { status: 503 });
+      } catch {
+        return NextResponse.json({ error: "No pudimos registrar la incidencia." }, { status: 500 });
+      }
+    }
     return NextResponse.json({ error: "No pudimos registrar la incidencia." }, { status: 500 });
+  }
+}
+
+/** Voto de moderación: { id, vote: "confirm" | "resolved" }.
+ *  "confirm" sube la frescura; "resolved" acumula y con 3 cierra el
+ *  reporte (soft-delete). Requiere sesión (anti-spam básico); en el
+ *  APK sin sesión el voto vive local y se refleja en el feed. */
+export async function PUT(req: Request) {
+  const me = await getSessionUser();
+  if (!me) return NextResponse.json({ error: "Inicia sesión para moderar." }, { status: 401 });
+  try {
+    const b = (await req.json()) as { id?: string; vote?: string };
+    const id = b.id ?? "";
+    if (!id) return NextResponse.json({ error: "Falta id." }, { status: 400 });
+    const vote = b.vote === "confirm" || b.vote === "resolved" ? b.vote : "";
+    if (!vote) return NextResponse.json({ error: "Voto no válido." }, { status: 400 });
+
+    const inc = await db.incident.findUnique({ where: { id } });
+    if (!inc || !inc.active) return NextResponse.json({ error: "No encontrada." }, { status: 404 });
+
+    const data =
+      vote === "confirm"
+        ? { confirmCount: { increment: 1 }, lastConfirmAt: new Date() }
+        : { resolvedCount: { increment: 1 } };
+    const upd = await db.incident.update({ where: { id }, data });
+    if (upd.resolvedCount >= RESUELTOS_CIERRAN) {
+      await db.incident.update({ where: { id }, data: { active: false } });
+    }
+    return NextResponse.json({
+      ok: true,
+      confirmCount: upd.confirmCount,
+      resolvedCount: upd.resolvedCount,
+      cerrada: upd.resolvedCount >= RESUELTOS_CIERRAN,
+    });
+  } catch (e) {
+    if (esColumnaAusente(e)) {
+      try {
+        await asegurarColumnas();
+        return NextResponse.json({ error: "Reintenta el voto." }, { status: 503 });
+      } catch {
+        return NextResponse.json({ error: "No pudimos registrar el voto." }, { status: 500 });
+      }
+    }
+    return NextResponse.json({ error: "No pudimos registrar el voto." }, { status: 500 });
   }
 }
 

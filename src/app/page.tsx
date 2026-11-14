@@ -33,6 +33,7 @@ import { applyThemeColor, useRideTheme } from "@/lib/rideTheme";
 import { linkRidesToAccount, setRideOwner } from "@/lib/history";
 import { courseHeading } from "@/lib/geo";
 import { alerts } from "@/lib/alertEngine";
+import { programarAvisoHorario } from "@/lib/notificaciones";
 import { t, useLang } from "@/lib/i18n";
 import type { ProLockFeature } from "@/lib/planData";
 
@@ -133,6 +134,11 @@ export default function Home() {
   useEffect(() => {
     applyThemeColor(rideTheme.color);
   }, [rideTheme.color]);
+  // Notificaciones locales (Ola 1, APK): re-programa el aviso de luces
+  // y el de cierre del parque cada vez que se abre la app.
+  useEffect(() => {
+    void programarAvisoHorario();
+  }, []);
   // Enlace viaje ↔ cuenta: rides nuevos y antiguos quedan asociados al
   // correo de la sesión; sin correo son locales del dispositivo.
   const userEmail = me?.user.email ?? null;

@@ -88,36 +88,16 @@ export const APPS: AppCatalogo[] = [
       {
         titulo: "Novedades de esta versión",
         // Sólo la última versión + build (salen de appVersion.ts, quedan
-        // sincronizados solos) + lista de funcionalidades definida por el
-        // cliente. Nota: la línea del banner de horario venía duplicada en
-        // el texto original y se dejó una sola vez.
+        // sincronizados solos) + lista de funcionalidades del release
+        // vigente (Ola 1 del roadmap 2026-11-14).
         cuerpo:
           `v${APP_VERSION} (${APP_VERSION_CODE}):\n` +
-          "• Ajustes varios, experiencia del usuario.\n" +
-          "• Banner de clima (temperatura + condición) y banner de avisos colapsable en la pantalla Ride.\n" +
-          "• Banner de horario: avisos de ingreso y cierre del parque según el horario vigente.\n" +
-          "• Pantalla Ride personalizable.\n" +
-          "• Temas que permiten cambiar el color para toda la app.\n" +
-          "• Sesión unificada.\n" +
-          "• Fix de login.\n" +
-          "• Aviso por voz al entrar a las bajadas fiscalizadas de 30 km/h.\n" +
-          "• Nuevo diseño pantalla principal ride.\n" +
-          "• Mejoras de estabilidad y errores de trazado.\n" +
-          "• Estadísticas afinadas.\n" +
-          "• SOS ampliado con números de emergencia, funcionalidad nueva para compartir ubicación actual.\n" +
-          "• Capas con datos del parque: accesos, cumbres, senderos enduro y horario de ciclistas.\n" +
-          "• Pestaña QR: cargar y mostrar el QR Pedalea Seguro a mano.\n" +
-          "• Exportación GPX de rides y estadísticas por nivel.\n" +
-          "• Login con Google\n" +
-          "• Pantalla completa inmersiva.\n" +
-          "• Constancia PDF de cada viaje realizado en el cerro.\n" +
-          "• Navegación mejorada, hora llegada y km totales.\n" +
-          "• Login cumbre30\n" +
-          "• Mapa\n" +
-          "• Geocercas.\n" +
-          "• Aviso por voz.\n" +
-          "• Viaje modo gps.\n" +
-          "• Viaje modo demo.",
+          "• Contactos de emergencia (ICE): si una caída deja la alerta sin respuesta, la app avisa a tu gente con tu ubicación.\n" +
+          "• Moderación comunitaria de incidencias: confirma «sigue ahí» o marca «ya resuelto»; los reportes sin confirmación expiran a los 30 días.\n" +
+          "• Pulso cardíaco y zonas de esfuerzo con sensor Bluetooth: aviso por voz al entrar en zona alta.\n" +
+          "• Rachas de actividad en Estadísticas: días y semanas seguidas pedaleando.\n" +
+          "• Notificaciones locales del horario del parque: aviso de luces al anochecer y de cierre (APK).\n" +
+          "• Modo ahorro de batería: menos GPS por segundo y pantalla apagable con guía por voz.\n",
       },
     ],
     // APK directo: ACTIVO - descarga desde Google Drive (link del cliente,

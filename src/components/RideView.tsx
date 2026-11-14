@@ -21,6 +21,7 @@ import dynamic from "next/dynamic";
 import {
   AlertTriangle,
   BadgeCheck,
+  BatteryCharging,
   Bike,
   ChevronDown,
   Cloud,
@@ -33,6 +34,7 @@ import {
   CloudSun,
   Copy,
   Gauge,
+  HeartPulse,
   ListTree,
   Mountain,
   Navigation,
@@ -54,6 +56,7 @@ import {
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Speedometer } from "@/components/Speedometer";
+import { SensorPanel } from "@/components/SensorPanel";
 import { ACCESOS_CICLISTAS, LIMIT_KMH, PEDALEA_SEGURO } from "@/lib/park";
 import { formatClock } from "@/lib/geo";
 import { formatStepRemaining, routeProgress, stepGlyph } from "@/lib/routing";
@@ -62,8 +65,10 @@ import { etiquetaClima, useClima } from "@/hooks/useClima";
 import { minimapHeight, useRideTheme } from "@/lib/rideTheme";
 import { alerts } from "@/lib/alertEngine";
 import { fetchAvisosOperativos, textoAviso, type AvisoOperativo } from "@/lib/avisos";
+import { getFcConfig, HrTracker, zonaLabel, type ZonaId } from "@/lib/zonasFc";
+import { initAhorroAutomatico, setAhorroBateria, wakeLockSuspendido } from "@/lib/rideBateria";
 import { t, useLang } from "@/lib/i18n";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { LatLng } from "@/lib/park";
 import type { RideEvent, RideStatus, Source, SpeedState } from "@/hooks/useRideEngine";
 import type { NavEngine } from "@/hooks/useNavEngine";
@@ -179,6 +184,60 @@ export function RideView(p: Props) {
   // Horario del parque + aviso de luces (cálculo offline, se
   // evalúa al montar la vista; el banner no necesita reloj vivo).
   const estado = useMemo(() => estadoParque(), []);
+
+  // ---- Pulso y zonas de esfuerzo (Ola 1, sensor Bluetooth) ----
+  // El bpm llega de SensorPanel (caja de stats); zonasFc acumula
+  // promedio, máximo y tiempo por zona. La voz avisa al entrar en
+  // Z4/Z5 con 3 min de cooldown entre avisos.
+  const fcCfg = useRef(getFcConfig());
+  const hrRef = useRef(new HrTracker());
+  const zonaVoz = useRef<{ zona: ZonaId | null; last: number }>({ zona: null, last: 0 });
+  const [bpm, setBpm] = useState<number | null>(null);
+  const [zona, setZona] = useState<ZonaId | null>(null);
+  const [hrStats, setHrStats] = useState<{ prom: number; max: number; tiempos: Record<ZonaId, number> } | null>(null);
+
+  const onBpm = useCallback((v: number | null) => {
+    setBpm(v);
+    if (v === null) {
+      setZona(null);
+      return;
+    }
+    const z = hrRef.current.update(v, fcCfg.current);
+    setZona(z);
+    setHrStats({ prom: hrRef.current.promedioBpm, max: hrRef.current.maxBpm, tiempos: hrRef.current.tiempos });
+    const now = Date.now();
+    if (z >= 4 && zonaVoz.current.zona !== z && now - zonaVoz.current.last > 180_000) {
+      zonaVoz.current = { zona: z, last: now };
+      alerts.speak(`zona-fc-${z}`, t("voz.zonaFc", z), 20);
+    }
+    if (z < 4) zonaVoz.current.zona = null;
+  }, []);
+
+  // Fin del ride (running/paused → idle): reinicia la acumulación FC.
+  const estadoRidePrev = useRef(p.status);
+  useEffect(() => {
+    if (estadoRidePrev.current !== "idle" && p.status === "idle") {
+      hrRef.current.reset();
+      setHrStats(null);
+      setZona(null);
+      zonaVoz.current = { zona: null, last: 0 };
+    }
+    estadoRidePrev.current = p.status;
+  }, [p.status]);
+
+  // ---- Modo ahorro de batería (Ola 1): 1 fix de cada 2 + pantalla
+  // apagable. Auto por Battery API (bajo de 20% sin cargador).
+  const [ahorro, setAhorro] = useState(false);
+  useEffect(() => {
+    initAhorroAutomatico();
+    setAhorro(wakeLockSuspendido());
+  }, []);
+  const toggleAhorro = () => {
+    const v = setAhorroBateria(!ahorro);
+    setAhorro(v);
+    alerts.speak("ahorro-toggle", v ? t("voz.ahorroOn") : t("voz.ahorroOff"), 8);
+  };
+
   // Descenso limpio: entró al parque y nunca pasó de 30 km/h.
   const descensoLimpio =
     !idle && p.overLimitSec === 0 && p.maxInParkKmh !== null && p.maxInParkKmh <= LIMIT_KMH;
@@ -330,6 +389,15 @@ export function RideView(p: Props) {
           </span>
         </button>
         <button
+          onClick={toggleAhorro}
+          aria-label={t("bat.aria")}
+          aria-pressed={ahorro}
+          title={t("bat.aria")}
+          className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border ${ahorro ? "border-emerald-600 bg-emerald-950/60 text-emerald-300" : "border-border bg-card/90 text-muted-foreground"}`}
+        >
+          <BatteryCharging className="h-4 w-4" />
+        </button>
+        <button
           onClick={() => setSosOpen(true)}
           className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-red-800/70 bg-red-950/50 px-3 py-1.5 text-[11px] font-bold tracking-wide text-red-300 hover:bg-red-900/60"
           aria-label="Abrir tarjeta de emergencia"
@@ -419,6 +487,33 @@ export function RideView(p: Props) {
           size={theme.speedoSize}
         />
       </div>
+
+      {/* Pulso y zona (Ola 1): aparece solo con sensor conectado.
+          La voz avisa al entrar en Z4/Z5; el detalle por zona vive
+          en la caja de stats. */}
+      {bpm !== null && (
+        <div
+          className="flex items-center justify-center gap-2.5 rounded-full border border-red-900/60 bg-red-950/30 px-3 py-1.5"
+          role="status"
+          aria-label={t("ride.fcAria", bpm, zona ?? 1)}
+        >
+          <HeartPulse className="h-4 w-4 shrink-0 text-red-500" />
+          <span className="font-mono text-base font-bold tabular-nums text-foreground">
+            {bpm}
+            <span className="ml-0.5 font-sans text-[10px] font-semibold text-muted-foreground">bpm</span>
+          </span>
+          {zona !== null && (
+            <span className="shrink-0 rounded-full bg-red-600/25 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wide text-red-300">
+              {zonaLabel(zona)}
+            </span>
+          )}
+          {hrStats && (
+            <span className="shrink-0 font-mono text-[10px] text-muted-foreground">
+              {hrStats.prom}/{hrStats.max}
+            </span>
+          )}
+        </div>
+      )}
 
       {/* Distancia y tiempo - el par secundario importante (elemento 5) */}
       <div className="grid grid-cols-2 gap-2.5">
@@ -566,6 +661,25 @@ export function RideView(p: Props) {
                 {t("ride.maxParque")}{" "}
                 <span className="font-mono text-foreground/90">{p.maxInParkKmh.toFixed(1)} km/h</span>
               </p>
+            )}
+            {/* Sensor Bluetooth + zonas de esfuerzo (Ola 1): empareja el
+                monitor de pulso, acumula el tiempo por zona del ride. */}
+            <div className="mt-3">
+              <SensorPanel onBpm={onBpm} />
+            </div>
+            {hrStats && (
+              <div className="mt-2.5 grid grid-cols-5 gap-1.5">
+                {([1, 2, 3, 4, 5] as ZonaId[]).map((z) => (
+                  <div key={z} className={`rounded-lg border px-1 py-1.5 text-center ${zona === z ? "border-red-600/70 bg-red-950/40" : "border-border/70 bg-background/40"}`}>
+                    <p className={`text-[9px] font-extrabold uppercase tracking-wide ${zona === z ? "text-red-300" : "text-muted-foreground"}`}>
+                      {zonaLabel(z).split(" ")[0]}
+                    </p>
+                    <p className="mt-0.5 font-mono text-[12px] font-bold tabular-nums text-foreground">
+                      {formatClock(hrStats.tiempos[z])}
+                    </p>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
         ) : (

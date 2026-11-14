@@ -7,16 +7,19 @@
 //   · Fase 1 (30 s): cuenta regresiva con beep periódico.
 //     "Estoy bien" cierra; "Necesito ayuda" pasa a fase 2.
 //   · Fase 2: tarjeta de emergencia autónoma (133/131/132/1466,
-//     compartir ubicación y coordenadas legibles). NO contacta a
-//     nadie por su cuenta: siempre decide la persona.
+//     compartir ubicación y coordenadas legibles) + contactos ICE
+//     (Ola 1): al entrar en ayuda abre el mensaje SMS al contacto
+//     principal (si el usuario activó el aviso automático) y deja
+//     botones SMS/WhatsApp por contacto, con el texto ya redactado.
 // ============================================================
 
-import { useEffect, useState } from "react";
-import { Phone, Share2, Siren } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { MessageSquare, Phone, Share2, Siren, UserRound } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import type { LatLng } from "@/lib/park";
 import { alerts } from "@/lib/alertEngine";
 import { t } from "@/lib/i18n";
+import { getIceConfig, iceSmsHref, iceWaHref, triggerIceAutoAlert } from "@/lib/iceContacts";
 
 export type FallAlert = { at: number; help: boolean };
 
@@ -35,6 +38,9 @@ export function FallOverlay({
 }) {
   const [now, setNow] = useState(Date.now());
   const [msg, setMsg] = useState<string | null>(null);
+  // El auto-aviso ICE corre UNA vez por alerta (identificada por su timestamp).
+  const iceAutoAt = useRef<number | null>(null);
+  const iceAutoMsg = useRef<number | null>(null);
 
   // Tick del countdown
   useEffect(() => {
@@ -57,8 +63,26 @@ export function FallOverlay({
     if (restante === 0) onHelp();
   }, [restante === 0]);
 
+  // Auto-aviso ICE: una vez por alerta al entrar en modo ayuda.
+  useEffect(() => {
+    if (!alert?.help || iceAutoAt.current === alert.at) return;
+    iceAutoAt.current = alert.at;
+    if (triggerIceAutoAlert(position, true)) {
+      const cfg = getIceConfig();
+      if (cfg.contacts.length > 0) {
+        setMsg(t("ice.abriendo", cfg.contacts[0].name));
+        iceAutoMsg.current = alert.at;
+        setTimeout(() => {
+          if (iceAutoMsg.current === alert.at) setMsg(null);
+        }, 6000);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [alert?.help]);
+
   if (!alert) return null;
   const help = alert.help;
+  const ice = help ? getIceConfig() : null;
 
   const compartirUbicacion = async () => {
     if (!position) return;
@@ -155,6 +179,40 @@ export function FallOverlay({
                   </a>
                 ))}
               </div>
+            </div>
+            {/* Contactos ICE (Ola 1): aviso directo a la gente de confianza */}
+            <div className="mt-3">
+              <p className="text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground">
+                {t("ice.titulo")}
+              </p>
+              {ice && ice.contacts.length > 0 ? (
+                <div className="mt-1.5 flex flex-col gap-1.5">
+                  {ice.contacts.map((c, i) => (
+                    <div key={c.id} className="flex items-center gap-2 rounded-lg border border-border bg-card px-2.5 py-2">
+                      <UserRound className="h-4 w-4 shrink-0 text-muted-foreground" />
+                      <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-foreground">
+                        {c.name}
+                      </span>
+                      <a
+                        href={iceSmsHref(c, position, help)}
+                        className="flex shrink-0 items-center gap-1 rounded-lg bg-emerald-600 px-2.5 py-1.5 text-[11px] font-bold text-white hover:bg-emerald-500"
+                      >
+                        <MessageSquare className="h-3 w-3" /> {t("ice.sms")}
+                      </a>
+                      <a
+                        href={iceWaHref(c, position, help)}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex shrink-0 items-center gap-1 rounded-lg border border-emerald-600/60 px-2.5 py-1.5 text-[11px] font-bold text-emerald-600 hover:bg-emerald-600/10 dark:text-emerald-400"
+                      >
+                        {t("ice.wa")}
+                      </a>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="mt-1.5 text-[11.5px] leading-snug text-muted-foreground">{t("ice.sinContactos")}</p>
+              )}
             </div>
             {position ? (
               <>

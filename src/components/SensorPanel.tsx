@@ -8,7 +8,15 @@ import { btSupported, connectHeartRate, connectWheelSpeed } from "@/lib/sensors"
 
 type Status = "idle" | "connecting" | "connected" | "error";
 
-export function SensorPanel({ onSensorSpeed }: { onSensorSpeed: (kmh: number | null) => void }) {
+export function SensorPanel({
+  onSensorSpeed,
+  onBpm,
+}: {
+  /** Solo se muestra la fila de velocidad de rueda si alguien consume la velocidad. */
+  onSensorSpeed?: (kmh: number | null) => void;
+  /** Callback por cada lectura de pulso (y null al desconectar). */
+  onBpm?: (bpm: number | null) => void;
+}) {
   const [hrStatus, setHrStatus] = useState<Status>("idle");
   const [hrName, setHrName] = useState<string | null>(null);
   const [bpm, setBpm] = useState<number | null>(null);
@@ -21,10 +29,14 @@ export function SensorPanel({ onSensorSpeed }: { onSensorSpeed: (kmh: number | n
     setError(null);
     setHrStatus("connecting");
     try {
-      const name = await connectHeartRate(setBpm, () => {
+      const name = await connectHeartRate((v) => {
+        setBpm(v);
+        onBpm?.(v);
+      }, () => {
         setHrStatus("idle");
         setBpm(null);
         setHrName(null);
+        onBpm?.(null);
       });
       setHrName(name);
       setHrStatus("connected");
@@ -38,10 +50,10 @@ export function SensorPanel({ onSensorSpeed }: { onSensorSpeed: (kmh: number | n
     setError(null);
     setSpdStatus("connecting");
     try {
-      const name = await connectWheelSpeed(onSensorSpeed, () => {
+      const name = await connectWheelSpeed((kmh) => onSensorSpeed?.(kmh), () => {
         setSpdStatus("idle");
         setSpdName(null);
-        onSensorSpeed(null);
+        onSensorSpeed?.(null);
       });
       setSpdName(name);
       setSpdStatus("connected");
@@ -64,6 +76,7 @@ export function SensorPanel({ onSensorSpeed }: { onSensorSpeed: (kmh: number | n
         <Bluetooth className="h-3.5 w-3.5" /> Sensores Bluetooth
       </div>
       <Card className="bg-zinc-900/80 border-zinc-800 p-4 flex flex-col gap-3">
+        {onSensorSpeed && (
         <div className="flex items-center gap-3">
           <div className={`flex items-center gap-2 text-sm ${spdStatus === "connected" ? "text-zinc-100" : "text-zinc-400"} flex-1 min-w-0`}>
             {spdStatus === "connected" ? <BluetoothConnected className="h-4 w-4 text-emerald-400 shrink-0" /> : spdStatus === "connecting" ? <Loader2 className="h-4 w-4 animate-spin shrink-0" /> : <Gauge className="h-4 w-4 shrink-0" />}
@@ -78,6 +91,7 @@ export function SensorPanel({ onSensorSpeed }: { onSensorSpeed: (kmh: number | n
             </Button>
           )}
         </div>
+        )}
 
         <div className="flex items-center gap-3">
           <div className={`flex items-center gap-2 text-sm ${hrStatus === "connected" ? "text-zinc-100" : "text-zinc-400"} flex-1 min-w-0`}>

@@ -22,9 +22,9 @@
 //     es normal).
 //   - Si el ciclista vuelve a pedalear (> 6 km/h) se cancela.
 //   - Cooldown de 3 minutos tras cada alerta.
-// Diseño deliberadamente conservador en consecuencias: NUNCA llama
-// ni escribe a nadie por su cuenta; solo pregunta y abre la tarjeta
-// de emergencia.
+// Diseño conservador en consecuencias: el detector NUNCA decide por
+// su cuenta; la UI pregunta, y el contacto con terceros es opt-in vía
+// los contactos ICE del usuario (iceContacts.ts, Ola 1).
 // ============================================================
 
 import { GATES } from "./park";

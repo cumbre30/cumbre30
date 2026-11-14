@@ -119,6 +119,11 @@ model Incident {
   note      String?
   createdAt DateTime @default(now())
   active    Boolean  @default(true)
+  // Moderación comunitaria (Ola 1): la comunidad confirma frescura o
+  // cierra el reporte; sin confirmaciones en 30 días el feed lo expira.
+  confirmCount  Int       @default(0)
+  resolvedCount Int       @default(0)
+  lastConfirmAt DateTime?
 
   @@index([lat, lon])
 }
