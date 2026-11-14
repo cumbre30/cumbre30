@@ -22,6 +22,16 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
+            <!-- Deep link de regreso del OAuth de Spotify (v1.12.2):
+                 cumbre30://spotify-callback?code=…&state=… — lo recibe
+                 @capacitor/app (appUrlOpen) y lo procesa page.tsx. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="cumbre30" android:host="spotify-callback" />
+            </intent-filter>
+
         </activity>
 
         <provider

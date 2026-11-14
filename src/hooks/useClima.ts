@@ -75,14 +75,24 @@ function leerCache(): Clima | null {
     const raw = localStorage.getItem(CACHE_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as {
-      tempC: number; code: number; t: number;
+      tempC: number; code: number;
+      t?: number; actualizado?: string; // v1.11.x guardaba epoch "t"; v1.12.x escribía "actualizado" (ISO) pero leía "t"
       windKmh?: number; gustKmh?: number; uv?: number; aqi?: number;
     };
     if (typeof parsed.tempC !== "number" || typeof parsed.code !== "number") return null;
+    // Bug del banner (fix v1.12.2): leerCache leía parsed.t, pero traerClima
+    // serializa el Date en "actualizado" → new Date(undefined) = Invalid Date;
+    // el detalle llamaba horaSantiago(Invalid Date) → formatToParts lanzaba
+    // RangeError y la app crasheaba al tocar el banner. Aceptamos ambas formas
+    // y descartamos cualquier caché cuya fecha no se entienda.
+    const ms = typeof parsed.t === "number" && Number.isFinite(parsed.t)
+      ? parsed.t
+      : Date.parse(parsed.actualizado ?? "");
+    if (!Number.isFinite(ms)) return null;
     return {
       tempC: parsed.tempC,
       code: parsed.code,
-      actualizado: new Date(parsed.t),
+      actualizado: new Date(ms),
       windKmh: parsed.windKmh,
       gustKmh: parsed.gustKmh,
       uv: parsed.uv,
@@ -151,7 +161,9 @@ async function traerClima(): Promise<Clima | null> {
   if (typeof uv === "number") dato.uv = Math.round(uv * 10) / 10;
   if (typeof aqi === "number") dato.aqi = Math.round(aqi);
   try {
-    localStorage.setItem(CACHE_KEY, JSON.stringify(dato));
+    // "t" (epoch) además del Date serializado: la forma canónica que
+    // leerCache entiende sin ambigüedad.
+    localStorage.setItem(CACHE_KEY, JSON.stringify({ ...dato, t: dato.actualizado.getTime() }));
   } catch {
     /* almacenamiento lleno: seguimos en memoria */
   }

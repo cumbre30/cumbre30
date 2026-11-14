@@ -70,6 +70,8 @@ import { alerts } from "@/lib/alertEngine";
 import { fetchAvisosOperativos, textoAviso, type AvisoOperativo } from "@/lib/avisos";
 import { getFcConfig, HrTracker, zonaLabel, type ZonaId } from "@/lib/zonasFc";
 import { initAhorroAutomatico, setAhorroBateria, wakeLockSuspendido } from "@/lib/rideBateria";
+import { spotifyConectado } from "@/lib/spotify";
+import { MusicaBoton, MusicaPanel } from "@/components/MusicaPanel";
 import { t, useLang } from "@/lib/i18n";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { LatLng } from "@/lib/park";
@@ -134,6 +136,13 @@ export function RideView(p: Props) {
   const lang = useLang(); // re-render al cambiar el idioma (selector)
   const [sosOpen, setSosOpen] = useState(false);
   const [sosMsg, setSosMsg] = useState<string | null>(null);
+  // Música (v1.12.2): panel Spotify en el ride; el botón se marca
+  // verde cuando hay sesión OAuth viva en localStorage.
+  const [musicaOpen, setMusicaOpen] = useState(false);
+  const [musicaConectado, setMusicaConectado] = useState(false);
+  useEffect(() => {
+    setMusicaConectado(spotifyConectado());
+  }, [musicaOpen]);
   // Punto 4: banner de avisos colapsado a icono por defecto.
   const [avisosOpen, setAvisosOpen] = useState(false);
   // Punto 8: pestaña activa de la caja-filtro (stats o bitácora) y
@@ -464,6 +473,9 @@ export function RideView(p: Props) {
         >
           <BatteryCharging className="h-4 w-4" />
         </button>
+        {/* Música (v1.12.2): control de Spotify al lado derecho del
+            ahorro de batería — sin abandonar las métricas del ride. */}
+        <MusicaBoton abierto={musicaOpen} onToggle={() => setMusicaOpen((v) => !v)} conectado={musicaConectado} />
         <button
           onClick={() => setSosOpen(true)}
           className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-red-800/70 bg-red-950/50 px-3 py-1.5 text-[11px] font-bold tracking-wide text-red-300 hover:bg-red-900/60"
@@ -472,6 +484,9 @@ export function RideView(p: Props) {
           <Siren className="h-3.5 w-3.5" /> SOS
         </button>
       </div>
+
+      {/* Panel de música (v1.12.2): Spotify Connect + alta del Client ID */}
+      <MusicaPanel abierto={musicaOpen} onCerrar={() => setMusicaOpen(false)} />
 
       {/* Punto 4: banner de avisos completo (colapsado por defecto) */}
       {avisosOpen && (

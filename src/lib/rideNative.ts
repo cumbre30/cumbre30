@@ -45,3 +45,17 @@ export function isNativeApp(): boolean {
     return false;
   }
 }
+
+/** Deep links entrantes (v1.12.2): el callback de Spotify vuelve al
+ *  APK como cumbre30://spotify-callback?code=…&state=… vía el plugin
+ *  @capacitor/app. En la web no hace nada (el redirect llega a /demo
+ *  como ?code= y lo maneja page.tsx directamente). */
+export async function initEnlacesEntrantes(handler: (url: string) => void): Promise<void> {
+  if (!isNativeApp()) return;
+  try {
+    const { App } = await import("@capacitor/app");
+    await App.addListener("appUrlOpen", ({ url }) => handler(url));
+  } catch {
+    /* plugin ausente: sin deep links */
+  }
+}

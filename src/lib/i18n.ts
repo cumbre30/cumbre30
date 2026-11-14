@@ -168,6 +168,26 @@ const D: Record<string, E> = {
   "clima.bloqueador": ["Usa bloqueador solar", "Use sunscreen", "Use protetor solar"],
   "clima.bloqueadorFuerte": ["UV muy alto: bloqueador, gorra y anteojos", "Very high UV: sunscreen, hat and glasses", "UV muito alto: protetor, boné e óculos"],
 
+  // ---------- música en el ride (v1.12.2: Spotify Connect) ----------
+  "mus.aria": ["Control de música", "Music control", "Controle de música"],
+  "mus.titulo": ["Música · Spotify", "Music · Spotify", "Música · Spotify"],
+  "mus.sub": ["Controla lo que suena sin salir del ride: actúa sobre tu Spotify abierto en el teléfono (Spotify Connect). YouTube Music no ofrece control remoto.", "Control what plays without leaving the ride screen: it acts on the Spotify app on your phone (Spotify Connect). YouTube Music offers no remote control.", "Controle o que toca sem sair do pedal: age no Spotify aberto no seu telefone (Spotify Connect). O YouTube Music não oferece controle remoto."],
+  "mus.clientId": ["Client ID de Spotify", "Spotify Client ID", "Client ID do Spotify"],
+  "mus.clientIdHelp": ["Una sola vez: crea una app gratis en developer.spotify.com/dashboard y agrega estos Redirect URIs: {0} (web) y {1} (APK). Luego pega aquí el Client ID.", "One time only: create a free app at developer.spotify.com/dashboard and add these Redirect URIs: {0} (web) and {1} (APK). Then paste the Client ID here.", "Uma vez só: crie um app grátis em developer.spotify.com/dashboard e adicione estes Redirect URIs: {0} (web) e {1} (APK). Depois cole aqui o Client ID."],
+  "mus.guardar": ["Guardar Client ID", "Save Client ID", "Salvar Client ID"],
+  "mus.cambiar": ["Cambiar Client ID", "Change Client ID", "Trocar Client ID"],
+  "mus.dashboard": ["Dashboard", "Dashboard", "Dashboard"],
+  "mus.conectar": ["Conectar Spotify", "Connect Spotify", "Conectar o Spotify"],
+  "mus.desconectar": ["Desconectar Spotify", "Disconnect Spotify", "Desconectar o Spotify"],
+  "mus.sinPista": ["Nada sonando", "Nothing playing", "Nada tocando"],
+  "mus.premium": ["Spotify Premium requerido: el control remoto no funciona con cuentas gratuitas.", "Spotify Premium required: remote control does not work on free accounts.", "Spotify Premium é necessário: o controle remoto não funciona em contas gratuitas."],
+  "mus.sinDispositivo": ["Abre Spotify en tu teléfono y pon algo en marcha: necesita un dispositivo activo.", "Open Spotify on your phone and start playing: it needs an active device.", "Abra o Spotify no seu telefone e toque algo: precisa de um dispositivo ativo."],
+  "mus.error": ["No se pudo hablar con Spotify. Revisa tu conexión.", "Could not reach Spotify. Check your connection.", "Não foi possível falar com Spotify. Verifique sua conexão."],
+  "mus.prevAria": ["Canción anterior", "Previous track", "Faixa anterior"],
+  "mus.playAria": ["Reproducir", "Play", "Tocar"],
+  "mus.pauseAria": ["Pausar", "Pause", "Pausar"],
+  "mus.nextAria": ["Canción siguiente", "Next track", "Próxima faixa"],
+
   // ---------- banner de avisos ----------
   "aviso.titulo": ["Avisos y restricciones", "Notices and restrictions", "Avisos e restrições"],
   "aviso.verAria": ["Ver avisos y restricciones ({0})", "View notices and restrictions ({0})", "Ver avisos e restrições ({0})"],

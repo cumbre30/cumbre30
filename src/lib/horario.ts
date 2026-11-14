@@ -35,8 +35,12 @@ function minutosDelDiaEnSantiago(d: Date): number {
   return h * 60 + m;
 }
 
-/** "19:43" desde un instante, en hora de Santiago. */
+/** "19:43" desde un instante, en hora de Santiago. Fecha inválida
+ *  (p. ej. un caché corrupto) devuelve "--:--": formatToParts lanza
+ *  RangeError con Invalid Date y tumba la app (bug del banner de
+ *  clima, fix v1.12.2). */
 export function horaSantiago(d: Date): string {
+  if (!Number.isFinite(d.getTime())) return "--:--";
   const min = minutosDelDiaEnSantiago(d);
   return `${String(Math.floor(min / 60)).padStart(2, "0")}:${String(min % 60).padStart(2, "0")}`;
 }
