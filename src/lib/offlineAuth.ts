@@ -13,6 +13,7 @@ import { ACHIEVEMENT_BY_CODE, evaluateAchievements, isPinId, normalizeCodes, sta
 import { isProActive } from "@/lib/proLicense";
 import { USERNAME_RE, validateUsername, usernameLocked } from "@/lib/username";
 import type { MeData, MeUser } from "@/hooks/useMe";
+import { enqueueOp, forgetAllSyncData, forgetToken, linkGoogle, linkPassword, registerAndLink, setServerToken, syncNow } from "@/lib/cloudSync";
 
 const USERS_KEY = "cumbre30-offline-users-v1";
 const SESSION_KEY = "cumbre30-offline-session-v1";
@@ -236,6 +237,9 @@ export async function offlineRegister(payload: { email?: string; username?: stri
   users[email] = user;
   writeJSON(USERS_KEY, users);
   setSession(email);
+  // Progreso enlazado a la cuenta: crea/vincula la cuenta en el
+  // servidor y deja el outbox subiendo en segundo plano.
+  void registerAndLink(email, username, password);
   return null;
 }
 
@@ -248,6 +252,9 @@ export async function offlineLogin(payload: { email?: string; password?: string 
   if (!ok) return "Correo o contraseña incorrectos.";
   ensureRecoveryCode(user); // cuentas creadas antes del código de recuperación
   setSession(email);
+  // Token de sync: si la contraseña coincide con la del servidor, el
+  // progreso se enlaza a la cuenta (push outbox + pull de rides).
+  void linkPassword(email, password);
   return null;
 }
 
@@ -264,6 +271,9 @@ const SERVER_ORIGIN = "https://cumbregeo.cl";
 type WebLoginPayload = {
   username?: string;
   email?: string;
+  /** Token de sesión (solo para orígenes del APK): habilita el sync. */
+  token?: string;
+  expiresAt?: string;
   selectedPin?: string;
   bikeBrand?: string | null;
   bikeType?: string | null;
@@ -333,6 +343,12 @@ export async function offlineImportWebAccount(payload: { email?: string; passwor
       offlineUnlockAchievements(d.achievements);
     }
     setSession(user.email);
+    // Token de sync (el login lo devuelve para orígenes del APK):
+    // con él, el progreso del teléfono se enlaza a la cuenta y el
+    // pull trae los km/logros guardados en el servidor.
+    if (typeof d.token === "string" && d.token) {
+      setServerToken(d.token, webEmail, d.expiresAt);
+    }
     return true;
   } catch {
     return false; // sin red o servidor caído: queda el error local
@@ -349,7 +365,7 @@ export async function offlineImportWebAccount(payload: { email?: string; passwor
  *   2. Mismo correo registrado → se vincula a esa cuenta (mantiene km y logros).
  *   3. Cuenta nueva → username derivado del correo, contraseña aleatoria no utilizable.
  */
-export async function offlineGoogleSignIn(acct: { sub: string; email: string; name?: string }): Promise<string | null> {
+export async function offlineGoogleSignIn(acct: { sub: string; email: string; name?: string; idToken?: string }): Promise<string | null> {
   const email = (acct.email ?? "").trim().toLowerCase();
   const sub = (acct.sub ?? "").trim();
   if (!sub) return "Google no devolvió el identificador de la cuenta.";
@@ -387,6 +403,9 @@ export async function offlineGoogleSignIn(acct: { sub: string; email: string; na
     writeJSON(USERS_KEY, users);
   }
   setSession(user.email);
+  // Progreso enlazado a la cuenta: el idToken nativo se cambia por un
+  // token de sesión en el servidor (validación oficial de Google).
+  if (acct.idToken) void linkGoogle(acct.idToken);
   return null;
 }
 
@@ -405,6 +424,7 @@ function uniqueUsernameFrom(email: string, users: Record<string, OfflineUser>): 
 export function offlineLogout(): void {
   if (typeof window === "undefined") return;
   localStorage.removeItem(SESSION_KEY);
+  forgetToken(); // corta el sync: sin sesión, no se sube ni se baja progreso
 }
 
 /**
@@ -423,6 +443,7 @@ export function offlineDeleteAccount(): void {
     removeRidesForAccount(email);
   }
   localStorage.removeItem(SESSION_KEY);
+  void forgetAllSyncData(); // token + outbox del dispositivo
   if (Object.keys(readUsers()).length === 0) {
     localStorage.removeItem(ACH_KEY);
     localStorage.removeItem("cumbre30-pro-v1"); // licencia Pro del dispositivo
@@ -479,6 +500,9 @@ export function offlineUpdateProfile(patch: Record<string, unknown>): { ok: bool
   }
   users[user.email] = user;
   writeJSON(USERS_KEY, users);
+  // Perfil → servidor: el pin y los datos de la bici también quedan
+  // enlazados a la cuenta (op de última escritura gana).
+  void enqueueOp("profile", patch);
   return { ok: true };
 }
 

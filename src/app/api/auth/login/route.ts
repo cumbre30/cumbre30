@@ -2,22 +2,14 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { createSession, SESSION_COOKIE, verifyPassword } from "@/lib/auth";
 import { normalizeCodes } from "@/lib/pins";
+import { corsHeaders, isAppOrigin } from "@/lib/apiCors";
 
 // CORS para la app Android (APK): el WebView sirve la app desde
 // https://localhost, así que su llamada al servidor de la web es
 // cross-origin. Solo aceptamos los orígenes de Capacitor; el sitio
 // web (cumbregeo.cl) es same-origin y no necesita nada de esto.
-const APK_ORIGINS = new Set(["https://localhost", "capacitor://localhost", "ionic://localhost"]);
-
 function corsFor(req: Request): Record<string, string> {
-  const origin = req.headers.get("origin") ?? "";
-  if (!APK_ORIGINS.has(origin)) return {};
-  return {
-    "Access-Control-Allow-Origin": origin,
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type",
-    Vary: "Origin",
-  };
+  return corsHeaders(req);
 }
 
 export async function OPTIONS(req: Request) {
@@ -42,8 +34,10 @@ export async function POST(req: Request) {
 
     const { token, expiresAt } = await createSession(user.id);
     // Con la sesión devolvemos también el perfil y los logros: la app
-    // Android usa estos datos para importar la cuenta web al teléfono
-    // (km y rides quedan por dispositivo; logros y perfil viajan).
+    // Android usa estos datos para importar la cuenta web al teléfono.
+    // Para el APK incluimos además el token en el cuerpo (la cookie
+    // httpOnly no sirve cross-origin en el WebView): con él, el sync
+    // de progreso viaja por Authorization: Bearer.
     const achievements = await db.achievement.findMany({
       where: { userId: user.id },
       select: { code: true },
@@ -52,6 +46,7 @@ export async function POST(req: Request) {
       {
         username: user.username,
         email: user.email,
+        ...(isAppOrigin(req) ? { token } : {}),
         selectedPin: user.selectedPin,
         bikeBrand: user.bikeBrand,
         bikeType: user.bikeType,

@@ -6,6 +6,7 @@
 export type TrackPt = [lat: number, lon: number, eleM: number, tsSec: number];
 
 import { isProActive } from "@/lib/proLicense";
+import { getTrack, putTrack } from "@/lib/idb";
 
 export type RideSummary = {
   id: string;
@@ -190,6 +191,9 @@ export function saveRide(s: RideSummary): void {
   const list = readFromStorage();
   const rec: RideSummary = { ...s };
   if (!rec.account && rideOwner) rec.account = rideOwner;
+  // Pista GPS también en IndexedDB: respaldo duradero por si el
+  // localStorage se poda (migración) o queda sin espacio.
+  if (rec.track?.length) void putTrack(rec.id, rec.track);
   list.unshift(rec);
   localStorage.setItem(KEY, JSON.stringify(applyFreeCap(list, isProActive())));
   historyStore.refresh();
@@ -226,4 +230,59 @@ export function clearHistory(): void {
   if (typeof window === "undefined") return;
   localStorage.removeItem(KEY);
   historyStore.refresh();
+}
+
+// ------------------------------------------------------------------
+// Pistas GPS en IndexedDB + escritura completa del historial.
+// El resumen del ride vive en localStorage; las pistas de los rides
+// antiguos se podan hacia IndexedDB (migración al arranque) para que
+// el almacenamiento local no crezca sin techo. La lectura unificada
+// es readRideTrack (IndexedDB primero, luego la embebida).
+// ------------------------------------------------------------------
+
+/** Rides recientes que mantienen su pista embebida en localStorage. */
+const TRACKS_LOCAL_KEEP = 20;
+
+/** Escribe el historial completo (pull del servidor, migraciones). */
+export function writeAllRides(list: RideSummary[]): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(KEY, JSON.stringify(applyFreeCap(list, isProActive())));
+    historyStore.refresh();
+  } catch {
+    // almacenamiento lleno/bloqueado: se conserva lo que había
+  }
+}
+
+/** Pista de un ride: IndexedDB (rides podados) o la embebida (recientes). */
+export async function readRideTrack(id: string): Promise<TrackPt[] | null> {
+  const fromIdb = await getTrack(id);
+  if (fromIdb) return fromIdb as unknown as TrackPt[];
+  const embedded = historyStore.get().find((r) => r.id === id)?.track;
+  return embedded ?? null;
+}
+
+let tracksMigrated = false;
+
+/** Una vez por carga: pistas de rides antiguos → IndexedDB. */
+export async function migrateTracksToIdb(): Promise<void> {
+  if (tracksMigrated || typeof window === "undefined") return;
+  tracksMigrated = true;
+  try {
+    const list = readFromStorage(); // ordenado: [0] es el más nuevo
+    let changed = false;
+    for (let i = TRACKS_LOCAL_KEEP; i < list.length; i++) {
+      const r = list[i];
+      if (!r.track?.length) continue;
+      await putTrack(r.id, r.track);
+      delete r.track;
+      changed = true;
+    }
+    if (changed) {
+      localStorage.setItem(KEY, JSON.stringify(list));
+      historyStore.refresh();
+    }
+  } catch {
+    // sin IndexedDB ni espacio: las pistas siguen embebidas
+  }
 }

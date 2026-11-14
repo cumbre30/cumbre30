@@ -36,7 +36,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatClock } from "@/lib/geo";
-import { clearHistory, FREE_RIDE_LIMIT, historyStore, ridesForAccount, type RideSummary } from "@/lib/history";
+import { clearHistory, FREE_RIDE_LIMIT, historyStore, readRideTrack, ridesForAccount, type RideSummary } from "@/lib/history";
 import { buildRidePdf, type RideIdentity } from "@/lib/ridePdf";
 import { buildConstanciaPayload, constanciaHash, registerConstancia } from "@/lib/constancia";
 import { shareOrDownloadFile } from "@/lib/shareFile";
@@ -265,11 +265,14 @@ export function HistoryTab({
         setGpxMsg("El export GPX es parte de Cumbre30 Pro - actívalo en Perfil → Pagos y suscripciones.");
         return;
       }
-      if (!r.track || r.track.length < 2) {
+      // La pista puede vivir en IndexedDB (rides antiguos podados del
+      // almacenamiento local) o embebida en el resumen (rides recientes).
+      const track = (await readRideTrack(r.id)) ?? r.track;
+      if (!track || track.length < 2) {
         setGpxMsg("Este viaje no guarda pista GPS (se grabó antes de la v1.5.0).");
         return;
       }
-      const blob = buildRideGpxBlob(r);
+      const blob = buildRideGpxBlob({ ...r, track });
       if (!blob) return;
       const day = r.dateISO.slice(0, 10);
       await shareOrDownloadFile({
@@ -524,9 +527,7 @@ export function HistoryTab({
                           onClick={() => void exportGpx(r)}
                           title={
                             pro.active
-                              ? r.track && r.track.length >= 2
-                                ? "Exportar pista GPX del viaje (Strava, Garmin, Komoot)"
-                                : "Este viaje no guarda pista GPS (se grabó antes de la v1.5.0)"
+                              ? "Exportar pista GPX del viaje (Strava, Garmin, Komoot)"
                               : "El export GPX es parte de Cumbre30 Pro"
                           }
                           className="h-7 border-border px-2 text-xs text-muted-foreground hover:bg-card hover:text-foreground disabled:opacity-40"

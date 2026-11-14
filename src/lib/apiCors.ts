@@ -1,10 +1,10 @@
 // ============================================================
-// CORS para el APK: el webview de Capacitor sirve la app desde su
-// propio origen (https://localhost) y las llamadas a la web desplegada
-// cruzan origen, con cookies (credentials). Cada ruta API necesita
-// devolver estas cabeceras y responder el preflight OPTIONS.
-// Solo se emiten para orígenes conocidos del app - la web normal
-// (mismo origen) no las necesita.
+// CORS unificado para las rutas API que consume el APK.
+// El WebView de Capacitor sirve la app desde https://localhost y sus
+// llamadas al servidor de la web cruzan origen. Solo emitimos cabeceras
+// para los orígenes conocidos del app; la web normal (same-origin) no
+// las necesita. El sync viaja con Authorization: Bearer — las cookies
+// third-party del WebView no son confiables en iOS/Android modernos.
 // ============================================================
 
 const ALLOWED_ORIGINS = new Set([
@@ -25,13 +25,13 @@ export function corsHeaders(req: Request): Record<string, string> {
   return {
     "Access-Control-Allow-Origin": origin,
     "Access-Control-Allow-Credentials": "true",
-    "Access-Control-Allow-Methods": "GET,POST,DELETE,OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Allow-Methods": "GET,POST,PUT,PATCH,DELETE,OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
     Vary: "Origin",
   };
 }
 
-/** Preflight CORS (el navegador del APK lo exige antes del POST/DELETE). */
+/** Preflight CORS (el navegador del APK lo exige antes del fetch real). */
 export function corsPreflight(req: Request): Response {
   return new Response(null, { status: 204, headers: corsHeaders(req) });
 }

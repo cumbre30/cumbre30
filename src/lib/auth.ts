@@ -49,34 +49,52 @@ export type SessionUser = {
   bikeColor: string | null;
 };
 
-/** Lee la cookie de sesión y devuelve el usuario si es válida. */
-export async function getSessionUser(): Promise<SessionUser | null> {
+/** Lee la sesión desde la cabecera Authorization: Bearer o la cookie. */
+async function sessionFromToken(token: string | undefined): Promise<SessionUser | null> {
+  if (!token) return null;
+  const session = await db.session.findUnique({ where: { token }, include: { user: true } });
+  if (!session) return null;
+  if (session.expiresAt.getTime() < Date.now()) {
+    void db.session.delete({ where: { id: session.id } }).catch(() => undefined);
+    return null;
+  }
+  return toSessionUser(session.user);
+}
+
+function toSessionUser(u: {
+  id: string; email: string; username: string; usernameChangedAt: Date | null;
+  selectedPin: string; bikeBrand: string | null; bikeType: string | null;
+  bikeModel: string | null; bikeSize: string | null; bikeColor: string | null;
+}): SessionUser {
+  return {
+    id: u.id,
+    email: u.email,
+    username: u.username,
+    usernameChangedAt: u.usernameChangedAt,
+    selectedPin: u.selectedPin,
+    bikeBrand: u.bikeBrand,
+    bikeType: u.bikeType,
+    bikeModel: u.bikeModel,
+    bikeSize: u.bikeSize,
+    bikeColor: u.bikeColor,
+  };
+}
+
+/**
+ * Usuario de la sesión actual. Dos vías:
+ *  · Web: cookie httpOnly (mismo origen).
+ *  · APK: cabecera Authorization: Bearer <token> de /api/auth/token —
+ *    el WebView de Capacitor es cross-origin y las cookies third-party
+ *    no son confiables, así que el sync viaja con token opaco.
+ */
+export async function getSessionUser(req?: Request): Promise<SessionUser | null> {
   try {
-    const jar = await cookies();
-    const token = jar.get(SESSION_COOKIE)?.value;
-    if (!token) return null;
-    const session = await db.session.findUnique({
-      where: { token },
-      include: { user: true },
-    });
-    if (!session) return null;
-    if (session.expiresAt.getTime() < Date.now()) {
-      void db.session.delete({ where: { id: session.id } }).catch(() => undefined);
-      return null;
+    const bearer = req?.headers.get("authorization") ?? "";
+    if (bearer.toLowerCase().startsWith("bearer ")) {
+      return await sessionFromToken(bearer.slice(7).trim() || undefined);
     }
-    const u = session.user;
-    return {
-      id: u.id,
-      email: u.email,
-      username: u.username,
-      usernameChangedAt: u.usernameChangedAt,
-      selectedPin: u.selectedPin,
-      bikeBrand: u.bikeBrand,
-      bikeType: u.bikeType,
-      bikeModel: u.bikeModel,
-      bikeSize: u.bikeSize,
-      bikeColor: u.bikeColor,
-    };
+    const jar = await cookies();
+    return await sessionFromToken(jar.get(SESSION_COOKIE)?.value);
   } catch {
     return null;
   }

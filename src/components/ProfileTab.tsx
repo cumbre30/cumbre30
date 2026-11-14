@@ -9,7 +9,7 @@
 //     la licencia va atada al correo de la cuenta.
 // ============================================================
 
-import { useCallback, useState } from "react";
+import { useCallback, useState, useSyncExternalStore } from "react";
 import {
   AtSign,
   Share2,
@@ -21,6 +21,9 @@ import {
   KeyRound,
   PenLine,
   Trash2,
+  CloudUpload,
+  CloudOff,
+  RefreshCw,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -28,6 +31,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { authAction, deleteAccount, forgotPassword, googleAuthAction, changeUsername, logout, resetPassword, useMe } from "@/hooks/useMe";
 import { isOfflineMode } from "@/lib/offlineAuth";
+import { manualSync, syncStore } from "@/lib/cloudSync";
 import { CONTACT_WHATSAPP } from "@/lib/proConfig";
 import { nativeGoogleSignIn, nativeGoogleSignOut } from "@/lib/googleAuth";
 import { Capacitor } from "@capacitor/core";
@@ -74,6 +78,7 @@ function GoogleIcon() {
 export default function ProfileTab() {
   const { me, ready } = useMe();
   const offline = isOfflineMode();
+  const sync = useSyncExternalStore(syncStore.subscribe, syncStore.get, syncStore.getServer);
   const [mode, setMode] = useState<"login" | "register">("login");
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
@@ -546,6 +551,50 @@ export default function ProfileTab() {
                 Copiar
               </Button>
             </div>
+          </div>
+        </Card>
+      )}
+      {offline && (
+        /* Progreso enlazado a la cuenta (APK): outbox en IndexedDB +
+           token de sesión. Estado visible y sync manual a demanda. */
+        <Card className="bg-card/60 border-border p-3">
+          <div className="flex items-center gap-3">
+            {sync.phase === "syncing" ? (
+              <RefreshCw className="h-4 w-4 shrink-0 animate-spin text-sky-600 dark:text-sky-400" />
+            ) : sync.phase === "unlinked" || sync.phase === "offline" ? (
+              <CloudOff className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+            ) : (
+              <CloudUpload className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+            )}
+            <div className="min-w-0 flex-1">
+              <p className="text-[13px] font-medium text-foreground">Sincronización con la nube</p>
+              <p className="text-[11px] text-muted-foreground leading-snug">
+                {sync.phase === "syncing"
+                  ? "Subiendo tu progreso…"
+                  : sync.phase === "ok"
+                    ? `Tu progreso queda guardado en tu cuenta${sync.email ? ` (${sync.email})` : ""}.`
+                    : sync.phase === "offline"
+                      ? `Sin conexión ahora: ${sync.pending} elemento(s) esperando para subirse.`
+                      : sync.phase === "unlinked"
+                        ? "No pudimos vincular tu cuenta: la contraseña del teléfono es distinta a la de la web, o el servidor no responde."
+                        : sync.phase === "error"
+                          ? "Algo falló al sincronizar. Lo reintentamos solo al volver la conexión."
+                          : "Entra a tu cuenta para guardar tu progreso en la nube."}
+                {sync.phase === "ok" && sync.lastSyncAt
+                  ? ` Última sync ${new Date(sync.lastSyncAt).toLocaleString("es-CL", { dateStyle: "short", timeStyle: "short" })}.`
+                  : ""}
+              </p>
+            </div>
+            {sync.phase !== "syncing" && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 shrink-0 px-2 text-[11px] text-muted-foreground"
+                onClick={() => void manualSync()}
+              >
+                Sincronizar
+              </Button>
+            )}
           </div>
         </Card>
       )}

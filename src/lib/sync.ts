@@ -14,11 +14,30 @@ import { isOfflineMode, offlineUnlockAchievements } from "@/lib/offlineAuth";
 import { evaluateAchievements, statsFromRides } from "@/lib/pins";
 import { isProActive } from "@/lib/proLicense";
 import { refreshMe } from "@/hooks/useMe";
+import { enqueueOp } from "@/lib/cloudSync";
 
 const AUTH_JSON = { "Content-Type": "application/json" };
 
-/** Logros: evalúa contra el historial local (en bici) y registra los nuevos. */
-async function evaluateOfflineAchievements(): Promise<void> {
+/** Payload del ride para el servidor (sin pista GPS ni correo local). */
+function rideToPayload(s: RideSummary): Record<string, unknown> {
+  return {
+    id: s.id,
+    dateISO: s.dateISO,
+    source: s.source,
+    distanceKm: s.distanceKm,
+    maxKmh: s.maxKmh,
+    maxInParkKmh: s.maxInParkKmh,
+    inParkKm: s.inParkKm ?? null,
+    avgKmh: s.avgKmh,
+    elapsedSec: s.elapsedSec,
+    gainM: s.gainM,
+    overLimitSec: s.overLimitSec,
+    motorized: s.motorized === true,
+  };
+}
+
+/** Logros: evalúa contra el historial local (en bici) y registra los nuevos. Devuelve los códigos NUEVOS. */
+async function evaluateOfflineAchievements(): Promise<string[]> {
   const me = await refreshMe();
   const stats = statsFromRides(
     bikeOnly(ridesForAccount(historyStore.get(), me?.user.email ?? null)),
@@ -27,6 +46,7 @@ async function evaluateOfflineAchievements(): Promise<void> {
   const codes = evaluateAchievements(stats, have, { pro: isProActive() });
   if (codes.length) offlineUnlockAchievements(codes);
   await refreshMe();
+  return codes;
 }
 
 /** Logros en el despliegue web: evalúa localmente y sube los nuevos. */
@@ -60,8 +80,12 @@ async function evaluateOnlineAchievements(): Promise<void> {
 export async function syncRideAfterSave(summary: RideSummary): Promise<void> {
   try {
     if (isOfflineMode()) {
-      // APK: evalúa logros contra el historial local y guárdalos.
-      await evaluateOfflineAchievements();
+      // APK: logros evaluados y guardados localmente, y progreso
+      // enlazado a la cuenta: el ride y los logros nuevos quedan en el
+      // outbox (IndexedDB) y suben al servidor cuando haya red.
+      const newCodes = await evaluateOfflineAchievements();
+      void enqueueOp("ride", rideToPayload(summary));
+      for (const code of newCodes) void enqueueOp("achievement", { code });
       return;
     }
     const r = await fetch("/api/rides", {
@@ -96,8 +120,14 @@ export async function markRideAsBike(summary: RideSummary): Promise<void> {
     // sin conexión: la corrección queda local y el ride nunca subió
   }
   try {
-    if (isOfflineMode()) await evaluateOfflineAchievements();
-    else await evaluateOnlineAchievements();
+    if (isOfflineMode()) {
+      const newCodes = await evaluateOfflineAchievements();
+      // Corrección también en el servidor (404 = ride que nunca subió: ok).
+      void enqueueOp("rideMotorized", { clientId: summary.id, motorized: false });
+      for (const code of newCodes) void enqueueOp("achievement", { code });
+    } else {
+      await evaluateOnlineAchievements();
+    }
   } catch {
     // la corrección del ride ya está aplicada
   }

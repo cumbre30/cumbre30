@@ -12,6 +12,10 @@
 // ============================================================
 
 import { Capacitor, registerPlugin } from "@capacitor/core";
+import { GOOGLE_WEB_CLIENT_ID } from "@/lib/googleClientId";
+
+// Re-export: el resto de la app sigue importando desde aquí.
+export { GOOGLE_WEB_CLIENT_ID };
 
 export interface GoogleAcct {
   /** ID estable de la cuenta Google (claim "sub"). */
@@ -29,15 +33,6 @@ interface GoogleAuthPluginInterface {
 }
 
 const GoogleAuth = registerPlugin<GoogleAuthPluginInterface>("GoogleAuth");
-
-/**
- * Client ID OAuth de tipo "Web application" (mismo proyecto de Cloud
- * Console que el client "Android" con el SHA-1 de la APK).
- * Formato: "1234567890-abc123.apps.googleusercontent.com"
- * Proyecto Google Cloud: Cumbre30 (configurado por el dueño de la app).
- */
-export const GOOGLE_WEB_CLIENT_ID =
-  "1083733199182-gbe3bnj00bivr7la3d4s80r5av7r964e.apps.googleusercontent.com";
 
 /** true solo dentro del APK y con el Client ID ya configurado. */
 export function googleSignInReady(): boolean {

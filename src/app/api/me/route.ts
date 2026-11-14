@@ -11,6 +11,7 @@ import { getSessionUser } from "@/lib/auth";
 import { validateUsername, usernameLocked } from "@/lib/username";
 import { isPinId, type PinId } from "@/lib/pins";
 import { ACHIEVEMENT_BY_CODE, normalizeCodes, statsFromRides } from "@/lib/pins";
+import { corsHeaders, corsPreflight } from "@/lib/apiCors";
 
 /** Pines desbloqueados: el clásico + las recompensas de logros obtenidos. */
 export async function unlockedPins(userId: string): Promise<PinId[]> {
@@ -23,9 +24,15 @@ export async function unlockedPins(userId: string): Promise<PinId[]> {
   return [...set];
 }
 
-export async function GET() {
-  const me = await getSessionUser();
-  if (!me) return NextResponse.json({ error: "Sin sesión" }, { status: 401 });
+export async function OPTIONS(req: Request) {
+  // Preflight del fetch cross-origin desde el APK (sync con Bearer).
+  return corsPreflight(req);
+}
+
+export async function GET(req: Request) {
+  const cors = corsHeaders(req);
+  const me = await getSessionUser(req);
+  if (!me) return NextResponse.json({ error: "Sin sesión" }, { status: 401, headers: cors });
 
   // Estadísticas: solo viajes con GPS real. Los de demostración
   // (simulación, sin GPS) no cuentan en ningún total.
@@ -97,12 +104,13 @@ export async function GET() {
     achievements: achievements.map((a) => ({ code: a.code, unlockedAt: a.unlockedAt.toISOString() })),
     pins: await unlockedPins(me.id),
     friends: friends.sort((a, b) => a.username.localeCompare(b.username)),
-  });
+  }, { headers: cors });
 }
 
 export async function PUT(req: Request) {
-  const me = await getSessionUser();
-  if (!me) return NextResponse.json({ error: "Sin sesión" }, { status: 401 });
+  const cors = corsHeaders(req);
+  const me = await getSessionUser(req);
+  if (!me) return NextResponse.json({ error: "Sin sesión" }, { status: 401, headers: cors });
 
   const body = (await req.json()) as Record<string, unknown>;
   const data: Record<string, string | Date | null> = {};
@@ -145,5 +153,5 @@ export async function PUT(req: Request) {
   }
 
   const user = await db.user.update({ where: { id: me.id }, data, select: { selectedPin: true } });
-  return NextResponse.json({ ok: true, selectedPin: user.selectedPin });
+  return NextResponse.json({ ok: true, selectedPin: user.selectedPin }, { headers: cors });
 }
