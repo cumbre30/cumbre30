@@ -10,15 +10,21 @@
 // app, estilo y tamaño del velocímetro y altura del minimapa.
 // Las opciones Pro muestran una nota y el acceso a Planes; solo
 // se aplican con licencia activa.
+// v1.12.1: reorganización por secciones — GENERAL (Seguridad con
+// Alertas/Detección de incidentes/Asistencia de emergencia;
+// Monitoreo y salud con Monitoreo; Personalización con Temas y
+// Accesibilidad) + ACERCA DE (versión, contacto, Cumbre GEO). El
+// control "Confirmación de estado" fija la ventana 15/30/60 s del
+// overlay "¿Estás bien?" (fallDetect + FallOverlay).
 // ============================================================
 
 import { useEffect, useState } from "react";
-import { Volume2, VolumeX, Mic, MicOff, Info, Mail, Moon, Palette, Lock, Languages, Siren, UserPlus, UserRound, BellRing, HeartPulse } from "lucide-react";
+import { Volume2, VolumeX, Mic, MicOff, Info, Mail, Moon, Palette, Lock, Languages, Siren, ShieldAlert, UserPlus, UserRound, BellRing, HeartPulse } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Speedometer } from "@/components/Speedometer";
 import { ThemeIconButton } from "@/components/ThemeToggle";
 import { APP_VERSION, APP_VERSION_CODE } from "@/lib/appVersion";
-import { fallConfigOn, setFallConfigOn } from "@/lib/fallDetect";
+import { fallConfigOn, setFallConfigOn, fallConfirmSegs, setFallConfirmSegs, type FallConfirmSegs } from "@/lib/fallDetect";
 import {
   ICE_MAX,
   getIceConfig,
@@ -141,6 +147,14 @@ export function ConfigTab({
     const v = !fallOn;
     setFallOn(v);
     setFallConfigOn(v);
+  };
+  // Confirmación de estado (v1.12.1): ventana 15/30/60 s del overlay
+  // "¿Estás bien?" antes de la ayuda automática. Default 30 s.
+  const [confirmSegs, setConfirmSegs] = useState<FallConfirmSegs>(() => fallConfirmSegs());
+  const pickConfirm = (id: string) => {
+    const v = Number(id) as FallConfirmSegs;
+    setFallConfirmSegs(v);
+    setConfirmSegs(v);
   };
   // Contactos ICE (Ola 1): persistidos en iceContacts (auto on por defecto).
   const [ice, setIce] = useState<IceConfig>(() => getIceConfig());
@@ -297,20 +311,50 @@ export function ConfigTab({
 
   return (
     <div className="flex flex-col gap-4">
+      {/* Encabezado GENERAL (v1.12.1): agrupa Seguridad, Monitoreo y
+          salud y Personalización; Idioma y Avisos push quedan dentro
+          de General sin subcategoría, antes de Acerca de. */}
+      <p className="mt-1 text-[11px] font-extrabold uppercase tracking-[0.18em] text-muted-foreground">{t("cfg.grGeneral")}</p>
+
+      {/* ---- Subcategoría Seguridad ---- */}
       <Card className="p-0">
+        <div className="px-4 pb-2 pt-4">
+          <p className="text-[11px] font-extrabold uppercase tracking-widest text-emerald-700 dark:text-emerald-300">{t("cfg.grSeguridad")}</p>
+        </div>
+        <div className="border-b border-border/60 px-4 py-2">
+          <p className="text-[10.5px] font-extrabold uppercase tracking-widest text-muted-foreground">{t("cfg.grAlertas")}</p>
+        </div>
         <Row icon={soundOn ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />} title={t("cfg.pitidos")} sub={t("cfg.pitidosSub")}>
           <Toggle on={soundOn} onChange={onToggleSound} label={t("cfg.pitidos")} />
         </Row>
         <Row icon={voiceOn ? <Mic className="h-5 w-5" /> : <MicOff className="h-5 w-5" />} title={t("cfg.avisosVoz")} sub={t("cfg.avisosVozSub")}>
           <Toggle on={voiceOn} onChange={onToggleVoice} label={t("cfg.avisosVoz")} />
         </Row>
+        <div className="border-b border-border/60 px-4 py-2">
+          <p className="text-[10.5px] font-extrabold uppercase tracking-widest text-muted-foreground">{t("cfg.grDeteccion")}</p>
+        </div>
         <Row icon={<Siren className="h-5 w-5" />} title={t("cfg.caida")} sub={t("cfg.caidaSub")}>
           <Toggle on={fallOn} onChange={toggleFall} label={t("cfg.caida")} />
         </Row>
-      </Card>
-
-      {/* ---- Contactos ICE (Ola 1): aviso a gente de confianza por caída ---- */}
-      <Card className="p-0">
+        <Row icon={<ShieldAlert className="h-5 w-5" />} title={t("cfg.confirmEstado")} sub={t("cfg.confirmEstadoSub")}>
+          <span />
+        </Row>
+        <div className="border-b border-border/60 px-4 pb-3.5 pt-2">
+          <Seg
+            options={[
+              { id: "15", label: "15 s", proOnly: false },
+              { id: "30", label: "30 s", proOnly: false },
+              { id: "60", label: "60 s", proOnly: false },
+            ]}
+            value={String(confirmSegs)}
+            pro={true}
+            onPick={pickConfirm}
+            onLocked={() => undefined}
+          />
+        </div>
+        <div className="px-4 pb-1 pt-2.5">
+          <p className="text-[10.5px] font-extrabold uppercase tracking-widest text-muted-foreground">{t("cfg.grEmergencia")}</p>
+        </div>
         <Row icon={<UserPlus className="h-5 w-5" />} title={t("cfg.ice")} sub={t("cfg.iceSub")}>
           <span />
         </Row>
@@ -370,8 +414,14 @@ export function ConfigTab({
         </Row>
       </Card>
 
-      {/* ---- Zonas de esfuerzo (Ola 1): FC máxima y reposo del sensor BT ---- */}
+      {/* ---- Subcategoría Monitoreo y salud: zonas de esfuerzo del sensor BT ---- */}
       <Card className="p-0">
+        <div className="px-4 pb-2 pt-4">
+          <p className="text-[11px] font-extrabold uppercase tracking-widest text-emerald-700 dark:text-emerald-300">{t("cfg.grSalud")}</p>
+        </div>
+        <div className="border-b border-border/60 px-4 py-2">
+          <p className="text-[10.5px] font-extrabold uppercase tracking-widest text-muted-foreground">{t("cfg.grMonitoreo")}</p>
+        </div>
         <Row icon={<HeartPulse className="h-5 w-5" />} title={t("cfg.fc")} sub={t("cfg.fcSub")}>
           <span />
         </Row>
@@ -411,86 +461,14 @@ export function ConfigTab({
         </div>
       </Card>
 
-      {/* ---- Avisos push del parque (Ola 2): web, sin instalar nada ---- */}
-      {pushEstado !== "nativo" && (
-        <Card className="p-0">
-          <Row icon={<BellRing className="h-5 w-5" />} title={t("cfg.push")} sub={t("cfg.pushSub")}>
-            <span />
-          </Row>
-          <div className="px-4 pb-4">
-            {pushEstado === "activado" && (
-              <p className="mb-2 text-[11.5px] font-semibold text-emerald-700 dark:text-emerald-300">{t("cfg.pushActivado")}</p>
-            )}
-            {pushEstado === "denegado" && (
-              <p className="mb-2 text-[11.5px] font-semibold text-amber-700 dark:text-amber-300">{t("cfg.pushDenegado")}</p>
-            )}
-            {pushMsg && (
-              <p className="mb-2 text-[11.5px] font-semibold text-emerald-700 dark:text-emerald-300" role="status">{pushMsg}</p>
-            )}
-            <div className="flex gap-2">
-              {pushEstado === "activado" ? (
-                <>
-                  <button
-                    onClick={() => void desactivarPush()}
-                    disabled={pushBusy}
-                    className="h-9 flex-1 rounded-lg border border-border bg-card text-[12px] font-bold text-muted-foreground hover:text-foreground disabled:opacity-50"
-                  >
-                    {t("cfg.pushDesactivar")}
-                  </button>
-                  <button
-                    onClick={() => void probarPush()}
-                    disabled={pushBusy}
-                    className="h-9 flex-1 rounded-lg bg-emerald-600 text-[12px] font-bold text-white hover:bg-emerald-500 disabled:opacity-50"
-                  >
-                    {t("cfg.pushProbar")}
-                  </button>
-                </>
-              ) : (
-                <button
-                  onClick={() => void activarPush()}
-                  disabled={pushBusy || pushEstado === "denegado"}
-                  className="h-9 w-full rounded-lg bg-emerald-600 text-[12px] font-bold text-white hover:bg-emerald-500 disabled:opacity-50"
-                >
-                  {t("cfg.pushActivar")}
-                </button>
-              )}
-            </div>
-          </div>
-        </Card>
-      )}
-
-      {/* ---- Selector de idioma (turistas, 2026-11-14): textos y voces ---- */}
+      {/* ---- Subcategoría Personalización: Temas + Accesibilidad ---- */}
       <Card className="p-0">
-        <div className="px-4 py-3.5">
-          <p className="text-[13.5px] font-semibold text-foreground">{t("cfg.idioma")}</p>
-          <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">{t("cfg.idiomaSub")}</p>
-          <div className="mt-2.5 flex flex-wrap gap-1.5">
-            {(["es", "en", "pt"] as Lang[]).map((l) => (
-              <button
-                key={l}
-                onClick={() => setLang(l)}
-                aria-pressed={lang === l}
-                className={`inline-flex items-center gap-1 rounded-lg border px-3 py-1.5 text-[12px] font-bold transition-colors ${
-                  lang === l
-                    ? "border-transparent bg-emerald-600 text-(--c30-on-accent)"
-                    : "border-border text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                {l === "es" ? t("cfg.esp") : l === "en" ? t("cfg.eng") : t("cfg.port")}
-              </button>
-            ))}
-          </div>
+        <div className="px-4 pb-2 pt-4">
+          <p className="text-[11px] font-extrabold uppercase tracking-widest text-emerald-700 dark:text-emerald-300">{t("cfg.grPersonalizacion")}</p>
         </div>
-      </Card>
-
-      <Card className="p-0">
-        <Row icon={<Moon className="h-5 w-5" />} title={t("cfg.tema")} sub={t("cfg.temaSub")}>
-          <ThemeIconButton />
-        </Row>
-      </Card>
-
-      {/* ---- Temas y pantalla ride (Pro): color, velocímetro, minimapa ---- */}
-      <Card className="p-0">
+        <div className="border-b border-border/60 px-4 py-2">
+          <p className="text-[10.5px] font-extrabold uppercase tracking-widest text-muted-foreground">{t("cfg.grTemas")}</p>
+        </div>
         <Row
           icon={<Palette className="h-5 w-5" />}
           title={t("cfg.temas")}
@@ -576,9 +554,88 @@ export function ConfigTab({
             {t("cfg.proFoot")}
           </p>
         )}
+
+        <div className="border-t border-border/60 px-4 py-2">
+          <p className="text-[10.5px] font-extrabold uppercase tracking-widest text-muted-foreground">{t("cfg.grAccesibilidad")}</p>
+        </div>
+        <Row icon={<Moon className="h-5 w-5" />} title={t("cfg.tema")} sub={t("cfg.temaSub")}>
+          <ThemeIconButton />
+        </Row>
       </Card>
 
-      {/* ---- Acerca de: versión y marca (movido desde Perfil) ---- */}
+      {/* ---- Idioma y Avisos push: dentro de General, sin subcategoría ---- */}
+      <Card className="p-0">
+        <div className="px-4 py-3.5">
+          <p className="text-[13.5px] font-semibold text-foreground">{t("cfg.idioma")}</p>
+          <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">{t("cfg.idiomaSub")}</p>
+          <div className="mt-2.5 flex flex-wrap gap-1.5">
+            {(["es", "en", "pt"] as Lang[]).map((l) => (
+              <button
+                key={l}
+                onClick={() => setLang(l)}
+                aria-pressed={lang === l}
+                className={`inline-flex items-center gap-1 rounded-lg border px-3 py-1.5 text-[12px] font-bold transition-colors ${
+                  lang === l
+                    ? "border-transparent bg-emerald-600 text-(--c30-on-accent)"
+                    : "border-border text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {l === "es" ? t("cfg.esp") : l === "en" ? t("cfg.eng") : t("cfg.port")}
+              </button>
+            ))}
+          </div>
+        </div>
+      </Card>
+
+      {pushEstado !== "nativo" && (
+        <Card className="p-0">
+          <Row icon={<BellRing className="h-5 w-5" />} title={t("cfg.push")} sub={t("cfg.pushSub")}>
+            <span />
+          </Row>
+          <div className="px-4 pb-4">
+            {pushEstado === "activado" && (
+              <p className="mb-2 text-[11.5px] font-semibold text-emerald-700 dark:text-emerald-300">{t("cfg.pushActivado")}</p>
+            )}
+            {pushEstado === "denegado" && (
+              <p className="mb-2 text-[11.5px] font-semibold text-amber-700 dark:text-amber-300">{t("cfg.pushDenegado")}</p>
+            )}
+            {pushMsg && (
+              <p className="mb-2 text-[11.5px] font-semibold text-emerald-700 dark:text-emerald-300" role="status">{pushMsg}</p>
+            )}
+            <div className="flex gap-2">
+              {pushEstado === "activado" ? (
+                <>
+                  <button
+                    onClick={() => void desactivarPush()}
+                    disabled={pushBusy}
+                    className="h-9 flex-1 rounded-lg border border-border bg-card text-[12px] font-bold text-muted-foreground hover:text-foreground disabled:opacity-50"
+                  >
+                    {t("cfg.pushDesactivar")}
+                  </button>
+                  <button
+                    onClick={() => void probarPush()}
+                    disabled={pushBusy}
+                    className="h-9 flex-1 rounded-lg bg-emerald-600 text-[12px] font-bold text-white hover:bg-emerald-500 disabled:opacity-50"
+                  >
+                    {t("cfg.pushProbar")}
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={() => void activarPush()}
+                  disabled={pushBusy || pushEstado === "denegado"}
+                  className="h-9 w-full rounded-lg bg-emerald-600 text-[12px] font-bold text-white hover:bg-emerald-500 disabled:opacity-50"
+                >
+                  {t("cfg.pushActivar")}
+                </button>
+              )}
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {/* ---- Acerca de: versión, contacto y marca Cumbre GEO ---- */}
+      <p className="mt-1 text-[11px] font-extrabold uppercase tracking-[0.18em] text-muted-foreground">{t("cfg.grAcerca")}</p>
       <Card className="p-0">
         <Row
           icon={<Info className="h-5 w-5" />}

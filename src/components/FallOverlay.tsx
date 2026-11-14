@@ -20,10 +20,13 @@ import type { LatLng } from "@/lib/park";
 import { alerts } from "@/lib/alertEngine";
 import { t } from "@/lib/i18n";
 import { getIceConfig, iceSmsHref, iceWaHref, triggerIceAutoAlert } from "@/lib/iceContacts";
+import { fallConfirmSegs } from "@/lib/fallDetect";
 
 export type FallAlert = { at: number; help: boolean };
 
-const COUNTDOWN_S = 30;
+// Ventana configurable desde Configuración → Seguridad → Detección de
+// incidentes → Confirmación de estado (15/30/60 s; default 30).
+const COUNTDOWN_S = fallConfirmSegs();
 
 export function FallOverlay({
   alert,

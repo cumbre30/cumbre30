@@ -53,6 +53,34 @@ export function setFallConfigOn(on: boolean): void {
   }
 }
 
+// Ventana de confirmación de estado (v1.12.1): tras confirmar la
+// caída, el overlay "¿Estás bien?" espera este tiempo antes de pasar
+// a ayuda automática (avisar contactos ICE si "Aviso al expirar").
+// Diseño conservador: nunca se salta la pregunta, solo se ajusta
+// cuánto se espera la respuesta del ciclista. Default 30 s.
+
+const LS_CONFIRM = "cumbre30-fallconfirm-v1";
+export const FALL_CONFIRM_SEGS = [15, 30, 60] as const;
+export type FallConfirmSegs = (typeof FALL_CONFIRM_SEGS)[number];
+
+export function fallConfirmSegs(): FallConfirmSegs {
+  try {
+    const v = Number(localStorage.getItem(LS_CONFIRM));
+    if ((FALL_CONFIRM_SEGS as readonly number[]).includes(v)) return v as FallConfirmSegs;
+    return 30;
+  } catch {
+    return 30;
+  }
+}
+
+export function setFallConfirmSegs(segs: FallConfirmSegs): void {
+  try {
+    localStorage.setItem(LS_CONFIRM, String(segs));
+  } catch {
+    // sin almacenamiento disponible
+  }
+}
+
 // ---------- detector ----------
 
 export type FixLike = { lat: number; lon: number; speedKmh: number; t: number };

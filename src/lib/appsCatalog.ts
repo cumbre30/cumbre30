@@ -92,6 +92,8 @@ export const APPS: AppCatalogo[] = [
         // vigente (Ola 2 y 3 del roadmap 2026-11-14).
         cuerpo:
           `v${APP_VERSION} (${APP_VERSION_CODE}):\n` +
+          "• Configuración reorganizada por secciones: General (Seguridad, Monitoreo y salud, Personalización) y Acerca de.\n" +
+          "• Nuevo control «Confirmación de estado»: cuánto espera el «¿Estás bien?» antes de avisar a tus contactos (15/30/60 s).\n" +
           "• Banner de clima con detalle al tocarlo: viento con rachas, calidad del aire e índice UV con consejo de bloqueador.\n" +
           "• Verificar constancias desde la web: enlace directo bajo el botón de descarga del APK.\n" +
           "• Ranking entre amigos: medallas por km totales y enlace de invitación para conectarte.\n" +
