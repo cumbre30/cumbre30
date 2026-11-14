@@ -193,7 +193,7 @@ export function HelpTab() {
       )}
 
       <p className="text-center text-[10.5px] text-muted-foreground/60">
-        Cumbre30 · Ciclocomputador de apoyo al ciclista · cumbregeo.cl
+        Cumbre30 · Sube tu límite · cumbregeo.cl
       </p>
     </div>
   );

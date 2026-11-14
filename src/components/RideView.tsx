@@ -62,6 +62,7 @@ import { formatClock } from "@/lib/geo";
 import { formatStepRemaining, routeProgress, stepGlyph } from "@/lib/routing";
 import { estadoParque, horaSantiago } from "@/lib/horario";
 import { etiquetaClima, useClima } from "@/hooks/useClima";
+import { useCiudad } from "@/hooks/useCiudad";
 import { minimapHeight, useRideTheme } from "@/lib/rideTheme";
 import { alerts } from "@/lib/alertEngine";
 import { fetchAvisosOperativos, textoAviso, type AvisoOperativo } from "@/lib/avisos";
@@ -146,7 +147,15 @@ export function RideView(p: Props) {
   const mm = minimapHeight(theme.minimapSize);
   // Punto 6: clima del parque para el banner (icono + °C). En el APK
   // funciona offline: muestra el último dato guardado con su hora.
+  // Tiempo real (v1.11.1): refresco periódico (useClima), ciudad por
+  // GPS (reverse geocoding con caché offline) y reloj de Santiago vivo.
   const { clima } = useClima();
+  const ciudad = useCiudad(p.position ?? null);
+  const [ahora, setAhora] = useState<Date>(() => new Date());
+  useEffect(() => {
+    const id = setInterval(() => setAhora(new Date()), 30 * 1000);
+    return () => clearInterval(id);
+  }, []);
 
   // ---- Avisos operativos en tiempo real (2026-11-14) ----
   // Fuente remota public/avisos.json en cumbregeo.cl; poll cada 5 min
@@ -353,6 +362,7 @@ export function RideView(p: Props) {
           className="flex items-center gap-2 rounded-full border border-border bg-card/70 px-3 py-1.5"
           role="status"
           aria-label={t("clima.aria", etiquetaClima(clima.code), Math.round(clima.tempC))}
+          title={t("clima.actualizado", horaSantiago(clima.actualizado))}
         >
           {climaIcono(clima.code)}
           <span className="font-mono text-sm font-bold tabular-nums text-foreground">
@@ -360,7 +370,7 @@ export function RideView(p: Props) {
           </span>
           <span className="truncate text-xs text-muted-foreground">{etiquetaClima(clima.code)}</span>
           <span className="ml-auto shrink-0 font-mono text-[10px] text-muted-foreground/80">
-            Santiago · {horaSantiago(clima.actualizado)}
+            {ciudad} · {horaSantiago(ahora)}
           </span>
         </div>
       )}

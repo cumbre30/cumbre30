@@ -79,7 +79,7 @@ const D: Record<string, E> = {
   "nav.ride": ["Ride", "Ride", "Pedal"],
   "nav.explorar": ["Explorar", "Explore", "Explorar"],
   "nav.credencial": ["Credencial", "Pass", "Credencial"],
-  "nav.subtitle": ["Ciclocomputador de apoyo al ciclista", "Cycling computer and ride support", "Ciclocomputador de apoio ao ciclista"],
+  "nav.subtitle": ["Sube tu límite", "Sube tu límite", "Sube tu límite"],
   "nav.abrirMenu": ["Abrir menú", "Open menu", "Abrir menu"],
   "gps.idle": ["GPS en espera", "GPS standby", "GPS em espera"],
   "gps.buscar": ["Buscando GPS…", "Finding GPS…", "Buscando GPS…"],
@@ -135,6 +135,7 @@ const D: Record<string, E> = {
 
   // ---------- clima ----------
   "clima.aria": ["Clima en el parque: {0}, {1} grados", "Park weather: {0}, {1} degrees", "Clima no parque: {0}, {1} graus"],
+  "clima.actualizado": ["Actualizado a las {0}", "Updated at {0}", "Atualizado às {0}"],
   "clima.despejado": ["Despejado", "Clear sky", "Céu limpo"],
   "clima.parcial": ["Parcialmente nublado", "Partly cloudy", "Parcialmente nublado"],
   "clima.nublado": ["Nublado", "Cloudy", "Nublado"],

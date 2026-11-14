@@ -105,9 +105,20 @@ export function useClima() {
     void aplicar();
     const alConectar = () => void aplicar();
     window.addEventListener("online", alConectar);
+    // Tiempo real (v1.11.1): refresco periódico cada 15 min mientras la
+    // app está a la vista, y al volver del segundo plano (APK/pestaña).
+    const refresco = setInterval(() => {
+      if (document.visibilityState === "visible" && navigator.onLine) void aplicar();
+    }, 15 * 60 * 1000);
+    const alVer = () => {
+      if (document.visibilityState === "visible") void aplicar();
+    };
+    document.addEventListener("visibilitychange", alVer);
     return () => {
       vivo = false;
       window.removeEventListener("online", alConectar);
+      document.removeEventListener("visibilitychange", alVer);
+      clearInterval(refresco);
     };
   }, []);
 
