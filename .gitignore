@@ -82,3 +82,9 @@ public/cumbre30-github.zip
 db/pg.log
 public/cumbre30-codigo.zip
 .env*
+
+# --- Binarios y keystores fuera del repo público (APKs van a GitHub Releases; keystores de release quedan solo en disco local) ---
+*.aab
+/apk-store/
+/android/keystore.properties
+/android/cumbre30-release.keystore
