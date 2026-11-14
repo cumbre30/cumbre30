@@ -100,18 +100,15 @@ export const APPS: AppCatalogo[] = [
           "• Modo ahorro de batería: menos GPS por segundo y pantalla apagable con guía por voz.\n",
       },
     ],
-    // APK directo: ACTIVO - descarga desde Google Drive (link del cliente,
-    // v1.8.7 code 33). La URL "usercontent + confirm=t" baja el archivo de
-    // un clic, sin la pantalla de advertencia de Drive ("Download anyway").
-    // El link de visor original, por si hay que compartirlo:
-    //   https://drive.google.com/file/d/1vv25ViRPFuBFugZAsPMQtjN0BrU0CJcb/view?usp=drive_link
-    // Para publicar otro APK: sube el archivo nuevo a Drive, compártelo
-    // "Cualquiera con el enlace" y reemplaza el id de la URL de abajo.
-    // Alternativa futura (GitHub Releases): dejar url: "/api/apk" y definir
-    // la variable APK_DOWNLOAD_URL en el hosting (DEPLOY.md · paso 6).
+    // APK directo: ACTIVO - descarga vía /api/apk, que redirige al APK de la
+    // versión vigente en GitHub Releases (repo cumbre30/cumbre30). Cada tag
+    // v* que se publica dispara el workflow build-apk.yml, que construye el
+    // APK y crea el Release con dos assets: cumbre30-vX.Y.Z-codeN.apk y
+    // cumbre30-latest.apk — el botón siempre sirve la última versión sin
+    // tocar código. (Historia: antes apuntaba a Google Drive v1.8.7 code 33.)
     apk: {
       disponible: true,
-      url: "https://drive.usercontent.google.com/download?id=1vv25ViRPFuBFugZAsPMQtjN0BrU0CJcb&export=download&confirm=t",
+      url: "/api/apk",
       nota: "",
     },
     planes: { publicado: true, url: "/cumbre30pro" },

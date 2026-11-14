@@ -27,11 +27,13 @@ El código llega a tu computador en `cumbre30-codigo.zip` (~7 MB: código
 completo, sin `node_modules`, sin `.env`, sin APKs). Descomprime, abre
 una terminal **dentro de la carpeta** y:
 
+> ✅ **El repo ya existe y está conectado**: `github.com/cumbre30/cumbre30`
+> (creado y subido desde el agente en nov 2026). No repitas este paso;
+> solo `git push` y, si aún no está, conecta el repo en Vercel
+> (Settings → Git) para que cada push se despliegue solo.
+
 ```bash
-git init
-git add .
-git commit -m "Cumbre30 v1.8.2 (build 28)"
-git push --set-upstream https://github.com/TU-USUARIO/cumbre30.git main
+git push --set-upstream https://github.com/cumbre30/cumbre30.git main
 ```
 
 (Paso a paso con soluciones a problemas comunes: `INSTRUCCIONES-GITHUB.md`.)

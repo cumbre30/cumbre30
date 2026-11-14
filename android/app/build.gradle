@@ -2,9 +2,10 @@ apply plugin: 'com.android.application'
 apply plugin: 'org.jetbrains.kotlin.android'
 
 // Firma release: android/keystore.properties + android/cumbre30-release.keystore
-// (ambos committeados, igual que debug.keystore, para que el build sobreviva
-// a los reciclajes del sandbox y la firma sea estable durante toda la vida
-// de la app en Play Store).
+// (SOLO en disco local — no van al repo público. El keystore de debug sí está
+// committeado: los builds de CI firman con él y mantienen el SHA-1 estable.
+// Con los dos archivos locales presentes, el build release firma igual que
+// siempre).
 // SHA-1 release: 96:29:F6:76:0F:A6:D8:99:42:42:4A:01:D0:83:4C:22:55:92:3F:74
 // (registrar como cliente OAuth Android en Google Cloud Console junto al debug).
 def keystoreProperties = new Properties()
