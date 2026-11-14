@@ -33,6 +33,7 @@ import {
   CloudSnow,
   CloudSun,
   Copy,
+  Droplets,
   Gauge,
   HeartPulse,
   ListTree,
@@ -51,6 +52,7 @@ import {
   Timer,
   TrendingDown,
   TrendingUp,
+  Wind,
   X,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
@@ -61,7 +63,7 @@ import { ACCESOS_CICLISTAS, LIMIT_KMH, PEDALEA_SEGURO } from "@/lib/park";
 import { formatClock } from "@/lib/geo";
 import { formatStepRemaining, routeProgress, stepGlyph } from "@/lib/routing";
 import { estadoParque, horaSantiago } from "@/lib/horario";
-import { etiquetaClima, useClima } from "@/hooks/useClima";
+import { etiquetaAire, etiquetaClima, etiquetaUV, useClima } from "@/hooks/useClima";
 import { useCiudad } from "@/hooks/useCiudad";
 import { minimapHeight, useRideTheme } from "@/lib/rideTheme";
 import { alerts } from "@/lib/alertEngine";
@@ -156,6 +158,8 @@ export function RideView(p: Props) {
     const id = setInterval(() => setAhora(new Date()), 30 * 1000);
     return () => clearInterval(id);
   }, []);
+  // Detalle expandible del banner (v1.12.0): viento, calidad del aire y UV.
+  const [climaOpen, setClimaOpen] = useState(false);
 
   // ---- Avisos operativos en tiempo real (2026-11-14) ----
   // Fuente remota public/avisos.json en cumbregeo.cl; poll cada 5 min
@@ -358,21 +362,74 @@ export function RideView(p: Props) {
           key; offline muestra el último dato con su hora. Arriba,
           agrupado con la fila de modo/avisos/SOS. */}
       {clima && (
-        <div
-          className="flex items-center gap-2 rounded-full border border-border bg-card/70 px-3 py-1.5"
-          role="status"
-          aria-label={t("clima.aria", etiquetaClima(clima.code), Math.round(clima.tempC))}
-          title={t("clima.actualizado", horaSantiago(clima.actualizado))}
-        >
-          {climaIcono(clima.code)}
-          <span className="font-mono text-sm font-bold tabular-nums text-foreground">
-            {Math.round(clima.tempC)}°
-          </span>
-          <span className="truncate text-xs text-muted-foreground">{etiquetaClima(clima.code)}</span>
-          <span className="ml-auto shrink-0 font-mono text-[10px] text-muted-foreground/80">
-            {ciudad} · {horaSantiago(ahora)}
-          </span>
-        </div>
+        <>
+          {/* Banner tocable (v1.12.0): el toque abre el detalle con
+              viento, calidad del aire e índice UV (bloqueador). */}
+          <button
+            onClick={() => setClimaOpen((v) => !v)}
+            className="flex items-center gap-2 rounded-full border border-border bg-card/70 px-3 py-1.5 text-left"
+            aria-expanded={climaOpen}
+            aria-label={t("clima.detalleAria")}
+          >
+            {climaIcono(clima.code)}
+            <span className="font-mono text-sm font-bold tabular-nums text-foreground">
+              {Math.round(clima.tempC)}°
+            </span>
+            <span className="truncate text-xs text-muted-foreground">{etiquetaClima(clima.code)}</span>
+            <span className="ml-auto flex shrink-0 items-center gap-1 font-mono text-[10px] text-muted-foreground/80">
+              {ciudad} · {horaSantiago(ahora)}
+              <ChevronDown className={`h-3.5 w-3.5 transition-transform ${climaOpen ? "rotate-180" : ""}`} />
+            </span>
+          </button>
+          {climaOpen && (
+            <div className="rounded-xl border border-border bg-card/70 p-3" role="region">
+              <ul className="space-y-2">
+                {(typeof clima.windKmh === "number" || typeof clima.gustKmh === "number") && (
+                  <li className="flex items-center gap-2 text-xs text-foreground/90">
+                    <Wind className="h-4 w-4 shrink-0 text-sky-500" />
+                    <span className="min-w-0 flex-1">
+                      {t("clima.ver")} {typeof clima.windKmh === "number" ? clima.windKmh : "—"} km/h
+                      {typeof clima.gustKmh === "number" && (
+                        <span className="text-muted-foreground"> · {t("clima.rachas")} {clima.gustKmh} km/h</span>
+                      )}
+                    </span>
+                  </li>
+                )}
+                {typeof clima.aqi === "number" && (
+                  <li className="flex items-center gap-2 text-xs text-foreground/90">
+                    <Droplets className="h-4 w-4 shrink-0 text-emerald-500" />
+                    <span className="min-w-0 flex-1">
+                      {t("clima.aire")} {clima.aqi} · {etiquetaAire(clima.aqi)}
+                    </span>
+                  </li>
+                )}
+                {typeof clima.uv === "number" && (
+                  <li className="flex items-start gap-2 text-xs text-foreground/90">
+                    <Sun className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+                    <span className="min-w-0 flex-1">
+                      {t("clima.uv")} {clima.uv} · {etiquetaUV(clima.uv)}
+                      {clima.uv >= 8 ? (
+                        <span className="mt-1 block rounded bg-amber-500/15 px-2 py-1 text-[10.5px] font-bold text-amber-600 dark:text-amber-400">
+                          {t("clima.bloqueadorFuerte")}
+                        </span>
+                      ) : clima.uv >= 3 ? (
+                        <span className="mt-1 block rounded bg-amber-500/15 px-2 py-1 text-[10.5px] font-bold text-amber-600 dark:text-amber-400">
+                          {t("clima.bloqueador")}
+                        </span>
+                      ) : null}
+                    </span>
+                  </li>
+                )}
+                {typeof clima.windKmh !== "number" && typeof clima.gustKmh !== "number" && clima.aqi === undefined && clima.uv === undefined && (
+                  <li className="text-xs text-muted-foreground">{t("clima.sinDato")}</li>
+                )}
+              </ul>
+              <p className="mt-2 font-mono text-[9.5px] text-muted-foreground/70">
+                {t("clima.actualizado", horaSantiago(clima.actualizado))}
+              </p>
+            </div>
+          )}
+        </>
       )}
 
       {/* Punto 4: fila superior = píldora de modo/estado + icono de

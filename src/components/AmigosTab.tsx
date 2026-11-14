@@ -7,8 +7,8 @@
 // (token Bearer del servidor de cuenta vía apiUrl()).
 // ============================================================
 
-import { useCallback, useEffect, useState } from "react";
-import { Award, LogIn, Trash2, UserPlus, Users } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Award, Check, Link2, LogIn, Trash2, UserPlus, Users } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +16,7 @@ import { useMe } from "@/hooks/useMe";
 import { isOfflineMode } from "@/lib/offlineAuth";
 import { apiUrl } from "@/lib/backend";
 import { serverToken } from "@/lib/cloudSync";
+import { VERIFICAR_ORIGEN } from "@/lib/constancia";
 import { PINS, DEFAULT_PIN, type PinId } from "@/lib/pins";
 
 type FriendRow = {
@@ -28,13 +29,30 @@ type FriendRow = {
   lastRideDate: string | null;
 };
 
-export function AmigosTab({ onGoPerfil }: { onGoPerfil?: () => void }) {
+// Medallas del ranking por km totales (Ola 2).
+const MEDALLAS = ["🥇", "🥈", "🥉"];
+
+export function AmigosTab({ onGoPerfil, invitado }: { onGoPerfil?: () => void; invitado?: string | null }) {
   const { me, ready } = useMe();
   const [friends, setFriends] = useState<FriendRow[] | null>(null); // null = cargando
   const [listError, setListError] = useState(false);
   const [friendName, setFriendName] = useState("");
   const [friendError, setFriendError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [copiado, setCopiado] = useState(false);
+  const [mostrarEnlace, setMostrarEnlace] = useState<string | null>(null);
+
+  // Invitación por enlace (Ola 2): /geo?agregar=usuario prellena el campo.
+  useEffect(() => {
+    if (invitado) setFriendName(invitado);
+  }, [invitado]);
+
+  // Ranking por km totales: posición de cada amigo para las medallas.
+  const posiciones = useMemo(() => {
+    const m = new Map<string, number>();
+    [...(friends ?? [])].sort((a, b) => b.totalKm - a.totalKm).forEach((f, i) => m.set(f.username, i + 1));
+    return m;
+  }, [friends]);
 
   const offline = isOfflineMode();
   const url = apiUrl("/api/friends");
@@ -178,6 +196,39 @@ export function AmigosTab({ onGoPerfil }: { onGoPerfil?: () => void }) {
           </Button>
         </div>
         {friendError && <p className="mb-2 text-xs text-red-600 dark:text-red-400">{friendError}</p>}
+        {invitado && (
+          <p className="mb-2 text-xs font-medium text-emerald-700 dark:text-emerald-300">
+            Te invitaron a conectar con @{invitado}: revisa el nombre y toca Agregar.
+          </p>
+        )}
+        {me?.user.username && (
+          <>
+            <button
+              onClick={() => {
+                const enlace = `${VERIFICAR_ORIGEN}/geo?agregar=${me.user.username}`;
+                navigator.clipboard?.writeText
+                  ? navigator.clipboard.writeText(enlace).then(
+                      () => {
+                        setCopiado(true);
+                        setTimeout(() => setCopiado(false), 2500);
+                      },
+                      () => setMostrarEnlace(enlace)
+                    )
+                  : setMostrarEnlace(enlace);
+              }}
+              className="mb-1 flex w-full items-center justify-center gap-1.5 rounded-lg border border-border px-3 py-2 text-xs font-medium text-muted-foreground hover:text-foreground"
+              aria-label="Copiar tu enlace de invitación de amigos"
+            >
+              {copiado ? <Check className="h-3.5 w-3.5" /> : <Link2 className="h-3.5 w-3.5" />}
+              {copiado ? "Enlace copiado ✓" : "Copiar mi enlace de invitación"}
+            </button>
+            {mostrarEnlace && (
+              <p className="mb-1 break-all text-center text-[10.5px] text-emerald-700 dark:text-emerald-300">
+                {mostrarEnlace}
+              </p>
+            )}
+          </>
+        )}
         {listError && (
           <p className="mb-2 text-xs text-red-600 dark:text-red-400">
             No pudimos cargar la lista. Revisa tu conexión y vuelve a intentar.
@@ -197,6 +248,11 @@ export function AmigosTab({ onGoPerfil }: { onGoPerfil?: () => void }) {
                 <li key={f.username} className="rounded-lg border border-border bg-background/60 p-3">
                   <div className="flex items-center gap-2">
                     <span className="text-xl">{fp.emoji}</span>
+                    {posiciones.get(f.username) && posiciones.get(f.username)! <= 3 && (
+                      <span aria-label={`Puesto ${posiciones.get(f.username)} por km`} className="text-sm">
+                        {MEDALLAS[posiciones.get(f.username)! - 1]}
+                      </span>
+                    )}
                     <span className="text-sm font-semibold text-foreground">@{f.username}</span>
                     <span className="ml-auto flex items-center gap-1 text-[11px] text-amber-700 dark:text-amber-300">
                       <Award className="h-3.5 w-3.5" /> {f.achievementCount ?? 0}
@@ -223,7 +279,8 @@ export function AmigosTab({ onGoPerfil }: { onGoPerfil?: () => void }) {
       </Card>
       <p className="text-[11px] leading-relaxed text-muted-foreground/80">
         Al agregar a alguien la conexión es mutua e inmediata: verás sus km y logros, y aparecerás
-        en su lista. El nombre de usuario se cambia en Perfil (1 vez cada 30 días).
+        en su lista. Las medallas 🥇🥈🥉 ordenan por km totales. El nombre de usuario se cambia en
+        Perfil (1 vez cada 30 días).
       </p>
     </div>
   );

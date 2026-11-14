@@ -142,6 +142,44 @@ nov 2026:
 
 ---
 
+### Web Push y enlaces de ride (v1.12.0)
+
+**Web Push (Ola 2)** — avisos del parque en la web. Necesita 4 variables de entorno en
+Vercel (Settings → Environment Variables) y un re-despliegue. Los valores listos para
+copiar están en `push-credenciales.txt` (junto a este documento):
+
+| Variable | Qué es |
+| --- | --- |
+| `VAPID_PUBLIC_KEY` | Clave pública VAPID (la ve el navegador, no es secreto) |
+| `VAPID_PRIVATE_KEY` | Clave privada VAPID (secreta) |
+| `VAPID_SUBJECT` | `mailto:contacto@cumbregeo.cl` — contacto declarado al servicio de push |
+| `PUSH_ADMIN_KEY` | Secreto para el envío masivo por curl |
+
+Mientras no estén configuradas, `/api/push/*` responde `PUSH_NO_CONFIG` y la app muestra
+"el servidor todavía no tiene avisos push configurados" — nada se rompe.
+
+Enviar un aviso a todos los suscritos (por ejemplo al publicar un aviso operativo nuevo):
+
+```bash
+curl -X POST https://cumbregeo.cl/api/push/send \
+     -H "x-admin-key: $PUSH_ADMIN_KEY" \
+     -H "Content-Type: application/json" \
+     -d '{"title":"Parquemet","body":"Las luces se encienden a las 20:15 hoy","url":"/"}'
+```
+
+Las tablas nuevas (`PushSub`, `RideShare`) se crean solas con el primer uso (DDL
+idempotente); si prefieres tenerlas desde el principio:
+
+```bash
+DATABASE_URL="postgresql://…neon.tech/neondb?sslmode=require" npx prisma db push
+```
+
+**Enlaces de ride (Ola 3)** — sin configuración: el ciclista crea el enlace desde
+Historial → "Link" y comparte `cumbregeo.cl/compartir?c=CÓDIGO` (solo estadísticas,
+nunca GPS). `cumbregeo.cl/rides` lista los viajes de la cuenta con sesión iniciada.
+
+---
+
 ### Costos
 
 | Servicio | Plan | Costo |

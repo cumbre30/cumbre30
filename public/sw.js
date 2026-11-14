@@ -58,3 +58,42 @@ self.addEventListener("fetch", (event) => {
   // Navegaciones y estáticos: red primero, caché de respaldo
   event.respondWith(networkFirst(req));
 });
+
+// ============================================================
+// Web Push (Ola 2): avisos del parque en la web. El payload es
+// JSON { title, body, url }; sin payload válido se muestra uno
+// genérico para que userVisibleOnly nunca se incumpla.
+// ============================================================
+self.addEventListener("push", (event) => {
+  let data = { title: "Cumbre30", body: "", url: "/" };
+  try {
+    if (event.data) data = { ...data, ...event.data.json() };
+  } catch {
+    /* payload no JSON: queda el aviso genérico */
+  }
+  event.waitUntil(
+    self.registration.showNotification(data.title || "Cumbre30", {
+      body: data.body || "",
+      icon: "/icons/icon-192.png",
+      badge: "/icons/icon-192.png",
+      tag: "cumbre30-aviso",
+      data: { url: data.url || "/" },
+    })
+  );
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const url = event.notification?.data?.url || "/";
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((list) => {
+      for (const c of list) {
+        if (c.url.startsWith(self.location.origin)) {
+          c.navigate(url).catch(() => {});
+          return c.focus();
+        }
+      }
+      return self.clients.openWindow(url);
+    })
+  );
+});

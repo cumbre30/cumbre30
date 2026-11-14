@@ -122,6 +122,8 @@ const CSS = `
 #geo-root .modal-cuerpo{padding:26px 28px 30px;max-height:72vh;overflow-y:auto}
 #geo-root .apk-btn{width:100%;margin:0 0 4px;padding:14px;font-size:1rem;display:flex;align-items:center;justify-content:center;gap:8px;border:none}
 #geo-root .apk-nota{text-align:center;font-size:.8rem;color:var(--gris);margin:6px 0 22px}
+#geo-root .apk-verificar{display:flex;align-items:center;justify-content:center;width:100%;margin:2px 0 2px;padding:12px;font-size:.95rem;border:1px solid var(--borde);border-radius:10px;color:var(--verde,#2fbf8f);text-decoration:none;background:rgba(47,191,143,.06);transition:background .15s}
+#geo-root .apk-verificar:hover{background:rgba(47,191,143,.14)}
 #geo-root .capturas{display:flex;gap:14px;overflow-x:auto;scroll-snap-type:x mandatory;padding:4px 2px 14px;margin-bottom:20px;scrollbar-width:thin}
 #geo-root .capturas img{flex:0 0 auto;height:300px;width:auto;scroll-snap-align:center;border-radius:14px;border:1px solid var(--borde)}
 #geo-root .acordeon{border:1px solid var(--borde);border-radius:14px;overflow:hidden;margin-top:10px}
@@ -653,6 +655,13 @@ export default function GeoSite({
                     <Download style={{ width: 20, height: 20 }} aria-hidden /> Descargar APK
                   </a>
                   <p className="apk-nota">Instalación directa desde el archivo APK.</p>
+                  {/* Verificación de constancias (v1.12.0): el QR del PDF
+                      llega a /verificar; el enlace directo vive aquí para
+                      quien quiera comprobar un ride sin escanear. */}
+                  <a href="/verificar" className="apk-verificar">
+                    Verificar constancia de un ride
+                  </a>
+                  <p className="apk-nota">Comprueba el código de integridad de cualquier constancia con QR.</p>
                 </>
               ) : (
                 <>

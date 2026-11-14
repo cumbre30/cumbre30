@@ -39,6 +39,8 @@ import { formatClock } from "@/lib/geo";
 import { clearHistory, FREE_RIDE_LIMIT, historyStore, readRideTrack, ridesForAccount, type RideSummary } from "@/lib/history";
 import { buildRidePdf, type RideIdentity } from "@/lib/ridePdf";
 import { buildConstanciaPayload, constanciaHash, registerConstancia } from "@/lib/constancia";
+import { apiUrl } from "@/lib/backend";
+import { serverToken } from "@/lib/cloudSync";
 import { shareOrDownloadFile } from "@/lib/shareFile";
 import { buildRideGpxBlob } from "@/lib/gpx";
 import { buildShareImage, sharePngBlob } from "@/lib/shareImage";
@@ -92,6 +94,9 @@ export function HistoryTab({
   const [constOpen, setConstOpen] = useState(false);
   const [shareBusy, setShareBusy] = useState(false);
   const [shareMsg, setShareMsg] = useState<string | null>(null);
+  // Enlace público del ride (Ola 3): crea /compártelo por Historial.
+  const [linkBusyId, setLinkBusyId] = useState<string | null>(null);
+  const [linkMsg, setLinkMsg] = useState<string | null>(null);
 
   // Filtros: por defecto solo la semana actual; modo: todos
   const [range, setRange] = useState<RangeKey>("week");
@@ -200,6 +205,54 @@ export function HistoryTab({
     } finally {
       setShareBusy(false);
       setTimeout(() => setShareMsg(null), 8000);
+    }
+  };
+
+  // Enlace público compartible (Ola 3): POST con la cuenta → código
+  // corto → se comparte o copia. Solo rides GPS sincronizados.
+  const compartirLink = async (r: RideSummary) => {
+    if (r.source === "sim") return;
+    const url = apiUrl("/api/rides/share");
+    setLinkBusyId(r.id);
+    setLinkMsg(null);
+    try {
+      if (!url) {
+        setLinkMsg("El enlace público necesita el servidor de cuenta: configúralo en Perfil → Cuenta.");
+        return;
+      }
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      const tok = serverToken(); // APK: token Bearer; web: cookie de sesión
+      if (tok) headers.Authorization = `Bearer ${tok}`;
+      const res = await fetch(url, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ clientId: r.id }),
+        signal: AbortSignal.timeout(12000),
+      });
+      if (res.status === 401) {
+        setLinkMsg("Inicia sesión en Perfil → Cuenta para crear el enlace público.");
+        return;
+      }
+      if (!res.ok) {
+        setLinkMsg("No pudimos crear el enlace. Revisa tu conexión e intenta de nuevo.");
+        return;
+      }
+      const d = (await res.json()) as { url?: string };
+      const enlace = d.url;
+      if (!enlace) throw new Error();
+      const texto = "Mi pedaleo en el cerro con Cumbre30 🚴 " + enlace;
+      if (navigator.share) {
+        await navigator.share({ title: "Ride Cumbre30", text: texto, url: enlace });
+        setLinkMsg("Enlace compartido ✓");
+      } else {
+        await navigator.clipboard.writeText(texto);
+        setLinkMsg(`Enlace copiado ✓ ${enlace}`);
+      }
+    } catch {
+      setLinkMsg("No pudimos crear el enlace. Revisa tu conexión e intenta de nuevo.");
+    } finally {
+      setLinkBusyId(null);
+      setTimeout(() => setLinkMsg(null), 12000);
     }
   };
 
@@ -523,6 +576,20 @@ export function HistoryTab({
                         <Button
                           variant="outline"
                           size="sm"
+                          disabled={linkBusyId === r.id}
+                          onClick={() => void compartirLink(r)}
+                          title="Crear un enlace público con las estadísticas del viaje (sin GPS)"
+                          className="h-7 border-border px-2 text-xs text-muted-foreground hover:bg-card hover:text-foreground disabled:opacity-40"
+                          aria-label={`Crear enlace público del viaje del ${fmtDate(r.dateISO)}`}
+                        >
+                          <Share2 className="h-3.5 w-3.5 mr-1" />
+                          {linkBusyId === r.id ? "…" : "Link"}
+                        </Button>
+                      )}
+                      {r.source !== "sim" && (
+                        <Button
+                          variant="outline"
+                          size="sm"
                           disabled={gpxBusyId === r.id}
                           onClick={() => void exportGpx(r)}
                           title={
@@ -608,6 +675,9 @@ export function HistoryTab({
           )}
           {gpxMsg && (
             <p className="text-sm text-emerald-600 dark:text-emerald-400" role="status">{gpxMsg}</p>
+          )}
+          {linkMsg && (
+            <p className="break-all text-sm text-emerald-600 dark:text-emerald-400" role="status">{linkMsg}</p>
           )}
           <Button
             variant="outline"

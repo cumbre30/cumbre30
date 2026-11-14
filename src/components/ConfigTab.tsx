@@ -12,7 +12,7 @@
 // se aplican con licencia activa.
 // ============================================================
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Volume2, VolumeX, Mic, MicOff, Info, Mail, Moon, Palette, Lock, Languages, Siren, UserPlus, UserRound, BellRing, HeartPulse } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Speedometer } from "@/components/Speedometer";
@@ -30,6 +30,8 @@ import {
 } from "@/lib/iceContacts";
 import { getFcConfig, saveFcConfig, type FcConfig } from "@/lib/zonasFc";
 import { t, useLang, setLang, type Lang } from "@/lib/i18n";
+import { isNativeApp } from "@/lib/rideNative";
+import { serverToken } from "@/lib/cloudSync";
 import {
   MINIMAP_SIZES,
   SPEEDO_SIZES,
@@ -189,6 +191,110 @@ export function ConfigTab({
     setProNote(null);
   };
 
+  // ---- Web Push del parque (Ola 2): avisos del navegador en la web ----
+  // Solo visible fuera del APK (el Android ya tiene notificaciones
+  // locales nativas). Estado inicial según permiso y suscripción viva.
+  const [pushEstado, setPushEstado] = useState<"cargando" | "activado" | "apagado" | "denegado" | "nativo">("cargando");
+  const [pushMsg, setPushMsg] = useState<string | null>(null);
+  const [pushBusy, setPushBusy] = useState(false);
+
+  useEffect(() => {
+    const revisar = async () => {
+      if (isNativeApp()) {
+        setPushEstado("nativo");
+        return;
+      }
+      if (typeof Notification === "undefined" || !("serviceWorker" in navigator) || !("PushManager" in window)) {
+        setPushEstado("apagado");
+        return;
+      }
+      if (Notification.permission === "denied") {
+        setPushEstado("denegado");
+        return;
+      }
+      try {
+        const reg = await navigator.serviceWorker.getRegistration();
+        const sub = reg ? await reg.pushManager.getSubscription() : null;
+        setPushEstado(sub ? "activado" : "apagado");
+      } catch {
+        setPushEstado("apagado");
+      }
+    };
+    void revisar();
+  }, []);
+
+  const activarPush = async () => {
+    setPushBusy(true);
+    setPushMsg(null);
+    try {
+      const rpk = await fetch("/api/push/publickey");
+      if (!rpk.ok) {
+        setPushMsg(t("cfg.pushNoCfg"));
+        return;
+      }
+      const { publicKey } = (await rpk.json()) as { publicKey: string };
+      const permiso = await Notification.requestPermission();
+      if (permiso !== "granted") {
+        setPushEstado("denegado");
+        return;
+      }
+      const reg = await navigator.serviceWorker.ready;
+      const u8a = new Uint8Array(publicKey.replace(/-/g, "+").replace(/_/g, "/").match(/.{1,2}/g)!.map((h) => parseInt(h, 16)));
+      const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: u8a as BufferSource });
+      const j = sub.toJSON() as { endpoint?: string; keys?: { p256dh: string; auth: string } };
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      const tok = serverToken();
+      if (tok) headers.Authorization = `Bearer ${tok}`;
+      const rs = await fetch("/api/push/subscribe", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ endpoint: j.endpoint, keys: j.keys }),
+      });
+      if (!rs.ok) throw new Error();
+      setPushEstado("activado");
+    } catch {
+      setPushMsg(t("cfg.pushErr"));
+    } finally {
+      setPushBusy(false);
+    }
+  };
+
+  const desactivarPush = async () => {
+    setPushBusy(true);
+    setPushMsg(null);
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      const sub = await reg.pushManager.getSubscription();
+      if (sub) {
+        await fetch(`/api/push/subscribe?endpoint=${encodeURIComponent(sub.endpoint)}`, { method: "DELETE" });
+        await sub.unsubscribe();
+      }
+      setPushEstado("apagado");
+    } catch {
+      setPushMsg(t("cfg.pushErr"));
+    } finally {
+      setPushBusy(false);
+    }
+  };
+
+  const probarPush = async () => {
+    setPushBusy(true);
+    setPushMsg(null);
+    try {
+      const headers: Record<string, string> = {};
+      const tok = serverToken();
+      if (tok) headers.Authorization = `Bearer ${tok}`;
+      const r = await fetch("/api/push/test", { method: "POST", headers });
+      if (r.status === 401) setPushMsg(t("cfg.pushSesion"));
+      else if (!r.ok) setPushMsg(t("cfg.pushNoCfg"));
+      else setPushMsg(t("cfg.pushEnviada"));
+    } catch {
+      setPushMsg(t("cfg.pushErr"));
+    } finally {
+      setPushBusy(false);
+    }
+  };
+
   return (
     <div className="flex flex-col gap-4">
       <Card className="p-0">
@@ -304,6 +410,54 @@ export function ConfigTab({
           )}
         </div>
       </Card>
+
+      {/* ---- Avisos push del parque (Ola 2): web, sin instalar nada ---- */}
+      {pushEstado !== "nativo" && (
+        <Card className="p-0">
+          <Row icon={<BellRing className="h-5 w-5" />} title={t("cfg.push")} sub={t("cfg.pushSub")}>
+            <span />
+          </Row>
+          <div className="px-4 pb-4">
+            {pushEstado === "activado" && (
+              <p className="mb-2 text-[11.5px] font-semibold text-emerald-700 dark:text-emerald-300">{t("cfg.pushActivado")}</p>
+            )}
+            {pushEstado === "denegado" && (
+              <p className="mb-2 text-[11.5px] font-semibold text-amber-700 dark:text-amber-300">{t("cfg.pushDenegado")}</p>
+            )}
+            {pushMsg && (
+              <p className="mb-2 text-[11.5px] font-semibold text-emerald-700 dark:text-emerald-300" role="status">{pushMsg}</p>
+            )}
+            <div className="flex gap-2">
+              {pushEstado === "activado" ? (
+                <>
+                  <button
+                    onClick={() => void desactivarPush()}
+                    disabled={pushBusy}
+                    className="h-9 flex-1 rounded-lg border border-border bg-card text-[12px] font-bold text-muted-foreground hover:text-foreground disabled:opacity-50"
+                  >
+                    {t("cfg.pushDesactivar")}
+                  </button>
+                  <button
+                    onClick={() => void probarPush()}
+                    disabled={pushBusy}
+                    className="h-9 flex-1 rounded-lg bg-emerald-600 text-[12px] font-bold text-white hover:bg-emerald-500 disabled:opacity-50"
+                  >
+                    {t("cfg.pushProbar")}
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={() => void activarPush()}
+                  disabled={pushBusy || pushEstado === "denegado"}
+                  className="h-9 w-full rounded-lg bg-emerald-600 text-[12px] font-bold text-white hover:bg-emerald-500 disabled:opacity-50"
+                >
+                  {t("cfg.pushActivar")}
+                </button>
+              )}
+            </div>
+          </div>
+        </Card>
+      )}
 
       {/* ---- Selector de idioma (turistas, 2026-11-14): textos y voces ---- */}
       <Card className="p-0">

@@ -154,6 +154,17 @@ export default function Home() {
   useEffect(() => {
     void programarAvisoHorario();
   }, []);
+  // Invitación de amigo (Ola 2): /geo?agregar=usuario abre la pestaña
+  // Amigos con el nombre prellenado (después del montaje, sin romper
+  // la hidratación).
+  const [invitado, setInvitado] = useState<string | null>(null);
+  useEffect(() => {
+    const quien = new URLSearchParams(window.location.search).get("agregar");
+    if (quien) {
+      setInvitado(quien);
+      setScreen("amigos");
+    }
+  }, []);
   // Enlace viaje ↔ cuenta: rides nuevos y antiguos quedan asociados al
   // correo de la sesión; sin correo son locales del dispositivo.
   const userEmail = me?.user.email ?? null;
@@ -308,7 +319,7 @@ export default function Home() {
                 onGoPro={() => go("planes")} // desafíos Pro → comparación FREE/PRO
               />
             )}
-            {screen === "amigos" && <AmigosTab onGoPerfil={() => go("perfil")} />}
+            {screen === "amigos" && <AmigosTab onGoPerfil={() => go("perfil")} invitado={invitado} />}
             {screen === "perfil" && <ProfileTab />}
             {screen === "config" && (
               <ConfigTab

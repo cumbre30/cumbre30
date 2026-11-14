@@ -89,15 +89,15 @@ export const APPS: AppCatalogo[] = [
         titulo: "Novedades de esta versión",
         // Sólo la última versión + build (salen de appVersion.ts, quedan
         // sincronizados solos) + lista de funcionalidades del release
-        // vigente (Ola 1 del roadmap 2026-11-14).
+        // vigente (Ola 2 y 3 del roadmap 2026-11-14).
         cuerpo:
           `v${APP_VERSION} (${APP_VERSION_CODE}):\n` +
-          "• Contactos de emergencia (ICE): si una caída deja la alerta sin respuesta, la app avisa a tu gente con tu ubicación.\n" +
-          "• Moderación comunitaria de incidencias: confirma «sigue ahí» o marca «ya resuelto»; los reportes sin confirmación expiran a los 30 días.\n" +
-          "• Pulso cardíaco y zonas de esfuerzo con sensor Bluetooth: aviso por voz al entrar en zona alta.\n" +
-          "• Rachas de actividad en Estadísticas: días y semanas seguidas pedaleando.\n" +
-          "• Notificaciones locales del horario del parque: aviso de luces al anochecer y de cierre (APK).\n" +
-          "• Modo ahorro de batería: menos GPS por segundo y pantalla apagable con guía por voz.\n",
+          "• Banner de clima con detalle al tocarlo: viento con rachas, calidad del aire e índice UV con consejo de bloqueador.\n" +
+          "• Verificar constancias desde la web: enlace directo bajo el botón de descarga del APK.\n" +
+          "• Ranking entre amigos: medallas por km totales y enlace de invitación para conectarte.\n" +
+          "• Enlace público del ride desde Historial: comparte tus estadísticas sin exponer tu GPS.\n" +
+          "• Tus rides en la web: cumbregeo.cl/rides con tu cuenta, desde cualquier navegador.\n" +
+          "• Avisos push del parque en la web (luces, cierres): Configuración → Avisos del parque (web).\n",
       },
     ],
     // APK directo: ACTIVO - descarga vía /api/apk, que redirige al APK de la

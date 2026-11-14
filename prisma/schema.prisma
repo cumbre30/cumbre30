@@ -165,3 +165,32 @@ model Constancia {
 
   @@index([rideId])
 }
+
+// ============================================================
+// Suscripciones Web Push (Ola 2): avisos del parque en la web
+// (luces, cierres, incidentes). Una fila por endpoint del
+// navegador; userId opcional (cuenta con sesión) para avisos
+// personales (envío de prueba). El endpoint caducado se elimina
+// al enviar (404/410 del servicio de push).
+// ============================================================
+model PushSub {
+  id        String   @id @default(cuid())
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  userId    String?
+  createdAt DateTime @default(now())
+}
+
+// ============================================================
+// Enlaces públicos de ride (Ola 3): código corto compartible
+// (cumbregeo.cl/compartir?c=CÓDIGO) que muestra las estadísticas
+// del viaje. Solo stats: sin GPS del trazado (privacidad) y solo
+// con opt-in del dueño (crea el enlace desde Historial).
+// ============================================================
+model RideShare {
+  id        String   @id @default(cuid())
+  code      String   @unique
+  rideId    String
+  createdAt DateTime @default(now())
+}
