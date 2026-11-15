@@ -28,21 +28,12 @@ const nextConfig: NextConfig = isStaticExport
   : {
       ...baseConfig,
       output: "standalone",
-      // /version.json es la fuente de «última versión» que consulta el
-      // APK (lib/actualizacion.ts, desde el WebView en origen distinto):
-      // CORS abierto para que el fetch pueda leerlo. En el export
-      // estático no aplica (el APK usa el de la web desplegada).
-      // OJO: headers() devuelve un ARRAY de reglas (Next 16), no un
-      // objeto — un objeto inválido tumba el build (fallo Vercel del
-      // 2026-11-15).
-      async headers() {
-        return [
-          {
-            source: "/version.json",
-            headers: [{ key: "Access-Control-Allow-Origin", value: "*" }],
-          },
-        ];
-      },
+      // NOTA (v1.12.4): el CORS de /api/version va en el propio route
+      // handler (Access-Control-Allow-Origin en la Response) — sin
+      // headers() en el config. Un headers() mal formado tumba el
+      // build de Vercel en validación (fallo del 2026-11-15); el
+      // export estático del APK no pasa por aquí, así que cualquier
+      // cambio en esta rama hay que probarlo con next build local.
     };
 
 export default nextConfig;
