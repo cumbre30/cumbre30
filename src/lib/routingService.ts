@@ -1137,6 +1137,34 @@ async function osrmCiudadPorFuera(
   return r0;
 }
 
+/** Ruta HÍBRIDA ciudad → portería, POR FUERA del parque, para orígenes
+ *  lejos de la cobertura del grafo local (mismo mecanismo v1.12.10 del
+ *  acceso directo en computeRoute): OSRM lleva SOLO hasta el nodo ANCLA
+ *  del grafo más cercano al origen (tramo corto de calle, validado contra
+ *  la geocerca) y desde ahí el grafo local con el interior bloqueado
+ *  completa hasta la portería (trazarAccesoLocal). Garantiza el «por
+ *  fuera» también cuando el origen queda a >250 m de un nodo (caso
+ *  Bellavista → La Pirámide: el OSRM completo trae ~5 km por dentro del
+ *  parque y el rodeo con waypoints no lo corrige). Si la cabeza OSRM sale
+ *  sucia o el grafo no conecta, cae a osrmCiudadPorFuera. */
+async function hibridaCiudadPorFuera(
+  from: LatLng,
+  to: LatLng,
+  net: Network,
+  dirOk: ReturnType<typeof crearDirOk>,
+  nodeOk?: (lat: number, lon: number) => boolean,
+): Promise<NavRoute | null> {
+  const si = snapInfo(net, from);
+  if (si.distM > 3000) return osrmCiudadPorFuera(from, to, net, nodeOk);
+  const anchorPos: LatLng = { lat: net.nodes[si.idx][0], lon: net.nodes[si.idx][1] };
+  const head = await osrmRoute(from, anchorPos);
+  if (head && metrosInteriorParque(head, to) <= 150) {
+    const tail = trazarAccesoLocal(net, anchorPos, to, dirOk);
+    if (tail) return concatenarRutas(head, tail.route);
+  }
+  return osrmCiudadPorFuera(from, to, net, nodeOk);
+}
+
 // ----------------------------------------------------------------
 // Rutas predefinidas del mapa («generar ruta» en la capa Rutas)
 // ----------------------------------------------------------------
@@ -1216,26 +1244,28 @@ export async function computePresetRoute(
       // Ciudad → portería donde nace el trazado, SIEMPRE POR FUERA del
       // parque (cliente 2026-11-15: «me marca con ingreso al cerro y debe
       // ser por fuera, así como la ruta 1 y 2 parten del acceso»).
-      // 1º grafo local por calles de la ciudad: rápido y con el interior
-      // bloqueado (salvo la boca de la portería) — medido 2026-11-15, el
-      // OSRM crudo Bellavista→La Pirámide trae ~5.2 km POR DENTRO del
-      // parque (entra por Pío Nono y sube por el borde), y ni el rodeo con
-      // waypoints lo corrige. 2º (origen lejos de la cobertura local, o
-      // local sin ruta): OSRM con control de reingreso (rodeo v1.12.10) y
-      // respaldo local.
+      // Medido 2026-11-15: el OSRM crudo Bellavista→La Pirámide trae ~5 km
+      // POR DENTRO del parque (entra por Pío Nono y sube por el borde) y
+      // ni el rodeo con waypoints lo corrige. Orden:
+      //   1º grafo local directo (origen cubierto): interior bloqueado
+      //      salvo la boca de la portería;
+      //   2º híbrido v1.12.10 (origen lejos del grafo): OSRM SOLO hasta el
+      //      nodo ancla + grafo local hasta la portería;
+      //   3º OSRM completo con control de reingreso y respaldo local
+      //      (osrmCiudadPorFuera, último recurso).
       const cityOk = (lat: number, lon: number) =>
         !inside(lat, lon) || haversineM({ lat, lon }, inicioTrace) <= 150;
       if (a.distM <= ORIGIN_COVER_M) {
         legAcceso = findRoute(net, from, acceso.position, { nodeOk: cityOk });
       }
-      if (!legAcceso) legAcceso = await osrmCiudadPorFuera(from, acceso.position, net, cityOk);
+      if (!legAcceso) legAcceso = await hibridaCiudadPorFuera(from, acceso.position, net, dirOk, cityOk);
     } else {
       // MTB (nace dentro del parque): acceso ciclista más cercano, también
       // POR FUERA hasta esa portería (mismo criterio del cliente).
       const cityOkM = (lat: number, lon: number) =>
         !inside(lat, lon) || haversineM({ lat, lon }, acceso!.position) <= 150;
       if (a.distM <= ORIGIN_COVER_M) legAcceso = findRoute(net, from, acceso.position, { nodeOk: cityOkM });
-      if (!legAcceso) legAcceso = await osrmCiudadPorFuera(from, acceso.position, net, cityOkM);
+      if (!legAcceso) legAcceso = await hibridaCiudadPorFuera(from, acceso.position, net, dirOk, cityOkM);
     }
     if (!legAcceso) {
       return {
