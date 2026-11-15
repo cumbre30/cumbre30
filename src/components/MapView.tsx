@@ -47,7 +47,7 @@ import {
 import { PINS, DEFAULT_PIN } from "@/lib/pins";
 import { INCIDENT_BY_ID, INCIDENT_TYPES, compartirReporte, type IncidentTypeId } from "@/lib/incidents";
 import { pointInPolygon } from "@/lib/geo";
-import { incidentIcon, userPinIcon, flagIcon, markIcon, poiIcon } from "@/lib/mapIcons";
+import { incidentIcon, userPinIcon, flagIcon, markIcon, poiIcon, banderaInicioIcon } from "@/lib/mapIcons";
 import { groupSegments, loadNetwork, type NavRoute, type Network } from "@/lib/routing";
 import { useIncidentFeed, addIncident, removeIncident, saveLocalIncidents, loadLocalIncidents, voteIncident, incidentVoteOf, type IncidentItem } from "@/hooks/useIncidentFeed";
 import { isNativeMapPlatform } from "@/lib/nativeMapBridge";
@@ -1363,13 +1363,21 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
             ))}
 
           {/* Capa Rutas: trazados predefinidos (pavimento azul · MTB naranja
-              punteado) con casing oscuro para leerse sobre cualquier fondo. */}
+              punteado) con casing oscuro para leerse sobre cualquier fondo,
+              y bandera VERDE en el punto de inicio de cada ruta (cliente
+              2026-11-15: «para identificar bien en el mapa el punto de
+              partida»). */}
           {CAPA_RUTAS.filter((r) => capasVis[r.id]).map((r) => {
             const t = rutaTrazado(r);
             if (t.coords.length < 2) return null;
             const path = t.coords.map((c) => [c.lat, c.lon] as [number, number]);
             return (
               <Fragment key={r.id}>
+                <Marker position={[t.coords[0].lat, t.coords[0].lon]} icon={banderaInicioIcon(mapBearing)}>
+                  <Tooltip direction="top" offset={[0, -8]}>
+                    <span className="text-xs font-medium">Inicio · {r.nombre}</span>
+                  </Tooltip>
+                </Marker>
                 <Polyline positions={path} pathOptions={{ color: "#05070a", weight: 9, opacity: 0.75 }} interactive={false} />
                 <Polyline
                   positions={path}

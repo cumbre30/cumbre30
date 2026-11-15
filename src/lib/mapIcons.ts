@@ -89,6 +89,23 @@ export function flagIcon(mapBearing = 0): L.DivIcon {
   });
 }
 
+/** Bandera VERDE del punto de inicio de una ruta predefinida (cliente
+ *  2026-11-15: «en todas las rutas dejar una bandera verde en el punto de
+ *  inicio de cada ruta, más que nada para identificar bien en el mapa el
+ *  punto de partida»). Burbuja verde con banderín blanco, mismo formato
+ *  que los marcadores de capa. */
+export function banderaInicioIcon(mapBearing = 0): L.DivIcon {
+  return L.divIcon({
+    className: "",
+    html: `<div class="c30-billboard"><div style="display:flex;align-items:center;justify-content:center;width:28px;height:28px;transform:rotate(${Math.round(mapBearing)}deg);border-radius:9999px;background:#16a34a;border:2.5px solid #fafafa;box-shadow:0 2px 8px rgba(0,0,0,.6);">
+  <svg width="15" height="15" viewBox="0 0 96 96"><path d="M30 88 L30 14" stroke="#fafafa" stroke-width="10" fill="none" stroke-linecap="round"/><path d="M33 14 L78 30 L33 46 Z" fill="#fafafa"/></svg>
+</div></div>`,
+    iconSize: [28, 28],
+    iconAnchor: [14, 14],
+    popupAnchor: [0, -14],
+  });
+}
+
 /** Marcador personal guardado por el ciclista (Pro). */
 export function markIcon(mapBearing = 0): L.DivIcon {
   return L.divIcon({
