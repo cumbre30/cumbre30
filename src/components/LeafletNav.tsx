@@ -162,6 +162,11 @@ export default function LeafletNav({
     route: onRoute ? route : null,
     position,
   });
+  // v1.12.10: la flecha del puck mira SIEMPRE hacia donde mira la cámara.
+  // Sin course GPS (parado/interior) el mapa gira al rumbo de la ruta; si
+  // la flecha siguiera en 0° (norte del mapa) quedaría viendo hacia un
+  // lado (el cliente la vio a la izquierda con la ruta hacia el este).
+  const rumboPin = heading ?? (modo === "rumbo" ? mapBearing : null);
 
   return (
     <div className="relative h-full w-full overflow-hidden" style={{ background: "#09090b" }}>
@@ -250,7 +255,7 @@ export default function LeafletNav({
               )}
               <Marker
                 position={[position.lat, position.lon]}
-                icon={userPinIcon(onRoute ? DEFAULT_PIN : userPin ?? DEFAULT_PIN, heading, mapBearing)}
+                icon={userPinIcon(onRoute ? DEFAULT_PIN : userPin ?? DEFAULT_PIN, rumboPin, mapBearing)}
                 zIndexOffset={500}
               />
             </>

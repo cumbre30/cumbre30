@@ -873,6 +873,9 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
   const navOn = !!(dest && route && route.coords.length > 1 && track.length > 1);
   const { modo: modoCamara, mapBearing, setModo: setModoCamara } = useCamaraRumbo({ activa: navOn, heading, route, position });
   const rotado = mapBearing !== 0;
+  // v1.12.10: la flecha del pin mira SIEMPRE hacia donde mira la cámara
+  // (sin course GPS apunta como el rumbo de la cámara, no al norte fijo).
+  const rumboPin = heading ?? (modoCamara === "rumbo" ? mapBearing : null);
   // Capas del mapa (arquitectura GPX): visibilidad por capa/ruta
   const [capasVis, setCapasVis] = useState<Record<string, boolean>>({ accesos: true, senderos: true, "paseo-met": true });
   const [focus, setFocus] = useState<Focus>(null);
@@ -1538,7 +1541,7 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
                   pathOptions={{ color: "#ffffff", weight: 1, fillColor: "#ffffff", fillOpacity: 0.08 }}
                 />
               )}
-              <Marker position={[position.lat, position.lon]} icon={userPinIcon(userPin ?? DEFAULT_PIN, heading, mapBearing)} zIndexOffset={500} />
+              <Marker position={[position.lat, position.lon]} icon={userPinIcon(userPin ?? DEFAULT_PIN, rumboPin, mapBearing)} zIndexOffset={500} />
             </>
           )}
 
