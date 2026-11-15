@@ -13,7 +13,8 @@ import { ACHIEVEMENT_BY_CODE, evaluateAchievements, isPinId, normalizeCodes, sta
 import { isProActive } from "@/lib/proLicense";
 import { USERNAME_RE, validateUsername, usernameLocked } from "@/lib/username";
 import type { MeData, MeUser } from "@/hooks/useMe";
-import { enqueueOp, forgetAllSyncData, forgetToken, linkGoogle, linkPassword, registerAndLink, setServerToken, syncNow } from "@/lib/cloudSync";
+import { enqueueOp, forgetAllSyncData, forgetToken, linkGoogle, linkPassword, registerAndLink, setServerToken, serverToken, syncNow } from "@/lib/cloudSync";
+import { apiUrl } from "@/lib/backend";
 
 const USERS_KEY = "cumbre30-offline-users-v1";
 const SESSION_KEY = "cumbre30-offline-session-v1";
@@ -455,7 +456,15 @@ export function offlineDeleteAccount(): void {
 /**
  * Cambia el nombre de usuario de la cuenta actual. Los kilómetros,
  * logros y pines quedan asociados al correo (clave de la cuenta),
- * así que el cambio no mueve ninguna estadística.
+ * así que el cambio no mueve ninguna estadística. Las amistades
+ * tampoco: se guardan por id interno, no por nombre.
+ * Fuente de verdad del nombre (v1.12.7): el servidor. Con sesión y
+ * red, el cambio se aplica allá primero — mismas reglas (formato,
+ * 30 días, disponibilidad) y el error real llega al usuario, igual
+ * que en la web. Sin red o sin sesión: cambio local + op en cola
+ * para el próximo sync. Antes solo tocaba el almacenamiento local y
+ * el servidor (y por tanto la lista de amigos) seguía con el nombre
+ * viejo.
  * Devuelve el mensaje de error o null si salió bien.
  */
 export async function offlineChangeUsername(newUsername: string): Promise<string | null> {
@@ -476,10 +485,33 @@ export async function offlineChangeUsername(newUsername: string): Promise<string
     return "Ese usuario ya está en uso por otra cuenta.";
   }
 
+  // Servidor primero (si hay sesión): así el nombre nuevo es visible
+  // de inmediato para amigos, /rides y /compartir, y un rechazo real
+  // (nombre ocupado, regla de 30 días del servidor) llega aquí.
+  let enServidor = false;
+  const tok = serverToken();
+  const base = tok ? apiUrl("") : null;
+  if (tok && base) {
+    try {
+      const r = await fetch(`${base}/api/me`, {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${tok}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ username }),
+        signal: AbortSignal.timeout(15_000),
+      });
+      const d = (await r.json().catch(() => ({}))) as { error?: string };
+      if (!r.ok) return d.error ?? "No pudimos cambiar tu usuario en el servidor.";
+      enServidor = true;
+    } catch {
+      // sin red: seguimos con el camino local y la op queda en cola
+    }
+  }
+
   user.username = username;
   user.usernameChangedAt = new Date().toISOString();
   users[user.email] = user;
   writeJSON(USERS_KEY, users);
+  if (!enServidor) void enqueueOp("profile", { username });
   return null;
 }
 
