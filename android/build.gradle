@@ -1,10 +1,11 @@
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
 
 buildscript {
-    
+
     repositories {
-        maven { url 'https://maven.aliyun.com/repository/google' }
-        maven { url 'https://maven.aliyun.com/repository/public' }
+        // Sin mirror Aliyun (v1.12.4): su 502 del 2026-11-15 tumbó el CI
+        // (Gradle no salta al siguiente repo cuando uno responde 5xx).
+        // CI/local resuelven directo contra Google y Maven Central.
         google()
         mavenCentral()
     }
@@ -24,8 +25,6 @@ apply from: "variables.gradle"
 
 allprojects {
     repositories {
-        maven { url 'https://maven.aliyun.com/repository/google' }
-        maven { url 'https://maven.aliyun.com/repository/public' }
         google()
         mavenCentral()
     }
