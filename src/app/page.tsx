@@ -12,7 +12,7 @@
 // (computeRoute), historial, QR, premios, perfil, licencia Pro.
 // ============================================================
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { Bike, Map as MapIcon, QrCode } from "lucide-react";
 import { RideView } from "@/components/RideView";
@@ -33,6 +33,8 @@ import { useProLicense } from "@/lib/proLicense";
 import { applyThemeColor, useRideTheme } from "@/lib/rideTheme";
 import { linkRidesToAccount, setRideOwner } from "@/lib/history";
 import { courseHeading } from "@/lib/geo";
+import { createSmoother, snapToNet, snapToRoute } from "@/lib/navSnap";
+import { loadNetwork, routeProgress, type LatLng, type Network } from "@/lib/routing";
 import { alerts } from "@/lib/alertEngine";
 import { programarAvisoHorario } from "@/lib/notificaciones";
 import { autoCheckAlAbrir, registrarToqueActualizacion } from "@/lib/actualizacion";
@@ -180,7 +182,47 @@ export default function Home() {
   // Navegación compartida: velocímetro (minimapa) + mapa grande.
   // Sigue viva también en pausa: revisar la ruta no requiere ride activo.
   const nav = useNavEngine(ride.position, active);
-  const heading = useMemo(() => courseHeading(ride.track), [ride.track]);
+  // Rumbo (v1.12.8): course nativo del GPS (Doppler con avance ≥4 km/h) con
+  // respaldo en el curso derivado del recorrido (≥3 m de avance); detenido
+  // ambos dan null y la cámara conserva la última orientación válida.
+  const heading = useMemo(
+    () => (ride.course !== null && ride.course !== undefined ? ride.course : courseHeading(ride.track)),
+    [ride.course, ride.track]
+  );
+
+  // Pin de PANTALLA sobre la calzada (v1.12.8): filtro anti-saltos de GPS +
+  // snapping a la ruta activa (ventana alrededor del vértice más cercano) o
+  // a la vía más cercana del grafo. SOLO cambia lo que se dibuja en el
+  // minimapa: el recorrido grabado y las estadísticas siguen del fix crudo.
+  const smootherRef = useRef(createSmoother());
+  const lastOkRef = useRef<LatLng | null>(null);
+  const [netSnap, setNetSnap] = useState<Network | null>(null);
+  const hasFix = ride.position !== null;
+  useEffect(() => {
+    if (!hasFix || netSnap) return;
+    let alive = true;
+    void loadNetwork().then((n) => {
+      if (alive) setNetSnap(n);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [hasFix, netSnap]);
+
+  const posDisplay = useMemo<LatLng | null>(() => {
+    const raw = ride.position;
+    if (!raw) return null;
+    const ok = smootherRef.current(raw, ride.speedKmh ?? 0, ride.accuracyM);
+    if (ok) lastOkRef.current = ok;
+    const base = lastOkRef.current ?? raw;
+    let snapped: LatLng | null = null;
+    if (nav.route && nav.route.coords.length > 1) {
+      const prog = routeProgress(nav.route, base);
+      snapped = snapToRoute(nav.route, prog.nearestIdx, base);
+    }
+    if (!snapped && netSnap) snapped = snapToNet(netSnap, base);
+    return snapped ?? base;
+  }, [ride.position, ride.speedKmh, ride.accuracyM, nav.route, netSnap]);
 
   const toggleSound = () => {
     const v = !soundOn;
@@ -278,6 +320,7 @@ export default function Home() {
             status={status}
             source={source}
             position={ride.position}
+            posDisplay={posDisplay}
             track={ride.track}
             heading={heading}
             userPin={me?.user.selectedPin}

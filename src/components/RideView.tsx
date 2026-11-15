@@ -100,6 +100,9 @@ type Props = {
   status: RideStatus;
   source: Source;
   position: LatLng | null;
+  /** Posición de pantalla (snapped a la calzada + anti-saltos, v1.12.8)
+   *  para el minimapa; `position` sigue siendo el fix GPS crudo. */
+  posDisplay?: LatLng | null;
   track: LatLng[];
   heading: number | null;
   userPin?: string;
@@ -540,7 +543,7 @@ export function RideView(p: Props) {
       {/* Minimapa tipo Waze (arriba del velocímetro): banner de maniobra,
           ruta ciclovía/vía compartida, ETA y reporte */}
       <MiniMap
-        position={p.position}
+        position={p.posDisplay ?? p.position}
         heading={p.heading}
         track={p.track}
         accuracyM={p.accuracyM}

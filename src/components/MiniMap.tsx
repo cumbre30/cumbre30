@@ -112,6 +112,14 @@ function TurnArrow({ icon, className }: { icon: RouteStep["icon"]; className?: s
       </svg>
     );
   }
+  if (icon === "uturn") {
+    return (
+      <svg viewBox="0 0 96 96" className={className} aria-hidden>
+        <path d="M30 88 L30 44 Q30 16 52 16 Q74 16 74 44 L74 58" stroke="currentColor" strokeWidth="13" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+        <path d="M56 52 L74 84 L92 52 Z" fill="currentColor" />
+      </svg>
+    );
+  }
   if (icon === "left") {
     return (
       <svg viewBox="0 0 96 96" className={className} aria-hidden>
@@ -707,7 +715,7 @@ function BottomBar({ className, onRoute, etaMin, arrivalClock, remainingM, dest,
               }
               if (v === "mapa") return; // ya navegando a un punto libre: no borrar la ruta
               const d = TODOS_DESTINOS.find((x) => x.id === v);
-              if (d) onSetDest({ name: d.name, position: d.position });
+              if (d) onSetDest({ name: d.name, position: d.position, esAcceso: true }); // v1.12.8: acceso → ruta DIRECTA
               else onSetDest(null);
             }}
             className="bg-transparent text-[11px] text-foreground outline-none w-full min-w-0"

@@ -101,13 +101,15 @@ export function markIcon(): L.DivIcon {
 }
 
 /** Insignia blanca del próximo giro (estilo Waze) sobre la ruta. */
-export function stepBadgeIcon(icon: "start" | "left" | "right" | "straight" | "end"): L.DivIcon {
+export function stepBadgeIcon(icon: "start" | "left" | "right" | "uturn" | "straight" | "end"): L.DivIcon {
   const stroke = `stroke="#09090b" stroke-width="15" fill="none" stroke-linecap="round" stroke-linejoin="round"`;
   let inner: string;
   if (icon === "left") {
     inner = `<path d="M64 84 L64 58 Q64 38 44 38 L30 38" ${stroke}/><path d="M40 18 L12 38 L40 58 Z" fill="#09090b"/>`;
   } else if (icon === "right") {
     inner = `<path d="M32 84 L32 58 Q32 38 52 38 L66 38" ${stroke}/><path d="M56 18 L84 38 L56 58 Z" fill="#09090b"/>`;
+  } else if (icon === "uturn") {
+    inner = `<path d="M30 84 L30 44 Q30 20 52 20 Q74 20 74 44 L74 58" ${stroke}/><path d="M56 52 L74 80 L92 52 Z" fill="#09090b"/>`;
   } else if (icon === "end") {
     inner = `<path d="M44 86 L44 20" ${stroke}/><path d="M44 16 L82 16 L82 46 L44 46 Z" fill="#09090b"/>`;
   } else {

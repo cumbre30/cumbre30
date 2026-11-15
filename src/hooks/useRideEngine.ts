@@ -55,6 +55,7 @@ export function useRideEngine() {
   const [source, setSource] = useState<Source>("sim");
   const [gpsStatus, setGpsStatus] = useState<GpsStatus>("idle");
   const [accuracyM, setAccuracyM] = useState<number | null>(null);
+  const [course, setCourse] = useState<number | null>(null); // rumbo nativo del GPS (v1.12.8)
   const [speedKmh, setSpeedKmh] = useState(0);
   const [maxKmh, setMaxKmh] = useState(0);
   const [avgKmh, setAvgKmh] = useState(0);
@@ -155,8 +156,11 @@ export function useRideEngine() {
 
   /** Procesa un fix (GPS real o simulado) con el mismo pipeline. */
   const processFix = useCallback(
-    (fix: LatLng & { speedKmh: number; alt: number; accuracyM: number; t: number }) => {
+    (fix: LatLng & { speedKmh: number; alt: number; accuracyM: number; t: number; course?: number | null }) => {
       const e = engine.current;
+      // Rumbo nativo (v1.12.8): course del GPS Doppler si hay avance real
+      // (≥4 km/h); detenido no es confiable y se deja a courseHeading/última orientación.
+      setCourse(fix.course ?? null);
       const dt = e.lastFix ? Math.min(10, Math.max(0.15, (fix.t - e.lastFix.t) / 1000)) : 1;
 
       // 0) PAUSA: el GPS sigue vivo (el mapa no se congela) pero no se
@@ -591,6 +595,8 @@ export function useRideEngine() {
               ? (haversineM(eng.lastFix, { lat: f.lat, lon: f.lng }) / Math.max(0.2, (f.t - eng.lastFix.t) / 1000)) * 3.6
               : 0;
         eng.lastTick = performance.now();
+        // bearing nativo → course solo con avance (≥4 km/h); -1 = sin bearing
+        const course = f.bearing >= 0 && isFinite(f.bearing) && speedKmh >= 4 ? f.bearing : null;
         processFix({
           lat: f.lat,
           lon: f.lng,
@@ -598,6 +604,7 @@ export function useRideEngine() {
           alt: f.alt,
           accuracyM: f.accuracy,
           t: f.t,
+          course,
         });
       });
       engine.current.nativeSub = sub;
@@ -882,7 +889,7 @@ export function useRideEngine() {
     status, source, gpsStatus, accuracyM,
     speedKmh, maxKmh, avgKmh, distanceKm, elapsedSec, gainM, slopePct,
     insidePark, speedState, overLimitSec, maxInParkKmh,
-    events, track, position,
+    events, track, position, course,
     pendingConfirm, confirmVehicle,
     fallAlert, dismissFall, requestFallHelp,
     start, pause, resume, stop,

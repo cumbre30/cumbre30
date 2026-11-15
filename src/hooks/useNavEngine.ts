@@ -21,7 +21,7 @@ import { GATES } from "@/lib/park";
 /** Origen provisional mientras no hay GPS (acceso Pío Nono). */
 export const DEFAULT_ORIGIN: LatLng = GATES[0].position;
 
-export type NavDest = { name: string; position: LatLng };
+export type NavDest = { name: string; position: LatLng; /** v1.12.8: destino = acceso ciclista (minimapa «Ir a»): ruta DIRECTA por la calle, sin desvío por el acceso más cercano. */ esAcceso?: boolean };
 
 /** Destino con ruta predefinida del mapa (botón «Ruta» de la capa Rutas):
  *  el motor sigue el trazado precomputado, entrando por el acceso
@@ -106,7 +106,7 @@ export function useNavEngine(position: LatLng | null, running: boolean): NavEngi
       const preset = (d as NavDestPreset).preset;
       const res = preset
         ? await computePresetRoute(origin, preset, { fullTrace: !isReroute })
-        : await computeRoute(origin, d.position);
+        : await computeRoute(origin, d.position, { accesoDirecto: d.esAcceso === true });
       if (seq !== calcSeqRef.current) return; // llegó uno más nuevo
       if (!res.route) {
         setRoute(null);

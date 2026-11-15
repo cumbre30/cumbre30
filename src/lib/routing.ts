@@ -19,7 +19,7 @@ export type Network = {
   adj: Array<Array<{ to: number; w: number; dist: number; cls: string; name: string; ciclovia: boolean; bearing: number }>>;
 };
 
-export type RouteStep = { icon: "start" | "left" | "right" | "straight" | "end"; text: string; distM: number; point: LatLng; idx: number };
+export type RouteStep = { icon: "start" | "left" | "right" | "uturn" | "straight" | "end"; text: string; distM: number; point: LatLng; idx: number };
 export type NavRoute = {
   coords: LatLng[];
   distanceM: number;
@@ -477,9 +477,12 @@ export function findRoute(net: Network, from: LatLng, to: LatLng, opts?: FindRou
     const isCiclo = e.ciclovia;
 
     if (i > 0 && (Math.abs(turnOfThis) > 40 || label !== lastName || (isCiclo !== inCiclo && isCiclo))) {
-      const dir = turnOfThis < -40 ? "left" : turnOfThis > 40 ? "right" : "straight";
+      // retorno (v1.12.8): giro ≥ 140° invierte el sentido; 90°-120° sigue
+      // siendo esquina izq/der, no retorno
+      const dir = Math.abs(turnOfThis) >= 140 ? "uturn" : turnOfThis < -40 ? "left" : turnOfThis > 40 ? "right" : "straight";
       let text: string;
-      if (dir === "left") text = `Gira a la izquierda hacia ${label}`;
+      if (dir === "uturn") text = `Retorna hacia ${label}`;
+      else if (dir === "left") text = `Gira a la izquierda hacia ${label}`;
       else if (dir === "right") text = `Gira a la derecha hacia ${label}`;
       else if (isCiclo) text = `Continúa por la ciclovía ${label}`;
       else if (lastCls === "cycleway" && !isCiclo) text = `Sigue por ${label}`;

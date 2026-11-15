@@ -170,6 +170,7 @@ function osrmIcon(step: OsrmStep): RouteStep["icon"] {
   if (t === "depart") return "start";
   if (t === "arrive") return "end";
   const m = step.maneuver.modifier ?? "straight";
+  if (m === "uturn") return "uturn";
   if (m.includes("left")) return "left";
   if (m.includes("right")) return "right";
   return "straight";
@@ -179,6 +180,7 @@ function osrmText(step: OsrmStep, icon: RouteStep["icon"]): string {
   const name = step.name?.trim() || "la vía";
   if (icon === "start") return `Parte por ${name}`;
   if (icon === "end") return "Has llegado a tu destino";
+  if (icon === "uturn") return `Retorna hacia ${name}`;
   if (icon === "left") return `Gira a la izquierda hacia ${name}`;
   if (icon === "right") return `Gira a la derecha hacia ${name}`;
   return `Continúa por ${name}`;
@@ -700,15 +702,22 @@ function mergeLegs(leg1: NavRoute, leg2: NavRoute, ingreso: string | null): NavR
  * fuera, la ruta primero te lleva al ACCESO CICLISTA más cercano
  * (normativa Parquemet: solo 4 ingresos en bici) y desde ahí sigue
  * por dentro del parque hasta el destino.
+ *
+ * EXCEPCIÓN accesoDirecto (v1.12.8, minimapa «Ir a»): cuando el
+ * destino ES uno de los 4 accesos, la portería se trata como punto
+ * de calle y la ruta va DIRECTA por la vía pública — la normativa
+ * de ingreso aplica a destinos dentro del parque, no a la puerta
+ * misma. Antes el destino-acceso caía «dentro» por la tolerancia de
+ * 80 m del borde y se entraba por Pío Nono para llegar a Valdivia.
  */
-export async function computeRoute(from: LatLng, to: LatLng): Promise<RouteResult> {
+export async function computeRoute(from: LatLng, to: LatLng, opts?: { accesoDirecto?: boolean }): Promise<RouteResult> {
   const net = await loadNetwork();
   if (net) {
     // calienta la rejilla del corredor con la red real (vías pavimentadas
     // nombradas del parque — ascenso Pío Nono → Plaza México)
     corredorPav(net);
     const inside = parkInsideTest();
-    const destInPark = inside(to.lat, to.lon);
+    const destInPark = !opts?.accesoDirecto && inside(to.lat, to.lon);
     const fromInPark = inside(from.lat, from.lon);
     // Reglas direccionales del cliente: Pío Nono sólo subida (24/7) y
     // corte horario de la cumbre por el puente de Tupahue (FDS ≥ 13:30)
