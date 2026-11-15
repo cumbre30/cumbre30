@@ -18,6 +18,7 @@ import { Bike, Map as MapIcon, QrCode } from "lucide-react";
 import { RideView } from "@/components/RideView";
 import { HistoryTab } from "@/components/HistoryTab";
 import { VehicleConfirmModal } from "@/components/VehicleConfirmModal";
+import PopupReglaRuta from "@/components/PopupReglaRuta";
 import { AppDrawer, type MenuScreen } from "@/components/AppDrawer";
 import { PlanPill, ProContextModal } from "@/components/ProUI";
 import { PlanesTab } from "@/components/PlanesTab";
@@ -382,6 +383,10 @@ export default function Home() {
             {screen === "ayuda" && <HelpTab />}
           </section>
         )}
+
+        {/* v1.12.11: popup de reglas de accesos (F3/D3) — compartido por
+            minimapa y mapa grande a través del motor de navegación. */}
+        <PopupReglaRuta decision={nav.decision} onElegir={nav.resolverDecision} onCancelar={nav.cancelarDecision} />
       </main>
 
       {/* Barra inferior: 3 destinos (Ride · Explorar · Acceso) */}

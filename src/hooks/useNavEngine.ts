@@ -16,7 +16,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { haversineM, routeProgress, type NavRoute, type LatLng } from "@/lib/routing";
 import { computeRoute, computePresetRoute } from "@/lib/routingService";
-import { GATES } from "@/lib/park";
+import { evaluarRuta } from "@/lib/reglasAcceso";
+import { GATES, type Gate } from "@/lib/park";
 
 /** Origen provisional mientras no hay GPS (acceso Pío Nono). */
 export const DEFAULT_ORIGIN: LatLng = GATES[0].position;
@@ -27,6 +28,44 @@ export type NavDest = { name: string; position: LatLng; /** v1.12.8: destino = a
  *  el motor sigue el trazado precomputado, entrando por el acceso
  *  ciclista más cercano (regla del cliente). */
 export type NavDestPreset = { name: string; position: LatLng; preset: { rutaId: string; nombre: string } };
+
+/** v1.12.11: opción elegida en el popup de reglas de accesos. */
+export type OpcionRuta = "portería" | "ingresar" | "salidaMia" | "salidaDestino";
+
+/** Opciones extra de trazado que resuelve el popup (F3/D3). */
+export type ExtraRuta = {
+  /** F3 «solo hasta la portería»: por la vía pública, sin ingresar. */
+  sinIngresar?: boolean;
+  /** F3 «ingresar»: portería + extensión interior por el camino del acceso. */
+  ingresoExtendido?: boolean;
+  /** D2/D3: salida en dos tramos por esta portería. */
+  salidaPor?: LatLng;
+  salidaNombre?: string;
+};
+
+/** Decisión pendiente de mostrar en el popup (mientras exista, no hay
+ *  ruta trazada: el usuario elige o cancela). */
+export type DecisionPendiente =
+  | { tipo: "popupAcceso"; d: NavDest; gate: Gate; origen: LatLng }
+  | { tipo: "popupSalida"; d: NavDest; gateMio: Gate; gateDest: Gate; origen: LatLng };
+
+/** Preferencia de la sesión para el popup F3 («elegir siempre esta
+ *  opción»): sessionStorage sobrevive recargas de la misma pestaña. */
+function prefAccesoSesion(): "portería" | "ingresar" | null {
+  try {
+    const v = sessionStorage.getItem("c30:prefAcceso");
+    return v === "portería" || v === "ingresar" ? v : null;
+  } catch {
+    return null;
+  }
+}
+function guardarPrefAccesoSesion(v: "portería" | "ingresar") {
+  try {
+    sessionStorage.setItem("c30:prefAcceso", v);
+  } catch {
+    /* almacenamiento no disponible: sin preferencia */
+  }
+}
 
 export type NavEngine = {
   net: ReturnType<typeof Object> | null; // se mantiene por compatibilidad; no se usa en UI
@@ -41,6 +80,12 @@ export type NavEngine = {
   setDestination: (d: NavDest | null) => void;
   reroute: () => void;
   clearNote: () => void;
+  /** v1.12.11: decisión de accesos pendiente (popup F3/D3) o null. */
+  decision: DecisionPendiente | null;
+  /** Resuelve el popup con la opción elegida (y la recuerda si aplica). */
+  resolverDecision: (opcion: OpcionRuta, recordar?: boolean) => void;
+  /** Cierra el popup sin trazar (equivale a cancelar el destino). */
+  cancelarDecision: () => void;
 };
 
 const REROUTE_INTERVAL_MS = 30_000; // recálculo periódico en marcha
@@ -98,7 +143,7 @@ export function useNavEngine(position: LatLng | null, running: boolean): NavEngi
    *  punto más cercano hacia adelante.
    *  Blindaje: cualquier excepción deja el estado limpio y avisa — la UI
    *  NUNCA queda pegada en «cargando» (queja del cliente 2026-11-12). */
-  const compute = useCallback(async (origin: LatLng, d: NavDest, kind: "gps" | "fallback", isReroute = false) => {
+  const compute = useCallback(async (origin: LatLng, d: NavDest, kind: "gps" | "fallback", isReroute = false, extra?: ExtraRuta) => {
     const seq = ++calcSeqRef.current;
     setLoading(true);
     lastCalcRef.current = Date.now();
@@ -106,7 +151,12 @@ export function useNavEngine(position: LatLng | null, running: boolean): NavEngi
       const preset = (d as NavDestPreset).preset;
       const res = preset
         ? await computePresetRoute(origin, preset, { fullTrace: !isReroute })
-        : await computeRoute(origin, d.position, { accesoDirecto: d.esAcceso === true });
+        : await computeRoute(origin, d.position, {
+            accesoDirecto: d.esAcceso === true || extra?.sinIngresar === true || extra?.ingresoExtendido === true,
+            ingresoExtendido: extra?.ingresoExtendido,
+            salidaPor: extra?.salidaPor,
+            salidaNombre: extra?.salidaNombre,
+          });
       if (seq !== calcSeqRef.current) return; // llegó uno más nuevo
       if (!res.route) {
         setRoute(null);
@@ -135,37 +185,109 @@ export function useNavEngine(position: LatLng | null, running: boolean): NavEngi
     }
   }, []);
 
+  // v1.12.11: decisión de accesos pendiente (popup F3/D3). Mientras
+  // exista no se traza nada: la UI muestra el popup y resuelve con
+  // resolverDecision() o cancela con cancelarDecision().
+  const [decision, setDecision] = useState<DecisionPendiente | null>(null);
+
   const setDestination = useCallback(
     (d: NavDest | null) => {
       setDest(d);
       setRoute(null);
       setProvisional(false);
       setNote(null);
+      setDecision(null);
       lastRerouteRef.current = 0;
       if (!d) return;
       void (async () => {
         const o = posRef.current;
-        if (o) {
-          await compute(o, d, "gps");
-          return;
-        }
-        setLoading(true);
-        setNote("Buscando tu ubicación para rutear desde ahí…");
-        // 2 intentos: el GPS frío (recién abierto / bajo techo) suele
-        // necesitar más de un disparo para dar un fix utilizable.
-        // Solo si ambos fallan se usa el origen provisional del acceso.
-        let fix = await oneShotFix();
-        if (!fix) fix = await oneShotFix(8000);
-        if (fix) {
+        let origin = o;
+        if (!origin) {
+          setLoading(true);
+          setNote("Buscando tu ubicación para rutear desde ahí…");
+          // 2 intentos: el GPS frío (recién abierto / bajo techo) suele
+          // necesitar más de un disparo para dar un fix utilizable.
+          // Solo si ambos fallan se usa el origen provisional del acceso.
+          let fix = await oneShotFix();
+          if (!fix) fix = await oneShotFix(8000);
+          if (!fix) {
+            await compute(DEFAULT_ORIGIN, d, "fallback");
+            return;
+          }
           posRef.current = fix;
-          await compute(fix, d, "gps");
-        } else {
-          await compute(DEFAULT_ORIGIN, d, "fallback");
+          origin = fix;
         }
+        // v1.12.11 reglas de accesos (F1-F3/D1-D3): se evalúan ANTES de
+        // trazar y SOLO con ubicación real (el origen provisional Pío Nono
+        // está dentro del cerro y falsearía «estás fuera/dentro»). Los
+        // destinos predefinidos (capa Rutas) siguen su propio trazado.
+        if (!(d as NavDestPreset).preset) {
+          const dec = evaluarRuta(origin, d.position);
+          if (dec.tipo === "popupAcceso") {
+            const pref = prefAccesoSesion();
+            if (pref) {
+              await compute(origin, d, "gps", false, pref === "ingresar" ? { ingresoExtendido: true } : { sinIngresar: true });
+              return;
+            }
+            setLoading(false);
+            setNote(null);
+            setDecision({ tipo: "popupAcceso", d, gate: dec.gate, origen: origin });
+            return;
+          }
+          if (dec.tipo === "popupSalida") {
+            setLoading(false);
+            setNote(null);
+            setDecision({ tipo: "popupSalida", d, gateMio: dec.gateMio, gateDest: dec.gateDest, origen: origin });
+            return;
+          }
+          if (dec.tipo === "salidaPor") {
+            await compute(origin, d, "gps", false, { salidaPor: dec.gate.position, salidaNombre: dec.gate.name });
+            return;
+          }
+          if (dec.tipo === "sinIngresar") {
+            await compute(origin, d, "gps", false, { sinIngresar: true });
+            return;
+          }
+          if (dec.tipo === "ingresarExtendido") {
+            await compute(origin, d, "gps", false, { ingresoExtendido: true });
+            return;
+          }
+          // "trazar": continúa el flujo normal abajo
+        }
+        await compute(origin, d, "gps");
       })();
     },
     [compute]
   );
+
+  // v1.12.11: resolución del popup. «recordar» guarda la preferencia de
+  // la sesión (solo popup F3): las próximas rutas a accesos se trazan
+  // directo sin volver a preguntar.
+  const resolverDecision = useCallback(
+    (opcion: OpcionRuta, recordar = false) => {
+      const dec = decision;
+      if (!dec) return;
+      setDecision(null);
+      void (async () => {
+        const origin = dec.origen;
+        posRef.current = origin;
+        if (dec.tipo === "popupAcceso") {
+          if (recordar) guardarPrefAccesoSesion(opcion === "ingresar" ? "ingresar" : "portería");
+          await compute(origin, dec.d, "gps", false, opcion === "ingresar" ? { ingresoExtendido: true } : { sinIngresar: true });
+          return;
+        }
+        const g = opcion === "salidaMia" ? dec.gateMio : dec.gateDest;
+        await compute(origin, dec.d, "gps", false, { salidaPor: g.position, salidaNombre: g.name });
+      })();
+    },
+    [decision, compute]
+  );
+
+  const cancelarDecision = useCallback(() => {
+    setDecision(null);
+    setDest(null);
+    setNote(null);
+  }, []);
 
   const reroute = useCallback(() => {
     const o = posRef.current;
@@ -236,5 +358,18 @@ export function useNavEngine(position: LatLng | null, running: boolean): NavEngi
 
   const clearNote = useCallback(() => setNote(null), []);
 
-  return { net: null, dest, route, note, loading, provisional, setDestination, reroute, clearNote };
+  return {
+    net: null,
+    dest,
+    route,
+    note,
+    loading,
+    provisional,
+    decision,
+    setDestination,
+    reroute,
+    clearNote,
+    resolverDecision,
+    cancelarDecision,
+  };
 }

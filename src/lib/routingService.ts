@@ -630,7 +630,7 @@ export function corredorOk(midLat: number, midLon: number, cls: string, name: st
 /** Test "dentro del parque" con tolerancia configurable (por defecto
  *  80 m: los accesos quedan sobre el borde del polígono). Con 0 queda
  *  la prueba ESTRICTA (solo el polígono) para el filtro de accesos. */
-function parkInsideTest(toleranciaM = 80): (lat: number, lon: number) => boolean {
+export function parkInsideTest(toleranciaM = 80): (lat: number, lon: number) => boolean {
   const poly = PARK_POLYGON.map((p) => [p.lat, p.lon] as [number, number]);
   const inPoly = (lat: number, lon: number) => {
     let inside = false;
@@ -728,18 +728,53 @@ function mergeLegs(leg1: NavRoute, leg2: NavRoute, ingreso: string | null): NavR
  * misma. Antes el destino-acceso caía «dentro» por la tolerancia de
  * 80 m del borde y se entraba por Pío Nono para llegar a Valdivia.
  */
-export async function computeRoute(from: LatLng, to: LatLng, opts?: { accesoDirecto?: boolean }): Promise<RouteResult> {
+/** Opciones de trazado (v1.12.11 reglas de accesos, cliente 2026-11-15). */
+export type OptsRoute = {
+  /** Destino = portería: ruta por la vía pública SIN ingresar al cerro. */
+  accesoDirecto?: boolean;
+  /** Regla F3 «ingresar»: llega a la portería y se extiende ~130 m hacia
+   *  adentro por el camino pavimentado del acceso. */
+  ingresoExtendido?: boolean;
+  /** Regla D2/D3 «salir por»: destino fuera del cerro, dos tramos
+   *  (interior hasta esta portería → exterior hasta el destino). */
+  salidaPor?: LatLng;
+  salidaNombre?: string;
+};
+
+export async function computeRoute(from: LatLng, to: LatLng, opts?: OptsRoute): Promise<RouteResult> {
   const net = await loadNetwork();
   if (net) {
     // calienta la rejilla del corredor con la red real (vías pavimentadas
     // nombradas del parque — ascenso Pío Nono → Plaza México)
     corredorPav(net);
     const inside = parkInsideTest();
-    const destInPark = !opts?.accesoDirecto && inside(to.lat, to.lon);
+    // «ingresar» (F3) reutiliza el camino del acceso directo: llega a la
+    // portería por la vía pública y luego se extiende hacia adentro.
+    const accDirecto = opts?.accesoDirecto === true || opts?.ingresoExtendido === true;
+    const destInPark = !accDirecto && inside(to.lat, to.lon);
     const fromInPark = inside(from.lat, from.lon);
     // Reglas direccionales del cliente: Pío Nono sólo subida (24/7) y
     // corte horario de la cumbre por el puente de Tupahue (FDS ≥ 13:30)
     const dirOk = crearDirOk(net, { pioNonoSoloSubida: true, corteCumbre: corteCumbreActivo() });
+    // v1.12.11 D2/D3: destino FUERA de las geocercas y salida por una
+    // portería concreta (la más cercana al destino, o la elegida en el
+    // popup): tramo interior hasta el acceso (pavimento) + tramo exterior
+    // por la vía pública hasta el destino.
+    if (opts?.salidaPor && fromInPark) {
+      const g = opts.salidaPor;
+      const gNombre = opts.salidaNombre ?? "el acceso ciclista";
+      const leg1 =
+        findRoute(net, from, g, { nodeOk: inside, ...PAV_DEST_OPTS, edgeDirOk: dirOk }) ??
+        findRoute(net, from, g, { nodeOk: inside, ...PAV_DEST_RELAX, edgeDirOk: dirOk });
+      if (leg1) {
+        const leg2 = await rutaExterna(net, g, to, dirOk);
+        if (leg2) {
+          const merged = mergeLegs(leg1, leg2, `Sales por ${gNombre} · salida oficial de ciclistas`);
+          return localResult({ route: merged, aviso: null }, from);
+        }
+      }
+      // sin conexión interior/exterior por esa portería: flujo normal
+    }
     if (destInPark && !fromInPark) {
       const acc = accesoMasCercano(from);
       // tramo 1: hasta el acceso (ciudad; local si cubre, OSRM si no)
@@ -782,14 +817,17 @@ export async function computeRoute(from: LatLng, to: LatLng, opts?: { accesoDire
             findRoute(net, from, d, { ...PAV_DEST_RELAX, edgeDirOk: dirOk }),
         );
         if (local) return localResult(local, from);
-      } else if (opts?.accesoDirecto && !fromInPark) {
+      } else if (accDirecto && !fromInPark) {
         // v1.12.9: destino = acceso ciclista (minimapa/buscador) y estás
         // fuera: la ruta NO puede meterse al parque para salir por la
         // portería (nodos interiores excluidos, salvo los cercanos a la
         // portería — su nodo queda al borde). Antes el A* tomaba el atajo
         // por dentro (Zapadores → La Pirámide: 79% del trazado dentro).
+        // v1.12.11 F3 «ingresar»: además se extiende ~130 m hacia adentro.
         const local = trazarAccesoLocal(net, from, to, dirOk);
-        if (local) return localResult(local, from);
+        if (local) {
+          return localResult(opts?.ingresoExtendido ? extenderInteriorEn(net, local, to, dirOk) : local, from);
+        }
       } else {
         const local = rutaLocalConCorte(from, to, (d: LatLng) => findRoute(net, from, d, undefined));
         if (local) return localResult(local, from);
@@ -798,7 +836,10 @@ export async function computeRoute(from: LatLng, to: LatLng, opts?: { accesoDire
   }
 
   let r = await osrmRoute(from, to);
-  if (r && opts?.accesoDirecto && !parkInsideTest()(from.lat, from.lon) && metrosInteriorParque(r, to) > 150) {
+  // «ingresar»/acceso directo fuera del alcance del grafo local (recalculado:
+  // accDirecto vive dentro del bloque if (net), aquí puede ser null la red).
+  const accDirectoOsrm = opts?.accesoDirecto === true || opts?.ingresoExtendido === true;
+  if (r && accDirectoOsrm && !parkInsideTest()(from.lat, from.lon) && metrosInteriorParque(r, to) > 150) {
     // v1.12.10: destino = acceso ciclista, estás fuera del parque y el
     // grafo local no cubre el origen (ej. centro de Santiago → La
     // Pirámide) — OSRM se metería al cerro como atajo entrando por Pío
@@ -814,8 +855,17 @@ export async function computeRoute(from: LatLng, to: LatLng, opts?: { accesoDire
       const tail = head && metrosInteriorParque(head, to) <= 150 ? trazarAccesoLocal(netH, anchorPos, to, dirOkH) : null;
       if (head && tail) {
         const headFlags = flagsFromLocalNet(netH, head.coords);
-        const combinada = concatenarRutas({ ...head, flags: headFlags }, tail.route);
-        return localResult({ route: combinada, aviso: tail.aviso }, from);
+        let combinada = concatenarRutas({ ...head, flags: headFlags }, tail.route);
+        let aviso = tail.aviso;
+        // v1.12.11 F3 «ingresar»: extensión interior desde la portería.
+        if (opts?.ingresoExtendido) {
+          const ext = extenderInterior(netH, to, dirOkH);
+          if (ext) {
+            combinada = concatenarRutas(combinada, ext);
+            aviso = `Ingresas al cerro por ${accesoMasCercano(to).nombre}`;
+          }
+        }
+        return localResult({ route: combinada, aviso }, from);
       }
     }
     // último recurso: OSRM con waypoints de rodeo por fuera del borde
@@ -926,6 +976,84 @@ function viaExternaParque(route: NavRoute, dest: LatLng): LatLng | null {
  *  su nodo queda al borde). `origen` puede ser el punto real del ciclista
  *  o un nodo ANCLA del grafo cuando el origen está lejos de la cobertura
  *  local (ruta híbrida OSRM→ancla→portería). */
+/** v1.12.11 F3 «ingresar»: extiende la ruta hasta la portería con un
+ *  tramo interior de ~130 m por el camino pavimentado del acceso — el
+ *  ciclista llega ya dentro del cerro. Si el grafo no conecta hacia
+ *  adentro, se queda en la portería (sin error: la ruta sigue siendo válida). */
+function extenderInteriorEn(
+  net: Network,
+  local: { route: NavRoute; aviso: string | null },
+  gatePos: LatLng,
+  dirOk: ReturnType<typeof crearDirOk>,
+): { route: NavRoute; aviso: string | null } {
+  const ext = extenderInterior(net, gatePos, dirOk);
+  if (!ext) return local;
+  const nombre = accesoMasCercano(gatePos).nombre;
+  return { route: concatenarRutas(local.route, ext), aviso: `Ingresas al cerro por ${nombre}` };
+}
+
+/** Tramo interior de ~130 m desde la portería hacia el centroide del
+ *  parque (dirección aproximada «hacia adentro»). Sólo caminos de
+ *  pavimento (corredor) y nodos dentro de la geocerca; si el resultado
+ *  supera 500 m se descarta (el A* habría entrado por otro lado). */
+function extenderInterior(net: Network, gatePos: LatLng, dirOk: ReturnType<typeof crearDirOk>): NavRoute | null {
+  let cy = 0, cx = 0;
+  for (const v of PARK_POLYGON) {
+    cy += v.lat;
+    cx += v.lon;
+  }
+  cy /= PARK_POLYGON.length;
+  cx /= PARK_POLYGON.length;
+  const EXT_M = 130;
+  const dLat = cy - gatePos.lat;
+  const dLon = cx - gatePos.lon;
+  const norm = Math.hypot(dLat, dLon) || 1;
+  const interior: LatLng = {
+    lat: gatePos.lat + (dLat / norm) * (EXT_M / 111320),
+    lon: gatePos.lon + (dLon / norm) * (EXT_M / (111320 * Math.cos((gatePos.lat * Math.PI) / 180))),
+  };
+  const nodeOk = parkInsideTest();
+  const ext =
+    findRoute(net, gatePos, interior, { nodeOk, ...PAV_DEST_OPTS, edgeDirOk: dirOk }) ??
+    findRoute(net, gatePos, interior, { nodeOk, ...PAV_DEST_RELAX, edgeDirOk: dirOk });
+  if (!ext || ext.distanceM > 500) return null;
+  return ext;
+}
+
+/** v1.12.11: tramo EXTERIOR desde una portería hasta un destino fuera
+ *  del cerro (reglas D2/D3). Primero el grafo local evitando el interior
+ *  (trazarAccesoLocal); si el destino escapa al grafo, OSRM con control
+ *  de reingreso al parque (ancla = la portería) y waypoints de rodeo,
+ *  el mismo mecanismo del acceso directo v1.12.10. */
+async function rutaExterna(
+  net: Network,
+  gatePos: LatLng,
+  dest: LatLng,
+  dirOk: ReturnType<typeof crearDirOk>,
+): Promise<NavRoute | null> {
+  const local = trazarAccesoLocal(net, gatePos, dest, dirOk);
+  if (local) return local.route;
+  const b = snapInfo(net, dest);
+  if (b.distM <= GRAPH_COVER_M) return findRoute(net, gatePos, dest);
+  let r = await osrmRoute(gatePos, dest);
+  if (!r) return null;
+  if (metrosInteriorParque(r, gatePos) > 150) {
+    const vias: LatLng[] = [];
+    const r0 = r;
+    let ultimo: NavRoute | null = null;
+    for (let intento = 0; intento < 3 && metrosInteriorParque(ultimo ?? r0, gatePos) > 150; intento++) {
+      const via = viaExternaParque(ultimo ?? r0, gatePos);
+      if (!via) break;
+      vias.push(via);
+      const r2 = await osrmRoute(gatePos, dest, vias);
+      if (!r2) break;
+      ultimo = r2;
+    }
+    if (ultimo && metrosInteriorParque(ultimo, gatePos) <= metrosInteriorParque(r0, gatePos)) r = ultimo;
+  }
+  return r;
+}
+
 function trazarAccesoLocal(
   net: Network,
   origen: LatLng,
