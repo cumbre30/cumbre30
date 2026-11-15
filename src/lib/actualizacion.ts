@@ -73,24 +73,34 @@ export function nuevaConocida(): { version: string; url: string } | null {
   return null;
 }
 
-/** Consulta la web desplegada y compara contra la versión instalada. */
+/** Consulta la web desplegada y compara contra la versión instalada.
+ *  Fuente primaria: /api/version (route handler compilado dentro del
+ *  deploy, siempre en sincronía con appVersion.ts). Respaldo:
+ *  /version.json estático (generado en cada build). */
 export async function revisarActualizacion(): Promise<EstadoActualizacion> {
-  try {
-    const res = await fetch(`${ORIGEN}/version.json?t=${Date.now()}`, { cache: "no-store" });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const v = (await res.json()) as { version?: string; code?: number; url?: string };
-    if (typeof v.version !== "string" || typeof v.code !== "number") throw new Error("version.json inválido");
-    if (v.code > APP_VERSION_CODE) {
-      const url = v.url || URL_DESCARGA;
-      const r = leer();
-      guardar({ version: v.version, url, ts: Date.now(), notificado: r.notificado });
-      return { estado: "nueva", versionNueva: v.version, urlDescarga: url };
+  const fuentes = [
+    `${ORIGEN}/api/version?t=${Date.now()}`,
+    `${ORIGEN}/version.json?t=${Date.now()}`,
+  ];
+  for (const fuente of fuentes) {
+    try {
+      const res = await fetch(fuente, { cache: "no-store" });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const v = (await res.json()) as { version?: string; code?: number; url?: string };
+      if (typeof v.version !== "string" || typeof v.code !== "number") throw new Error("respuesta inválida");
+      if (v.code > APP_VERSION_CODE) {
+        const url = v.url || URL_DESCARGA;
+        const r = leer();
+        guardar({ version: v.version, url, ts: Date.now(), notificado: r.notificado });
+        return { estado: "nueva", versionNueva: v.version, urlDescarga: url };
+      }
+      guardar({ ts: Date.now() }); // al día: limpia cualquier aviso viejo
+      return { estado: "al-dia" };
+    } catch {
+      // siguiente fuente (la última deja estado "error")
     }
-    guardar({ ts: Date.now() }); // al día: limpia cualquier aviso viejo
-    return { estado: "al-dia" };
-  } catch {
-    return { estado: "error" };
   }
+  return { estado: "error" };
 }
 
 /** Chequeo automático al abrir (solo APK, a lo más 1 vez al día).
