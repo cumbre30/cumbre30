@@ -1104,7 +1104,12 @@ function concatenarRutas(head: NavRoute, tail: NavRoute): NavRoute {
  *   1. tramo de ciudad: mi ubicación → inicio del trazado cuando este es
  *      un acceso ciclista (r1-r5 nacen en la portería); si el trazado
  *      nace dentro del parque (MTB), acceso ciclista más cercano
- *      (solo si estoy fuera del parque)
+ *      (solo si estoy fuera del parque). v1.12.12 (cliente 2026-11-15):
+ *      con `ingresoCercano` (opción «ingresar» del popup) la ciudad va
+ *      SIEMPRE al acceso ciclista MÁS CERCANO AL CICLISTA — aunque el
+ *      trazado nazca en otra portería (ej.: Ruta 4 nace en La Pirámide y
+ *      desde Bellavista ingresas por Pío Nono) — y al inicio de la ruta
+ *      se llega POR DENTRO del cerro (paso 2)
  *   2. tramo interno: acceso/origen → inicio del trazado, por caminos
  *      del parque (pavimento sin senderos MTB · MTB sin restricción);
  *      si no se logra, se muestra el trazado completo desde su inicio
@@ -1116,7 +1121,7 @@ function concatenarRutas(head: NavRoute, tail: NavRoute): NavRoute {
 export async function computePresetRoute(
   from: LatLng,
   preset: { rutaId: string; nombre: string },
-  gen?: { fullTrace?: boolean }
+  gen?: { fullTrace?: boolean; ingresoCercano?: boolean }
 ): Promise<RouteResult> {
   const fullTrace = gen?.fullTrace ?? false;
   const ruta = CAPA_RUTAS.find((r) => r.id === preset.rutaId);
@@ -1160,11 +1165,17 @@ export async function computePresetRoute(
   if (!fromInPark) {
     const inicioTrace = trace[0];
     const gateInicio = ACCESOS_CICLISTAS.find((g) => haversineM(g.position, inicioTrace) <= 120);
-    acceso = gateInicio
-      ? { nombre: gateInicio.name, position: inicioTrace }
+    // v1.12.12 (cliente 2026-11-15): opción «ingresar» del popup — entras
+    // por el acceso ciclista MÁS CERCANO A TI y al inicio de la ruta
+    // llegas por dentro del cerro, aunque el trazado nazca en otra
+    // portería. Sin esa opción, r1-r5 van por ciudad hasta la portería
+    // donde nace el trazado y MTB entra por el acceso más cercano.
+    const porPorteriaTrazado = !!gateInicio && gen?.ingresoCercano !== true;
+    acceso = porPorteriaTrazado
+      ? { nombre: gateInicio!.name, position: inicioTrace }
       : accesoMasCercano(from);
     const a = snapInfo(net, from);
-    if (gateInicio) {
+    if (porPorteriaTrazado) {
       // Ciudad → portería donde nace el trazado: OSRM primero (cobertura
       // urbana completa; el grafo local conecta mal las bocas norte/oriente),
       // respaldo local SOLO por calles de la ciudad (el interior del parque

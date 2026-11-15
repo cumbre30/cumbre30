@@ -28,8 +28,17 @@ export type NavDest = { name: string; position: LatLng; /** v1.12.8: destino = a
  *  el motor sigue el trazado precomputado, entrando por el acceso
  *  ciclista más cercano (regla del cliente). `inicio` (v1.12.12) = punto
  *  donde NACE el trazado (portería en r1-r5): ancla del popup de decisión
- *  «¿ingresar al cerro o solo llegar al acceso?». */
-export type NavDestPreset = { name: string; position: LatLng; inicio?: LatLng; preset: { rutaId: string; nombre: string } };
+ *  «¿ingresar al cerro o ir por fuera al acceso de inicio?».
+ *  `ingresoCercano` (v1.12.12) = opción «ingresar» elegida en el popup:
+ *  entra por el acceso MÁS CERCANO AL CICLISTA y al inicio de la ruta
+ *  llega por dentro (la marca sobrevive a los recálculos en marcha). */
+export type NavDestPreset = {
+  name: string;
+  position: LatLng;
+  inicio?: LatLng;
+  ingresoCercano?: boolean;
+  preset: { rutaId: string; nombre: string };
+};
 
 /** v1.12.11: opción elegida en el popup de reglas de accesos. */
 export type OpcionRuta = "portería" | "ingresar" | "salidaMia" | "salidaDestino";
@@ -51,9 +60,10 @@ export type DecisionPendiente =
   | { tipo: "popupAcceso"; d: NavDest; gate: Gate; origen: LatLng }
   | { tipo: "popupSalida"; d: NavDest; gateMio: Gate; gateDest: Gate; origen: LatLng }
   /** v1.12.12 botón «Ruta» de las capas del mapa (cliente 2026-11-15):
-   *  ¿ingresar al cerro y recorrer la ruta completa, o solo llegar al
-   *  acceso donde nace el trazado? */
-  | { tipo: "popupPreset"; d: NavDest; gate: Gate; origen: LatLng; inicio: LatLng };
+   *  ¿ingresar al cerro por el acceso ciclista MÁS CERCANO A TI
+   *  (gateIngreso) y llegar al inicio de la ruta por dentro, o ir por
+   *  fuera hasta el acceso donde NACE el trazado (gateInicio)? */
+  | { tipo: "popupPreset"; d: NavDestPreset; gateIngreso: Gate; gateInicio: Gate; origen: LatLng };
 
 /** Preferencia de la sesión para el popup F3 («elegir siempre esta
  *  opción»): sessionStorage sobrevive recargas de la misma pestaña. */
@@ -175,7 +185,12 @@ export function useNavEngine(position: LatLng | null, running: boolean): NavEngi
     try {
       const preset = (d as NavDestPreset).preset;
       const res = preset
-        ? await computePresetRoute(origin, preset, { fullTrace: !isReroute })
+        ? await computePresetRoute(origin, preset, {
+            fullTrace: !isReroute,
+            // v1.12.12: opción «ingresar» del popup — vive en el destino
+            // para que los recálculos en marcha (reroute/desvío) la conserven.
+            ingresoCercano: (d as NavDestPreset).ingresoCercano === true,
+          })
         : await computeRoute(origin, d.position, {
             accesoDirecto: d.esAcceso === true || extra?.sinIngresar === true || extra?.ingresoExtendido === true,
             ingresoExtendido: extra?.ingresoExtendido,
@@ -252,11 +267,12 @@ export function useNavEngine(position: LatLng | null, running: boolean): NavEngi
           return;
         }
         // v1.12.12: botón «Ruta» de las capas del mapa — SIEMPRE popup con
-        // la decisión (cliente 2026-11-15): ¿ingresar al cerro y recorrer
-        // la ruta completa, o solo llegar al acceso donde nace el trazado?
-        // La portería de referencia es la del trazado (r1-r5, mtb4) o el
-        // acceso ciclista más cercano a ti (mtb1-3, nacen dentro). Ya
-        // dentro del cerro la decisión de ingreso no aplica: se traza directo.
+        // la decisión (cliente 2026-11-15): ¿ingresar al cerro por el
+        // ACCESO CICLISTA MÁS CERCANO A TI (ej.: Pío Nono desde Bellavista
+        // para Ruta 4, que nace en La Pirámide) y llegar al inicio de la
+        // ruta por dentro, o ir POR FUERA hasta el acceso donde NACE el
+        // trazado (para mtb1-3, el más cercano a su inicio)? Ya dentro del
+        // cerro la decisión de ingreso no aplica: se traza directo.
         const preset = (d as NavDestPreset).preset;
         if (preset) {
           if (parkInsideTest()(origin.lat, origin.lon)) {
@@ -264,14 +280,15 @@ export function useNavEngine(position: LatLng | null, running: boolean): NavEngi
             return;
           }
           const inicio = (d as NavDestPreset).inicio ?? d.position;
-          const gate = gateDeTrazado(inicio) ?? accesoCiclistaMasCercano(origin)?.gate;
-          if (gate) {
+          const gateIngreso = accesoCiclistaMasCercano(origin)?.gate;
+          const gateInicio = gateDeTrazado(inicio) ?? accesoCiclistaMasCercano(inicio)?.gate;
+          if (gateIngreso && gateInicio) {
             setLoading(false);
             setNote(null);
-            setDecision({ tipo: "popupPreset", d, gate, origen: origin, inicio });
+            setDecision({ tipo: "popupPreset", d: d as NavDestPreset, gateIngreso, gateInicio, origen: origin });
             return;
           }
-          await compute(origin, d, "gps"); // sin portería identificable: trazado directo
+          await compute(origin, d, "gps"); // sin accesos identificables: trazado directo
           return;
         }
         // v1.12.11 reglas de accesos (F1-F3/D1-D3): se evalúan ANTES de
@@ -331,16 +348,23 @@ export function useNavEngine(position: LatLng | null, running: boolean): NavEngi
         posRef.current = origin;
         if (dec.tipo === "popupPreset") {
           if (opcion === "ingresar") {
-            // «Ingresar al cerro»: la ruta completa precomputada, entrando
-            // por la portería del trazado (computePresetRoute).
-            await compute(origin, dec.d, "gps");
+            // «Ingresar al cerro» (cliente 2026-11-15): entras por el
+            // acceso ciclista MÁS CERCANO A TI (ej.: Pío Nono desde
+            // Bellavista para Ruta 4) y al inicio de la ruta llegas POR
+            // DENTRO; luego se recorre el trazado completo. La marca vive
+            // en el destino para que los recálculos en marcha (desvío,
+            // intervalo de 30 s) conserven el ingreso elegido.
+            const nuevoDest: NavDestPreset = { ...dec.d, ingresoCercano: true };
+            setDest(nuevoDest);
+            destRef.current = nuevoDest;
+            await compute(origin, nuevoDest, "gps");
             return;
           }
-          // «Solo hasta el acceso»: llegar a la portería donde nace el
-          // trazado por la vía pública (mismo criterio del minimapa, F1),
-          // sin recorrer la ruta. El destino pasa a ser ese acceso para
-          // que el chip y el ETA apunten a la portería.
-          const nuevoDest: NavDest = { name: dec.d.name, position: dec.inicio, esAcceso: true };
+          // «Sin ingresar»: por la vía pública hasta el acceso donde NACE
+          // el trazado (ej.: Ruta 4 → Acceso La Pirámide), mismo criterio
+          // del minimapa (F1). El destino pasa a ser esa portería para que
+          // el chip y el ETA apunten a ella.
+          const nuevoDest: NavDest = { name: dec.d.name, position: dec.gateInicio.position, esAcceso: true };
           setDest(nuevoDest);
           destRef.current = nuevoDest;
           await compute(origin, nuevoDest, "gps");

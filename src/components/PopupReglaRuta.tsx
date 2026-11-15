@@ -11,8 +11,9 @@
 //   salir por otro: ¿salir por el del destino o por el más
 //   cercano a ti?
 // · Preset (v1.12.12) — botón «Ruta» de las capas del mapa:
-//   ¿ingresar al cerro y recorrer la ruta completa, o solo llegar
-//   al acceso donde nace el trazado? El minimapa NO abre este
+//   ¿ingresar al cerro por el acceso ciclista MÁS CERCANO A TI y
+//   llegar al inicio de la ruta por dentro, o ir por fuera hasta
+//   el acceso donde nace el trazado? El minimapa NO abre este
 //   popup (cliente 2026-11-15): ahí solo aplica el criterio de
 //   llegar al acceso.
 // ============================================================
@@ -36,12 +37,12 @@ export default function PopupReglaRuta({
   const titulo = esAcceso
     ? `¿Ruta hasta el ${decision.gate.name}?`
     : esPreset
-      ? `¿Ingresas al cerro por el ${decision.gate.name}?`
+      ? `¿Ingresas al cerro por el ${decision.gateIngreso.name}?`
       : "¿Por dónde sales del cerro?";
   const detalle = esAcceso
     ? "El destino es un acceso ciclista del parque. Puedo llevarte solo hasta la portería por la vía pública, o ingresar al cerro por ese acceso y dejarte ya dentro para arrancar el paseo."
     : esPreset
-      ? `«${decision.d.name}» recorre su trazado dentro del cerro, ingresando por el ${decision.gate.name}. También puedo llevarte solo hasta ese acceso por la vía pública, sin recorrer la ruta.`
+      ? `«${decision.d.name}» nace en el ${decision.gateInicio.name}. Puedo ingresar al cerro por el ${decision.gateIngreso.name} (el acceso ciclista más cercano a ti), llevarte por dentro hasta el inicio de la ruta y recorrerla completa; o llevarte por la vía pública, sin ingresar, hasta el ${decision.gateInicio.name}.`
       : `Estás cerca del ${decision.gateMio.name}, pero la salida de ciclistas más cercana a tu destino (${decision.d.name}) es el ${decision.gateDest.name}. ¿Por cuál prefieres salir?`;
 
   const btnBase =
@@ -80,10 +81,10 @@ export default function PopupReglaRuta({
           ) : decision.tipo === "popupPreset" ? (
             <>
               <button type="button" className={btnPrimario} onClick={() => onElegir("ingresar")}>
-                Ingresar y recorrer la ruta
+                Ingresar por el {decision.gateIngreso.name}
               </button>
               <button type="button" className={btnSecundario} onClick={() => onElegir("portería")}>
-                Solo hasta el acceso
+                Por fuera hasta el {decision.gateInicio.name}
               </button>
             </>
           ) : (
