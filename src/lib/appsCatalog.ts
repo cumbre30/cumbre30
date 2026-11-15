@@ -93,7 +93,7 @@ export const APPS: AppCatalogo[] = [
         cuerpo:
           `v${APP_VERSION} (${APP_VERSION_CODE}):\n` +
           "• Nuevo: «Revisar actualizaciones» en Configuración → Acerca de + aviso automático (una vez al día, con notificación) cuando sale una versión nueva: la descargas con un toque, sin buscar el enlace.\n" +
-          "• Control de música universal en la pantalla ride, al lado del ahorro de batería: pausa, play, siguiente y anterior sobre la app que estés usando (Spotify gratis o Premium, YouTube Music, cualquier reproductor) sin salir de tus métricas. Pide una vez el «acceso a las notificaciones» que Android exige para este control — no leemos tus notificaciones.\n" +
+          "• Control de música universal en la pantalla ride, al lado del ahorro de batería: pausa, play, siguiente y anterior sobre la app que estés usando (Spotify gratis o Premium, YouTube Music, cualquier reproductor) sin salir de tus métricas. Pide una vez el «acceso a las notificaciones» que Android exige para este control · no leemos tus notificaciones.\n" +
           "• Corregido el error al tocar el banner de clima (ya puedes ver viento, calidad del aire e índice UV sin que se cierre la app).\n" +
           "• Configuración reorganizada por secciones: General (Seguridad, Monitoreo y salud, Personalización) y Acerca de.\n" +
           "• Nuevo control «Confirmación de estado»: cuánto espera el «¿Estás bien?» antes de avisar a tus contactos (15/30/60 s).\n" +

@@ -163,7 +163,7 @@ export default function ShareClient() {
 
       <footer className="mt-8 text-center">
         <a href="/geo" className="text-sm font-bold text-emerald-400 hover:underline">
-          Prueba Cumbre30 — Sube tu límite
+          Prueba Cumbre30 · Sube tu límite
         </a>
         <p className="mt-2 text-[11px] text-zinc-600">
           ¿Tienes una constancia PDF? Verifícala en{" "}

@@ -1585,7 +1585,7 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
             <button
               onClick={() => setModoCamara(modoCamara === "rumbo" ? "norte" : "rumbo")}
               aria-label={modoCamara === "rumbo" ? "Orientar el mapa al norte" : "Orientar el mapa al rumbo de la ruta"}
-              title={modoCamara === "rumbo" ? "Vista girada al rumbo — tocar para norte arriba" : "Norte arriba — tocar para girar al rumbo"}
+              title={modoCamara === "rumbo" ? "Vista girada al rumbo · tocar para norte arriba" : "Norte arriba · tocar para girar al rumbo"}
               className="relative h-10 w-10 rounded-lg bg-background/90 border border-border text-foreground flex items-center justify-center hover:border-emerald-500 shadow-md"
             >
               <svg width="22" height="22" viewBox="0 0 24 24" style={{ transform: `rotate(${-Math.round(mapBearing)}deg)`, transition: "transform 0.45s ease-out" }} aria-hidden>

@@ -397,7 +397,7 @@ export function RideView(p: Props) {
                   <li className="flex items-center gap-2 text-xs text-foreground/90">
                     <Wind className="h-4 w-4 shrink-0 text-sky-500" />
                     <span className="min-w-0 flex-1">
-                      {t("clima.ver")} {typeof clima.windKmh === "number" ? clima.windKmh : "—"} km/h
+                      {t("clima.ver")} {typeof clima.windKmh === "number" ? clima.windKmh : "·"} km/h
                       {typeof clima.gustKmh === "number" && (
                         <span className="text-muted-foreground"> · {t("clima.rachas")} {clima.gustKmh} km/h</span>
                       )}

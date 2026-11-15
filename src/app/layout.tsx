@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Cumbre30 — SUBE TU LÍMITE",
+  title: "Cumbre30 · SUBE TU LÍMITE",
   description:
     "Sube tu límite pedaleando: registra tus rides con GPS y te acompaña con avisos informativos del Parque Metropolitano de Santiago (límite 30 km/h), alertas de voz y vibración, zonas de riesgo y credencial digital Pedalea Seguro (QR de Parquemet).",
   applicationName: "Cumbre30",
