@@ -1,16 +1,20 @@
 "use client";
 
 // ============================================================
-// Popup de reglas de trazado (v1.12.11, cliente 2026-11-15).
+// Popup de reglas de trazado (v1.12.11/12, cliente 2026-11-15).
 // Se muestra desde el motor de navegación (useNavEngine) cuando
 // la decisión le corresponde al ciclista:
-// · F3 — destino = acceso ciclista: ¿solo hasta la portería o
-//   ingresar al cerro? Con opción «siempre en esta sesión».
+// · F3 — destino = acceso ciclista (buscador/POI libre): ¿solo
+//   hasta la portería o ingresar al cerro? Con opción «siempre
+//   en esta sesión».
 // · D3 — estás cerca de un acceso, pero según el destino deberías
 //   salir por otro: ¿salir por el del destino o por el más
 //   cercano a ti?
-// Aparece igual en minimapa y mapa grande: ambos comparten el
-// motor de navegación de page.tsx.
+// · Preset (v1.12.12) — botón «Ruta» de las capas del mapa:
+//   ¿ingresar al cerro y recorrer la ruta completa, o solo llegar
+//   al acceso donde nace el trazado? El minimapa NO abre este
+//   popup (cliente 2026-11-15): ahí solo aplica el criterio de
+//   llegar al acceso.
 // ============================================================
 
 import { useState } from "react";
@@ -28,12 +32,17 @@ export default function PopupReglaRuta({
   const [recordar, setRecordar] = useState(false);
   if (!decision) return null;
   const esAcceso = decision.tipo === "popupAcceso";
+  const esPreset = decision.tipo === "popupPreset";
   const titulo = esAcceso
     ? `¿Ruta hasta el ${decision.gate.name}?`
-    : "¿Por dónde sales del cerro?";
+    : esPreset
+      ? `¿Ingresas al cerro por el ${decision.gate.name}?`
+      : "¿Por dónde sales del cerro?";
   const detalle = esAcceso
     ? "El destino es un acceso ciclista del parque. Puedo llevarte solo hasta la portería por la vía pública, o ingresar al cerro por ese acceso y dejarte ya dentro para arrancar el paseo."
-    : `Estás cerca del ${decision.gateMio.name}, pero la salida de ciclistas más cercana a tu destino (${decision.d.name}) es el ${decision.gateDest.name}. ¿Por cuál prefieres salir?`;
+    : esPreset
+      ? `«${decision.d.name}» recorre su trazado dentro del cerro, ingresando por el ${decision.gate.name}. También puedo llevarte solo hasta ese acceso por la vía pública, sin recorrer la ruta.`
+      : `Estás cerca del ${decision.gateMio.name}, pero la salida de ciclistas más cercana a tu destino (${decision.d.name}) es el ${decision.gateDest.name}. ¿Por cuál prefieres salir?`;
 
   const btnBase =
     "flex-1 rounded-xl px-4 py-2.5 text-sm font-semibold transition-colors";
@@ -59,22 +68,31 @@ export default function PopupReglaRuta({
         )}
 
         <div className="mt-4 flex flex-col gap-2">
-          {decision.tipo === "popupAcceso" ? (
-            <>
-              <button type="button" className={btnPrimario} onClick={() => onElegir("ingresar", recordar)}>
-                Ingresar al cerro
-              </button>
-              <button type="button" className={btnSecundario} onClick={() => onElegir("portería", recordar)}>
-                Solo hasta la portería
-              </button>
-            </>
-          ) : (
+          {decision.tipo === "popupSalida" ? (
             <>
               <button type="button" className={btnPrimario} onClick={() => onElegir("salidaDestino")}>
                 Salir por {decision.gateDest.name}
               </button>
               <button type="button" className={btnSecundario} onClick={() => onElegir("salidaMia")}>
                 Salir por {decision.gateMio.name}
+              </button>
+            </>
+          ) : decision.tipo === "popupPreset" ? (
+            <>
+              <button type="button" className={btnPrimario} onClick={() => onElegir("ingresar")}>
+                Ingresar y recorrer la ruta
+              </button>
+              <button type="button" className={btnSecundario} onClick={() => onElegir("portería")}>
+                Solo hasta el acceso
+              </button>
+            </>
+          ) : (
+            <>
+              <button type="button" className={btnPrimario} onClick={() => onElegir("ingresar", recordar)}>
+                Ingresar al cerro
+              </button>
+              <button type="button" className={btnSecundario} onClick={() => onElegir("portería", recordar)}>
+                Solo hasta la portería
               </button>
             </>
           )}

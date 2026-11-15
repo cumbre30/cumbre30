@@ -1,10 +1,16 @@
 // ============================================================
 // Reglas de trazado según dentro/fuera del cerro (v1.12.11,
 // definiciones del cliente 2026-11-15). Un solo evaluador para
-// las tres UIs que trazan rutas: minimapa «Ir a», buscador y
-// capas del mapa — el motor (useNavEngine) lo consulta ANTES
-// de llamar a computeRoute y, si la decisión le corresponde al
-// usuario, muestra el popup en lugar de trazar.
+// buscador y destinos libres — el motor (useNavEngine) lo
+// consulta ANTES de llamar a computeRoute y, si la decisión le
+// corresponde al usuario, muestra el popup en lugar de trazar.
+//
+// v1.12.12 (cliente 2026-11-15): el minimapa «Ir a» y los
+// marcadores de acceso NO abren popup (destino = acceso → se
+// cumple SOLO el criterio de llegar al acceso, F1/D1 directo),
+// y el botón «Ruta» de las capas del mapa (rutas predefinidas)
+// SIEMPRE abre su propio popup de decisión ¿ingresar al cerro o
+// solo llegar al acceso? — ambos flujos viven en useNavEngine.
 //
 // FUERA DEL CERRO (origen fuera de las geocercas):
 //  F1/F3 · destino = acceso ciclista (≤60 m de una portería con
