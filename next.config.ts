@@ -32,15 +32,16 @@ const nextConfig: NextConfig = isStaticExport
       // APK (lib/actualizacion.ts, desde el WebView en origen distinto):
       // CORS abierto para que el fetch pueda leerlo. En el export
       // estático no aplica (el APK usa el de la web desplegada).
+      // OJO: headers() devuelve un ARRAY de reglas (Next 16), no un
+      // objeto — un objeto inválido tumba el build (fallo Vercel del
+      // 2026-11-15).
       async headers() {
-        return {
-          sources: [
-            {
-              source: "/version.json",
-              headers: [{ key: "Access-Control-Allow-Origin", value: "*" }],
-            },
-          ],
-        };
+        return [
+          {
+            source: "/version.json",
+            headers: [{ key: "Access-Control-Allow-Origin", value: "*" }],
+          },
+        ];
       },
     };
 
