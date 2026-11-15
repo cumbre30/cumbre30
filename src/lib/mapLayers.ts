@@ -98,7 +98,7 @@ export const CAPA_RUTAS: CapaRuta[] = [
     tipo: "pavimento",
     nivel: "Fluida y directa",
     detalle:
-      "Subida fluida y directa desde el Acceso Pedro de Valdivia Norte (cruce Av. El Cerro × Av. PdV Norte): sube por Av. Abate Molina y Av. Gabriela Mistral, cruza a Av. Pedro Bannen en Tupahue y llega a Plaza México.",
+      "Subida desde el Acceso Pedro de Valdivia Norte (cruce Av. El Cerro × Av. PdV Norte): sube siempre por Av. Abate Molina pasando por las 3 zonas de riesgo (Salida Pedro de Valdivia, Jardín Japonés y curva Anáhuac), continúa por Av. Carlos Martner hasta Av. Pedro Bannen en Tupahue y llega a Plaza México.",
     emoji: "🚴",
     color: "#0ea5e9",
   },

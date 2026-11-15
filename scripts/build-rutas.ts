@@ -295,8 +295,15 @@ const VIA = {
 const defs: Record<string, LatLng[] | null> = {
   // R1 Pavimento: PdV Norte (cruce Av. El Cerro × Av. PdV Norte) →
   // (curva Anáhuac por Av. Pedro Bannen, SIN ramal a la Casa de la
-  // Cultura) → Plaza México (subida directa, sin Antilén)
-  r1: routeWithVias("r1", P.pdvNorte, [VIA.curvaAnahuac, VIA.nodoTupahue], P.plazaMexico, OPTS_PAV_PARK),
+  // Cultura) → Plaza México. Cliente (2026-11-15): el trazado debe
+  // pasar por las 3 zonas de riesgo de la subida — Salida Pedro de
+  // Valdivia (nace al pié de Av. Abate Molina), Jardín Japonés (via
+  // abateMolinaJJ sobre la misma avenida) y curva Anáhuac. Sin el via
+  // de Abate Molina el A* corta por Av. Gabriela Mistral y el trazado
+  // queda a 292 m del Jardín Japonés. Corredor resultante: Abate
+  // Molina → Carlos Martner → Pedro Bannen, sin tramo dibujado dos
+  // veces (verificado con scripts/probe-ruta1.ts).
+  r1: routeWithVias("r1", P.pdvNorte, [VIA.abateMolinaJJ, VIA.curvaAnahuac, VIA.nodoTupahue], P.plazaMexico, OPTS_PAV_PARK),
   // R2 Pavimento: EL MISMO trazado que la navegación a Plaza México del
   // minimapa (cliente, 2026-11-12): Pío Nono → Av. Alberto Mackenna →
   // puente entre las Bannen paralelas (Tupahue) → Av. Pedro Bannen →
