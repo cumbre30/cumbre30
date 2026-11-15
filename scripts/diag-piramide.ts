@@ -1,4 +1,6 @@
 import { readFileSync } from "node:fs";
+import dns from "node:dns";
+dns.setDefaultResultOrder("ipv4first");
 const realFetch = globalThis.fetch.bind(globalThis);
 (globalThis as unknown as { fetch: typeof fetch }).fetch = (async (url: string | URL) => {
   const u = String(url);

@@ -10,6 +10,8 @@
 // ============================================================
 
 import { readFileSync } from "node:fs";
+import dns from "node:dns";
+dns.setDefaultResultOrder("ipv4first");
 
 // --- shim de fetch: loadNetwork pide "/red-ciclista.json" -------------
 const realFetch = globalThis.fetch.bind(globalThis);

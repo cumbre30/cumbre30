@@ -26,7 +26,7 @@
 // contra-rotan (userPinIcon/flagIcon con mapBearing).
 // ============================================================
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import "leaflet/dist/leaflet.css";
 import {
   Circle,
@@ -38,8 +38,8 @@ import {
   useMap,
 } from "react-leaflet";
 import type { LatLng } from "@/lib/park";
-import { haversineM, groupSegments, type NavRoute } from "@/lib/routing";
-import { bearingDeg } from "@/lib/geo";
+import { groupSegments, type NavRoute } from "@/lib/routing";
+import { useCamaraRumbo, type ModoCamara } from "@/hooks/useCamaraRumbo";
 import { DEFAULT_PIN } from "@/lib/pins";
 import { flagIcon, userPinIcon } from "@/lib/mapIcons";
 
@@ -54,8 +54,6 @@ type Props = {
   userPin?: string;
   locateTarget: LatLng | null;
 };
-
-type ModoCamara = "rumbo" | "norte";
 
 /** Seguimiento Waze: recentra en cada fix con animación continua
  *  (duración ≈ intervalo entre fixes → el pin queda «pegado» al
@@ -155,52 +153,15 @@ export default function LeafletNav({
   locateTarget,
 }: Props) {
   const center = position ?? { lat: -33.408, lon: -70.636 };
-  const [modo, setModo] = useState<ModoCamara>("norte");
-  const bearingRef = useRef(0);
-  const [mapBearing, setMapBearing] = useState(0);
-
-  // Al entrar a navegación la cámara se bloquea al rumbo; al salir,
-  // vuelve a norte arriba.
-  useEffect(() => {
-    setModo(onRoute ? "rumbo" : "norte");
-  }, [onRoute]);
-
-  // Rumbo de referencia de la ruta (respaldo cuando el GPS no entrega
-  // course: vértice más cercano → rumbo del tramo siguiente).
-  const segBearing = useMemo(() => {
-    if (!onRoute || !route || route.coords.length < 2 || !position) return null;
-    let best = 0;
-    let bd = Infinity;
-    for (let i = 0; i < route.coords.length; i++) {
-      const d = haversineM(position, route.coords[i]);
-      if (d < bd) {
-        bd = d;
-        best = i;
-        if (d < 8) break;
-      }
-    }
-    const i = Math.min(best, route.coords.length - 2);
-    return bearingDeg(route.coords[i], route.coords[i + 1]);
-  }, [onRoute, route, position]);
-
-  // bearing del mapa: rumbo (modo navegación) o norte (exploración);
-  // gira siempre por el camino corto para no dar vueltas de 340°.
-  useEffect(() => {
-    let target: number | null = null;
-    if (modo === "rumbo") {
-      if (heading !== null) target = heading;
-      else if (segBearing !== null) target = segBearing;
-    } else {
-      target = 0;
-    }
-    if (target === null) return; // sin rumbo confiable: mantener orientación
-    const cur = bearingRef.current;
-    const d = ((target - cur + 540) % 360) - 180;
-    if (Math.abs(d) < 0.5) return;
-    const nb = (cur + d + 360) % 360;
-    bearingRef.current = nb;
-    setMapBearing(nb);
-  }, [modo, heading, segBearing]);
+  // Cámara Waze compartida (hook v1.12.10): rumbo bloqueado mientras hay
+  // navegación O rumbo GPS conocido — la ruta se ve recta y el pin queda
+  // fijo al centro; norte arriba cuando todo está en reposo (exploración).
+  const { modo, mapBearing, setModo } = useCamaraRumbo({
+    activa: onRoute || heading !== null,
+    heading,
+    route: onRoute ? route : null,
+    position,
+  });
 
   return (
     <div className="relative h-full w-full overflow-hidden" style={{ background: "#09090b" }}>

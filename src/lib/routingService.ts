@@ -317,17 +317,33 @@ function overpassCycleFlags(coords: LatLng[]): Promise<boolean[]> {
   return promise;
 }
 
+/** v1.12.10: resultado del tramo local (flags del A* confiables en el
+ *  sector cubierto; el inicio se ancla a la ubicación real del ciclista). */
+function localResult(local: { route: NavRoute; aviso: string | null }, from: LatLng) {
+  const route = attachOrigin(local.route, from);
+  return {
+    route: { ...route, cicloviaPct: cicloPctOf(route) },
+    source: "local" as const,
+    error: null,
+    aviso: local.aviso,
+  };
+}
+
 // ----------------------------------------------------------------
 // OSRM bici
 // ----------------------------------------------------------------
 
-async function osrmRoute(from: LatLng, to: LatLng): Promise<NavRoute | null> {
+async function osrmRoute(from: LatLng, to: LatLng, vias: LatLng[] = []): Promise<NavRoute | null> {
   // radiuses=200; → el ORIGEN debe anclarse a una calle ciclable a ≤200 m
   // del pin. Sin este límite OSRM anclaba a ~700 m (p. ej. pin dentro del
   // Campus San Joaquín, sin calles ciclables) y el tramo pin→red salía
   // como un cordón recto que cruzaba las cuadras. El destino queda sin
-  // límite (puede caer en senderos del parque).
-  const url = `${OSRM_BASE}/${from.lon.toFixed(6)},${from.lat.toFixed(6)};${to.lon.toFixed(6)},${to.lat.toFixed(6)}?overview=full&geometries=geojson&steps=true&alternatives=false&radiuses=200;`;
+  // límite (puede caer en senderos del parque). Los waypoints intermedios
+  // (v1.12.10: rodeo del parque para destinos-acceso) aceptan 500 m.
+  const pts = [from, ...vias, to];
+  const coords = pts.map((p) => `${p.lon.toFixed(6)},${p.lat.toFixed(6)}`).join(";");
+  const radiuses = ["200", ...vias.map(() => "500"), ""].join(";");
+  const url = `${OSRM_BASE}/${coords}?overview=full&geometries=geojson&steps=true&alternatives=false&radiuses=${radiuses}`;
   const ctrl = new AbortController();
   const to2 = setTimeout(() => ctrl.abort(), 12000);
   try {
@@ -339,8 +355,9 @@ async function osrmRoute(from: LatLng, to: LatLng): Promise<NavRoute | null> {
     const coords: LatLng[] = osrm.geometry.coordinates.map(([lon, lat]) => ({ lat, lon }));
     if (coords.length < 2) return null;
 
-    // pasos → instrucciones; índice del vértice más cercano a cada maniobra
-    const rawSteps = osrm.legs[0]?.steps ?? [];
+    // pasos → instrucciones; índice del vértice más cercano a cada maniobra.
+    // v1.12.10: con waypoints intermedios hay varias legs — concatenar.
+    const rawSteps = osrm.legs.flatMap((l) => l.steps ?? []);
     const stepsSrc = meaningfulSteps(rawSteps);
     const steps: RouteStep[] = [];
     const segNames: string[] = new Array(Math.max(0, coords.length - 1)).fill("");
@@ -753,46 +770,68 @@ export async function computeRoute(from: LatLng, to: LatLng, opts?: { accesoDire
     }
     const b = snapInfo(net, to);
     const a = snapInfo(net, from);
-    // v1.12.9: destino = acceso ciclista (minimapa/buscador) y estás fuera:
-    // la ruta NO puede meterse al parque para salir por la portería — se
-    // excluyen los nodos interiores del polígono (prueba estricta, sin
-    // tolerancia), salvo los cercanos a la propia portería destino (su nodo
-    // queda al borde: La Pirámide queda a 29 m hacia adentro). Antes el A*
-    // tomaba el atajo por dentro del cerro (ej. sector Zapadores → La
-    // Pirámide: 79% del trazado dentro) y en horas sin corte de cumbre
-    // entraba por Pío Nono para llegar a la portería de Valdivia/La Pirámide.
-    const filtroFuera = (() => {
-      if (!opts?.accesoDirecto || fromInPark) return null;
-      const estricto = parkInsideTest(0);
-      return (lat: number, lon: number) => !estricto(lat, lon) || haversineM({ lat, lon }, to) <= 120;
-    })();
     if (a.distM <= ORIGIN_COVER_M && b.distM <= GRAPH_COVER_M) {
-      // destino dentro del cerro: pavimento del parque (sin senderos
-      // peatonales), con respaldo que agrega senderos ciclistas
-      const trazarDirecto = (d: LatLng) =>
-        destInPark
-          ? findRoute(net, from, d, { ...PAV_DEST_OPTS, edgeDirOk: dirOk }) ??
-            findRoute(net, from, d, { ...PAV_DEST_RELAX, edgeDirOk: dirOk })
-          : filtroFuera
-            ? findRoute(net, from, d, { nodeOk: filtroFuera, edgeDirOk: dirOk }) ??
-              findRoute(net, from, d, { nodeOk: filtroFuera })
-            : findRoute(net, from, d, undefined);
-      const local = rutaLocalConCorte(from, to, trazarDirecto);
-      if (local) {
-        // flags del A* ya son confiables en el sector cubierto;
-        // el inicio se ancla a la ubicación real del ciclista
-        const route = attachOrigin(local.route, from);
-        return {
-          route: { ...route, cicloviaPct: cicloPctOf(route) },
-          source: "local",
-          error: null,
-          aviso: local.aviso,
-        };
+      if (destInPark) {
+        // destino dentro del cerro: pavimento del parque (sin senderos
+        // peatonales), con respaldo que agrega senderos ciclistas
+        const local = rutaLocalConCorte(
+          from,
+          to,
+          (d: LatLng) =>
+            findRoute(net, from, d, { ...PAV_DEST_OPTS, edgeDirOk: dirOk }) ??
+            findRoute(net, from, d, { ...PAV_DEST_RELAX, edgeDirOk: dirOk }),
+        );
+        if (local) return localResult(local, from);
+      } else if (opts?.accesoDirecto && !fromInPark) {
+        // v1.12.9: destino = acceso ciclista (minimapa/buscador) y estás
+        // fuera: la ruta NO puede meterse al parque para salir por la
+        // portería (nodos interiores excluidos, salvo los cercanos a la
+        // portería — su nodo queda al borde). Antes el A* tomaba el atajo
+        // por dentro (Zapadores → La Pirámide: 79% del trazado dentro).
+        const local = trazarAccesoLocal(net, from, to, dirOk);
+        if (local) return localResult(local, from);
+      } else {
+        const local = rutaLocalConCorte(from, to, (d: LatLng) => findRoute(net, from, d, undefined));
+        if (local) return localResult(local, from);
       }
     }
   }
 
-  const r = await osrmRoute(from, to);
+  let r = await osrmRoute(from, to);
+  if (r && opts?.accesoDirecto && !parkInsideTest()(from.lat, from.lon) && metrosInteriorParque(r, to) > 150) {
+    // v1.12.10: destino = acceso ciclista, estás fuera del parque y el
+    // grafo local no cubre el origen (ej. centro de Santiago → La
+    // Pirámide) — OSRM se metería al cerro como atajo entrando por Pío
+    // Nono. Ruta HÍBRIDA: OSRM lleva solo hasta un nodo ANCLA del grafo
+    // (tramo corto de calle: no puede cruzar el parque) y desde ahí el
+    // grafo local con el filtro de parque completa hasta la portería.
+    const netH = await loadNetwork();
+    const dirOkH = netH ? crearDirOk(netH, { pioNonoSoloSubida: true, corteCumbre: corteCumbreActivo() }) : null;
+    if (netH && dirOkH) {
+      const si = snapInfo(netH, from);
+      const anchorPos: LatLng = { lat: netH.nodes[si.idx][0], lon: netH.nodes[si.idx][1] };
+      const head = si.distM <= 3000 ? await osrmRoute(from, anchorPos) : null;
+      const tail = head && metrosInteriorParque(head, to) <= 150 ? trazarAccesoLocal(netH, anchorPos, to, dirOkH) : null;
+      if (head && tail) {
+        const headFlags = flagsFromLocalNet(netH, head.coords);
+        const combinada = concatenarRutas({ ...head, flags: headFlags }, tail.route);
+        return localResult({ route: combinada, aviso: tail.aviso }, from);
+      }
+    }
+    // último recurso: OSRM con waypoints de rodeo por fuera del borde
+    const r0 = r;
+    const vias: LatLng[] = [];
+    let ultimo: NavRoute | null = null;
+    for (let intento = 0; intento < 3 && metrosInteriorParque(ultimo ?? r0, to) > 150; intento++) {
+      const via = viaExternaParque(ultimo ?? r0, to);
+      if (!via) break;
+      vias.push(via);
+      const r2 = await osrmRoute(from, to, vias);
+      if (!r2) break;
+      ultimo = r2;
+    }
+    if (ultimo && metrosInteriorParque(ultimo, to) <= metrosInteriorParque(r0, to)) r = ultimo;
+  }
   if (!r) {
     return {
       route: null,
@@ -827,6 +866,101 @@ function cicloPctOf(route: NavRoute): number {
     if (route.flags[i]) cicloM += haversineM(route.coords[i], route.coords[i + 1]);
   }
   return route.distanceM > 0 ? Math.round((cicloM / route.distanceM) * 100) : 0;
+}
+
+/** v1.12.10: metros recorridos dentro del polígono del parque (prueba
+ *  estricta del borde), sin contar la aproximación a la propia portería
+ *  destino (±150 m). Detecta rutas OSRM que usan el parque como atajo
+ *  cuando el destino es una portería. */
+function metrosInteriorParque(route: NavRoute, dest: LatLng): number {
+  const estricto = parkInsideTest(0);
+  let m = 0;
+  for (let i = 0; i < route.coords.length - 1; i++) {
+    const a = route.coords[i];
+    if (estricto(a.lat, a.lon) && haversineM(a, dest) > 150) m += haversineM(a, route.coords[i + 1]);
+  }
+  return m;
+}
+
+/** v1.12.10: waypoint de «rodeo» para que OSRM no cruce el parque: toma
+ *  el primer punto interior de la ruta que se mete al cerro, lo proyecta
+ *  al borde del polígono y lo empuja 450 m hacia afuera (dirección
+ *  centroide→borde). Con ese punto intermedio la ruta rodea por la vía
+ *  pública. */
+function viaExternaParque(route: NavRoute, dest: LatLng): LatLng | null {
+  const estricto = parkInsideTest(0);
+  let p: LatLng | null = null;
+  for (const c of route.coords) {
+    if (estricto(c.lat, c.lon) && haversineM(c, dest) > 150) { p = c; break; }
+  }
+  if (!p) return null;
+  let cy = 0, cx = 0;
+  for (const v of PARK_POLYGON) { cy += v.lat; cx += v.lon; }
+  cy /= PARK_POLYGON.length; cx /= PARK_POLYGON.length;
+  // proyección del punto sobre cada arista del polígono (metros locales)
+  const R = 111320;
+  const k = Math.cos((p.lat * Math.PI) / 180);
+  const px = p.lon * R * k, py = p.lat * R;
+  let qx = 0, qy = 0, bd = Infinity;
+  for (let i = 0; i < PARK_POLYGON.length; i++) {
+    const v1 = PARK_POLYGON[i];
+    const v2 = PARK_POLYGON[(i + 1) % PARK_POLYGON.length];
+    const ax = v1.lon * R * k, ay = v1.lat * R;
+    const bx = v2.lon * R * k, by = v2.lat * R;
+    const dx = bx - ax, dy = by - ay;
+    const t = Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / (dx * dx + dy * dy || 1)));
+    const ex = ax + t * dx, ey = ay + t * dy;
+    const d = (px - ex) ** 2 + (py - ey) ** 2;
+    if (d < bd) { bd = d; qx = ex; qy = ey; }
+  }
+  // hacia afuera: del centroide al punto del borde, 450 m más allá
+  let ox = qx - cx * R * k, oy = qy - cy * R;
+  const len = Math.hypot(ox, oy) || 1;
+  ox /= len; oy /= len;
+  const fx = qx + ox * 450, fy = qy + oy * 450;
+  return { lat: fy / R, lon: fx / (R * k) };
+}
+
+/** v1.12.10: traza LOCAL la ruta a un acceso ciclista quedando FUERA del
+ *  parque (nodos interiores excluidos, salvo los cercanos a la portería —
+ *  su nodo queda al borde). `origen` puede ser el punto real del ciclista
+ *  o un nodo ANCLA del grafo cuando el origen está lejos de la cobertura
+ *  local (ruta híbrida OSRM→ancla→portería). */
+function trazarAccesoLocal(
+  net: Network,
+  origen: LatLng,
+  to: LatLng,
+  dirOk: ReturnType<typeof crearDirOk>,
+): { route: NavRoute; aviso: string | null } | null {
+  const a = snapInfo(net, origen);
+  const b = snapInfo(net, to);
+  if (a.distM > ORIGIN_COVER_M || b.distM > GRAPH_COVER_M) return null;
+  const estricto = parkInsideTest(0);
+  const filtro = (lat: number, lon: number) => !estricto(lat, lon) || haversineM({ lat, lon }, to) <= 120;
+  const trazarDirecto = (d: LatLng) =>
+    findRoute(net, origen, d, { nodeOk: filtro, edgeDirOk: dirOk }) ??
+    findRoute(net, origen, d, { nodeOk: filtro });
+  return rutaLocalConCorte(origen, to, trazarDirecto);
+}
+
+/** v1.12.10: une la cabeza OSRM (origen → nodo ancla) con la cola local
+ *  (ancla → portería por fuera del parque): coords, flags, pasos (con el
+ *  desplazamiento de índice) y nombres de vía. */
+function concatenarRutas(head: NavRoute, tail: NavRoute): NavRoute {
+  const off = head.coords.length - 1;
+  const totalM = head.distanceM + tail.distanceM;
+  return {
+    coords: [...head.coords, ...tail.coords.slice(1)],
+    distanceM: Math.round(totalM),
+    steps: [
+      ...head.steps.filter((s) => s.icon !== "end"),
+      ...tail.steps.filter((s) => s.icon !== "start").map((s) => ({ ...s, idx: s.idx + off })),
+    ],
+    cicloviaPct: 0,
+    etaMin: Math.max(1, Math.round((totalM / 1000 / 15) * 60)),
+    flags: [...head.flags, ...tail.flags],
+    segNames: [...head.segNames, ...tail.segNames],
+  };
 }
 
 // ----------------------------------------------------------------

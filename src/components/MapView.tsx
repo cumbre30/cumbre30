@@ -28,6 +28,7 @@ import {
 } from "react-leaflet";
 import { Crosshair, AlertTriangle, Trash2, X, Search, MapPin, Flag, Crown, Lock, Layers, ChevronDown, Eye, Share2, Check, RefreshCw } from "lucide-react";
 import { apiUrl } from "@/lib/backend";
+import { useCamaraRumbo } from "@/hooks/useCamaraRumbo";
 import { NAV_DESTINATIONS, PARK_POLYGON, RISK_ZONES, type LatLng } from "@/lib/park";
 import {
   CAPA_ACCESOS,
@@ -124,6 +125,63 @@ function RouteFitter({
     const b = L.latLngBounds(route.coords.map((p) => [p.lat, p.lon] as [number, number]));
     map.fitBounds(b, { padding: [44, 44], maxZoom: 16, animate: true });
   }, [route, map, pendingRef]);
+  return null;
+}
+
+/** v1.12.10: cámara Waze del mapa grande. Mientras hay navegación activa
+ *  sigue el pin con paneo continuo (≈ intervalo entre fixes); mientras el
+ *  mapa está ROTADO (≠0°) el arrastre queda deshabilitado — Leaflet no
+ *  entiende toques sobre un mapa girado — y se reactiva al volver a norte.
+ *  El contenedor crece a 150% al rotar → invalidateSize. */
+function NavCamara({
+  position,
+  navOn,
+  rotado,
+  locateTarget,
+}: {
+  position: LatLng | null;
+  navOn: boolean;
+  rotado: boolean;
+  locateTarget: LatLng | null;
+}) {
+  const map = useMap();
+  const skip = useRef(false);
+  const zoomed = useRef(false);
+
+  useEffect(() => {
+    const onDrag = () => { skip.current = true; };
+    map.on("dragstart", onDrag);
+    return () => { map.off("dragstart", onDrag); };
+  }, [map]);
+
+  // el wrapper crece 100% ↔ 150% al rotar: recalcular el tamaño del lienzo
+  useEffect(() => {
+    map.invalidateSize();
+    const t = setTimeout(() => map.invalidateSize(), 150);
+    return () => clearTimeout(t);
+  }, [rotado, map]);
+
+  useEffect(() => {
+    if (rotado) {
+      map.dragging.disable();
+    } else {
+      map.dragging.enable();
+      zoomed.current = false;
+    }
+  }, [rotado, map]);
+
+  useEffect(() => {
+    if (!navOn || !position || skip.current) return;
+    const zoom = zoomed.current ? map.getZoom() : 17;
+    zoomed.current = true;
+    map.setView([position.lat, position.lon], zoom, { animate: true, duration: 0.9, easeLinearity: 1 });
+  }, [position, navOn, map]);
+
+  useEffect(() => {
+    if (!locateTarget) return;
+    skip.current = false;
+  }, [locateTarget]);
+
   return null;
 }
 
@@ -809,6 +867,12 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
   const marks = useMarks();
   // Encuadre único de la ruta recién trazada desde el buscador
   const pendingFitRef = useRef(false);
+  // v1.12.10: cámara Waze del mapa grande — con navegación activa
+  // (destino + ruta + ride grabándose) el mapa gira al rumbo y sigue
+  // el pin (la ruta se ve recta, como en Waze). Sin ride: vista libre.
+  const navOn = !!(dest && route && route.coords.length > 1 && track.length > 1);
+  const { modo: modoCamara, mapBearing, setModo: setModoCamara } = useCamaraRumbo({ activa: navOn, heading, route, position });
+  const rotado = mapBearing !== 0;
   // Capas del mapa (arquitectura GPX): visibilidad por capa/ruta
   const [capasVis, setCapasVis] = useState<Record<string, boolean>>({ accesos: true, senderos: true, "paseo-met": true });
   const [focus, setFocus] = useState<Focus>(null);
@@ -995,7 +1059,7 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
       // no se pintan: su representación son los trazados rojos.
       .filter((pt) => !pt.sinMarcador)
       .map((pt) => (
-      <Marker key={pt.id} position={[pt.position.lat, pt.position.lon]} icon={poiIcon(pt.emoji, colorOf(pt))}>
+          <Marker key={pt.id} position={[pt.position.lat, pt.position.lon]} icon={poiIcon(pt.emoji, colorOf(pt), mapBearing)}>
         <Popup>
           <div className="min-w-[190px] text-[13px]">
             <div className="font-semibold mb-0.5">
@@ -1055,7 +1119,7 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
         const confirmaciones = inc.confirmCount;
         const resueltos = inc.resolvedCount;
         return (
-          <Marker key={inc.id} position={[inc.lat, inc.lon]} icon={incidentIcon(inc.type)}>
+          <Marker key={inc.id} position={[inc.lat, inc.lon]} icon={incidentIcon(inc.type, mapBearing)}>
             <Popup>
               <div className="min-w-[190px] text-[13px]">
                 <div className="font-semibold mb-0.5">
@@ -1231,6 +1295,20 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
       {/* Mapa a pantalla completa (bajo header y barra inferior): 72 px
           cubre la altura real del nav inferior (~69 px) + 3 px de aire. */}
       <div className="absolute inset-x-0 top-0 bottom-[calc(72px+env(safe-area-inset-bottom))] z-0">
+        {/* v1.12.10: wrapper de rotación estilo Waze — en navegación el
+            mapa gira al rumbo (al 150% para no mostrar esquinas vacías);
+            los controles flotantes, fuera del wrapper, quedan fijos. */}
+        <div
+          style={{
+            position: "absolute",
+            left: rotado ? "-25%" : 0,
+            top: rotado ? "-25%" : 0,
+            width: rotado ? "150%" : "100%",
+            height: rotado ? "150%" : "100%",
+            transform: rotado ? `rotate(${-mapBearing}deg)` : undefined,
+            transition: rotado ? "transform 0.45s ease-out" : undefined,
+          }}
+        >
         <MapContainer
           center={[center.lat, center.lon]}
           zoom={14}
@@ -1413,7 +1491,7 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
               />
             </>
           )}
-          {dest && <Marker position={[dest.position.lat, dest.position.lon]} icon={flagIcon()} interactive={false} />}
+          {dest && <Marker position={[dest.position.lat, dest.position.lon]} icon={flagIcon(mapBearing)} interactive={false} />}
 
           {/* Recorrido del ride */}
           {track.length > 1 && (
@@ -1425,7 +1503,7 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
 
           {/* Marcadores personales (Pro) */}
           {marks.map((m) => (
-            <Marker key={m.id} position={[m.lat, m.lon]} icon={markIcon()}>
+            <Marker key={m.id} position={[m.lat, m.lon]} icon={markIcon(mapBearing)}>
               <Popup>
                 <div className="min-w-[170px] text-[13px]">
                   <div className="font-semibold mb-1">📍 {m.name}</div>
@@ -1460,15 +1538,17 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
                   pathOptions={{ color: "#ffffff", weight: 1, fillColor: "#ffffff", fillOpacity: 0.08 }}
                 />
               )}
-              <Marker position={[position.lat, position.lon]} icon={userPinIcon(userPin ?? DEFAULT_PIN, heading)} zIndexOffset={500} />
+              <Marker position={[position.lat, position.lon]} icon={userPinIcon(userPin ?? DEFAULT_PIN, heading, mapBearing)} zIndexOffset={500} />
             </>
           )}
 
           <RouteFitter route={route} pendingRef={pendingFitRef} />
+          <NavCamara position={position} navOn={navOn} rotado={rotado} locateTarget={locateTarget} />
           <FocusHandler focus={focus} />
           <LocateHandler target={locateTarget} />
           <ClickHandler enabled={reportMode} onPick={setPending} />
         </MapContainer>
+        </div>
 
         {/* Controles flotantes (bajo la barra de direcciones) */}
         <div className="absolute top-[64px] right-2 z-[600] flex flex-col gap-1.5">
@@ -1490,6 +1570,21 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
           >
             <AlertTriangle className="h-5 w-5" />
           </button>
+          {(rotado || modoCamara === "rumbo") && (
+            <button
+              onClick={() => setModoCamara(modoCamara === "rumbo" ? "norte" : "rumbo")}
+              aria-label={modoCamara === "rumbo" ? "Orientar el mapa al norte" : "Orientar el mapa al rumbo de la ruta"}
+              title={modoCamara === "rumbo" ? "Vista girada al rumbo — tocar para norte arriba" : "Norte arriba — tocar para girar al rumbo"}
+              className="relative h-10 w-10 rounded-lg bg-background/90 border border-border text-foreground flex items-center justify-center hover:border-emerald-500 shadow-md"
+            >
+              <svg width="22" height="22" viewBox="0 0 24 24" style={{ transform: `rotate(${-Math.round(mapBearing)}deg)`, transition: "transform 0.45s ease-out" }} aria-hidden>
+                <path d="M12 2.5 L15.5 12 L12 10.2 L8.5 12 Z" fill="#ef4444" />
+                <path d="M12 21.5 L8.5 12 L12 13.8 L15.5 12 Z" fill="#71717a" />
+                <circle cx="12" cy="12" r="1.4" fill="#09090b" />
+              </svg>
+              {modoCamara === "rumbo" && <span className="absolute -bottom-1 rounded bg-emerald-600 px-1 text-[8px] font-bold text-white">RUMBO</span>}
+            </button>
+          )}
         </div>
 
         {/* Estado / avisos */}

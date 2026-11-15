@@ -46,11 +46,11 @@ export function userPinIcon(pinId: string | undefined, heading: number | null = 
 }
 
 /** Marcador de incidencia (tamaño normal, mapa grande). */
-export function incidentIcon(type: string): L.DivIcon {
+export function incidentIcon(type: string, mapBearing = 0): L.DivIcon {
   const t = INCIDENT_BY_ID[type] ?? INCIDENT_BY_ID.otro;
   return L.divIcon({
     className: "",
-    html: `<div class="c30-billboard"><div style="display:flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:9999px;background:${t.color};border:2.5px solid #09090b;box-shadow:0 0 0 2px ${t.color}66;font-size:14px;line-height:1;">${t.emoji}</div></div>`,
+    html: `<div class="c30-billboard"><div style="display:flex;align-items:center;justify-content:center;width:30px;height:30px;transform:rotate(${Math.round(mapBearing)}deg);border-radius:9999px;background:${t.color};border:2.5px solid #09090b;box-shadow:0 0 0 2px ${t.color}66;font-size:14px;line-height:1;">${t.emoji}</div></div>`,
     iconSize: [30, 30],
     iconAnchor: [15, 15],
     popupAnchor: [0, -14],
@@ -58,10 +58,10 @@ export function incidentIcon(type: string): L.DivIcon {
 }
 
 /** Marcador genérico de capa (POI, normativa, conexión urbana): burbuja de emoji con color de la capa. */
-export function poiIcon(emoji: string, color: string): L.DivIcon {
+export function poiIcon(emoji: string, color: string, mapBearing = 0): L.DivIcon {
   return L.divIcon({
     className: "",
-    html: `<div class="c30-billboard"><div style="display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:9999px;background:${color};border:2.5px solid #fafafa;box-shadow:0 2px 8px rgba(0,0,0,.55);font-size:13px;line-height:1;">${emoji}</div></div>`,
+    html: `<div class="c30-billboard"><div style="display:flex;align-items:center;justify-content:center;width:28px;height:28px;transform:rotate(${Math.round(mapBearing)}deg);border-radius:9999px;background:${color};border:2.5px solid #fafafa;box-shadow:0 2px 8px rgba(0,0,0,.55);font-size:13px;line-height:1;">${emoji}</div></div>`,
     iconSize: [28, 28],
     iconAnchor: [14, 14],
     popupAnchor: [0, -14],
@@ -90,10 +90,10 @@ export function flagIcon(mapBearing = 0): L.DivIcon {
 }
 
 /** Marcador personal guardado por el ciclista (Pro). */
-export function markIcon(): L.DivIcon {
+export function markIcon(mapBearing = 0): L.DivIcon {
   return L.divIcon({
     className: "",
-    html: `<div class="c30-billboard"><div style="display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:9999px 9999px 9999px 4px;background:#10b981;border:2.5px solid #fafafa;box-shadow:0 2px 8px rgba(0,0,0,.6);font-size:13px;line-height:1;">📍</div></div>`,
+    html: `<div class="c30-billboard"><div style="display:flex;align-items:center;justify-content:center;width:28px;height:28px;transform:rotate(${Math.round(mapBearing)}deg);border-radius:9999px 9999px 9999px 4px;background:#10b981;border:2.5px solid #fafafa;box-shadow:0 2px 8px rgba(0,0,0,.6);font-size:13px;line-height:1;">📍</div></div>`,
     iconSize: [28, 28],
     iconAnchor: [14, 26],
     popupAnchor: [0, -24],
