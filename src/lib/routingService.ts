@@ -1091,6 +1091,52 @@ function concatenarRutas(head: NavRoute, tail: NavRoute): NavRoute {
   };
 }
 
+/** Tramo de ciudad OSRM GARANTIZADO por fuera del parque (cliente
+ *  2026-11-15: «me marca con ingreso al cerro y debe ser por fuera, así
+ *  como la ruta 1 y 2 parten del acceso»). OSRM no conoce la geocerca y
+ *  a veces ataja POR DENTRO del parque (ej.: Bellavista → La Pirámide
+ *  entrando por Pío Nono y subiendo por el borde interior). Mismo control
+ *  de reingreso del acceso directo v1.12.10: si el OSRM trae >150 m de
+ *  interior antes de la llegada, se re-traza con waypoints de rodeo
+ *  (viaExternaParque); si aún insiste, respaldo del grafo local con el
+ *  interior bloqueado (`nodeOk`, salvo la boca de la portería). */
+async function osrmCiudadPorFuera(
+  from: LatLng,
+  to: LatLng,
+  net: Network,
+  nodeOk?: (lat: number, lon: number) => boolean,
+): Promise<NavRoute | null> {
+  const dentro = (r: NavRoute) => metrosInteriorParque(r, to) > 150;
+  const r0 = await osrmRoute(from, to);
+  if (r0 && dentro(r0)) {
+    const vias: LatLng[] = [];
+    let ultimo: NavRoute | null = null;
+    for (let intento = 0; intento < 3 && dentro(ultimo ?? r0); intento++) {
+      const via = viaExternaParque(ultimo ?? r0, to);
+      if (!via) break;
+      // si el nuevo waypoint coincide con uno ya usado, otra vuelta no
+      // cambia nada (OSRM devolvería la misma ruta): cortar aquí
+      if (vias.some((v) => haversineM(v, via) < 30)) break;
+      vias.push(via);
+      const r2 = await osrmRoute(from, to, vias);
+      if (!r2) break;
+      ultimo = r2;
+    }
+    if (ultimo && !dentro(ultimo)) return ultimo;
+    // OSRM insiste en cruzar el cerro: respaldo local SOLO por calles de
+    // la ciudad (los nodos del interior quedan excluidos por nodeOk).
+    if (nodeOk) {
+      const a = snapInfo(net, from);
+      if (a.distM <= ORIGIN_COVER_M) return findRoute(net, from, to, { nodeOk });
+    }
+  }
+  if (!r0 && nodeOk) {
+    const a = snapInfo(net, from);
+    if (a.distM <= ORIGIN_COVER_M) return findRoute(net, from, to, { nodeOk });
+  }
+  return r0;
+}
+
 // ----------------------------------------------------------------
 // Rutas predefinidas del mapa («generar ruta» en la capa Rutas)
 // ----------------------------------------------------------------
@@ -1101,10 +1147,12 @@ function concatenarRutas(head: NavRoute, tail: NavRoute): NavRoute {
  * mismo trazado del botón ver» — la navegación recorre SIEMPRE el trazado
  * precomputado COMPLETO (el mismo que dibuja «Ver»), nunca un tramo A*
  * que lo reemplace o lo recorte:
- *   1. tramo de ciudad: mi ubicación → inicio del trazado cuando este es
- *      un acceso ciclista (r1-r5 nacen en la portería); si el trazado
- *      nace dentro del parque (MTB), acceso ciclista más cercano
- *      (solo si estoy fuera del parque)
+ *   1. tramo de ciudad POR FUERA del parque (sin ingresar al cerro):
+ *      mi ubicación → inicio del trazado cuando este es un acceso
+ *      ciclista (r1-r5 nacen en la portería); si el trazado nace dentro
+ *      del parque (MTB), acceso ciclista más cercano (solo si estoy
+ *      fuera del parque). Cliente 2026-11-15: «debe ser por fuera, así
+ *      como la ruta 1 y 2 parten del acceso»
  *   2. tramo interno: acceso/origen → inicio del trazado, por caminos
  *      del parque (pavimento sin senderos MTB · MTB sin restricción);
  *      si no se logra, se muestra el trazado completo desde su inicio
@@ -1165,19 +1213,29 @@ export async function computePresetRoute(
       : accesoMasCercano(from);
     const a = snapInfo(net, from);
     if (gateInicio) {
-      // Ciudad → portería donde nace el trazado: OSRM primero (cobertura
-      // urbana completa; el grafo local conecta mal las bocas norte/oriente),
-      // respaldo local SOLO por calles de la ciudad (el interior del parque
-      // queda bloqueado salvo la boca de la portería).
+      // Ciudad → portería donde nace el trazado, SIEMPRE POR FUERA del
+      // parque (cliente 2026-11-15: «me marca con ingreso al cerro y debe
+      // ser por fuera, así como la ruta 1 y 2 parten del acceso»).
+      // 1º grafo local por calles de la ciudad: rápido y con el interior
+      // bloqueado (salvo la boca de la portería) — medido 2026-11-15, el
+      // OSRM crudo Bellavista→La Pirámide trae ~5.2 km POR DENTRO del
+      // parque (entra por Pío Nono y sube por el borde), y ni el rodeo con
+      // waypoints lo corrige. 2º (origen lejos de la cobertura local, o
+      // local sin ruta): OSRM con control de reingreso (rodeo v1.12.10) y
+      // respaldo local.
       const cityOk = (lat: number, lon: number) =>
         !inside(lat, lon) || haversineM({ lat, lon }, inicioTrace) <= 150;
-      legAcceso = await osrmRoute(from, acceso.position);
-      if (!legAcceso && a.distM <= ORIGIN_COVER_M) {
+      if (a.distM <= ORIGIN_COVER_M) {
         legAcceso = findRoute(net, from, acceso.position, { nodeOk: cityOk });
       }
+      if (!legAcceso) legAcceso = await osrmCiudadPorFuera(from, acceso.position, net, cityOk);
     } else {
-      if (a.distM <= ORIGIN_COVER_M) legAcceso = findRoute(net, from, acceso.position);
-      if (!legAcceso) legAcceso = await osrmRoute(from, acceso.position);
+      // MTB (nace dentro del parque): acceso ciclista más cercano, también
+      // POR FUERA hasta esa portería (mismo criterio del cliente).
+      const cityOkM = (lat: number, lon: number) =>
+        !inside(lat, lon) || haversineM({ lat, lon }, acceso!.position) <= 150;
+      if (a.distM <= ORIGIN_COVER_M) legAcceso = findRoute(net, from, acceso.position, { nodeOk: cityOkM });
+      if (!legAcceso) legAcceso = await osrmCiudadPorFuera(from, acceso.position, net, cityOkM);
     }
     if (!legAcceso) {
       return {
