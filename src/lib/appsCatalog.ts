@@ -92,6 +92,7 @@ export const APPS: AppCatalogo[] = [
         // vigente (Ola 2 y 3 del roadmap 2026-11-14).
         cuerpo:
           `v${APP_VERSION} (${APP_VERSION_CODE}):\n` +
+          "• Navegación en el minimapa corregida: la ruta siempre se ve vertical (estilo Waze) y el pin apunta en la dirección en que avanzas, incluso parado o sin rumbo GPS fresco.\n" +
           "• Nuevo: «Revisar actualizaciones» en Configuración → Acerca de + aviso automático (una vez al día, con notificación) cuando sale una versión nueva: la descargas con un toque, sin buscar el enlace.\n" +
           "• Control de música universal en la pantalla ride, al lado del ahorro de batería: pausa, play, siguiente y anterior sobre la app que estés usando (Spotify gratis o Premium, YouTube Music, cualquier reproductor) sin salir de tus métricas. Pide una vez el «acceso a las notificaciones» que Android exige para este control · no leemos tus notificaciones.\n" +
           "• Corregido el error al tocar el banner de clima (ya puedes ver viento, calidad del aire e índice UV sin que se cierre la app).\n" +
