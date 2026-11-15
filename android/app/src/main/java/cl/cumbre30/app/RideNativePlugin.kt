@@ -193,10 +193,22 @@ class RideNativePlugin : Plugin() {
     private fun tagMedia(): ComponentName =
         ComponentName(bridge.context, MediaListenerService::class.java)
 
+    /** ¿El usuario ya concedió el acceso a notificaciones? Chequeo
+     *  vía Settings.Secure (compatible desde API 21; el método
+     *  isNotificationListenerAccessGranted de MediaSessionManager no
+     *  compila en esta configuración de SDK). */
+    private fun listenerAcceso(): Boolean {
+        val flat = Settings.Secure.getString(bridge.context.contentResolver, "enabled_notification_listeners")
+            ?: return false
+        return flat.split(":").any {
+            ComponentName.unflattenFromString(it)?.packageName == bridge.context.packageName
+        }
+    }
+
     @PluginMethod
     fun mediaPermitido(call: PluginCall) {
         val granted = try {
-            msm()?.isNotificationListenerAccessGranted(tagMedia()) ?: false
+            listenerAcceso()
         } catch (_: Exception) {
             false
         }
@@ -232,7 +244,7 @@ class RideNativePlugin : Plugin() {
         val data = JSObject()
         try {
             val mgr = msm() ?: throw IllegalStateException("sin MediaSessionManager")
-            if (!mgr.isNotificationListenerAccessGranted(tagMedia())) {
+            if (!listenerAcceso()) {
                 data.put("granted", false)
                 data.put("sesiones", JSONArray())
                 return call.resolve(data)
