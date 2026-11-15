@@ -169,7 +169,10 @@ export default function ProfileTab() {
     setError(null);
     try {
       const acct = await nativeGoogleSignIn();
-      const err = await googleAuthAction({ sub: acct.sub, email: acct.email, name: acct.name });
+      // idToken incluido: offlineGoogleSignIn lo canjea por un token de
+      // sesión del servidor (linkGoogle). Sin él, amigos/rides/compartir
+      // en el APK nunca sabían de la cuenta Google (bug hasta v1.12.5).
+      const err = await googleAuthAction({ sub: acct.sub, email: acct.email, name: acct.name, idToken: acct.idToken });
       if (err) setError(err);
     } catch (e) {
       setError((e as Error).message || "No pudimos iniciar sesión con Google.");

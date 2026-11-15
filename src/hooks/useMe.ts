@@ -136,8 +136,10 @@ export async function authAction(kind: "login" | "register", payload: Record<str
   }
 }
 
-/** Inicio de sesión con Google (solo APK): enlaza/crea la cuenta local y refresca el estado. */
-export async function googleAuthAction(acct: { sub: string; email: string; name?: string }): Promise<string | null> {
+/** Inicio de sesión con Google (solo APK): enlaza/crea la cuenta local y refresca el estado.
+ *  El idToken del plugin nativo viaja junto: offlineGoogleSignIn lo canjea por un token
+ *  de sesión del servidor (linkGoogle) — es lo que une la cuenta Google con la web. */
+export async function googleAuthAction(acct: { sub: string; email: string; name?: string; idToken?: string }): Promise<string | null> {
   try {
     if (!isOfflineMode()) {
       return "El inicio con Google está disponible en la app Android.";

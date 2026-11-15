@@ -7,7 +7,7 @@
 // (token Bearer del servidor de cuenta vía apiUrl()).
 // ============================================================
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { Award, Check, Link2, LogIn, Trash2, UserPlus, Users } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { useMe } from "@/hooks/useMe";
 import { isOfflineMode } from "@/lib/offlineAuth";
 import { apiUrl } from "@/lib/backend";
-import { serverToken } from "@/lib/cloudSync";
+import { serverToken, syncStore } from "@/lib/cloudSync";
 import { VERIFICAR_ORIGEN } from "@/lib/constancia";
 import { PINS, DEFAULT_PIN, type PinId } from "@/lib/pins";
 
@@ -58,8 +58,13 @@ export function AmigosTab({ onGoPerfil, invitado }: { onGoPerfil?: () => void; i
   const url = apiUrl("/api/friends");
   // APK sin origen de servidor (sin override ni origen horneado): sin amigos
   const noBackend = url === null;
-  // Sesión utilizable: web por cookie (me), APK por token Bearer vigente
-  const hasSession = offline ? !!serverToken() : !!me;
+  // Sesión utilizable: web por cookie (me), APK por token Bearer vigente.
+  // La suscripción a syncStore (v1.12.6) hace que el tab reaccione cuando
+  // el token llega DESPUÉS de montar (login Google → linkGoogle → estado
+  // ok): antes quedaba pegado en «Inicia sesión» hasta remontar el tab.
+  // serverToken() sigue mandando: ya valida vigencia al leer localStorage.
+  const sync = useSyncExternalStore(syncStore.subscribe, syncStore.get, syncStore.getServer);
+  const hasSession = offline ? (!!serverToken() || sync.phase === "ok") : !!me;
   const canUse = url !== null && hasSession;
 
   const load = useCallback(async () => {
