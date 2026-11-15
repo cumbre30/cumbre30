@@ -33,7 +33,7 @@ import { MINIMAP_ACCESOS } from "@/lib/mapLayers";
 import { DEFAULT_PIN, PINS, type PinId } from "@/lib/pins";
 import { INCIDENT_BY_ID } from "@/lib/incidents";
 import { circlePolygon, navStyle, CYCLOSM_TILES } from "@/lib/navStyle";
-import { routeProgress, streetAt, streetOfStep } from "@/lib/routing";
+import { haversineM, routeProgress, streetAt, streetOfStep } from "@/lib/routing";
 import { bearingOf, buildRouteFeatures, lineFeat, polyFeat, toFc } from "@/lib/navCanvasLogic";
 import { INCIDENT_TYPES, type IncidentTypeId } from "@/lib/incidents";
 import { addIncident, loadLocalIncidents, saveLocalIncidents, useIncidentFeed, type IncidentItem } from "@/hooks/useIncidentFeed";
@@ -247,6 +247,28 @@ function NavCanvas(props: NavCanvasProps) {
   const mapRef = useRef<MlMap | null>(null);
   const [ready, setReady] = useState(false);
   const firstFixRef = useRef(false);
+
+  // Rumbo del tramo de ruta más cercano a la posición (v1.12.11):
+  // paridad con useCamaraRumbo del mapa grande — se calcula AQUÍ con el
+  // vértice más cercano, sin depender de nearestIdx del progreso (puede
+  // venir null fuera de ruta y antes dejaba la cámara y el pin sin
+  // orientarse: la ruta se veía acostada y el pin apuntaba a cualquier
+  // lado, justo lo que reportó el cliente con la ruta a Pío Nono).
+  const routeBearing = useMemo(() => {
+    if (!props.onRoute || !props.route || props.route.coords.length < 2 || !props.position) return null;
+    let best = 0;
+    let bd = Infinity;
+    for (let i = 0; i < props.route.coords.length; i++) {
+      const d = haversineM(props.position, props.route.coords[i]);
+      if (d < bd) {
+        bd = d;
+        best = i;
+        if (d < 8) break;
+      }
+    }
+    const i = Math.min(best, props.route.coords.length - 2);
+    return bearingOf(props.route.coords[i], props.route.coords[i + 1]);
+  }, [props.onRoute, props.route, props.position]);
 
   // ---- init ----
   useEffect(() => {
@@ -498,16 +520,23 @@ function NavCanvas(props: NavCanvasProps) {
     const map = mapRef.current;
     if (!map || !ready) return;
 
-    // Sin posición: encuadra la ruta completa (vista previa plana)
+    // Sin posición: encuadra la ruta completa. GIRADA al rumbo inicial
+    // del trazado (v1.12.11): la vista de navegación se ve SIEMPRE
+    // vertical (la ruta corre hacia arriba), no un norte arriba con la
+    // ruta acostada — era la vista que quedó clavada en el reporte del
+    // cliente al navegar a Pío Nono sin fix fresco. Zoom con margen
+    // extra porque al girar el encuadre norte-arriba puede quedarse
+    // corto (el bbox no rota con la cámara).
     if (!props.position) {
       if (props.onRoute && props.route) {
         const lons = props.route.coords.map((c) => c.lon);
         const lats = props.route.coords.map((c) => c.lat);
+        const b0 = props.route.coords.length > 1 ? bearingOf(props.route.coords[0], props.route.coords[1]) : 0;
         map.easeTo({
           center: [(Math.min(...lons) + Math.max(...lons)) / 2, (Math.min(...lats) + Math.max(...lats)) / 2],
-          zoom: 13.8,
+          zoom: 12.9,
           pitch: 0,
-          bearing: 0,
+          bearing: b0,
           duration: 700,
         });
       }
@@ -521,12 +550,13 @@ function NavCanvas(props: NavCanvasProps) {
     const anchorBottom = Math.round(h * (props.onRoute ? 0.3 : 0.34));
     const padding = { top: Math.max(0, Math.round(h) - anchorBottom * 2), bottom: 0, left: 0, right: 0 };
 
-    // rumbo: curso del GPS → dirección de la ruta → mantener actual
+    // rumbo: curso del GPS → RUMBO DE LA RUTA (routeBearing, calculado
+    // arriba con el vértice más cercano) → mantener actual
     let b: number;
     if (props.heading !== null) {
       b = props.heading;
-    } else if (props.onRoute && props.route && props.nearestIdx !== null && props.nearestIdx < props.route.coords.length - 1) {
-      b = bearingOf(props.route.coords[props.nearestIdx], props.route.coords[props.nearestIdx + 1]);
+    } else if (routeBearing !== null) {
+      b = routeBearing;
     } else {
       b = map.getBearing();
     }
@@ -558,25 +588,38 @@ function NavCanvas(props: NavCanvasProps) {
       duration: 680,
       easing: (t) => t,
     });
-  }, [ready, props.position, props.heading, props.onRoute, props.remainingM, props.nearestIdx, props.route]);
+  }, [ready, props.position, props.heading, props.onRoute, props.remainingM, routeBearing, props.route]);
 
-  // rotación del pin flecha respecto al mapa (queda alineado al rumbo)
+  // rotación del pin flecha (v1.12.11, reporte del cliente: «que el pin
+  // apunte en la dirección que se traza la ruta, ahora apunta a cualquier
+  // lado»). Dos causas, ambas corregidas:
+  // 1) El marker de MapLibre con rotationAlignment "map" YA contra-rota
+  //    la RAÍZ del elemento rotateZ(-bearing) (verificado en el DOM:
+  //    translate(...) rotateX(50deg) rotateZ(-bearing)) — el eje del
+  //    puck queda alineado al norte del mapa. Restar map.getBearing()
+  //    ADEMÁS en la flecha interna contaba el giro DOS veces y con el
+  //    mapa rotado el pin caía a cualquier lado. El ángulo del rumbo va
+  //    SOLO en la flecha interna.
+  // 2) Sin course GPS (parado) el ángulo era heading ?? 0 = norte fijo;
+  //    ahora cae al RUMBO DE LA RUTA (routeBearing). Con la cámara
+  //    girada al mismo rumbo, la flecha se ve hacia ARRIBA, estilo
+  //    Waze (misma idea que rumboPin en LeafletNav v1.12.10).
   useEffect(() => {
-    const map = mapRef.current;
-    if (!map || !ready) return;
-    const apply = () => {
-      const m = puckRef.current;
-      const arrow = arrowRef.current;
-      if (!m || !arrow) return;
-      const hdg = props.heading ?? 0;
-      arrow.style.transform = `rotate(${hdg - map.getBearing()}deg)`;
-    };
-    apply();
-    map.on("rotate", apply);
-    return () => {
-      map.off("rotate", apply);
-    };
-  }, [ready, props.heading, props.position]);
+    if (!ready) return;
+    const hdg = props.heading ?? routeBearing ?? 0;
+    const arrow = arrowRef.current;
+    if (arrow) arrow.style.transform = `rotate(${hdg}deg)`;
+  }, [ready, props.heading, routeBearing, props.position, props.userPin]);
+
+  // sin posición viva el puck se retira (no dejar un pin congelado en
+  // la última esquina: con la ruta activa la vista general muestra la
+  // ruta completa y un pin viejo confunde — era otra pieza del reporte)
+  useEffect(() => {
+    if (props.position || !puckRef.current) return;
+    puckRef.current.remove();
+    puckRef.current = null;
+    arrowRef.current = null;
+  }, [props.position]);
 
   // vista a un punto (localización sin ride)
   useEffect(() => {
