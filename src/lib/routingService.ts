@@ -610,9 +610,10 @@ export function corredorOk(midLat: number, midLon: number, cls: string, name: st
   return false;
 }
 
-/** Test "dentro del parque" con tolerancia de 80 m (los accesos quedan sobre
- *  el borde del polígono). */
-function parkInsideTest(): (lat: number, lon: number) => boolean {
+/** Test "dentro del parque" con tolerancia configurable (por defecto
+ *  80 m: los accesos quedan sobre el borde del polígono). Con 0 queda
+ *  la prueba ESTRICTA (solo el polígono) para el filtro de accesos. */
+function parkInsideTest(toleranciaM = 80): (lat: number, lon: number) => boolean {
   const poly = PARK_POLYGON.map((p) => [p.lat, p.lon] as [number, number]);
   const inPoly = (lat: number, lon: number) => {
     let inside = false;
@@ -637,7 +638,7 @@ function parkInsideTest(): (lat: number, lon: number) => boolean {
     }
     return best;
   };
-  return (lat: number, lon: number) => inPoly(lat, lon) || distToPolyM(lat, lon) <= 80;
+  return (lat: number, lon: number) => inPoly(lat, lon) || distToPolyM(lat, lon) <= toleranciaM;
 }
 
 /** Acceso ciclista más cercano a un punto. */
@@ -752,12 +753,30 @@ export async function computeRoute(from: LatLng, to: LatLng, opts?: { accesoDire
     }
     const b = snapInfo(net, to);
     const a = snapInfo(net, from);
+    // v1.12.9: destino = acceso ciclista (minimapa/buscador) y estás fuera:
+    // la ruta NO puede meterse al parque para salir por la portería — se
+    // excluyen los nodos interiores del polígono (prueba estricta, sin
+    // tolerancia), salvo los cercanos a la propia portería destino (su nodo
+    // queda al borde: La Pirámide queda a 29 m hacia adentro). Antes el A*
+    // tomaba el atajo por dentro del cerro (ej. sector Zapadores → La
+    // Pirámide: 79% del trazado dentro) y en horas sin corte de cumbre
+    // entraba por Pío Nono para llegar a la portería de Valdivia/La Pirámide.
+    const filtroFuera = (() => {
+      if (!opts?.accesoDirecto || fromInPark) return null;
+      const estricto = parkInsideTest(0);
+      return (lat: number, lon: number) => !estricto(lat, lon) || haversineM({ lat, lon }, to) <= 120;
+    })();
     if (a.distM <= ORIGIN_COVER_M && b.distM <= GRAPH_COVER_M) {
       // destino dentro del cerro: pavimento del parque (sin senderos
       // peatonales), con respaldo que agrega senderos ciclistas
       const trazarDirecto = (d: LatLng) =>
-        findRoute(net, from, d, destInPark ? { ...PAV_DEST_OPTS, edgeDirOk: dirOk } : undefined) ??
-        (destInPark ? findRoute(net, from, d, { ...PAV_DEST_RELAX, edgeDirOk: dirOk }) : null);
+        destInPark
+          ? findRoute(net, from, d, { ...PAV_DEST_OPTS, edgeDirOk: dirOk }) ??
+            findRoute(net, from, d, { ...PAV_DEST_RELAX, edgeDirOk: dirOk })
+          : filtroFuera
+            ? findRoute(net, from, d, { nodeOk: filtroFuera, edgeDirOk: dirOk }) ??
+              findRoute(net, from, d, { nodeOk: filtroFuera })
+            : findRoute(net, from, d, undefined);
       const local = rutaLocalConCorte(from, to, trazarDirecto);
       if (local) {
         // flags del A* ya son confiables en el sector cubierto;

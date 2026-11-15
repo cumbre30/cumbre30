@@ -33,7 +33,7 @@ export function userPinIcon(pinId: string | undefined, heading: number | null = 
       popupAnchor: [0, -18],
     });
   }
-  const upright = Math.round(-mapBearing);
+  const upright = Math.round(mapBearing); // mapa rotado -b° en pantalla: la burbuja se rota +b° para verse derecha
   return L.divIcon({
     className: "",
     html: `<div class="c30-billboard"><div style="width:34px;height:38px;transform:rotate(${upright}deg);">
@@ -80,10 +80,10 @@ export function miniIncidentIcon(type: string): L.DivIcon {
 }
 
 /** Bandera de destino. */
-export function flagIcon(): L.DivIcon {
+export function flagIcon(mapBearing = 0): L.DivIcon {
   return L.divIcon({
     className: "",
-    html: `<div class="c30-billboard"><div style="display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:9999px;background:#0ea5e9;border:2.5px solid #fafafa;box-shadow:0 2px 8px rgba(0,0,0,.6);font-size:13px;line-height:1;">🏁</div></div>`,
+    html: `<div class="c30-billboard"><div style="display:flex;align-items:center;justify-content:center;width:28px;height:28px;transform:rotate(${Math.round(mapBearing)}deg);border-radius:9999px;background:#0ea5e9;border:2.5px solid #fafafa;box-shadow:0 2px 8px rgba(0,0,0,.6);font-size:13px;line-height:1;">🏁</div></div>`,
     iconSize: [28, 28],
     iconAnchor: [14, 14],
   });

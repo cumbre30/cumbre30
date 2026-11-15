@@ -557,9 +557,12 @@ function SearchCard({
     };
   }, [query, pro]);
 
-  /** Elegir destino: el motor de navegación traza la ruta solo. */
-  const traceTo = (name: string, p: LatLng) => {
-    onSetDest?.({ name, position: p });
+  /** Elegir destino: el motor de navegación traza la ruta solo.
+   *  esAcceso (v1.12.9): el destino es uno de los 4 accesos ciclistas →
+   *  ruta DIRECTA por la calle, sin desvío por el acceso más cercano. */
+  const esAccesoId = (id: string) => CAPA_ACCESOS.some((a) => a.id === id);
+  const traceTo = (name: string, p: LatLng, esAcceso = false) => {
+    onSetDest?.({ name, position: p, esAcceso });
     setQuery("");
   };
 
@@ -628,7 +631,7 @@ function SearchCard({
             if (e.key === "Enter") {
               const a = addr[0];
               if (a) traceTo(a.name, { lat: a.lat, lon: a.lon });
-              else if (dests[0]) traceTo(dests[0].name, dests[0].position);
+              else if (dests[0]) traceTo(dests[0].name, dests[0].position, esAccesoId(dests[0].id));
             }
           }}
           placeholder="Cualquier dirección o lugar: Providencia 1234, cumbre…"
@@ -651,7 +654,7 @@ function SearchCard({
             {dests.map((d) => (
               <li key={d.id} className="flex items-center gap-1.5 border-b border-border/50 py-1.5 last:border-0">
                 <button
-                  onClick={() => traceTo(d.name, d.position)}
+                  onClick={() => traceTo(d.name, d.position, esAccesoId(d.id))}
                   className="min-w-0 flex-1 truncate text-left text-xs text-foreground hover:text-emerald-600 dark:hover:text-emerald-400"
                   title="Trazar ruta hasta aquí"
                 >
