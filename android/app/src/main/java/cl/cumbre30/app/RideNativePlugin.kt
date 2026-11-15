@@ -18,13 +18,18 @@ package cl.cumbre30.app
 // ============================================================
 
 import android.Manifest
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.media.MediaMetadata
+import android.media.session.MediaSessionManager
+import android.media.session.PlaybackState
 import android.os.Build
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
+import android.provider.Settings
 import androidx.core.content.ContextCompat
 import com.getcapacitor.JSObject
 import com.getcapacitor.PermissionState
@@ -34,6 +39,7 @@ import com.getcapacitor.PluginMethod
 import com.getcapacitor.annotation.CapacitorPlugin
 import com.getcapacitor.annotation.Permission
 import com.getcapacitor.annotation.PermissionCallback
+import org.json.JSONArray
 
 @CapacitorPlugin(
     name = "RideNative",
@@ -163,6 +169,116 @@ class RideNativePlugin : Plugin() {
         } else {
             @Suppress("DEPRECATION")
             ctx.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
+        }
+    }
+
+    // ------------------------------------------------------------ música (v1.12.3)
+    //
+    // Control de la música del teléfono sin salir del ride: los
+    // MediaSessions que publican Spotify, YouTube Music o cualquier
+    // reproductor. Es el MISMO mecanismo de los botones de los
+    // audífonos: MediaSessionManager + MediaController.transportControls.
+    //   · Requisito (exige Android para cualquier controlador de
+    //     media de terceros): acceso a notificaciones para esta app
+    //     (NotificationListenerService). MediaListenerService existe
+    //     solo para habilitar esa vía; no lee notificaciones.
+    //   · Sin cuentas, sin API en línea y sin Premium: todo local.
+
+    /** MediaSessionManager del sistema (API 21+; minSdk ≥ 23). */
+    private fun msm(): MediaSessionManager? =
+        ContextCompat.getSystemService(bridge.context, MediaSessionManager::class.java)
+
+    /** ComponentName de nuestro NotificationListenerService: es la
+     *  credencial que Android exige para ver sesiones de otras apps. */
+    private fun tagMedia(): ComponentName =
+        ComponentName(bridge.context, MediaListenerService::class.java)
+
+    @PluginMethod
+    fun mediaPermitido(call: PluginCall) {
+        val granted = try {
+            msm()?.isNotificationListenerAccessGranted(tagMedia()) ?: false
+        } catch (_: Exception) {
+            false
+        }
+        val data = JSObject()
+        data.put("granted", granted)
+        call.resolve(data)
+    }
+
+    /** Abre el ajuste de Android «Acceso a las notificaciones» para
+     *  que el usuario conceda el acceso una sola vez. */
+    @PluginMethod
+    fun abrirAjustesMedia(call: PluginCall) {
+        try {
+            val i = Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
+            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            bridge.activity.startActivity(i)
+            call.resolve()
+        } catch (e: Exception) {
+            call.reject("No se pudo abrir ajustes: ${e.message}")
+        }
+    }
+
+    private fun appLabel(pkg: String): String = try {
+        val pm = bridge.context.packageManager
+        pm.getApplicationLabel(pm.getApplicationInfo(pkg, 0)).toString()
+    } catch (_: Exception) {
+        pkg
+    }
+
+    /** Sesiones de media activas: app, pista, artista y ¿tocando?. */
+    @PluginMethod
+    fun mediaSesiones(call: PluginCall) {
+        val data = JSObject()
+        try {
+            val mgr = msm() ?: throw IllegalStateException("sin MediaSessionManager")
+            if (!mgr.isNotificationListenerAccessGranted(tagMedia())) {
+                data.put("granted", false)
+                data.put("sesiones", JSONArray())
+                return call.resolve(data)
+            }
+            val arr = JSONArray()
+            for (mc in mgr.getActiveSessions(tagMedia())) {
+                val md = mc.metadata
+                val st = mc.playbackState
+                val o = JSObject()
+                o.put("id", mc.packageName)
+                o.put("app", appLabel(mc.packageName))
+                o.put("pista", md?.getString(MediaMetadata.METADATA_KEY_TITLE) ?: "")
+                o.put("artista", md?.getString(MediaMetadata.METADATA_KEY_ARTIST) ?: "")
+                o.put("tocando", st?.state == PlaybackState.STATE_PLAYING)
+                arr.put(o)
+            }
+            data.put("granted", true)
+            data.put("sesiones", arr)
+            call.resolve(data)
+        } catch (e: Exception) {
+            call.reject("mediaSesiones falló: ${e.message}")
+        }
+    }
+
+    /** Comandos de transporte sobre la sesión indicada: toggle,
+     *  play, pause, siguiente, anterior. */
+    @PluginMethod
+    fun mediaAccion(call: PluginCall) {
+        val id = call.getString("id") ?: return call.reject("id requerido")
+        val acc = call.getString("accion") ?: return call.reject("accion requerida")
+        try {
+            val mgr = msm() ?: throw IllegalStateException("sin MediaSessionManager")
+            val mc = mgr.getActiveSessions(tagMedia()).firstOrNull { it.packageName == id }
+                ?: throw IllegalStateException("sesión no encontrada")
+            val tc = mc.transportControls
+            when (acc) {
+                "play" -> tc.play()
+                "pause" -> tc.pause()
+                "siguiente" -> tc.skipToNext()
+                "anterior" -> tc.skipToPrevious()
+                "toggle" -> if (mc.playbackState?.state == PlaybackState.STATE_PLAYING) tc.pause() else tc.play()
+                else -> return call.reject("acción desconocida: $acc")
+            }
+            call.resolve()
+        } catch (e: Exception) {
+            call.reject("mediaAccion falló: ${e.message}")
         }
     }
 }

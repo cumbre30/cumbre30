@@ -35,8 +35,6 @@ import { linkRidesToAccount, setRideOwner } from "@/lib/history";
 import { courseHeading } from "@/lib/geo";
 import { alerts } from "@/lib/alertEngine";
 import { programarAvisoHorario } from "@/lib/notificaciones";
-import { spotifyManejarCodigo } from "@/lib/spotify";
-import { initEnlacesEntrantes } from "@/lib/rideNative";
 import { t, useLang } from "@/lib/i18n";
 import type { ProLockFeature } from "@/lib/planData";
 
@@ -155,33 +153,6 @@ export default function Home() {
   // y el de cierre del parque cada vez que se abre la app.
   useEffect(() => {
     void programarAvisoHorario();
-  }, []);
-  // Regreso del OAuth de Spotify (v1.12.2): en la web el redirect cae
-  // aquí como /demo?code=…&state=… y en el APK como deep link
-  // cumbre30://spotify-callback (recibido por @capacitor/app). Al
-  // completar el canje se limpia la URL para que ?code= no quede en
-  // el historial ni re-dispare el flujo al recargar.
-  useEffect(() => {
-    const limpiar = () => {
-      try {
-        window.history.replaceState(null, "", window.location.pathname);
-      } catch {
-        /* noop */
-      }
-    };
-    void spotifyManejarCodigo(new URLSearchParams(window.location.search)).then((ok) => {
-      if (ok) limpiar();
-    });
-    void initEnlacesEntrantes((url) => {
-      try {
-        const params = new URL(url).searchParams;
-        void spotifyManejarCodigo(params).then((ok) => {
-          if (ok) limpiar();
-        });
-      } catch {
-        /* URL no reconocida: ignorar */
-      }
-    });
   }, []);
   // Invitación de amigo (Ola 2): /geo?agregar=usuario abre la pestaña
   // Amigos con el nombre prellenado (después del montaje, sin romper

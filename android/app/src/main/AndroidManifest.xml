@@ -22,17 +22,24 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
-            <!-- Deep link de regreso del OAuth de Spotify (v1.12.2):
-                 cumbre30://spotify-callback?code=…&state=… — lo recibe
-                 @capacitor/app (appUrlOpen) y lo procesa page.tsx. -->
-            <intent-filter>
-                <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="cumbre30" android:host="spotify-callback" />
-            </intent-filter>
-
         </activity>
+
+        <!-- Control de música (v1.12.3): credencial que exige Android
+             para que MediaSessionManager exponga las sesiones de media
+             de otras apps (Spotify, YouTube Music, …). El permiso BIND
+             garantiza que solo el sistema pueda enlazarlo; el usuario
+             lo concede una vez en «Acceso a las notificaciones». No
+             lee notificaciones: existe solo para habilitar el control
+             de media. -->
+        <service
+            android:name=".MediaListenerService"
+            android:label="@string/app_name"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
 
         <provider
             android:name="androidx.core.content.FileProvider"

@@ -92,8 +92,8 @@ export const APPS: AppCatalogo[] = [
         // vigente (Ola 2 y 3 del roadmap 2026-11-14).
         cuerpo:
           `v${APP_VERSION} (${APP_VERSION_CODE}):\n` +
+          "• Control de música universal en la pantalla ride, al lado del ahorro de batería: pausa, play, siguiente y anterior sobre la app que estés usando (Spotify gratis o Premium, YouTube Music, cualquier reproductor) sin salir de tus métricas. Pide una vez el «acceso a las notificaciones» que Android exige para este control — no leemos tus notificaciones.\n" +
           "• Corregido el error al tocar el banner de clima (ya puedes ver viento, calidad del aire e índice UV sin que se cierre la app).\n" +
-          "• Control de Spotify en la pantalla ride, al lado del ahorro de batería: pausa, play, siguiente y anterior sin salir de tus métricas (Spotify Connect; requiere Spotify Premium y una vez pegar tu Client ID — el panel te guía).\n" +
           "• Configuración reorganizada por secciones: General (Seguridad, Monitoreo y salud, Personalización) y Acerca de.\n" +
           "• Nuevo control «Confirmación de estado»: cuánto espera el «¿Estás bien?» antes de avisar a tus contactos (15/30/60 s).\n" +
           "• Verificar constancias desde la web: enlace directo bajo el botón de descarga del APK.\n" +
