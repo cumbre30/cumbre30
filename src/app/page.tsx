@@ -35,6 +35,7 @@ import { linkRidesToAccount, setRideOwner } from "@/lib/history";
 import { courseHeading } from "@/lib/geo";
 import { alerts } from "@/lib/alertEngine";
 import { programarAvisoHorario } from "@/lib/notificaciones";
+import { autoCheckAlAbrir, registrarToqueActualizacion } from "@/lib/actualizacion";
 import { t, useLang } from "@/lib/i18n";
 import type { ProLockFeature } from "@/lib/planData";
 
@@ -153,6 +154,10 @@ export default function Home() {
   // y el de cierre del parque cada vez que se abre la app.
   useEffect(() => {
     void programarAvisoHorario();
+    // Actualizaciones (v1.12.4, APK): chequeo al abrir (a lo más una
+    // vez al día) y tocar la notificación abre la descarga.
+    registrarToqueActualizacion();
+    void autoCheckAlAbrir();
   }, []);
   // Invitación de amigo (Ola 2): /geo?agregar=usuario abre la pestaña
   // Amigos con el nombre prellenado (después del montaje, sin romper

@@ -19,7 +19,7 @@
 // ============================================================
 
 import { useEffect, useState } from "react";
-import { Volume2, VolumeX, Mic, MicOff, Info, Mail, Moon, Palette, Lock, Languages, Siren, ShieldAlert, UserPlus, UserRound, BellRing, HeartPulse } from "lucide-react";
+import { Volume2, VolumeX, Mic, MicOff, Info, Mail, Moon, Palette, Lock, Languages, Siren, ShieldAlert, UserPlus, UserRound, BellRing, HeartPulse, RefreshCw, Download } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Speedometer } from "@/components/Speedometer";
 import { ThemeIconButton } from "@/components/ThemeToggle";
@@ -37,6 +37,7 @@ import {
 import { getFcConfig, saveFcConfig, type FcConfig } from "@/lib/zonasFc";
 import { t, useLang, setLang, type Lang } from "@/lib/i18n";
 import { isNativeApp } from "@/lib/rideNative";
+import { revisarActualizacion, nuevaConocida, abrirDescarga, type EstadoActualizacion } from "@/lib/actualizacion";
 import { serverToken } from "@/lib/cloudSync";
 import {
   MINIMAP_SIZES,
@@ -197,6 +198,26 @@ export function ConfigTab({
     setFcReposo(String(saved.reposoBpm));
     setFcOk(true);
     setTimeout(() => setFcOk(false), 2500);
+  };
+
+  // ---- Actualizaciones (v1.12.4): el chequeo corre en el APK ----
+  // La web se actualiza recargando, así que el control solo aparece
+  // en el APK. Estado inicial desde localStorage (si ya se detectó
+  // una versión nueva, la tarjeta lo muestra sin red) y montaje
+  // primero para no romper la hidratación (isNativeApp difiere
+  // entre servidor y APK).
+  const [actEstado, setActEstado] = useState<"idle" | "check" | EstadoActualizacion>("idle");
+  const [actNativo, setActNativo] = useState(false);
+  useEffect(() => {
+    setActNativo(isNativeApp());
+    const conocida = nuevaConocida();
+    if (conocida) {
+      setActEstado({ estado: "nueva", versionNueva: conocida.version, urlDescarga: conocida.url });
+    }
+  }, []);
+  const revisarAhora = () => {
+    setActEstado("check");
+    void revisarActualizacion().then(setActEstado);
   };
 
   const locked = (what: string) => setProNote(t("cfg.proNota", what));
@@ -646,6 +667,41 @@ export function ConfigTab({
             v{APP_VERSION}
           </span>
         </Row>
+        {/* Revisar actualizaciones (v1.12.4): compara la versión del
+            APK con la última publicada en la web y ofrece descargar. */}
+        {actNativo && (
+          <Row icon={<RefreshCw className="h-5 w-5" />} title={t("act.titulo")} sub={t("act.sub")}>
+            <button
+              onClick={revisarAhora}
+              disabled={actEstado === "check"}
+              className="h-9 shrink-0 rounded-lg border border-border bg-card px-3 text-[12px] font-bold text-foreground hover:bg-accent disabled:opacity-50"
+            >
+              {actEstado === "check" ? t("act.revisando") : t("act.btn")}
+            </button>
+          </Row>
+        )}
+        {actEstado !== "idle" && actEstado !== "check" && actEstado.estado === "nueva" && (
+          <Row
+            icon={<Download className="h-5 w-5" />}
+            title={t("act.descargaTitulo", actEstado.versionNueva || "")}
+            sub={t("act.descargaSub")}
+          >
+            <button
+              onClick={() => abrirDescarga(actEstado.urlDescarga || "")}
+              className="h-9 shrink-0 rounded-lg bg-emerald-600 px-3 text-[12px] font-bold text-white hover:bg-emerald-500"
+            >
+              {t("act.descargar")}
+            </button>
+          </Row>
+        )}
+        {actEstado !== "idle" && actEstado !== "check" && actEstado.estado === "al-dia" && (
+          <p className="border-t border-border/60 px-4 py-2.5 text-[11px] font-semibold text-emerald-700 dark:text-emerald-300">
+            ✓ {t("act.alDia", `v${APP_VERSION}`)}
+          </p>
+        )}
+        {actEstado !== "idle" && actEstado !== "check" && actEstado.estado === "error" && (
+          <p className="border-t border-border/60 px-4 py-2.5 text-[11px] text-muted-foreground">{t("act.error")}</p>
+        )}
         <Row icon={<Mail className="h-5 w-5" />} title={t("cfg.contacto")} sub={t("cfg.contactoSub")}>
           <span />
         </Row>

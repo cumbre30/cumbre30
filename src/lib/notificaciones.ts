@@ -35,6 +35,7 @@ function loadModule(): Promise<LocalNotificationsModule | null> {
 
 const ID_LUCES = 1001;
 const ID_CIERRE = 1002;
+const ID_ACTUALIZACION = 1003; // sincronizado con ID_NOTIF (actualizacion.ts)
 const VENTANA_MAX_H = 12; // no programar avisos de más de 12 h a futuro
 
 /** Programa (o re-programa) los avisos locales del día del parque. */
@@ -82,5 +83,31 @@ export async function programarAvisoHorario(): Promise<void> {
     }
   } catch {
     // notificaciones no disponibles en esta sesión: silencio
+  }
+}
+
+/** Aviso local «hay una versión nueva» (v1.12.4). Lo dispara el
+ *  chequeo automático de actualizacion.ts (a lo más 1 vez al día).
+ *  Sin permiso de notificaciones no hace nada: el aviso queda
+ *  siempre en la tarjeta de versión de Configuración. Al tocarla
+ *  abre la descarga (registrarToqueActualizacion). */
+export async function notificarNuevaVersion(version: string): Promise<void> {
+  try {
+    const mod = await loadModule();
+    if (!mod) return;
+    const perm = await mod.LocalNotifications.checkPermissions();
+    if (perm.display !== "granted") return;
+    await mod.LocalNotifications.schedule({
+      notifications: [
+        {
+          id: ID_ACTUALIZACION,
+          title: "Cumbre30",
+          body: t("act.notif", version),
+          schedule: { at: new Date(Date.now() + 1_500), allowWhileIdle: true },
+        },
+      ],
+    });
+  } catch {
+    // silencio: el aviso dentro de la app siempre está
   }
 }

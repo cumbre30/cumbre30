@@ -28,6 +28,20 @@ const nextConfig: NextConfig = isStaticExport
   : {
       ...baseConfig,
       output: "standalone",
+      // /version.json es la fuente de «última versión» que consulta el
+      // APK (lib/actualizacion.ts, desde el WebView en origen distinto):
+      // CORS abierto para que el fetch pueda leerlo. En el export
+      // estático no aplica (el APK usa el de la web desplegada).
+      async headers() {
+        return {
+          sources: [
+            {
+              source: "/version.json",
+              headers: [{ key: "Access-Control-Allow-Origin", value: "*" }],
+            },
+          ],
+        };
+      },
     };
 
 export default nextConfig;

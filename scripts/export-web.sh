@@ -17,5 +17,6 @@ trap 'if [ -d /tmp/api-routes-apk-backup ] && [ ! -d src/app/api ]; then mv /tmp
 # progreso (outbox en IndexedDB + token Bearer) apunta a la web desplegada.
 # PLAY_BUILD=1: build para Google Play (NEXT_PUBLIC_PLAY_BUILD=1) — muestra
 # la compra con Play Billing y oculta cualquier mención de pago externo.
+node scripts/gen-version-json.mjs
 NEXT_PUBLIC_STATIC=1 NEXT_PUBLIC_BACKEND_ORIGIN="https://cumbregeo.cl" STATIC_EXPORT=1 NEXT_PUBLIC_PLAY_BUILD=${PLAY_BUILD:-0} npx next build
 echo "EXPORT_OK: $(du -sh build-static | cut -f1)"

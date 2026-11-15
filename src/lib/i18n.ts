@@ -181,6 +181,19 @@ const D: Record<string, E> = {
   "mus.pauseAria": ["Pausar", "Pause", "Pausar"],
   "mus.nextAria": ["Canción siguiente", "Next track", "Próxima faixa"],
 
+  // ---------- revisar actualizaciones (v1.12.4) ----------
+  "act.titulo": ["Revisar actualizaciones", "Check for updates", "Buscar atualizações"],
+  "act.sub": ["Te avisamos cuando salga una versión nueva; la descargas con un toque.", "We'll let you know when a new version is out; download it with one tap.", "Avisamos quando sair uma versão nova; baixe com um toque."],
+  "act.btn": ["Revisar ahora", "Check now", "Verificar agora"],
+  "act.revisando": ["Revisando…", "Checking…", "Verificando…"],
+  "act.alDia": ["Estás en la última versión ({0})", "You are on the latest version ({0})", "Você está na versão mais recente ({0})"],
+  "act.nueva": ["Nueva versión disponible: {0}", "New version available: {0}", "Nova versão disponível: {0}"],
+  "act.error": ["No se pudo revisar: sin conexión o servicio no disponible.", "Could not check: offline or service unavailable.", "Não foi possível verificar: sem conexão ou serviço indisponível."],
+  "act.descargaTitulo": ["Descargar {0}", "Download {0}", "Baixar {0}"],
+  "act.descargaSub": ["Se abre el navegador para bajar el APK; instálalo cuando termine (Android pedirá confirmar).", "Your browser opens to download the APK; install it when it finishes (Android will ask to confirm).", "O navegador abre para baixar o APK; instale quando terminar (o Android pedirá confirmar)."],
+  "act.descargar": ["Descargar APK", "Download APK", "Baixar APK"],
+  "act.notif": ["Nueva versión {0} disponible: tócala para descargarla.", "New version {0} available: tap to download.", "Nova versão {0} disponível: toque para baixar."],
+
   // ---------- banner de avisos ----------
   "aviso.titulo": ["Avisos y restricciones", "Notices and restrictions", "Avisos e restrições"],
   "aviso.verAria": ["Ver avisos y restricciones ({0})", "View notices and restrictions ({0})", "Ver avisos e restrições ({0})"],
