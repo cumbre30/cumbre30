@@ -1,7 +1,7 @@
 "use client";
 
 // ============================================================
-// Popup de reglas de trazado (v1.12.11/12, cliente 2026-11-15).
+// Popup de reglas de trazado (v1.12.11, cliente 2026-11-15).
 // Se muestra desde el motor de navegación (useNavEngine) cuando
 // la decisión le corresponde al ciclista:
 // · F3 — destino = acceso ciclista (buscador/POI libre): ¿solo
@@ -10,12 +10,8 @@
 // · D3 — estás cerca de un acceso, pero según el destino deberías
 //   salir por otro: ¿salir por el del destino o por el más
 //   cercano a ti?
-// · Preset (v1.12.12) — botón «Ruta» de las capas del mapa:
-//   ¿ingresar al cerro por el acceso ciclista MÁS CERCANO A TI y
-//   llegar al inicio de la ruta por dentro, o ir por fuera hasta
-//   el acceso donde nace el trazado? El minimapa NO abre este
-//   popup (cliente 2026-11-15): ahí solo aplica el criterio de
-//   llegar al acceso.
+// Las rutas predefinidas (botón «Ruta» de las capas del mapa) NO
+// abren este popup: el motor las traza directo (computePresetRoute).
 // ============================================================
 
 import { useState } from "react";
@@ -33,17 +29,12 @@ export default function PopupReglaRuta({
   const [recordar, setRecordar] = useState(false);
   if (!decision) return null;
   const esAcceso = decision.tipo === "popupAcceso";
-  const esPreset = decision.tipo === "popupPreset";
   const titulo = esAcceso
     ? `¿Ruta hasta el ${decision.gate.name}?`
-    : esPreset
-      ? `¿Ingresas al cerro por el ${decision.gateIngreso.name}?`
-      : "¿Por dónde sales del cerro?";
+    : "¿Por dónde sales del cerro?";
   const detalle = esAcceso
     ? "El destino es un acceso ciclista del parque. Puedo llevarte solo hasta la portería por la vía pública, o ingresar al cerro por ese acceso y dejarte ya dentro para arrancar el paseo."
-    : esPreset
-      ? `«${decision.d.name}» nace en el ${decision.gateInicio.name}. Puedo ingresar al cerro por el ${decision.gateIngreso.name} (el acceso ciclista más cercano a ti), llevarte por dentro hasta el inicio de la ruta y recorrerla completa; o llevarte por la vía pública, sin ingresar, hasta el ${decision.gateInicio.name}.`
-      : `Estás cerca del ${decision.gateMio.name}, pero la salida de ciclistas más cercana a tu destino (${decision.d.name}) es el ${decision.gateDest.name}. ¿Por cuál prefieres salir?`;
+    : `Estás cerca del ${decision.gateMio.name}, pero la salida de ciclistas más cercana a tu destino (${decision.d.name}) es el ${decision.gateDest.name}. ¿Por cuál prefieres salir?`;
 
   const btnBase =
     "flex-1 rounded-xl px-4 py-2.5 text-sm font-semibold transition-colors";
@@ -76,15 +67,6 @@ export default function PopupReglaRuta({
               </button>
               <button type="button" className={btnSecundario} onClick={() => onElegir("salidaMia")}>
                 Salir por {decision.gateMio.name}
-              </button>
-            </>
-          ) : decision.tipo === "popupPreset" ? (
-            <>
-              <button type="button" className={btnPrimario} onClick={() => onElegir("ingresar")}>
-                Ingresar por el {decision.gateIngreso.name}
-              </button>
-              <button type="button" className={btnSecundario} onClick={() => onElegir("portería")}>
-                Por fuera hasta el {decision.gateInicio.name}
               </button>
             </>
           ) : (

@@ -1011,8 +1011,6 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
   /** «Ruta» en la capa Rutas: genera la navegación de una ruta predefinida.
    *  Regla del cliente: entra por el acceso ciclista más cercano y sigue la
    *  ruta dentro del cerro (computePresetRoute en el motor de navegación).
-   *  v1.12.12: antes de trazar, el motor abre el popup de decisión
-   *  «¿ingresar al cerro o solo llegar al acceso?» (cliente 2026-11-15).
    *  Además dibuja el trazado de fondo y lo encuadra una vez. */
   const generarRuta = (r: CapaRuta) => {
     const t = rutaTrazado(r);
@@ -1027,9 +1025,6 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
     handleSetDest({
       name: r.nombre,
       position: t.coords[t.coords.length - 1],
-      // v1.12.12: inicio del trazado (portería en r1-r5) para el popup de
-      // decisión del motor.
-      inicio: t.coords[0],
       preset: { rutaId: r.id, nombre: r.nombre },
     } as NavDest);
   };
