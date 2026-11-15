@@ -9,7 +9,7 @@
 //     la licencia va atada al correo de la cuenta.
 // ============================================================
 
-import { useCallback, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import {
   AtSign,
   Share2,
@@ -34,6 +34,7 @@ import { isOfflineMode } from "@/lib/offlineAuth";
 import { manualSync, syncStore } from "@/lib/cloudSync";
 import { CONTACT_WHATSAPP } from "@/lib/proConfig";
 import { nativeGoogleSignIn, nativeGoogleSignOut } from "@/lib/googleAuth";
+import { renderBotonGoogle } from "@/lib/googleWeb";
 import { Capacitor } from "@capacitor/core";
 import { shareOrDownloadFile } from "@/lib/shareFile";
 import { usernameLocked } from "@/lib/username";
@@ -176,6 +177,45 @@ export default function ProfileTab() {
       setBusyGoogle(false);
     }
   };
+
+  // Google en la web (GSI oficial, v1.12.5): el botón renderizado por
+  // Google abre el selector de cuentas del navegador; el idToken va a
+  // /api/auth/google, que valida y deja la sesión en cookie — igual
+  // que el login por contraseña. Antes la web solo aceptaba cuenta
+  // Cumbre30 y el botón Google daba error fuera del APK. El APK
+  // mantiene su flujo nativo (botón propio de abajo).
+  const gsiDiv = useRef<HTMLDivElement | null>(null);
+  const [gsiWebOk, setGsiWebOk] = useState<boolean | null>(null);
+  useEffect(() => {
+    if (offline) return; // APK: flujo nativo
+    const el = gsiDiv.current;
+    if (!el) return;
+    let vivo = true;
+    void renderBotonGoogle(el, (idToken) => {
+      void (async () => {
+        try {
+          const r = await fetch("/api/auth/google", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ idToken }),
+          });
+          if (!vivo) return;
+          if (!r.ok) {
+            setError("No pudimos iniciar sesión con Google. Intenta de nuevo.");
+            return;
+          }
+          window.location.reload(); // cookie de sesión lista: la web recarga con la sesión
+        } catch {
+          if (vivo) setError("No pudimos iniciar sesión con Google. Intenta de nuevo.");
+        }
+      })();
+    }).then((ok) => {
+      if (vivo) setGsiWebOk(ok);
+    });
+    return () => {
+      vivo = false;
+    };
+  }, [offline, mode]);
 
   const share = useCallback(async () => {
     if (!me) return;
@@ -429,18 +469,28 @@ export default function ProfileTab() {
             <span className="text-[11px] uppercase tracking-wide text-muted-foreground/80">o</span>
             <div className="h-px flex-1 bg-muted" />
           </div>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={signInGoogle}
-            disabled={busyGoogle}
-            className="h-11 border-zinc-600! bg-zinc-100! text-zinc-900! hover:bg-zinc-200! hover:text-zinc-900! font-semibold"
-          >
-            {busyGoogle ? ("Conectando…") : (<><GoogleIcon /> <span className="ml-2">Continuar con Google</span></>)}
-          </Button>
-          <p className="text-[11px] text-muted-foreground leading-relaxed">
-            En la app Android puedes entrar con tu cuenta de Google. Si ya tienes una cuenta
-            con el mismo correo, se enlaza y conservas tus km, logros y pines.
+          {offline ? (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={signInGoogle}
+              disabled={busyGoogle}
+              className="h-11 border-zinc-600! bg-zinc-100! text-zinc-900! hover:bg-zinc-200! hover:text-zinc-900! font-semibold"
+            >
+              {busyGoogle ? ("Conectando…") : (<><GoogleIcon /> <span className="ml-2">Continuar con Google</span></>)}
+            </Button>
+          ) : (
+            /* Web: botón oficial de Google (GSI). El div lo llena el
+               efecto de arriba; si Google no carga queda vacío y el
+               texto de abajo lo explica. */
+            <div ref={gsiDiv} className="flex min-h-11 justify-center" />
+          )}
+          <p className="text-[11px] text-muted-foreground leading-relaxed text-center">
+            {offline
+              ? "En la app Android puedes entrar con tu cuenta de Google. Si ya tienes una cuenta con el mismo correo, se enlaza y conservas tus km, logros y pines."
+              : gsiWebOk === false
+                ? "No pudimos cargar el acceso con Google (¿extensión o red lo bloquea?). Entra con tu correo y contraseña."
+                : "Entra con Google o con tu cuenta Cumbre30. Si ya tienes una cuenta con el mismo correo, se enlaza y conservas tus km, logros y pines."}
           </p>
         </form>
         </>

@@ -54,6 +54,22 @@ Toma unos 10 minutos.
    - Authorized redirect URIs: **no agregues ninguno**.
    → **Create** y **copia el Client ID** (parece `1234567890-abc123xyz.apps.googleusercontent.com`).
 
+### 3c. Origen web autorizado (obligatorio desde la v1.12.5) ⚠️
+
+Desde la v1.12.5 el botón «Continuar con Google» también funciona en la web
+(cumbregeo.cl) con Google Identity Services. Para que Google lo permita, el
+mismo Client ID "Web application" necesita el dominio del sitio:
+
+1. **Credentials** → abre el Client "Web application" (`Cumbre30 token`).
+2. En **Authorized JavaScript origins** (NO redirect URIs) agrega:
+   - `https://cumbregeo.cl`
+   - `http://localhost:3000` (solo si vas a probar en dev local)
+3. **Save**. Tarda 1-2 minutos en propagarse.
+
+Sin este paso, el botón de Google en la web se ve pero al elegir cuenta
+Google rechaza con «origin not allowed». El APK no depende de esto: su
+flujo nativo se autoriza por package name + SHA-1 (paso 3a).
+
 ## Paso 4 — Pegar el Client ID en la app (1 min)
 
 > ✅ **Ya hecho en la v1.4.0**: el Client ID del proyecto Cumbre30 está pegado en

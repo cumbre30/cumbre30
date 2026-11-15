@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { createSession, hashPassword } from "@/lib/auth";
+import { createSession, hashPassword, SESSION_COOKIE } from "@/lib/auth";
 import { corsHeaders, corsPreflight } from "@/lib/apiCors";
 import { GOOGLE_WEB_CLIENT_ID } from "@/lib/googleClientId";
 import { USERNAME_RE } from "@/lib/username";
@@ -91,10 +91,16 @@ export async function POST(req: Request) {
     }
 
     const { token, expiresAt } = await createSession(user.id);
-    return NextResponse.json(
+    // La cookie de sesión habilita el flujo WEB (cumbregeo.cl): amigos,
+    // /rides y /compartir con la misma sesión que el login por
+    // contraseña — antes solo la cuenta Cumbre30 podía entrar en la
+    // web. El APK sigue usando el token Bearer del cuerpo.
+    const res = NextResponse.json(
       { token, expiresAt: expiresAt.toISOString(), email: user.email, username: user.username },
       { headers: cors }
     );
+    res.cookies.set(SESSION_COOKIE, token, { httpOnly: true, sameSite: "lax", path: "/", expires: expiresAt });
+    return res;
   } catch {
     return NextResponse.json(
       { error: "No pudimos iniciar sesión con Google. Intenta de nuevo." },
