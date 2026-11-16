@@ -1209,6 +1209,14 @@ export async function computePresetRoute(
   corredorPav(net); // corredor con la red real (conectores sin nombre del ascenso)
   const inside = parkInsideTest();
   const fromInPark = inside(from.lat, from.lon);
+  // Filtro ESTRICTO para el tramo de ciudad (bug 2026-11-16, cliente en
+  // Andrés Bello 1337 → Ruta 4): con la tolerancia de 80 m de `inside`,
+  // cityOk bloqueaba también las calles que se pegan al borde del parque
+  // en el sector La Pirámide, y el A* de ciudad daba la vuelta completa
+  // por el oeste (Recoleta/Polanco, 12-15 km) en vez de subir por el
+  // oriente (Costanera Sur · Puente Centenario, ~6 km). Mismo criterio
+  // de trazarAccesoLocal: fuera del polígono exacto es calle de ciudad.
+  const estricto = parkInsideTest(0);
   // Reglas direccionales del cliente: Pío Nono sólo subida (24/7) y corte
   // horario de la cumbre (FDS ≥ 13:30) en el tramo interno (acceso → trazado)
   const dirOk = crearDirOk(net, { pioNonoSoloSubida: true, corteCumbre: corteCumbreActivo() });
@@ -1254,7 +1262,7 @@ export async function computePresetRoute(
       //   3º OSRM completo con control de reingreso y respaldo local
       //      (osrmCiudadPorFuera, último recurso).
       const cityOk = (lat: number, lon: number) =>
-        !inside(lat, lon) || haversineM({ lat, lon }, inicioTrace) <= 150;
+        !estricto(lat, lon) || haversineM({ lat, lon }, inicioTrace) <= 150;
       if (a.distM <= ORIGIN_COVER_M) {
         legAcceso = findRoute(net, from, acceso.position, { nodeOk: cityOk });
       }
@@ -1263,7 +1271,7 @@ export async function computePresetRoute(
       // MTB (nace dentro del parque): acceso ciclista más cercano, también
       // POR FUERA hasta esa portería (mismo criterio del cliente).
       const cityOkM = (lat: number, lon: number) =>
-        !inside(lat, lon) || haversineM({ lat, lon }, acceso!.position) <= 150;
+        !estricto(lat, lon) || haversineM({ lat, lon }, acceso!.position) <= 150;
       if (a.distM <= ORIGIN_COVER_M) legAcceso = findRoute(net, from, acceso.position, { nodeOk: cityOkM });
       if (!legAcceso) legAcceso = await hibridaCiudadPorFuera(from, acceso.position, net, dirOk, cityOkM);
     }
