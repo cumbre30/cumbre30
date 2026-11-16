@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { bikeOnly, historyStore, ridesForAccount } from "@/lib/history";
 import { PlanBadge, ProPromoCard } from "@/components/ProUI";
+import { t, useLang } from "@/lib/i18n";
 
 export type MenuScreen =
   | "historial"
@@ -80,6 +81,7 @@ export function AppDrawer({
   onNavigate: (s: MenuScreen) => void;
 }) {
   const rides = useSyncExternalStore(historyStore.subscribe, historyStore.get, historyStore.getServer);
+  useLang();
   // Contador del menú: solo viajes con GPS real en bici de la cuenta
   // activa (los demo y los rides en vehículo no cuentan; sin sesión
   // solo los locales del teléfono).
@@ -114,7 +116,7 @@ export function AppDrawer({
         }`}
       />
       <aside
-        aria-label="Menú principal"
+        aria-label={t("drawer.menuAria")}
         aria-hidden={!open}
         className={`fixed inset-y-0 left-0 z-[801] flex w-[84%] max-w-[340px] flex-col overflow-y-auto border-r border-border bg-sidebar pb-6 pt-[max(14px,env(safe-area-inset-top))] transition-transform duration-300 ease-out ${
           open ? "translate-x-0" : "-translate-x-full"
@@ -126,10 +128,10 @@ export function AppDrawer({
             {initial}
           </span>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-[15px] font-bold leading-tight text-foreground">{username || "Ciclista"}</p>
-            <p className="truncate text-[11px] text-muted-foreground">{email || "sin cuenta · modo local"}</p>
+            <p className="truncate text-[15px] font-bold leading-tight text-foreground">{username || t("drawer.ciclista")}</p>
+            <p className="truncate text-[11px] text-muted-foreground">{email || t("drawer.sinCuenta")}</p>
           </div>
-          <button onClick={onClose} aria-label="Cerrar menú" className="rounded-lg p-2 text-muted-foreground hover:bg-accent hover:text-foreground">
+          <button onClick={onClose} aria-label={t("drawer.cerrar")} className="rounded-lg p-2 text-muted-foreground hover:bg-accent hover:text-foreground">
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -139,10 +141,10 @@ export function AppDrawer({
           {pro ? (
             <div className="rounded-xl border border-border bg-card p-4">
               <div className="mb-1 inline-flex items-center gap-1.5 text-[12px] font-extrabold tracking-wide text-emerald-600 dark:text-emerald-300">
-                <Crown className="h-3.5 w-3.5" /> CUMBRE30 PRO ACTIVO
+                <Crown className="h-3.5 w-3.5" /> {t("drawer.proActivo")}
               </div>
               <p className="text-[12.5px] leading-relaxed text-muted-foreground">
-                Gracias por apoyar el proyecto. Todos los beneficios desbloqueados en este teléfono.
+                {t("drawer.proGracias")}
               </p>
             </div>
           ) : (
@@ -152,40 +154,40 @@ export function AppDrawer({
 
         {/* Zona 2: Mi actividad */}
         <div className="mt-4 px-3">
-          <p className="px-1 pb-1 pt-2 text-[10.5px] font-extrabold uppercase tracking-widest text-muted-foreground/70">Mi actividad</p>
-          <MenuItem icon={<History className="h-5 w-5" />} label="Mis viajes" onClick={() => go("historial")} />
-          <MenuItem icon={<ChartLine className="h-5 w-5" />} label="Estadísticas generales" onClick={() => go("stats")} />
-          <MenuItem icon={<Trophy className="h-5 w-5" />} label="Desafíos y recompensas" onClick={() => go("premios")} />
-          <MenuItem icon={<Users className="h-5 w-5" />} label="Amigos" hint="Km y logros de tus pares" onClick={() => go("amigos")} />
+          <p className="px-1 pb-1 pt-2 text-[10.5px] font-extrabold uppercase tracking-widest text-muted-foreground/70">{t("drawer.zonaActividad")}</p>
+          <MenuItem icon={<History className="h-5 w-5" />} label={t("menu.historial")} onClick={() => go("historial")} />
+          <MenuItem icon={<ChartLine className="h-5 w-5" />} label={t("menu.stats")} onClick={() => go("stats")} />
+          <MenuItem icon={<Trophy className="h-5 w-5" />} label={t("menu.premios")} onClick={() => go("premios")} />
+          <MenuItem icon={<Users className="h-5 w-5" />} label={t("menu.amigos")} hint={t("drawer.amigosHint")} onClick={() => go("amigos")} />
         </div>
 
         {/* Zona 3: Cuenta - Perfil abre subsecciones (datos/pagos) */}
         <div className="mt-3 px-3">
-          <p className="px-1 pb-1 pt-2 text-[10.5px] font-extrabold uppercase tracking-widest text-muted-foreground/70">Cuenta</p>
-          <MenuItem icon={<UserRound className="h-5 w-5" />} label="Perfil" hint="Datos y pagos" onClick={() => go("perfil")} />
-          <MenuItem icon={<Settings className="h-5 w-5" />} label="Configuración" hint="Sonido, voz y temas" onClick={() => go("config")} />
-          <MenuItem icon={<HelpCircle className="h-5 w-5" />} label="Ayuda y contacto" hint="Consultas y prototipos" onClick={() => go("ayuda")} />
+          <p className="px-1 pb-1 pt-2 text-[10.5px] font-extrabold uppercase tracking-widest text-muted-foreground/70">{t("drawer.zonaCuenta")}</p>
+          <MenuItem icon={<UserRound className="h-5 w-5" />} label={t("menu.perfil")} hint={t("drawer.perfilHint")} onClick={() => go("perfil")} />
+          <MenuItem icon={<Settings className="h-5 w-5" />} label={t("menu.config")} hint={t("drawer.configHint")} onClick={() => go("config")} />
+          <MenuItem icon={<HelpCircle className="h-5 w-5" />} label={t("menu.ayuda")} hint={t("drawer.ayudaHint")} onClick={() => go("ayuda")} />
         </div>
 
         {/* Zona 4: Plan actual */}
         <div className="mt-3 px-3">
-          <p className="px-1 pb-1 pt-2 text-[10.5px] font-extrabold uppercase tracking-widest text-muted-foreground/70">Plan actual</p>
+          <p className="px-1 pb-1 pt-2 text-[10.5px] font-extrabold uppercase tracking-widest text-muted-foreground/70">{t("drawer.zonaPlan")}</p>
           <button
             onClick={() => go("planes")}
             className="flex w-full items-center gap-3 rounded-xl border border-dashed border-border px-3 py-3 text-left hover:border-emerald-500/60"
           >
             <PlanBadge pro={pro} />
             <span className="min-w-0 flex-1 text-[12px] text-muted-foreground">
-              {pro ? "Pago único activo · ver beneficios" : "Funciones básicas · toca para ver planes"}
+              {pro ? t("drawer.planPro") : t("drawer.planFree")}
             </span>
             <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/60" />
           </button>
         </div>
 
         <div className="mt-auto px-4 pt-6 text-center text-[10.5px] leading-relaxed text-muted-foreground/60">
-          Cumbre30 · Sube tu límite
+          Cumbre30 · {t("nav.subtitle")}
           <br />
-          {gpsCount} {gpsCount === 1 ? "viaje registrado" : "viajes registrados"}
+          {gpsCount === 1 ? t("drawer.viajeRegistrado", gpsCount) : t("drawer.viajesRegistrados", gpsCount)}
         </div>
       </aside>
     </>

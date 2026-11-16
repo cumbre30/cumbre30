@@ -59,6 +59,7 @@ import { geocodeAddress, type AddrResult } from "@/lib/geocode";
 import type { CapaRuta } from "@/lib/mapLayers";
 import type { ProLockFeature } from "@/lib/planData";
 import type { NavDest } from "@/hooks/useNavEngine";
+import { t, useLang } from "@/lib/i18n";
 
 function pinEmoji(pinId: string): string {
   const p = PINS[pinId as keyof typeof PINS];
@@ -198,13 +199,13 @@ type MenuCapa = {
 };
 
 const MENUS_CAPAS: MenuCapa[] = [
-  { id: "accesos", titulo: "Accesos", sub: "Entradas y salidas oficiales", emoji: "🚪", items: CAPA_ACCESOS.length },
-  { id: "rutas", titulo: "Rutas", sub: "Trazados de pavimento y circuitos MTB", emoji: "🛣️", items: CAPA_RUTAS.length },
-  { id: "senderos", titulo: "Senderos peatonales", sub: "Informativo · no son rutas ciclistas", emoji: "🥾", items: CAPA_SENDEROS_PEATONALES.length },
-  { id: "paseo-met", titulo: "Paseo Metropolitano", sub: "Uso mixto: peatones y ciclistas · anillo del cerro", emoji: "🛤️", items: CAPA_PASEO_METROPOLITANO.length },
-  { id: "pois", titulo: "Puntos de Interés", sub: "Cruces, servicios, miradores y alertas peatonales", emoji: "📍", items: CAPA_POIS.length },
-  { id: "normativa", titulo: "Normativa y Seguridad", sub: "Cortes horarios, límites y soporte técnico", emoji: "🛡️", items: CAPA_NORMATIVA.length },
-  { id: "urbana", titulo: "Conexión Urbana", sub: "Metro y ciclovías externas", emoji: "🏙️", items: CAPA_URBANA.length },
+  { id: "accesos", titulo: "mapa.capaAccesos", sub: "mapa.capaAccesosSub", emoji: "🚪", items: CAPA_ACCESOS.length },
+  { id: "rutas", titulo: "mapa.capaRutas", sub: "mapa.capaRutasSub", emoji: "🛣️", items: CAPA_RUTAS.length },
+  { id: "senderos", titulo: "mapa.capaSenderos", sub: "mapa.capaSenderosSub", emoji: "🥾", items: CAPA_SENDEROS_PEATONALES.length },
+  { id: "paseo-met", titulo: "mapa.capaPaseoMet", sub: "mapa.capaPaseoMetSub", emoji: "🛤️", items: CAPA_PASEO_METROPOLITANO.length },
+  { id: "pois", titulo: "mapa.capaPois", sub: "mapa.capaPoisSub", emoji: "📍", items: CAPA_POIS.length },
+  { id: "normativa", titulo: "mapa.capaNormativa", sub: "mapa.capaNormativaSub", emoji: "🛡️", items: CAPA_NORMATIVA.length },
+  { id: "urbana", titulo: "mapa.capaUrbana", sub: "mapa.capaUrbanaSub", emoji: "🏙️", items: CAPA_URBANA.length },
 ];
 
 /** Colores de burbuja por subcategoría de Puntos de Interés y por capa de puntos. */
@@ -240,6 +241,7 @@ function FocusHandler({ focus }: { focus: Focus }) {
 
 /** Fila de punto dentro de un menú: emoji + nombre + botón para centrar el mapa. */
 function FilaPunto({ p, color, onFocus }: { p: { nombre: string; detalle: string; emoji: string }; color: string; onFocus: () => void }) {
+  useLang();
   return (
     <li className="flex items-center gap-1.5 py-1.5">
       <span aria-hidden className="shrink-0 text-[13px]">{p.emoji}</span>
@@ -250,8 +252,8 @@ function FilaPunto({ p, color, onFocus }: { p: { nombre: string; detalle: string
       <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: color }} aria-hidden />
       <button
         onClick={onFocus}
-        aria-label={`Centrar mapa en ${p.nombre}`}
-        title="Centrar el mapa aquí"
+        aria-label={t("mapa.centrarMapaEn", p.nombre)}
+        title={t("mapa.centrarAqui")}
         className="shrink-0 rounded border border-border px-1.5 py-0.5 text-muted-foreground hover:border-emerald-500 hover:text-emerald-600"
       >
         <Eye className="h-3.5 w-3.5" />
@@ -262,6 +264,7 @@ function FilaPunto({ p, color, onFocus }: { p: { nombre: string; detalle: string
 
 /** Interruptor compacto Ver/Ocultar de una capa o ruta. */
 function SwitchCapa({ on, onClick, label }: { on: boolean; onClick: () => void; label: string }) {
+  useLang();
   return (
     <button
       onClick={onClick}
@@ -273,7 +276,7 @@ function SwitchCapa({ on, onClick, label }: { on: boolean; onClick: () => void; 
           : "border-border bg-background text-muted-foreground hover:border-emerald-500/60 hover:text-foreground"
       }`}
     >
-      {on ? "Ocultar" : "Ver"}
+      {on ? t("mapa.ocultar") : t("mapa.ver")}
     </button>
   );
 }
@@ -295,6 +298,7 @@ function CapasPanel({
   onGenerarRuta?: (r: CapaRuta) => void;
 }) {
   const [abierto, setAbierto] = useState(true);
+  useLang();
   return (
     <div className="rounded-xl border border-border bg-card/95 overflow-hidden shadow-md backdrop-blur" data-testid="capas-panel">
       <button
@@ -303,8 +307,8 @@ function CapasPanel({
         className="flex w-full items-center gap-2 px-3 py-2.5 text-left"
       >
         <Layers className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
-        <span className="text-xs font-bold text-foreground">Capas del mapa</span>
-        {!abierto && <span className="text-[10px] text-muted-foreground">elige qué ver en el mapa</span>}
+        <span className="text-xs font-bold text-foreground">{t("mapa.capasTitulo")}</span>
+        {!abierto && <span className="text-[10px] text-muted-foreground">{t("mapa.capasSub")}</span>}
         <ChevronDown className={`ml-auto h-4 w-4 shrink-0 text-muted-foreground transition-transform ${abierto ? "" : "-rotate-90"}`} aria-hidden />
       </button>
       {abierto && (
@@ -327,17 +331,17 @@ function CapasPanel({
                 <span aria-hidden className="text-[15px]">{m.emoji}</span>
                 <span className="min-w-0 flex-1">
                   <span className="flex items-center gap-1.5">
-                    <span className="text-[13px] font-bold text-foreground">{m.titulo}</span>
+                    <span className="text-[13px] font-bold text-foreground">{t(m.titulo)}</span>
                     <span className="rounded-full bg-emerald-600/10 px-1.5 py-px text-[9.5px] font-bold text-emerald-700 dark:text-emerald-300">
                       {m.items}
                     </span>
                     {activos > 0 && (
                       <span className="rounded-full bg-emerald-600 px-1.5 py-px text-[9.5px] font-bold text-(--c30-on-accent)">
-                        {activos} {m.id === "rutas" ? "dibujadas" : "visibles"}
+                        {activos} {m.id === "rutas" ? t("mapa.dibujadas") : t("mapa.visibles")}
                       </span>
                     )}
                   </span>
-                  <span className="block truncate text-[10.5px] text-muted-foreground">{m.sub}</span>
+                  <span className="block truncate text-[10.5px] text-muted-foreground">{t(m.sub)}</span>
                 </span>
                 <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground transition-transform details-chev" aria-hidden />
               </summary>
@@ -346,7 +350,7 @@ function CapasPanel({
                 {m.id === "accesos" && (
                   <>
                     <div className="mb-1 flex items-center justify-between gap-2">
-                      <p className="text-[10px] text-muted-foreground">Solo los 4 accesos habilitados para ingreso en bici (06:00-20:30).</p>
+                      <p className="text-[10px] text-muted-foreground">{t("mapa.accesosNota")}</p>
                       <SwitchCapa on={on} onClick={() => onVer("accesos")} label="accesos" />
                     </div>
                     <ul>
@@ -359,10 +363,10 @@ function CapasPanel({
 
                 {m.id === "rutas" && (
                   <>
-                    <p className="mb-1 text-[10px] text-muted-foreground">Toca «Ver» para dibujar el trazado · «Ruta» genera la navegación (entra por el acceso ciclista más cercano).</p>
+                    <p className="mb-1 text-[10px] text-muted-foreground">{t("mapa.rutasNota")}</p>
                     <ul>
                       {CAPA_RUTAS.map((r) => {
-                        const t = rutaTrazado(r);
+                        const tr = rutaTrazado(r);
                         return (
                           <li key={r.id} className="flex items-center gap-1.5 py-1.5">
                             <span aria-hidden className="shrink-0 text-[13px]">{r.emoji}</span>
@@ -374,11 +378,11 @@ function CapasPanel({
                                     r.tipo === "pavimento" ? "bg-sky-500/15 text-sky-700 dark:text-sky-300" : "bg-orange-500/15 text-orange-700 dark:text-orange-300"
                                   }`}
                                 >
-                                  {r.tipo === "pavimento" ? "Pavimento" : "MTB"}
+                                  {r.tipo === "pavimento" ? t("mapa.pavimento") : "MTB"}
                                 </span>
                               </span>
                               <span className="block truncate text-[10px] text-muted-foreground">
-                                {r.nivel} · {t.distKm.toFixed(1)} km
+                                {r.nivel} · {tr.distKm.toFixed(1)} km
                               </span>
                             </span>
                             <span className="h-2 w-4 shrink-0 rounded-full" style={{ background: r.color }} aria-hidden />
@@ -387,16 +391,16 @@ function CapasPanel({
                               <button
                                 onClick={() => onGenerarRuta(r)}
                                 aria-label={`Generar ruta: ${r.nombre}`}
-                                title="Generar la ruta desde tu ubicación (acceso ciclista más cercano)"
+                                title={t("mapa.generarRutaTitle")}
                                 className="shrink-0 rounded border border-sky-700/60 px-1.5 py-1 text-[10px] font-semibold text-sky-700 hover:bg-sky-950/40 dark:text-sky-300"
                               >
-                                Ruta
+                                {t("mapa.btnRuta")}
                               </button>
                             )}
                             <button
-                              onClick={() => onFocus({ kind: "ruta", coords: t.coords })}
-                              aria-label={`Encuadrar ${r.nombre}`}
-                              title="Encuadrar la ruta completa"
+                              onClick={() => onFocus({ kind: "ruta", coords: tr.coords })}
+                              aria-label={t("mapa.encuadrar", r.nombre)}
+                              title={t("mapa.encuadrarRuta")}
                               className="shrink-0 rounded border border-border px-1.5 py-1 text-muted-foreground hover:border-emerald-500 hover:text-emerald-600"
                             >
                               <Eye className="h-3.5 w-3.5" />
@@ -411,7 +415,7 @@ function CapasPanel({
                 {m.id === "senderos" && (
                   <>
                     <div className="mb-1 flex items-center justify-between gap-2">
-                      <p className="text-[10px] text-muted-foreground">Informativo: solo peatones, nunca en las rutas ciclistas.</p>
+                      <p className="text-[10px] text-muted-foreground">{t("mapa.senderosNota")}</p>
                       <SwitchCapa on={on} onClick={() => onVer("senderos")} label="senderos" />
                     </div>
                     <ul>
@@ -425,8 +429,8 @@ function CapasPanel({
                           <span className="h-0.5 w-4 shrink-0" style={{ borderTop: "2px dashed #92400e" }} aria-hidden />
                           <button
                             onClick={() => onFocus({ kind: "ruta", coords: s.coords })}
-                            aria-label={`Encuadrar ${s.nombre}`}
-                            title="Encuadrar el sendero en el mapa"
+                            aria-label={t("mapa.encuadrar", s.nombre)}
+                            title={t("mapa.encuadrarSendero")}
                             className="shrink-0 rounded border border-border px-1.5 py-1 text-muted-foreground hover:border-emerald-500 hover:text-emerald-600"
                           >
                             <Eye className="h-3.5 w-3.5" />
@@ -441,23 +445,23 @@ function CapasPanel({
                   <>
                     <div className="mb-1 flex items-center justify-between gap-2">
                       <p className="text-[10px] text-muted-foreground">
-                        Tramos mixtos (peatones + ciclistas) del anillo del cerro; algunos conectan con pavimento y MTB. Informativa: no cambia el ruteo.
+                        {t("mapa.paseoNota")}
                       </p>
                       <SwitchCapa on={on} onClick={() => onVer("paseo-met")} label="paseo-met" />
                     </div>
                     <ul>
-                      {CAPA_PASEO_METROPOLITANO.map((t) => (
-                        <li key={t.id} className="flex items-center gap-1.5 py-1.5">
+                      {CAPA_PASEO_METROPOLITANO.map((pm) => (
+                        <li key={pm.id} className="flex items-center gap-1.5 py-1.5">
                           <span aria-hidden className="shrink-0 text-[13px]">🚶‍♂️</span>
                           <span className="min-w-0 flex-1">
-                            <span className="block truncate text-xs text-foreground">{t.nombre}</span>
-                            <span className="block truncate text-[10px] text-muted-foreground">{t.detalle}</span>
+                            <span className="block truncate text-xs text-foreground">{pm.nombre}</span>
+                            <span className="block truncate text-[10px] text-muted-foreground">{pm.detalle}</span>
                           </span>
                           <span className="h-0.5 w-4 shrink-0" style={{ borderTop: "2px dashed #0d9488" }} aria-hidden />
                           <button
-                            onClick={() => onFocus({ kind: "ruta", coords: t.coords })}
-                            aria-label={`Encuadrar ${t.nombre}`}
-                            title="Encuadrar el tramo en el mapa"
+                            onClick={() => onFocus({ kind: "ruta", coords: pm.coords })}
+                            aria-label={t("mapa.encuadrar", pm.nombre)}
+                            title={t("mapa.encuadrarTramo")}
                             className="shrink-0 rounded border border-border px-1.5 py-1 text-muted-foreground hover:border-emerald-500 hover:text-emerald-600"
                           >
                             <Eye className="h-3.5 w-3.5" />
@@ -471,7 +475,7 @@ function CapasPanel({
                 {m.id === "pois" && (
                   <>
                     <div className="mb-1 flex items-center justify-between gap-2">
-                      <p className="text-[10px] text-muted-foreground">Conexiones, servicios, miradores y alertas peatonales.</p>
+                      <p className="text-[10px] text-muted-foreground">{t("mapa.poisNota")}</p>
                       <SwitchCapa on={on} onClick={() => onVer("pois")} label="pois" />
                     </div>
                     {(["conexion", "servicio", "mirador", "precaucion"] as const).map((sub) => (
@@ -492,7 +496,7 @@ function CapasPanel({
                 {m.id === "normativa" && (
                   <>
                     <div className="mb-1 flex items-center justify-between gap-2">
-                      <p className="text-[10px] text-muted-foreground">Cortes horarios, límites y soporte técnico.</p>
+                      <p className="text-[10px] text-muted-foreground">{t("mapa.normativaNota")}</p>
                       <SwitchCapa on={on} onClick={() => onVer("normativa")} label="normativa" />
                     </div>
                     <ul>
@@ -515,7 +519,7 @@ function CapasPanel({
                 {m.id === "urbana" && (
                   <>
                     <div className="mb-1 flex items-center justify-between gap-2">
-                      <p className="text-[10px] text-muted-foreground">Metro y ciclovías externas para llegar pedaleando.</p>
+                      <p className="text-[10px] text-muted-foreground">{t("mapa.urbanaNota")}</p>
                       <SwitchCapa on={on} onClick={() => onVer("urbana")} label="urbana" />
                     </div>
                     <ul>
@@ -569,6 +573,7 @@ function SearchCard({
   const [addr, setAddr] = useState<AddrResult[]>([]);
   const [addrSearching, setAddrSearching] = useState(false);
   const [addrOffline, setAddrOffline] = useState(false);
+  useLang();
 
   // Sólo con consulta activa se muestran resultados (nada de listas fijas)
   const nq = normalizeForSearch(query);
@@ -631,14 +636,14 @@ function SearchCard({
       <Flag className="h-3.5 w-3.5 shrink-0 text-sky-600 dark:text-sky-400" />
       <span className="min-w-0 flex-1 truncate">
         {route
-          ? `${dest.name} · ${(route.distanceM / 1000).toFixed(1)} km · ~${route.etaMin} min en bici`
-          : `Ruta a ${dest.name}`}
+          ? t("mapa.chipDestino", dest.name, (route.distanceM / 1000).toFixed(1), route.etaMin)
+          : t("mapa.rutaA", dest.name)}
       </span>
       <button
         onClick={() => onSetDest(null)}
         className="shrink-0 rounded border border-border px-1.5 py-0.5 text-[10px] text-muted-foreground hover:border-red-400 hover:text-red-500"
       >
-        Quitar ruta
+        {t("mapa.quitarRuta")}
       </button>
     </div>
   );
@@ -646,7 +651,7 @@ function SearchCard({
   const avisos = (
     <>
       {routeLoading && (
-        <p className="mt-1 text-[11px] text-muted-foreground animate-pulse drop-shadow">Trazando la ruta hasta «{dest?.name}»…</p>
+        <p className="mt-1 text-[11px] text-muted-foreground animate-pulse drop-shadow">{t("mapa.trazando", dest?.name ?? "")}</p>
       )}
       {!routeLoading && dest && routeNote && (
         <p className="mt-1 rounded-lg bg-card/95 px-2 py-1 text-[11px] text-amber-700 dark:text-amber-300">{routeNote}</p>
@@ -662,11 +667,11 @@ function SearchCard({
         <button
           onClick={() => onProLocked?.("buscador")}
           className="flex w-full items-center gap-2 rounded-xl border border-border bg-card/95 px-2.5 py-2.5 text-left shadow-md backdrop-blur hover:border-emerald-500/60"
-          aria-label="Buscador universal de direcciones - función Cumbre30 Pro"
+          aria-label={t("mapa.buscadorProAria")}
         >
           <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
           <span className="min-w-0 flex-1 truncate text-sm text-muted-foreground">
-            ¿A dónde quieres ir? Busca una dirección…
+            {t("mapa.freeBuscar")}
           </span>
           <span className="inline-flex shrink-0 items-center gap-1 rounded border border-amber-500/50 bg-amber-500/10 px-1.5 py-0.5 text-[9.5px] font-extrabold uppercase tracking-widest text-amber-600 dark:text-amber-400">
             <Crown className="h-2.5 w-2.5" /> PRO
@@ -692,12 +697,12 @@ function SearchCard({
               else if (dests[0]) traceTo(dests[0].name, dests[0].position, esAccesoId(dests[0].id));
             }
           }}
-          placeholder="Cualquier dirección o lugar: Providencia 1234, cumbre…"
-          aria-label="Buscar cualquier dirección o lugar y trazar la ruta"
+          placeholder={t("mapa.buscarPlaceholder")}
+          aria-label={t("mapa.buscarAria")}
           className="w-full min-w-0 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
         />
         {query && (
-          <button onClick={() => setQuery("")} aria-label="Limpiar búsqueda" className="text-muted-foreground hover:text-foreground">
+          <button onClick={() => setQuery("")} aria-label={t("mapa.limpiarBusqueda")} className="text-muted-foreground hover:text-foreground">
             <X className="h-4 w-4" />
           </button>
         )}
@@ -714,14 +719,14 @@ function SearchCard({
                 <button
                   onClick={() => traceTo(d.name, d.position, esAccesoId(d.id))}
                   className="min-w-0 flex-1 truncate text-left text-xs text-foreground hover:text-emerald-600 dark:hover:text-emerald-400"
-                  title="Trazar ruta hasta aquí"
+                  title={t("mapa.trazarAqui")}
                 >
                   {d.name}
                 </button>
                 <button
                   onClick={() => onMarkPoi(d.name, d.position)}
                   className="shrink-0 rounded border border-border px-1.5 py-0.5 text-[10px] text-muted-foreground hover:border-emerald-500 hover:text-emerald-500"
-                  title="Guardar en mis lugares"
+                  title={t("mapa.guardarLugar")}
                 >
                   📍
                 </button>
@@ -732,15 +737,15 @@ function SearchCard({
                 <button
                   onClick={() => traceTo(m.name, { lat: m.lat, lon: m.lon })}
                   className="min-w-0 flex-1 truncate text-left text-xs text-foreground hover:text-emerald-600 dark:hover:text-emerald-400"
-                  title="Trazar ruta hasta aquí"
+                  title={t("mapa.trazarAqui")}
                 >
-                  📍 {m.name} <span className="text-[10px] text-muted-foreground">· mi lugar</span>
+                  📍 {m.name} <span className="text-[10px] text-muted-foreground">{t("mapa.miLugar")}</span>
                 </button>
                 <button
                   onClick={() => onRemoveMark(m.id)}
                   className="shrink-0 text-muted-foreground/70 hover:text-red-500"
-                  aria-label={`Eliminar ${m.name}`}
-                  title="Eliminar marcador"
+                  aria-label={t("mapa.eliminarNombre", m.name)}
+                  title={t("mapa.eliminarMarcador")}
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                 </button>
@@ -748,7 +753,7 @@ function SearchCard({
             ))}
             {(addr.length > 0 || addrSearching) && (
               <li className="pb-0.5 pt-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground/80">
-                Direcciones{addrSearching ? " · buscando…" : ""}
+                {t("mapa.direcciones")}{addrSearching ? t("mapa.buscando") : ""}
               </li>
             )}
             {addr.map((a) => (
@@ -756,7 +761,7 @@ function SearchCard({
                 <button
                   onClick={() => traceTo(a.name, { lat: a.lat, lon: a.lon })}
                   className="min-w-0 flex-1 text-left hover:text-emerald-600 dark:hover:text-emerald-400"
-                  title="Trazar ruta hasta aquí"
+                  title={t("mapa.trazarAqui")}
                 >
                   <span className="block truncate text-xs text-foreground">
                     {a.emoji} {a.name}
@@ -766,22 +771,22 @@ function SearchCard({
                 <button
                   onClick={() => onMarkPoi(a.name, { lat: a.lat, lon: a.lon })}
                   className="shrink-0 rounded border border-border px-1.5 py-0.5 text-[10px] text-muted-foreground hover:border-emerald-500 hover:text-emerald-500"
-                  title="Guardar en mis lugares"
+                  title={t("mapa.guardarLugar")}
                 >
                   📍
                 </button>
               </li>
             ))}
             {addrSearching && addr.length === 0 && (
-              <li className="py-2 text-center text-xs text-muted-foreground animate-pulse">Buscando direcciones…</li>
+              <li className="py-2 text-center text-xs text-muted-foreground animate-pulse">{t("mapa.buscandoDirecciones")}</li>
             )}
             {addrOffline && (
               <li className="py-2 text-center text-[11px] text-amber-700 dark:text-amber-300">
-                Sin conexión para buscar direcciones - los lugares del cerro y tus marcadores siguen disponibles.
+                {t("mapa.sinConexionDirecciones")}
               </li>
             )}
             {dests.length === 0 && mine.length === 0 && addr.length === 0 && !addrSearching && !addrOffline && activa && (
-              <li className="py-2 text-center text-xs text-muted-foreground">Sin resultados para «{query}»</li>
+              <li className="py-2 text-center text-xs text-muted-foreground">{t("mapa.sinResultados", query)}</li>
             )}
           </ul>
         </div>
@@ -793,17 +798,18 @@ function SearchCard({
 // ---- Piezas compartidas web/nativo del mapa grande ----
 
 function MapLegend({ className }: { className: string }) {
+  useLang();
   return (
     <div className={className}>
-      <div className="flex items-center gap-2"><span className="h-2 w-4 rounded-sm bg-emerald-500/50 border border-emerald-400" /> Parque · límite 30</div>
-      <div className="flex items-center gap-2"><span className="h-2 w-4 rounded-sm bg-emerald-500" /> Ciclovía (interior del cerro)</div>
-      <div className="flex items-center gap-2"><span className="h-2 w-4 rounded-sm" style={{ background: "#0ea5e9" }} /> Ruta pavimento (capas)</div>
-      <div className="flex items-center gap-2"><span className="h-2 w-4 rounded-sm" style={{ background: "#f97316" }} /> Ruta MTB (capas)</div>
-      <div className="flex items-center gap-2"><span className="h-2 w-4 rounded-sm" style={{ background: "#a855f7" }} /> Ruta: ciclovía</div>
-      <div className="flex items-center gap-2"><span className="h-2 w-4 rounded-sm" style={{ background: "#f4f4f5" }} /> Ruta: vía compartida</div>
-      <div className="flex items-center gap-2"><span className="h-2 w-4 rounded-sm bg-lime-400" /> Tu recorrido</div>
-      <div className="flex items-center gap-2"><span className="h-2 w-4 rounded-sm bg-amber-500" /> Zonas de riesgo</div>
-      <div className="flex items-center gap-2"><span className="h-2 w-4 rounded-sm bg-zinc-600" /> ⚠ Emojis: incidencias reportadas</div>
+      <div className="flex items-center gap-2"><span className="h-2 w-4 rounded-sm bg-emerald-500/50 border border-emerald-400" /> {t("mapa.leyendaParque")}</div>
+      <div className="flex items-center gap-2"><span className="h-2 w-4 rounded-sm bg-emerald-500" /> {t("mapa.leyendaCiclovia")}</div>
+      <div className="flex items-center gap-2"><span className="h-2 w-4 rounded-sm" style={{ background: "#0ea5e9" }} /> {t("mapa.leyendaPavimento")}</div>
+      <div className="flex items-center gap-2"><span className="h-2 w-4 rounded-sm" style={{ background: "#f97316" }} /> {t("mapa.leyendaMtb")}</div>
+      <div className="flex items-center gap-2"><span className="h-2 w-4 rounded-sm" style={{ background: "#a855f7" }} /> {t("mapa.leyendaCicloRuta")}</div>
+      <div className="flex items-center gap-2"><span className="h-2 w-4 rounded-sm" style={{ background: "#f4f4f5" }} /> {t("mapa.leyendaCompartida")}</div>
+      <div className="flex items-center gap-2"><span className="h-2 w-4 rounded-sm bg-lime-400" /> {t("mapa.leyendaRecorrido")}</div>
+      <div className="flex items-center gap-2"><span className="h-2 w-4 rounded-sm bg-amber-500" /> {t("mapa.leyendaZonas")}</div>
+      <div className="flex items-center gap-2"><span className="h-2 w-4 rounded-sm bg-zinc-600" /> {t("mapa.leyendaIncidencias")}</div>
     </div>
   );
 }
@@ -821,11 +827,12 @@ function IncidentSheet({
   onType: (t: IncidentTypeId) => void;
   onCancel: () => void;
 }) {
+  useLang();
   return (
     <div className={className}>
       {pending ? (
         <div>
-          <div className="font-semibold mb-1.5">¿Qué encontraste aquí?</div>
+          <div className="font-semibold mb-1.5">{t("mapa.queEncontraste")}</div>
           <div className="flex flex-wrap gap-1.5">
             {INCIDENT_TYPES.map((t) => (
               <button
@@ -840,7 +847,7 @@ function IncidentSheet({
               onClick={onCancel}
               className="px-2 py-1 rounded-md border border-border bg-card hover:border-red-400 text-[11px] text-muted-foreground"
             >
-              Cancelar
+              {t("mapa.cancelar")}
             </button>
           </div>
         </div>
@@ -852,6 +859,7 @@ function IncidentSheet({
 }
 
 export default function MapView({ track, position, accuracyM, heading, userPin, route, dest, navLoading, navNote, onSetDest, onProLocked }: Props) {
+  const lang = useLang(); // re-render al cambiar el idioma
   // Filtro nocturno de los tiles OSM: solo con el tema oscuro
   // (en modo claro el mapa se muestra con sus colores normales).
   const { resolvedTheme } = useTheme();
@@ -911,7 +919,7 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
     const url = apiUrl("/api/incidents");
     if (!url) {
       guardarLocal(payload);
-      setStatus("Sin conexión: incidencia guardada solo en este dispositivo.");
+      setStatus(t("mapa.sinConexionLocal"));
       setTimeout(() => setStatus(null), 5000);
       return;
     }
@@ -924,10 +932,10 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
       const d = (await r.json()) as { incident?: IncidentItem; error?: string };
       if (!r.ok || !d.incident) throw new Error(d.error ?? "error");
       addIncident(d.incident);
-      setStatus("Incidencia registrada y visible para todos ✓");
+      setStatus(t("mapa.registradaOk"));
     } catch {
       guardarLocal(payload);
-      setStatus("Sin conexión: incidencia guardada solo en este dispositivo.");
+      setStatus(t("mapa.sinConexionLocal"));
     }
     setTimeout(() => setStatus(null), 5000);
   };
@@ -939,7 +947,7 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
       ...payload,
       note: null,
       createdAt: new Date().toISOString(),
-      username: "tú (local)",
+      username: t("mapa.tuLocal"),
       authorPin: userPin ?? DEFAULT_PIN,
       mine: true,
       localOnly: true,
@@ -962,7 +970,7 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
       if (url) await fetch(url, { method: "DELETE" });
       removeIncident(inc.id);
     } catch {
-      setStatus("No pudimos eliminar la incidencia (sin conexión).");
+      setStatus(t("mapa.errEliminar"));
       setTimeout(() => setStatus(null), 4000);
     }
   };
@@ -971,7 +979,7 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
   const enviarAParquemet = async (inc: IncidentItem) => {
     const res = await compartirReporte(inc.type as IncidentTypeId, inc.lat, inc.lon, inc.createdAt);
     if (res === "copied") {
-      setStatus("Mensaje copiado: envíalo a la línea 1466 o a los canales oficiales del parque.");
+      setStatus(t("mapa.mensajeCopiado"));
       setTimeout(() => setStatus(null), 6000);
     }
   };
@@ -985,7 +993,7 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
       navigator.geolocation.getCurrentPosition(
         (pos) => setLocateTarget({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
         () => {
-          setStatus("No pudimos obtener tu ubicación.");
+          setStatus(t("mapa.errUbicacion"));
           setTimeout(() => setStatus(null), 4000);
         },
         { enableHighAccuracy: true, timeout: 8000 }
@@ -996,7 +1004,7 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
   // --- Marcadores personales (Pro): guardar POI o punto tocado ---
   const markPoi = (name: string, p: LatLng) => {
     addMark(name, p);
-    setStatus(`📍 «${name}» guardado en tus lugares.`);
+    setStatus(t("mapa.guardadoLugar", name));
     setTimeout(() => setStatus(null), 4000);
   };
 
@@ -1013,18 +1021,18 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
    *  ruta dentro del cerro (computePresetRoute en el motor de navegación).
    *  Además dibuja el trazado de fondo y lo encuadra una vez. */
   const generarRuta = (r: CapaRuta) => {
-    const t = rutaTrazado(r);
-    if (t.coords.length < 2) return;
+    const tr = rutaTrazado(r);
+    if (tr.coords.length < 2) return;
     if (!position) {
-      setStatus("Activa tu GPS para generar la ruta desde tu ubicación.");
+      setStatus(t("mapa.activaGps"));
       setTimeout(() => setStatus(null), 4500);
       return;
     }
     setCapasVis((prev) => ({ ...prev, [r.id]: true }));
-    setFocus({ kind: "ruta", coords: t.coords });
+    setFocus({ kind: "ruta", coords: tr.coords });
     handleSetDest({
       name: r.nombre,
-      position: t.coords[t.coords.length - 1],
+      position: tr.coords[tr.coords.length - 1],
       preset: { rutaId: r.id, nombre: r.nombre },
     } as NavDest);
   };
@@ -1074,7 +1082,7 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
                 onClick={() => handleSetDest({ name: pt.nombre, position: pt.position })}
                 className="mt-1.5 font-medium text-sky-600 hover:underline"
               >
-                Ruta aquí
+                {t("mapa.rutaAqui")}
               </button>
             )}
           </div>
@@ -1110,7 +1118,7 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
   const incidentMarkers = useMemo(
     () =>
       incidents.map((inc) => {
-        const t = INCIDENT_BY_ID[inc.type] ?? INCIDENT_BY_ID.otro;
+        const tipo = INCIDENT_BY_ID[inc.type] ?? INCIDENT_BY_ID.otro;
         const fecha = new Date(inc.createdAt).toLocaleString("es-CL", {
           day: "2-digit",
           month: "2-digit",
@@ -1126,46 +1134,46 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
             <Popup>
               <div className="min-w-[190px] text-[13px]">
                 <div className="font-semibold mb-0.5">
-                  {t.emoji} {t.label}
+                  {tipo.emoji} {tipo.label}
                 </div>
                 <div className="text-zinc-600">
-                  Registrada: <b>{fecha}</b>
+                  {t("mapa.registrada")} <b>{fecha}</b>
                 </div>
                 <div className="text-zinc-600">
-                  Reportó: {pinEmoji(inc.authorPin)} {inc.username}
-                  {inc.localOnly ? " · solo local" : ""}
+                  {t("mapa.reporto")} {pinEmoji(inc.authorPin)} {inc.username}
+                  {inc.localOnly ? ` ${t("mapa.soloLocal")}` : ""}
                 </div>
                 {inc.note && <div className="mt-1 italic">“{inc.note}”</div>}
                 {!inc.mine && (confirmaciones > 0 || resueltos > 0) && (
                   <div className="mt-1 text-[11.5px] text-zinc-600">
-                    {confirmaciones > 0 && <span>✔ {confirmaciones} confirman · </span>}
-                    {resueltos > 0 && <span>✓ {resueltos} lo resolvieron</span>}
+                    {confirmaciones > 0 && <span>✔ {t("mapa.confirman", confirmaciones)} · </span>}
+                    {resueltos > 0 && <span>✓ {t("mapa.loResolvieron", resueltos)}</span>}
                   </div>
                 )}
                 {!inc.mine && (
                   <div className="mt-2 flex items-center gap-3">
                     {voto === "confirm" ? (
                       <span className="inline-flex items-center gap-1 font-medium text-emerald-600 dark:text-emerald-400">
-                        <Check className="h-3.5 w-3.5" /> Confirmada
+                        <Check className="h-3.5 w-3.5" /> {t("mapa.confirmada")}
                       </span>
                     ) : (
                       <button
                         onClick={() => void voteIncident(inc.id, "confirm")}
                         className="inline-flex items-center gap-1 font-medium text-emerald-600 hover:underline dark:text-emerald-400"
                       >
-                        <RefreshCw className="h-3.5 w-3.5" /> Sigue ahí
+                        <RefreshCw className="h-3.5 w-3.5" /> {t("mapa.sigueAhi")}
                       </button>
                     )}
                     {voto === "resolved" ? (
                       <span className="inline-flex items-center gap-1 font-medium text-zinc-500">
-                        <Check className="h-3.5 w-3.5" /> Resuelta
+                        <Check className="h-3.5 w-3.5" /> {t("mapa.resuelta")}
                       </span>
                     ) : (
                       <button
                         onClick={() => void voteIncident(inc.id, "resolved")}
                         className="inline-flex items-center gap-1 text-zinc-600 font-medium hover:underline dark:text-zinc-400"
                       >
-                        <Check className="h-3.5 w-3.5" /> Ya resuelto
+                        <Check className="h-3.5 w-3.5" /> {t("mapa.yaResuelto")}
                       </button>
                     )}
                   </div>
@@ -1176,13 +1184,13 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
                       onClick={() => void enviarAParquemet(inc)}
                       className="inline-flex items-center gap-1 font-medium text-emerald-600 hover:underline dark:text-emerald-400"
                     >
-                      <Share2 className="h-3.5 w-3.5" /> Enviar a Parquemet
+                      <Share2 className="h-3.5 w-3.5" /> {t("rep.enviarParquemet")}
                     </button>
                     <button
                       onClick={() => deleteIncident(inc)}
                       className="inline-flex items-center gap-1 text-red-600 font-medium hover:underline"
                     >
-                      <Trash2 className="h-3.5 w-3.5" /> Eliminar
+                      <Trash2 className="h-3.5 w-3.5" /> {t("mapa.eliminar")}
                     </button>
                   </div>
                 )}
@@ -1192,7 +1200,7 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
         );
       }),
 
-    [incidents, userPin]
+    [incidents, userPin, lang]
   );
 
   // ---- Mapa NATIVO (MapLibre Native): UI HTML alrededor del lienzo ----
@@ -1202,16 +1210,16 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
         <div className="flex items-center justify-end gap-1.5">
           <button
             onClick={locate}
-            aria-label="Localizarme"
-            title="Centrar en mi ubicación"
+            aria-label={t("mapa.localizarme")}
+            title={t("mapa.centrarUbicacion")}
             className="h-10 w-10 rounded-lg bg-background border border-border text-foreground flex items-center justify-center"
           >
             <Crosshair className="h-5 w-5" />
           </button>
           <button
             onClick={() => setReportMode((v) => !v)}
-            aria-label="Reportar incidencia en el mapa"
-            title="Toca el mapa para reportar una incidencia"
+            aria-label={t("mapa.reportarAria")}
+            title={t("mapa.reportarTitle")}
             className={`h-10 w-10 rounded-lg border flex items-center justify-center ${
               reportMode ? "bg-amber-500 border-amber-300 text-zinc-950" : "bg-background border-border text-foreground"
             }`}
@@ -1255,13 +1263,12 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
           />
         )}
 
-        {reportMode && !pending && <p className="text-xs text-amber-700/90 dark:text-amber-300/90">Toca el mapa donde está el problema y elige el tipo de incidencia.</p>}
+        {reportMode && !pending && <p className="text-xs text-amber-700/90 dark:text-amber-300/90">{t("mapa.reportarHint")}</p>}
 
         <MapLegend className="rounded-lg bg-background border border-border px-3 py-2 text-[11px] text-foreground/90 space-y-1" />
 
         <p className="text-xs text-muted-foreground leading-relaxed">
-          Mapa nativo: tu ubicación, zonas de riesgo, simbología e incidencias con fecha y hora. Para navegación con ruta y
-          ciclovías, usa el velocímetro (pestaña Ride).
+          {t("mapa.nativoNota")}
         </p>
       </div>
     );
@@ -1357,7 +1364,7 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
                 pathOptions={{ color: "#34d399", weight: 2.5, fillColor: "#065f46", fillOpacity: 0.95 }}
               >
                 <Tooltip direction="top" offset={[0, -6]}>
-                  <span className="text-xs font-medium">🚴 {a.nombre} · acceso ciclistas</span>
+                  <span className="text-xs font-medium">🚴 {a.nombre} · {t("mapa.accesoCiclistas")}</span>
                 </Tooltip>
               </CircleMarker>
             ))}
@@ -1368,14 +1375,14 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
               2026-11-15: «para identificar bien en el mapa el punto de
               partida»). */}
           {CAPA_RUTAS.filter((r) => capasVis[r.id]).map((r) => {
-            const t = rutaTrazado(r);
-            if (t.coords.length < 2) return null;
-            const path = t.coords.map((c) => [c.lat, c.lon] as [number, number]);
+            const tr = rutaTrazado(r);
+            if (tr.coords.length < 2) return null;
+            const path = tr.coords.map((c) => [c.lat, c.lon] as [number, number]);
             return (
               <Fragment key={r.id}>
-                <Marker position={[t.coords[0].lat, t.coords[0].lon]} icon={banderaInicioIcon(mapBearing)}>
+                <Marker position={[tr.coords[0].lat, tr.coords[0].lon]} icon={banderaInicioIcon(mapBearing)}>
                   <Tooltip direction="top" offset={[0, -8]}>
-                    <span className="text-xs font-medium">Inicio · {r.nombre}</span>
+                    <span className="text-xs font-medium">{t("mapa.inicioRuta", r.nombre)}</span>
                   </Tooltip>
                 </Marker>
                 <Polyline positions={path} pathOptions={{ color: "#05070a", weight: 9, opacity: 0.75 }} interactive={false} />
@@ -1392,7 +1399,7 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
                 >
                   <Tooltip direction="top">
                     <span className="text-xs font-medium">
-                      {r.emoji} {r.nombre} · {t.distKm.toFixed(1)} km
+                      {r.emoji} {r.nombre} · {tr.distKm.toFixed(1)} km
                     </span>
                   </Tooltip>
                 </Polyline>
@@ -1421,7 +1428,7 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
                     pathOptions={{ color: "#dc2626", weight: 4.5, opacity: 0.95, lineCap: "round", lineJoin: "round" }}
                   >
                     <Tooltip direction="top">
-                      <span className="text-xs font-medium">🐢 30 km/h · {b.nombre} · {b.distKm.toFixed(1)} km</span>
+                      <span className="text-xs font-medium">{t("mapa.bajada30Tooltip", b.nombre, b.distKm.toFixed(1))}</span>
                     </Tooltip>
                   </Polyline>
                 </Fragment>
@@ -1441,7 +1448,7 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
                   pathOptions={{ color: "#92400e", weight: 3, opacity: 0.85, dashArray: "3 8", lineCap: "round" }}
                 >
                   <Tooltip direction="top">
-                    <span className="text-xs font-medium">🥾 {s.nombre} · peatonal</span>
+                    <span className="text-xs font-medium">{t("mapa.peatonal", s.nombre)}</span>
                   </Tooltip>
                 </Polyline>
               );
@@ -1452,16 +1459,16 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
               de guion-punto, datos en su propia variable
               (paseoMetropolitano.ts) — informativa, el ruteo no cambia. */}
           {capasVis["paseo-met"] &&
-            CAPA_PASEO_METROPOLITANO.map((t) => {
-              if (t.coords.length < 2) return null;
+            CAPA_PASEO_METROPOLITANO.map((pm) => {
+              if (pm.coords.length < 2) return null;
               return (
                 <Polyline
-                  key={`pm-${t.id}`}
-                  positions={t.coords.map((c) => [c.lat, c.lon] as [number, number])}
+                  key={`pm-${pm.id}`}
+                  positions={pm.coords.map((c) => [c.lat, c.lon] as [number, number])}
                   pathOptions={{ color: "#0d9488", weight: 4, opacity: 0.9, dashArray: "14 7 3 7", lineCap: "round" }}
                 >
                   <Tooltip direction="top">
-                    <span className="text-xs font-medium">🚶‍♂️ {t.nombre} · {t.largoKm.toLocaleString("es-CL")} km · uso mixto</span>
+                    <span className="text-xs font-medium">{t("mapa.paseoTooltip", pm.nombre, pm.largoKm.toLocaleString("es-CL"))}</span>
                   </Tooltip>
                 </Polyline>
               );
@@ -1524,14 +1531,14 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
                         onClick={() => handleSetDest({ name: m.name, position: { lat: m.lat, lon: m.lon } })}
                         className="font-medium text-sky-600 hover:underline"
                       >
-                        Ruta aquí
+                        {t("mapa.rutaAqui")}
                       </button>
                     )}
                     <button
                       onClick={() => removeMark(m.id)}
                       className="font-medium text-red-600 hover:underline"
                     >
-                      Eliminar
+                      {t("mapa.eliminar")}
                     </button>
                   </div>
                 </div>
@@ -1565,16 +1572,16 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
         <div className="absolute top-[64px] right-2 z-[600] flex flex-col gap-1.5">
           <button
             onClick={locate}
-            aria-label="Localizarme"
-            title="Centrar en mi ubicación"
+            aria-label={t("mapa.localizarme")}
+            title={t("mapa.centrarUbicacion")}
             className="h-10 w-10 rounded-lg bg-background/90 border border-border text-foreground flex items-center justify-center hover:border-emerald-500 shadow-md"
           >
             <Crosshair className="h-5 w-5" />
           </button>
           <button
             onClick={() => setReportMode((v) => !v)}
-            aria-label="Reportar incidencia en el mapa"
-            title="Toca el mapa para reportar una incidencia"
+            aria-label={t("mapa.reportarAria")}
+            title={t("mapa.reportarTitle")}
             className={`h-10 w-10 rounded-lg border flex items-center justify-center shadow-md ${
               reportMode ? "bg-amber-500 border-amber-300 text-zinc-950" : "bg-background/90 border-border text-foreground hover:border-amber-400"
             }`}
@@ -1584,8 +1591,8 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
           {(rotado || modoCamara === "rumbo") && (
             <button
               onClick={() => setModoCamara(modoCamara === "rumbo" ? "norte" : "rumbo")}
-              aria-label={modoCamara === "rumbo" ? "Orientar el mapa al norte" : "Orientar el mapa al rumbo de la ruta"}
-              title={modoCamara === "rumbo" ? "Vista girada al rumbo · tocar para norte arriba" : "Norte arriba · tocar para girar al rumbo"}
+              aria-label={modoCamara === "rumbo" ? t("mapa.rumboAria") : t("mapa.norteAria")}
+              title={modoCamara === "rumbo" ? t("mapa.rumboTitle") : t("mapa.norteTitle")}
               className="relative h-10 w-10 rounded-lg bg-background/90 border border-border text-foreground flex items-center justify-center hover:border-emerald-500 shadow-md"
             >
               <svg width="22" height="22" viewBox="0 0 24 24" style={{ transform: `rotate(${-Math.round(mapBearing)}deg)`, transition: "transform 0.45s ease-out" }} aria-hidden>
@@ -1593,7 +1600,7 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
                 <path d="M12 21.5 L8.5 12 L12 13.8 L15.5 12 Z" fill="#71717a" />
                 <circle cx="12" cy="12" r="1.4" fill="#09090b" />
               </svg>
-              {modoCamara === "rumbo" && <span className="absolute -bottom-1 rounded bg-emerald-600 px-1 text-[8px] font-bold text-white">RUMBO</span>}
+              {modoCamara === "rumbo" && <span className="absolute -bottom-1 rounded bg-emerald-600 px-1 text-[8px] font-bold text-white">{t("mapa.rumboChip")}</span>}
             </button>
           )}
         </div>
@@ -1603,7 +1610,7 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
           <div className="absolute top-[112px] inset-x-2 z-[750] rounded-lg bg-background/95 border border-amber-600/70 px-3 py-2 text-xs text-amber-800 dark:text-amber-200 shadow-md">
             {pending ? (
               <div>
-                <div className="font-semibold mb-1.5">¿Qué encontraste aquí?</div>
+                <div className="font-semibold mb-1.5">{t("mapa.queEncontraste")}</div>
                 <div className="flex flex-wrap gap-1.5">
                   {INCIDENT_TYPES.map((t) => (
                     <button
@@ -1618,7 +1625,7 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
                     onClick={() => setPending(null)}
                     className="px-2 py-1 rounded-md border border-border bg-card hover:border-red-400 text-[11px] text-muted-foreground"
                   >
-                    Cancelar
+                    {t("mapa.cancelar")}
                   </button>
                 </div>
               </div>
@@ -1629,7 +1636,7 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
         )}
         {reportMode && !pending && (
           <p className="absolute top-[112px] inset-x-2 z-[740] rounded-lg bg-background/95 border border-amber-600/50 px-3 py-2 text-xs text-amber-700/90 dark:text-amber-300/90 shadow-md">
-            Toca el mapa donde está el problema y elige el tipo de incidencia.
+            {t("mapa.reportarHint")}
           </p>
         )}
       </div>

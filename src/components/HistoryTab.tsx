@@ -53,6 +53,7 @@ import {
   useProLicense,
 } from "@/lib/proLicense";
 import { SubTabs } from "@/components/SubTabs";
+import { t, useLang } from "@/lib/i18n";
 
 function fmtDate(iso: string): string {
   return new Date(iso).toLocaleString("es-CL", {
@@ -86,6 +87,7 @@ export function HistoryTab({
 }) {
   const rides = useSyncExternalStore(historyStore.subscribe, historyStore.get, historyStore.getServer);
   const { pro } = useProLicense();
+  useLang();
   const [pdfBusyId, setPdfBusyId] = useState<string | null>(null);
   const [pdfMsg, setPdfMsg] = useState<string | null>(null);
   const [gpxBusyId, setGpxBusyId] = useState<string | null>(null);
@@ -185,23 +187,23 @@ export function HistoryTab({
       const uname = user?.username ?? "ciclista";
       const blob = await buildShareImage({
         headline: `${pin.emoji} @${uname}`,
-        sub: `Mi semana en el cerro · ${wk.label}`,
+        sub: t("his.semanaSub", wk.label),
         rows: [
-          { label: "Viajes", value: String(weekStats.count) },
-          { label: "Kilómetros", value: `${weekStats.km.toFixed(1)} km` },
-          { label: "Tiempo pedaleado", value: formatClock(weekStats.sec) },
-          { label: "Desnivel acumulado", value: `+${Math.round(weekStats.gain)} m` },
+          { label: t("his.filaViajes"), value: String(weekStats.count) },
+          { label: t("his.filaKm"), value: `${weekStats.km.toFixed(1)} km` },
+          { label: t("his.filaTiempo"), value: formatClock(weekStats.sec) },
+          { label: t("his.filaDesnivel"), value: `+${Math.round(weekStats.gain)} m` },
         ],
       });
-      const res = await sharePngBlob(blob, "cumbre30-semana.png", "Mi semana en el cerro con Cumbre30 🚴");
+      const res = await sharePngBlob(blob, "cumbre30-semana.png", t("his.shareSemana"));
       setShareMsg(
         res === "shared"
-          ? "¡Listo! Elige Instagram (Historia o Feed) en el panel."
-          : "Imagen descargada. Compártela en Instagram como historia o post."
+          ? t("his.shareOk")
+          : t("his.shareDescargada")
       );
     } catch (e) {
       if ((e as Error)?.name === "AbortError") return;
-      setShareMsg("No pudimos generar la imagen en este dispositivo.");
+      setShareMsg(t("his.errImagen"));
     } finally {
       setShareBusy(false);
       setTimeout(() => setShareMsg(null), 8000);
@@ -217,7 +219,7 @@ export function HistoryTab({
     setLinkMsg(null);
     try {
       if (!url) {
-        setLinkMsg("El enlace público necesita el servidor de cuenta: configúralo en Perfil → Cuenta.");
+        setLinkMsg(t("his.linkNecesitaServer"));
         return;
       }
       const headers: Record<string, string> = { "Content-Type": "application/json" };
@@ -230,26 +232,26 @@ export function HistoryTab({
         signal: AbortSignal.timeout(12000),
       });
       if (res.status === 401) {
-        setLinkMsg("Inicia sesión en Perfil → Cuenta para crear el enlace público.");
+        setLinkMsg(t("his.linkPideSesion"));
         return;
       }
       if (!res.ok) {
-        setLinkMsg("No pudimos crear el enlace. Revisa tu conexión e intenta de nuevo.");
+        setLinkMsg(t("his.errEnlace"));
         return;
       }
       const d = (await res.json()) as { url?: string };
       const enlace = d.url;
       if (!enlace) throw new Error();
-      const texto = "Mi pedaleo en el cerro con Cumbre30 🚴 " + enlace;
+      const texto = t("his.shareTexto", enlace);
       if (navigator.share) {
         await navigator.share({ title: "Ride Cumbre30", text: texto, url: enlace });
-        setLinkMsg("Enlace compartido ✓");
+        setLinkMsg(t("his.enlaceCompartido"));
       } else {
         await navigator.clipboard.writeText(texto);
-        setLinkMsg(`Enlace copiado ✓ ${enlace}`);
+        setLinkMsg(t("his.enlaceCopiado", enlace));
       }
     } catch {
-      setLinkMsg("No pudimos crear el enlace. Revisa tu conexión e intenta de nuevo.");
+      setLinkMsg(t("his.errEnlace"));
     } finally {
       setLinkBusyId(null);
       setTimeout(() => setLinkMsg(null), 12000);
@@ -262,10 +264,7 @@ export function HistoryTab({
     if (r.source === "sim") return;
     // Nivel gratis: cuota mensual de constancias. Pro: ilimitadas.
     if (!pro.active && constanciaCount() >= FREE_CONSTANCIA_LIMIT) {
-      setPdfMsg(
-        `Este mes ya usaste tus ${FREE_CONSTANCIA_LIMIT} constancias gratis. ` +
-          "Con Cumbre30 Pro (Perfil → Pagos y suscripciones) son ilimitadas.",
-      );
+      setPdfMsg(t("his.cuotaConstancias", FREE_CONSTANCIA_LIMIT));
       setTimeout(() => setPdfMsg(null), 9000);
       return;
     }
@@ -280,8 +279,8 @@ export function HistoryTab({
       const res = await shareOrDownloadFile({
         blob,
         fileName,
-        title: "Constancia de trayecto - Cumbre30",
-        text: "Constancia de registro de trayecto en bicicleta, generada por la aplicación Cumbre30.",
+        title: t("his.constanciaTituloShare"),
+        text: t("his.constanciaTextoShare"),
       });
       incrConstancia();
       setConstCount(constanciaCount());
@@ -298,11 +297,11 @@ export function HistoryTab({
       }
       setPdfMsg(
         res === "shared"
-          ? "Constancia lista: envíala por correo o guárdala en tu teléfono desde el panel de Android."
-          : "Constancia PDF descargada. Revísala en tu carpeta de descargas."
+          ? t("his.constanciaLista")
+          : t("his.constanciaDescargada")
       );
     } catch {
-      setPdfMsg("No pudimos generar la constancia en este dispositivo.");
+      setPdfMsg(t("his.errConstancia"));
     } finally {
       setPdfBusyId(null);
       setTimeout(() => setPdfMsg(null), 9000);
@@ -315,14 +314,14 @@ export function HistoryTab({
     setGpxMsg(null);
     try {
       if (!pro.active) {
-        setGpxMsg("El export GPX es parte de Cumbre30 Pro - actívalo en Perfil → Pagos y suscripciones.");
+        setGpxMsg(t("his.gpxPro"));
         return;
       }
       // La pista puede vivir en IndexedDB (rides antiguos podados del
       // almacenamiento local) o embebida en el resumen (rides recientes).
       const track = (await readRideTrack(r.id)) ?? r.track;
       if (!track || track.length < 2) {
-        setGpxMsg("Este viaje no guarda pista GPS (se grabó antes de la v1.5.0).");
+        setGpxMsg(t("his.sinPistaGps"));
         return;
       }
       const blob = buildRideGpxBlob({ ...r, track });
@@ -331,12 +330,12 @@ export function HistoryTab({
       await shareOrDownloadFile({
         blob,
         fileName: `cumbre30-${day}-${r.id.slice(0, 8)}.gpx`,
-        title: "Viaje GPX - Cumbre30",
-        text: "Pista GPX de tu viaje en el cerro, generada por Cumbre30.",
+        title: t("his.gpxTituloShare"),
+        text: t("his.gpxTextoShare"),
       });
-      setGpxMsg("GPX listo: impórtalo en Strava, Garmin o Komoot.");
+      setGpxMsg(t("his.gpxListo"));
     } catch {
-      setGpxMsg("No pudimos generar el GPX en este dispositivo.");
+      setGpxMsg(t("his.errGpx"));
     } finally {
       setGpxBusyId(null);
       setTimeout(() => setGpxMsg(null), 9000);
@@ -344,20 +343,20 @@ export function HistoryTab({
   };
 
   const rangeChips: { key: RangeKey; label: string }[] = [
-    { key: "week", label: "Semana" },
-    { key: "month", label: "Mes" },
-    { key: "day", label: "Día" },
-    { key: "all", label: "Todos" },
+    { key: "week", label: t("his.rangoSemana") },
+    { key: "month", label: t("his.rangoMes") },
+    { key: "day", label: t("his.rangoDia") },
+    { key: "all", label: t("his.rangoTodos") },
   ];
 
   return (
     <div className="flex flex-col gap-4">
       <SubTabs
-        ariaLabel="Subsecciones de Mis viajes"
+        ariaLabel={t("his.subAria")}
         value={sub}
         onChange={(k) => setSub(k as "viajes" | "pro")}
         tabs={[
-          { key: "viajes", label: "Viajes" },
+          { key: "viajes", label: t("his.tabViajes") },
           { key: "pro", label: "Pro", crown: true },
         ]}
       />
@@ -376,14 +375,14 @@ export function HistoryTab({
               {pro.active ? (
                 <InfinityIcon className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
               ) : (
-                <span className="text-sm text-muted-foreground">/ {FREE_RIDE_LIMIT} gratis</span>
+                <span className="text-sm text-muted-foreground">{t("his.gratis", FREE_RIDE_LIMIT)}</span>
               )}
             </p>
             <p className="mt-1 text-[11px] leading-snug text-muted-foreground">
               {pro.active ? (
-                "Historial ilimitado con Cumbre30 Pro: nada se descarta."
+                t("his.histIlimitado")
               ) : (
-                <>Viajes guardados en este teléfono. Gratis se conservan los últimos {FREE_RIDE_LIMIT}: al llenarse, cada viaje nuevo descarta al más antiguo. Con <b className="text-foreground">Pro</b> el historial es ilimitado.</>
+                <>{t("his.histFree1", FREE_RIDE_LIMIT)}<b className="text-foreground">Pro</b>{t("his.histFree2")}</>
               )}
             </p>
           </div>
@@ -419,7 +418,7 @@ export function HistoryTab({
               )}
             </span>
             <span className="mt-1 block text-[11px] text-muted-foreground">
-              constancias PDF {pro.active ? "ilimitadas" : "gratis este mes"}
+              {pro.active ? t("his.constPdfIlimitadas") : t("his.constPdfGratisMes")}
             </span>
           </span>
           <ChevronDown className={`h-5 w-5 shrink-0 text-muted-foreground transition-transform ${constOpen ? "rotate-180" : ""}`} />
@@ -428,26 +427,22 @@ export function HistoryTab({
           <div className="mt-3 rounded-xl border border-border bg-background/60 p-3 text-[13px] leading-relaxed text-muted-foreground">
             {pro.active ? (
               <p>
-                Tienes Cumbre30 Pro: constancias PDF <b className="text-foreground">ilimitadas</b> y cada
-                viaje con GPS se exporta en GPX para Strava o Garmin.
+                {t("his.constPro1")}<b className="text-foreground">{t("his.ilimitadas")}</b>{t("his.constPro2")}
               </p>
             ) : (
               <p>
-                Este mes llevas <b className="text-foreground">{constCount}/{FREE_CONSTANCIA_LIMIT} constancias gratis</b>.
-                Con Cumbre30 Pro son ilimitadas y cada viaje con GPS se exporta en GPX para Strava o Garmin.
+                {t("his.constFree1")}<b className="text-foreground">{t("his.constFreeBold", constCount, FREE_CONSTANCIA_LIMIT)}</b>{t("his.constFree2")}
               </p>
             )}
             <p className="mt-2">
-              La bitácora (velocidad máxima dentro del parque y tiempo sobre el límite) sirve como respaldo
-              de tu comportamiento real: cada viaje con GPS descarga una constancia con redacción formal y
-              código de verificación. Los viajes de demostración no emiten constancia.
+              {t("his.constBitacora")}
             </p>
             {!pro.active && onGoPro && (
               <Button
                 onClick={onGoPro}
                 className="mt-3 h-9 bg-amber-500 font-bold text-zinc-950 hover:bg-amber-400"
               >
-                <Crown className="mr-2 h-4 w-4" /> Ver Cumbre30 Pro
+                <Crown className="mr-2 h-4 w-4" /> {t("his.verPro")}
               </Button>
             )}
           </div>
@@ -458,29 +453,29 @@ export function HistoryTab({
       <Card className="bg-card/80 border-border p-4">
         <div className="flex items-center gap-2">
           <CalendarDays className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-          <p className="text-sm font-medium text-foreground">Tu semana</p>
+          <p className="text-sm font-medium text-foreground">{t("his.tuSemana")}</p>
           <span className="ml-auto text-[11px] text-muted-foreground">{wk.label}</span>
         </div>
         {weekStats.count === 0 ? (
           <p className="mt-2 text-[13px] text-muted-foreground">
-            Sin viajes esta semana todavía. Pedalea y aparecerán aquí.
+            {t("his.sinViajesSemana")}
           </p>
         ) : (
           <div className="mt-3 grid grid-cols-4 gap-2 text-center">
             <div>
-              <div className="text-[10px] uppercase text-muted-foreground">Viajes</div>
+              <div className="text-[10px] uppercase text-muted-foreground">{t("his.kViajes")}</div>
               <div className="font-mono text-sm text-foreground">{weekStats.count}</div>
             </div>
             <div>
-              <div className="text-[10px] uppercase text-muted-foreground">Km</div>
+              <div className="text-[10px] uppercase text-muted-foreground">{t("his.kKm")}</div>
               <div className="font-mono text-sm text-foreground">{weekStats.km.toFixed(1)}</div>
             </div>
             <div>
-              <div className="text-[10px] uppercase text-muted-foreground">Tiempo</div>
+              <div className="text-[10px] uppercase text-muted-foreground">{t("his.kTiempo")}</div>
               <div className="font-mono text-sm text-foreground">{formatClock(weekStats.sec)}</div>
             </div>
             <div>
-              <div className="text-[10px] uppercase text-muted-foreground">Desnivel</div>
+              <div className="text-[10px] uppercase text-muted-foreground">{t("his.kDesnivel")}</div>
               <div className="font-mono text-sm text-foreground">+{Math.round(weekStats.gain)}</div>
             </div>
           </div>
@@ -492,7 +487,7 @@ export function HistoryTab({
             className="h-9 flex-1 bg-pink-600 font-semibold text-white hover:bg-pink-500 disabled:opacity-40"
           >
             <Share2 className="mr-2 h-4 w-4" />
-            {shareBusy ? "Generando…" : "Compartir resumen (Instagram)"}
+            {shareBusy ? t("his.generando") : t("his.compartirResumen")}
           </Button>
         </div>
         {shareMsg && <p className="mt-2 text-xs text-emerald-700 dark:text-emerald-300" role="status">{shareMsg}</p>}
@@ -502,13 +497,13 @@ export function HistoryTab({
       <div className="flex flex-col gap-2">
         <div className="flex gap-2">
           <Select value={mode} onValueChange={(v) => setMode(v as ModeKey)}>
-            <SelectTrigger className="h-9 w-[190px] shrink-0 border-border bg-card" aria-label="Filtrar por modo del viaje">
-              <SelectValue placeholder="Todos los viajes" />
+            <SelectTrigger className="h-9 w-[190px] shrink-0 border-border bg-card" aria-label={t("his.filtroAria")}>
+              <SelectValue placeholder={t("his.filtroTodos")} />
             </SelectTrigger>
             <SelectContent className="border-border bg-card">
-              <SelectItem value="all">Todos los viajes</SelectItem>
-              <SelectItem value="sim">Viajes en modo demo</SelectItem>
-              <SelectItem value="gps">Viajes en modo GPS</SelectItem>
+              <SelectItem value="all">{t("his.filtroTodos")}</SelectItem>
+              <SelectItem value="sim">{t("his.filtroDemo")}</SelectItem>
+              <SelectItem value="gps">{t("his.filtroGps")}</SelectItem>
             </SelectContent>
           </Select>
           <div className="flex flex-1 gap-1.5 overflow-x-auto">
@@ -531,14 +526,14 @@ export function HistoryTab({
         {range === "day" && (
           <label className="flex items-center gap-2 text-[12px] text-muted-foreground">
             <CalendarClock className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
-            Elegir día
+            {t("his.elegirDia")}
             <input
               type="date"
               value={dayISO}
               max={new Date().toISOString().slice(0, 10)}
               onChange={(e) => setDayISO(e.target.value || new Date().toISOString().slice(0, 10))}
               className="h-9 flex-1 rounded-lg border border-border bg-card px-2 text-[13px] text-foreground"
-              aria-label="Fecha de los viajes"
+              aria-label={t("his.fechaAria")}
             />
           </label>
         )}
@@ -547,15 +542,15 @@ export function HistoryTab({
       {/* ---- Lista de viajes ---- */}
       {rides.length === 0 ? (
         <Card className="bg-card/60 border-border p-8 text-center text-muted-foreground text-sm">
-          Aún no hay viajes guardados. Inicia un ride y al detenerlo quedará registrado aquí.
+          {t("his.vacioTotal")}
         </Card>
       ) : shownRides.length === 0 ? (
         <Card className="bg-card/60 border-border p-6 text-center text-muted-foreground text-sm">
-          No hay viajes con estos filtros. Prueba otro rango de fecha o el modo.
+          {t("his.vacioFiltros")}
         </Card>
       ) : (
         <>
-          <ul className="flex flex-col gap-2" aria-label="Viajes guardados">
+          <ul className="flex flex-col gap-2" aria-label={t("his.listaAria")}>
             {shownRides.map((r) => (
               <li key={r.id}>
                 <Card className="bg-card/80 border-border p-4">
@@ -568,8 +563,8 @@ export function HistoryTab({
                         {r.source === "sim" ? "demo" : "gps"}
                       </Badge>
                       {r.motorized && (
-                        <Badge variant="outline" className="border-amber-600/70 bg-amber-950/40 text-amber-700 dark:text-amber-300 text-[10px] uppercase" title="Viaje en vehículo motorizado: no cuenta para desafíos ni estadísticas">
-                          <Car className="h-3 w-3" /> vehículo
+                        <Badge variant="outline" className="border-amber-600/70 bg-amber-950/40 text-amber-700 dark:text-amber-300 text-[10px] uppercase" title={t("his.vehiculoTitle")}>
+                          <Car className="h-3 w-3" /> {t("his.vehiculoBadge")}
                         </Badge>
                       )}
                       {r.source !== "sim" && (
@@ -578,9 +573,9 @@ export function HistoryTab({
                           size="sm"
                           disabled={linkBusyId === r.id}
                           onClick={() => void compartirLink(r)}
-                          title="Crear un enlace público con las estadísticas del viaje (sin GPS)"
+                          title={t("his.linkTitle")}
                           className="h-7 border-border px-2 text-xs text-muted-foreground hover:bg-card hover:text-foreground disabled:opacity-40"
-                          aria-label={`Crear enlace público del viaje del ${fmtDate(r.dateISO)}`}
+                          aria-label={t("his.linkAria", fmtDate(r.dateISO))}
                         >
                           <Share2 className="h-3.5 w-3.5 mr-1" />
                           {linkBusyId === r.id ? "…" : "Link"}
@@ -594,11 +589,11 @@ export function HistoryTab({
                           onClick={() => void exportGpx(r)}
                           title={
                             pro.active
-                              ? "Exportar pista GPX del viaje (Strava, Garmin, Komoot)"
-                              : "El export GPX es parte de Cumbre30 Pro"
+                              ? t("his.gpxTitle")
+                              : t("his.gpxProShort")
                           }
                           className="h-7 border-border px-2 text-xs text-muted-foreground hover:bg-card hover:text-foreground disabled:opacity-40"
-                          aria-label={`Exportar GPX del viaje del ${fmtDate(r.dateISO)}`}
+                          aria-label={t("his.gpxAria", fmtDate(r.dateISO))}
                         >
                           <Download className="h-3.5 w-3.5 mr-1" />
                           {gpxBusyId === r.id ? "…" : "GPX"}
@@ -609,47 +604,47 @@ export function HistoryTab({
                         size="sm"
                         disabled={pdfBusyId === r.id || r.source === "sim"}
                         onClick={() => void exportPdf(r)}
-                        title={r.source === "sim" ? "Los viajes de demostración no emiten constancia" : "Descargar constancia PDF del viaje"}
+                        title={r.source === "sim" ? t("his.simTitle") : t("his.descargarConstancia")}
                         className="h-7 border-emerald-800/60 px-2 text-xs text-emerald-600 dark:text-emerald-400 hover:bg-emerald-950 hover:text-emerald-300 disabled:opacity-40"
                         aria-label={
                           r.source === "sim"
-                            ? "Viaje de demostración: no emite constancia"
-                            : `Descargar constancia PDF del viaje del ${fmtDate(r.dateISO)}`
+                            ? t("his.demoSinConstancia")
+                            : t("his.descargarConstanciaAria", fmtDate(r.dateISO))
                         }
                       >
                         <FileDown className="h-3.5 w-3.5 mr-1" />
-                        {r.source === "sim" ? "Sin constancia" : pdfBusyId === r.id ? "Generando…" : "Constancia PDF"}
+                        {r.source === "sim" ? t("his.sinConstancia") : pdfBusyId === r.id ? t("his.generando") : t("his.constanciaPdf")}
                       </Button>
                     </span>
                   </div>
                   <div className="mt-3 grid grid-cols-4 gap-2 text-center">
                     <div>
-                      <div className="flex items-center justify-center gap-1 text-[10px] uppercase text-muted-foreground"><Route className="h-3 w-3" /> Dist</div>
+                      <div className="flex items-center justify-center gap-1 text-[10px] uppercase text-muted-foreground"><Route className="h-3 w-3" /> {t("his.kDist")}</div>
                       <div className="font-mono text-sm text-foreground">{r.distanceKm.toFixed(2)} km</div>
                     </div>
                     <div>
-                      <div className="flex items-center justify-center gap-1 text-[10px] uppercase text-muted-foreground"><Gauge className="h-3 w-3" /> Máx</div>
+                      <div className="flex items-center justify-center gap-1 text-[10px] uppercase text-muted-foreground"><Gauge className="h-3 w-3" /> {t("his.kMax")}</div>
                       <div className={`font-mono text-sm ${(r.maxInParkKmh ?? 0) > 30 ? "text-red-600 dark:text-red-400" : "text-foreground"}`}>{r.maxKmh.toFixed(1)}</div>
                     </div>
                     <div>
-                      <div className="flex items-center justify-center gap-1 text-[10px] uppercase text-muted-foreground"><Timer className="h-3 w-3" /> Tiempo</div>
+                      <div className="flex items-center justify-center gap-1 text-[10px] uppercase text-muted-foreground"><Timer className="h-3 w-3" /> {t("his.kTiempo")}</div>
                       <div className="font-mono text-sm text-foreground">{formatClock(r.elapsedSec)}</div>
                     </div>
                     <div>
-                      <div className="flex items-center justify-center gap-1 text-[10px] uppercase text-muted-foreground"><ShieldAlert className="h-3 w-3" /> S/límite</div>
+                      <div className="flex items-center justify-center gap-1 text-[10px] uppercase text-muted-foreground"><ShieldAlert className="h-3 w-3" /> {t("his.kSobreLimite")}</div>
                       <div className={`font-mono text-sm ${r.overLimitSec > 0 ? "text-red-600 dark:text-red-400" : "text-emerald-600 dark:text-emerald-400"}`}>
                         {r.overLimitSec > 0 ? formatClock(r.overLimitSec) : "0s"}
                       </div>
                     </div>
                   </div>
                   <div className="mt-2 text-[11px] text-muted-foreground">
-                    Máx en parque: {r.maxInParkKmh !== null ? `${r.maxInParkKmh.toFixed(1)} km/h` : "no ingresó"} · Promedio: {r.avgKmh.toFixed(1)} km/h · Desnivel: +{Math.round(r.gainM)} m
-                    {r.source === "sim" && " · Viaje de demostración: no emite constancia"}
-                    {r.motorized && " · Viaje en vehículo: no cuenta para desafíos ni estadísticas"}
+                    {t("his.detalleLinea", r.maxInParkKmh !== null ? `${r.maxInParkKmh.toFixed(1)} km/h` : t("his.noIngreso"), r.avgKmh.toFixed(1), Math.round(r.gainM))}
+                    {r.source === "sim" && ` · ${t("his.demoSinConstancia")}`}
+                    {r.motorized && t("his.vehiculoNota")}
                   </div>
                   {r.overLimitSec === 0 && r.maxInParkKmh !== null && r.maxInParkKmh <= 30 && (r.motorized !== true) && (
                     <div className="mt-1.5 inline-flex items-center gap-1 rounded-full border border-emerald-700/60 bg-emerald-950/40 px-2 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
-                      <ShieldCheck className="h-3 w-3" /> Descenso limpio en el parque
+                      <ShieldCheck className="h-3 w-3" /> {t("his.descensoLimpioChip")}
                     </div>
                   )}
                   {(perRideEfforts.get(r.id)?.length ?? 0) > 0 && (
@@ -684,7 +679,7 @@ export function HistoryTab({
             className="border-border text-muted-foreground hover:bg-card hover:text-red-600 dark:hover:text-red-400"
             onClick={() => clearHistory()}
           >
-            <Trash2 className="h-4 w-4 mr-2" /> Borrar historial
+            <Trash2 className="h-4 w-4 mr-2" /> {t("his.borrarHistorial")}
           </Button>
         </>
       )}
@@ -692,8 +687,7 @@ export function HistoryTab({
       {/* Enlace cuenta: sin sesión los viajes nuevos son locales */}
       {!accountEmail && rides.length > 0 && (
         <p className="text-[11px] leading-relaxed text-muted-foreground/80">
-          Estos viajes son locales del dispositivo. Inicia sesión en Perfil y quedarán enlazados a tu
-          correo automáticamente.
+          {t("his.localesNota")}
         </p>
       )}
       </>
@@ -705,12 +699,12 @@ export function HistoryTab({
           <Card className="bg-card/80 border-border p-4">
             <div className="flex items-center gap-2">
               <Mountain className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-              <p className="text-sm font-medium text-foreground">Segmentos del cerro</p>
+              <p className="text-sm font-medium text-foreground">{t("his.segmentosCerro")}</p>
               {pro.active && (
                 <Badge className="bg-amber-500 font-bold text-zinc-950 text-[10px]">PRO</Badge>
               )}
               <Badge variant="outline" className="ml-auto border-border text-[10px] uppercase text-muted-foreground">
-                solo viajes GPS
+                {t("his.soloGps")}
               </Badge>
             </div>
             {pro.active ? (
@@ -725,47 +719,42 @@ export function HistoryTab({
                             <Trophy className="h-4 w-4" /> {fmtEffort(s.pb.timeSec)}
                           </span>
                         ) : (
-                          <span className="text-[11px] text-muted-foreground">aún sin intentos</span>
+                          <span className="text-[11px] text-muted-foreground">{t("his.aunSinIntentos")}</span>
                         )}
                       </div>
                       <p className="mt-0.5 text-[11px] text-muted-foreground">{s.def.detail}</p>
                       {s.pb && (
                         <p className="mt-1 text-[11px] text-muted-foreground">
-                          Récord: {fmtDate(s.pb.dateISO)} · prom {s.pb.avgKmh.toFixed(1)} km/h · +{Math.round(s.pb.gainM)} m
+                          {t("his.record", fmtDate(s.pb.dateISO), s.pb.avgKmh.toFixed(1), Math.round(s.pb.gainM))}
                         </p>
                       )}
                       {s.count > 0 && s.last && (
                         <p className="mt-0.5 text-[11px] text-muted-foreground">
-                          {s.count} {s.count === 1 ? "intento" : "intentos"} · último: {fmtEffort(s.last.timeSec)} - {fmtDate(s.last.dateISO)}
+                          {s.count === 1 ? t("his.intento", s.count) : t("his.intentos", s.count)} · {t("his.ultimo", fmtEffort(s.last.timeSec), fmtDate(s.last.dateISO))}
                         </p>
                       )}
                       {s.top.length > 1 && (
                         <p className="mt-0.5 text-[11px] text-muted-foreground">
-                          Top: {s.top.map((e, i) => `${i + 1}) ${fmtEffort(e.timeSec)}`).join("  ")}
+                          {t("his.top", s.top.map((e, i) => `${i + 1}) ${fmtEffort(e.timeSec)}`).join("  "))}
                         </p>
                       )}
                     </li>
                   ))}
                 </ul>
                 <p className="mt-2 text-[11px] text-muted-foreground">
-                  Se detectan solos: graba tu viaje con GPS y si pasas por el inicio del segmento
-                  hasta la meta, queda cronometrado con récord personal e historial.
+                  {t("his.segExplicacion")}
                 </p>
               </>
             ) : (
               <>
                 <p className="mt-1 leading-relaxed text-muted-foreground">
-                  Cronometraje oficial de tus subidas (Pío Nono, Pedro de Valdivia Norte, Antilén y
-                  La Pirámide, todas → Plaza México) y de las 3 bajadas del control 30 km/h
-                  (Plaza México → Pío Nono, Antilén → Pedro de Valdivia y Chacarillas → La
-                  Pirámide) - con récord personal, contador de intentos e historial de tiempos.
-                  Aplican solo a viajes grabados con GPS.
+                  {t("his.proTeaser")}
                 </p>
                 <Button
                   onClick={onGoPro}
                   className="mt-3 h-9 bg-amber-500 font-bold text-zinc-950 hover:bg-amber-400"
                 >
-                  <Crown className="mr-2 h-4 w-4" /> Es parte de Cumbre30 Pro
+                  <Crown className="mr-2 h-4 w-4" /> {t("his.esPro")}
                 </Button>
               </>
             )}

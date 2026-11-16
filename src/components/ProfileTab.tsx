@@ -42,14 +42,16 @@ import { PINS, DEFAULT_PIN, RIDER_LEVELS, riderLevelForKm, type PinId } from "@/
 import { buildShareImage, sharePngBlob } from "@/lib/shareImage";
 import { PagosTab } from "@/components/PagosTab";
 import { SubTabs, type SubTabDef } from "@/components/SubTabs";
+import { t, useLang } from "@/lib/i18n";
 
 /** Subsecciones de Perfil: se muestran al entrar y solo se ve la activa.
  *  "Pagos y suscripciones" aparece solo con sesión: la licencia Pro va
  *  atada al correo de la cuenta. */
 type SubKey = "datos" | "pagos";
+// labels = claves i18n (se traducen al renderizar; ver SubTabs abajo)
 const PROFILE_SUBS: SubTabDef[] = [
-  { key: "datos", label: "Mis datos" },
-  { key: "pagos", label: "Pagos y suscripciones" },
+  { key: "datos", label: "pf.subDatos" },
+  { key: "pagos", label: "pf.subPagos" },
 ];
 
 function StatBox({ label, value, unit }: { label: string; value: string | number; unit?: string }) {
@@ -78,6 +80,7 @@ function GoogleIcon() {
 
 export default function ProfileTab() {
   const { me, ready } = useMe();
+  useLang();
   const offline = isOfflineMode();
   const sync = useSyncExternalStore(syncStore.subscribe, syncStore.get, syncStore.getServer);
   const [mode, setMode] = useState<"login" | "register">("login");
@@ -131,7 +134,7 @@ export default function ProfileTab() {
       return;
     }
     setFStep(2);
-    setFMsg(offline ? null : "Solicitud registrada. Escríbenos por WhatsApp para recibir el código.");
+    setFMsg(offline ? null : t("pf.solicitudOk"));
   };
 
   // Paso 2: cambiar la contraseña con el código (server o código de recuperación).
@@ -175,7 +178,7 @@ export default function ProfileTab() {
       const err = await googleAuthAction({ sub: acct.sub, email: acct.email, name: acct.name, idToken: acct.idToken });
       if (err) setError(err);
     } catch (e) {
-      setError((e as Error).message || "No pudimos iniciar sesión con Google.");
+      setError((e as Error).message || t("pf.googleErr1"));
     } finally {
       setBusyGoogle(false);
     }
@@ -204,12 +207,12 @@ export default function ProfileTab() {
           });
           if (!vivo) return;
           if (!r.ok) {
-            setError("No pudimos iniciar sesión con Google. Intenta de nuevo.");
+            setError(t("pf.googleErr2"));
             return;
           }
           window.location.reload(); // cookie de sesión lista: la web recarga con la sesión
         } catch {
-          if (vivo) setError("No pudimos iniciar sesión con Google. Intenta de nuevo.");
+          if (vivo) setError(t("pf.googleErr2"));
         }
       })();
     }).then((ok) => {
@@ -227,23 +230,23 @@ export default function ProfileTab() {
       const pin = PINS[(me.user.selectedPin as PinId) ?? DEFAULT_PIN] ?? PINS[DEFAULT_PIN];
       const blob = await buildShareImage({
         headline: `${pin.emoji} @${me.user.username}`,
-        sub: "Mi resumen de pedaleo",
+        sub: t("pf.resumenSub"),
         rows: [
-          { label: "Km recorridos", value: me.stats.totalKm.toFixed(1) },
-          { label: "Rides completados", value: String(me.stats.rideCount) },
-          { label: "Velocidad máxima", value: `${me.stats.maxKmh.toFixed(1)} km/h` },
-          { label: "Desnivel acumulado", value: `+${Math.round(me.stats.totalGainM)} m` },
+          { label: t("pf.kmRecorridos"), value: me.stats.totalKm.toFixed(1) },
+          { label: t("pf.ridesCompletados"), value: String(me.stats.rideCount) },
+          { label: t("pf.velMaxFila"), value: `${me.stats.maxKmh.toFixed(1)} km/h` },
+          { label: t("pf.desnivelFila"), value: `+${Math.round(me.stats.totalGainM)} m` },
         ],
       });
-      const res = await sharePngBlob(blob, "cumbre30-resumen.png", "Mi resumen de pedaleo con Cumbre30 🚴");
+      const res = await sharePngBlob(blob, "cumbre30-resumen.png", t("pf.shareResumen"));
       setShareMsg(
         res === "shared"
-          ? "¡Listo! Elige Instagram (Historia o Feed) en el panel."
-          : "Imagen descargada. Compártela en Instagram como historia o post."
+          ? t("his.shareOk")
+          : t("his.shareDescargada")
       );
     } catch (e) {
       if ((e as Error)?.name === "AbortError") return;
-      setShareMsg("No pudimos generar la imagen en este dispositivo.");
+      setShareMsg(t("his.errImagen"));
     }
     setTimeout(() => setShareMsg(null), 8000);
   }, [me]);
@@ -256,7 +259,7 @@ export default function ProfileTab() {
     if (err) {
       setUserMsg({ ok: false, text: err });
     } else {
-      setUserMsg({ ok: true, text: `¡Listo! Ahora eres @${newUsername.trim().toLowerCase()}.` });
+      setUserMsg({ ok: true, text: t("pf.cambioListo", newUsername.trim().toLowerCase()) });
       setNewUsername("");
     }
     setTimeout(() => setUserMsg(null), 8000);
@@ -272,10 +275,9 @@ export default function ProfileTab() {
           <div className="flex items-start gap-3">
             <Users className="h-5 w-5 text-emerald-600 dark:text-emerald-400 mt-0.5" />
             <div className="text-sm text-muted-foreground">
-              <p className="font-medium text-foreground">Tu cuenta Cumbre30</p>
+              <p className="font-medium text-foreground">{t("pf.tuCuenta")}</p>
               <p className="mt-1 leading-relaxed">
-                Crea tu sesión con correo y nombre de usuario para acumular kilómetros,
-                desbloquear pines y reportar incidencias visibles para todos.
+                {t("pf.cuentaIntro")}
               </p>
             </div>
           </div>
@@ -287,28 +289,28 @@ export default function ProfileTab() {
           <Card className="bg-card/80 border-border p-4 grid gap-3">
             <div className="flex items-center gap-2">
               <KeyRound className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-              <p className="font-medium text-foreground">Restablecer contraseña</p>
+              <p className="font-medium text-foreground">{t("pf.resetTitulo")}</p>
             </div>
 
             {fStep === 3 ? (
               <>
                 <p className="text-sm text-emerald-700 dark:text-emerald-300" role="status">
-                  ¡Listo! Tu contraseña se actualizó. Ingresa con la nueva.
+                  {t("pf.resetListo")}
                 </p>
                 <Button onClick={() => backToForm(true)} className="h-11 bg-emerald-600 hover:bg-emerald-500 text-(--c30-on-accent) font-bold">
-                  Iniciar sesión
+                  {t("pf.iniciarSesion")}
                 </Button>
               </>
             ) : (
               <>
                 <p className="text-sm text-muted-foreground">
                   {offline
-                    ? "Tu cuenta vive en este dispositivo: ingresa el código de recuperación que te mostramos en Perfil → Mis datos (con la sesión iniciada)."
-                    : "Te entregaremos un código de 6 dígitos por WhatsApp o correo tras verificar tu identidad. El código vence en 30 minutos."}
+                    ? t("pf.resetOffline")
+                    : t("pf.resetServer")}
                 </p>
 
                 <div className="grid gap-1.5">
-                  <Label htmlFor="pf-f-email" className="text-foreground/90">Correo de tu cuenta</Label>
+                  <Label htmlFor="pf-f-email" className="text-foreground/90">{t("pf.correoCuenta")}</Label>
                   <Input
                     id="pf-f-email"
                     type="email"
@@ -333,7 +335,7 @@ export default function ProfileTab() {
                         target="_blank"
                         rel="noreferrer"
                       >
-                        Escribir por WhatsApp
+                        {t("pf.escribirWhatsapp")}
                       </a>
                     </Button>
                   </div>
@@ -343,7 +345,7 @@ export default function ProfileTab() {
                   <>
                     {offline && (
                       <div className="grid gap-1.5">
-                        <Label htmlFor="pf-f-code" className="text-foreground/90">Código de recuperación</Label>
+                        <Label htmlFor="pf-f-code" className="text-foreground/90">{t("pf.codigoRecuperacion")}</Label>
                         <Input
                           id="pf-f-code"
                           autoCapitalize="characters"
@@ -359,7 +361,7 @@ export default function ProfileTab() {
                     )}
                     {!offline && (
                       <div className="grid gap-1.5">
-                        <Label htmlFor="pf-f-code" className="text-foreground/90">Código de 6 dígitos</Label>
+                        <Label htmlFor="pf-f-code" className="text-foreground/90">{t("pf.codigo6")}</Label>
                         <Input
                           id="pf-f-code"
                           inputMode="numeric"
@@ -373,13 +375,13 @@ export default function ProfileTab() {
                       </div>
                     )}
                     <div className="grid gap-1.5">
-                      <Label htmlFor="pf-f-pass" className="text-foreground/90">Nueva contraseña</Label>
+                      <Label htmlFor="pf-f-pass" className="text-foreground/90">{t("pf.nuevaContrasena")}</Label>
                       <Input
                         id="pf-f-pass"
                         type="password"
                         autoComplete="new-password"
                         className="bg-card border-border"
-                        placeholder="mínimo 6 caracteres"
+                        placeholder={t("pf.min6")}
                         value={fPass}
                         onChange={(e) => setFPass(e.target.value)}
                       />
@@ -394,14 +396,14 @@ export default function ProfileTab() {
                   disabled={fBusy || !fEmail || (offline || fStep === 2 ? !fCode || fPass.length < 6 : false)}
                   className="h-11 bg-emerald-600 hover:bg-emerald-500 text-(--c30-on-accent) font-bold"
                 >
-                  {fBusy ? "Conectando…" : offline || fStep === 2 ? "Restablecer contraseña" : "Solicitar código"}
+                  {fBusy ? t("pf.conectando") : offline || fStep === 2 ? t("pf.resetTitulo") : t("pf.solicitarCodigo")}
                 </Button>
                 <button
                   type="button"
                   onClick={() => backToForm(true)}
                   className="text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
                 >
-                  Volver a iniciar sesión
+                  {t("pf.volverLogin")}
                 </button>
               </>
             )}
@@ -414,14 +416,14 @@ export default function ProfileTab() {
             onClick={() => setMode("login")}
             className={`flex-1 ${mode === "login" ? "bg-emerald-600 hover:bg-emerald-500 text-(--c30-on-accent) font-semibold" : "border-border text-muted-foreground"}`}
           >
-            <LogIn className="h-4 w-4 mr-2" /> Iniciar sesión
+            <LogIn className="h-4 w-4 mr-2" /> {t("pf.iniciarSesion")}
           </Button>
           <Button
             variant={mode === "register" ? "default" : "outline"}
             onClick={() => setMode("register")}
             className={`flex-1 ${mode === "register" ? "bg-emerald-600 hover:bg-emerald-500 text-(--c30-on-accent) font-semibold" : "border-border text-muted-foreground"}`}
           >
-            <UserPlus className="h-4 w-4 mr-2" /> Crear cuenta
+            <UserPlus className="h-4 w-4 mr-2" /> {t("pf.crearCuenta")}
           </Button>
         </div>
 
@@ -434,23 +436,23 @@ export default function ProfileTab() {
           }}
         >
           <div className="grid gap-1.5">
-            <Label htmlFor="pf-email" className="text-foreground/90">Correo</Label>
+            <Label htmlFor="pf-email" className="text-foreground/90">{t("pf.correo")}</Label>
             <Input id="pf-email" name="email" type="email" inputMode="email" autoCapitalize="none" spellCheck={false} autoComplete="email" className="bg-card border-border" placeholder="tu@correo.cl" value={email} onChange={(e) => setEmail(e.target.value)} />
           </div>
           {mode === "register" && (
             <div className="grid gap-1.5">
-              <Label htmlFor="pf-user" className="text-foreground/90">Nombre de usuario</Label>
+              <Label htmlFor="pf-user" className="text-foreground/90">{t("pf.usuario")}</Label>
               <Input id="pf-user" name="username" autoCapitalize="none" autoComplete="username" spellCheck={false} className="bg-card border-border" placeholder="ej: ciclista_stgo" value={username} onChange={(e) => setUsername(e.target.value)} />
-              <p className="text-[11px] text-muted-foreground">3-20 caracteres: letras, números, punto, guion o guion bajo. Así te verán tus amigos.</p>
+              <p className="text-[11px] text-muted-foreground">{t("pf.usuarioHint")}</p>
             </div>
           )}
           <div className="grid gap-1.5">
-            <Label htmlFor="pf-pass" className="text-foreground/90">Contraseña</Label>
-            <Input id="pf-pass" name="password" type="password" autoComplete={mode === "register" ? "new-password" : "current-password"} className="bg-card border-border" placeholder="mínimo 6 caracteres" value={password} onChange={(e) => setPassword(e.target.value)} />
+            <Label htmlFor="pf-pass" className="text-foreground/90">{t("pf.contrasena")}</Label>
+            <Input id="pf-pass" name="password" type="password" autoComplete={mode === "register" ? "new-password" : "current-password"} className="bg-card border-border" placeholder={t("pf.min6")} value={password} onChange={(e) => setPassword(e.target.value)} />
           </div>
           {error && <p className="text-sm text-red-600 dark:text-red-400" role="alert">{error}</p>}
           <Button type="submit" disabled={busy || !email || !password || (mode === "register" && !username)} className="h-11 bg-emerald-600 hover:bg-emerald-500 text-(--c30-on-accent) font-bold">
-            {busy ? "Conectando…" : mode === "login" ? "Entrar" : "Crear mi cuenta"}
+            {busy ? t("pf.conectando") : mode === "login" ? t("pf.entrar") : t("pf.crearMiCuenta")}
           </Button>
           {mode === "login" && (
             <button
@@ -458,18 +460,18 @@ export default function ProfileTab() {
               onClick={() => setAuthView("forgot")}
               className="justify-self-center text-xs text-emerald-700 underline-offset-2 hover:underline dark:text-emerald-300"
             >
-              ¿Olvidaste tu contraseña?
+              {t("pf.olvidaste")}
             </button>
           )}
           {mode === "login" && offline && (
             <p className="text-[11px] leading-snug text-muted-foreground text-center">
-              ¿Creaste tu cuenta en la web (cumbregeo.cl)? Entra con el mismo correo y contraseña: la cuenta se copia a este teléfono con tus logros y tu perfil.
+              {t("pf.webCuentaNota")}
             </p>
           )}
 
           <div className="flex items-center gap-3 pt-1">
             <div className="h-px flex-1 bg-muted" />
-            <span className="text-[11px] uppercase tracking-wide text-muted-foreground/80">o</span>
+            <span className="text-[11px] uppercase tracking-wide text-muted-foreground/80">{t("pf.o")}</span>
             <div className="h-px flex-1 bg-muted" />
           </div>
           {offline ? (
@@ -480,7 +482,7 @@ export default function ProfileTab() {
               disabled={busyGoogle}
               className="h-11 border-zinc-600! bg-zinc-100! text-zinc-900! hover:bg-zinc-200! hover:text-zinc-900! font-semibold"
             >
-              {busyGoogle ? ("Conectando…") : (<><GoogleIcon /> <span className="ml-2">Continuar con Google</span></>)}
+              {busyGoogle ? t("pf.conectando") : (<><GoogleIcon /> <span className="ml-2">{t("pf.continuarGoogle")}</span></>)}
             </Button>
           ) : (
             /* Web: botón oficial de Google (GSI). El div lo llena el
@@ -490,10 +492,10 @@ export default function ProfileTab() {
           )}
           <p className="text-[11px] text-muted-foreground leading-relaxed text-center">
             {offline
-              ? "En la app Android puedes entrar con tu cuenta de Google. Si ya tienes una cuenta con el mismo correo, se enlaza y conservas tus km, logros y pines."
+              ? t("pf.googleApkNota")
               : gsiWebOk === false
-                ? "No pudimos cargar el acceso con Google (¿extensión o red lo bloquea?). Entra con tu correo y contraseña."
-                : "Entra con Google o con tu cuenta Cumbre30. Si ya tienes una cuenta con el mismo correo, se enlaza y conservas tus km, logros y pines."}
+                ? t("pf.googleWebErr")
+                : t("pf.googleNota")}
           </p>
         </form>
         </>
@@ -506,7 +508,7 @@ export default function ProfileTab() {
 
   // ---------- Con sesión ----------
   if (!me) {
-    return <div className="h-24 rounded-xl border border-border bg-card flex items-center justify-center text-sm text-muted-foreground">Cargando perfil…</div>;
+    return <div className="h-24 rounded-xl border border-border bg-card flex items-center justify-center text-sm text-muted-foreground">{t("pf.cargandoPerfil")}</div>;
   }
 
   const pin = PINS[(me.user.selectedPin as PinId) ?? DEFAULT_PIN] ?? PINS[DEFAULT_PIN];
@@ -517,10 +519,10 @@ export default function ProfileTab() {
   return (
     <div className="flex flex-col gap-4">
       <SubTabs
-        ariaLabel="Subsecciones de Perfil"
+        ariaLabel={t("pf.subAria")}
         value={activeSub}
         onChange={(k) => setSub(k as SubKey)}
-        tabs={PROFILE_SUBS}
+        tabs={PROFILE_SUBS.map((s) => ({ ...s, label: t(s.label) }))}
       />
 
       {sub === "datos" && (
@@ -550,10 +552,10 @@ export default function ProfileTab() {
               variant="outline"
               size="sm"
               onClick={() => void share()}
-              title="Genera una imagen con tu resumen para compartir en Instagram"
+              title={t("pf.compartirPerfilTitle")}
               className="h-8 border-border px-2.5 text-[11px] text-muted-foreground hover:border-pink-600/50 hover:text-pink-600 dark:hover:text-pink-400"
             >
-              <Share2 className="mr-1 h-3.5 w-3.5" /> Compartir perfil
+              <Share2 className="mr-1 h-3.5 w-3.5" /> {t("pf.compartirPerfil")}
             </Button>
             <Button
               variant="outline"
@@ -564,15 +566,15 @@ export default function ProfileTab() {
               }}
               className="h-8 border-border px-2.5 text-[11px] text-muted-foreground hover:text-red-600 dark:hover:text-red-400"
             >
-              <LogOut className="mr-1 h-3.5 w-3.5" /> Salir
+              <LogOut className="mr-1 h-3.5 w-3.5" /> {t("pf.salir")}
             </Button>
           </div>
         </div>
         <div className="mt-3 grid grid-cols-2 gap-2">
-          <StatBox label="Km recorridos" value={me.stats.totalKm.toFixed(1)} unit="km" />
-          <StatBox label="Rides" value={me.stats.rideCount} />
-          <StatBox label="Velocidad máx." value={me.stats.maxKmh.toFixed(1)} unit="km/h" />
-          <StatBox label="Desnivel acum." value={`+${me.stats.totalGainM}`} unit="m" />
+          <StatBox label={t("pf.kmRecorridos")} value={me.stats.totalKm.toFixed(1)} unit="km" />
+          <StatBox label={t("pf.rides")} value={me.stats.rideCount} />
+          <StatBox label={t("pf.velMax")} value={me.stats.maxKmh.toFixed(1)} unit="km/h" />
+          <StatBox label={t("pf.desnivelAcum")} value={`+${me.stats.totalGainM}`} unit="m" />
         </div>
       </Card>
       {offline && me.user.recoveryCode && (
@@ -582,9 +584,9 @@ export default function ProfileTab() {
           <div className="flex items-center gap-3">
             <KeyRound className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
             <div className="min-w-0 flex-1">
-              <p className="text-[13px] font-medium text-foreground">Código de recuperación</p>
+              <p className="text-[13px] font-medium text-foreground">{t("pf.codigoRecuperacion")}</p>
               <p className="text-[11px] text-muted-foreground leading-snug">
-                Guárdalo en un lugar seguro: con él puedes restablecer tu contraseña sin perder tus km y logros.
+                {t("pf.guardarCodigo")}
               </p>
             </div>
             <div className="flex shrink-0 items-center gap-2">
@@ -595,13 +597,13 @@ export default function ProfileTab() {
                 className="h-7 px-2 text-[11px] text-muted-foreground"
                 onClick={() => {
                   void navigator.clipboard?.writeText(me.user.recoveryCode ?? "").then(
-                    () => setShareMsg("Código copiado al portapapeles."),
+                    () => setShareMsg(t("pf.codigoCopiado")),
                     () => undefined
                   );
                   setTimeout(() => setShareMsg(null), 8000);
                 }}
               >
-                Copiar
+                {t("pf.copiar")}
               </Button>
             </div>
           </div>
@@ -620,21 +622,21 @@ export default function ProfileTab() {
               <CloudUpload className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
             )}
             <div className="min-w-0 flex-1">
-              <p className="text-[13px] font-medium text-foreground">Sincronización con la nube</p>
+              <p className="text-[13px] font-medium text-foreground">{t("pf.syncNube")}</p>
               <p className="text-[11px] text-muted-foreground leading-snug">
                 {sync.phase === "syncing"
-                  ? "Subiendo tu progreso…"
+                  ? t("pf.syncSubiendo")
                   : sync.phase === "ok"
-                    ? `Tu progreso queda guardado en tu cuenta${sync.email ? ` (${sync.email})` : ""}.`
+                    ? t("pf.syncOk", sync.email ? ` (${sync.email})` : "")
                     : sync.phase === "offline"
-                      ? `Sin conexión ahora: ${sync.pending} elemento(s) esperando para subirse.`
+                      ? t("pf.syncOffline", sync.pending)
                       : sync.phase === "unlinked"
-                        ? "No pudimos vincular tu cuenta: la contraseña del teléfono es distinta a la de la web, o el servidor no responde."
+                        ? t("pf.syncUnlinked")
                         : sync.phase === "error"
-                          ? "Algo falló al sincronizar. Lo reintentamos solo al volver la conexión."
-                          : "Entra a tu cuenta para guardar tu progreso en la nube."}
+                          ? t("pf.syncError")
+                          : t("pf.syncEntra")}
                 {sync.phase === "ok" && sync.lastSyncAt
-                  ? ` Última sync ${new Date(sync.lastSyncAt).toLocaleString("es-CL", { dateStyle: "short", timeStyle: "short" })}.`
+                  ? t("pf.ultimaSync", new Date(sync.lastSyncAt).toLocaleString("es-CL", { dateStyle: "short", timeStyle: "short" }))
                   : ""}
               </p>
             </div>
@@ -645,7 +647,7 @@ export default function ProfileTab() {
                 className="h-7 shrink-0 px-2 text-[11px] text-muted-foreground"
                 onClick={() => void manualSync()}
               >
-                Sincronizar
+                {t("pf.sincronizar")}
               </Button>
             )}
           </div>
@@ -662,17 +664,15 @@ export default function ProfileTab() {
         <div className="flex items-start gap-3 mb-3">
           <PenLine className="h-5 w-5 text-emerald-600 dark:text-emerald-400 mt-0.5 shrink-0" />
           <div className="text-sm text-muted-foreground">
-            <p className="font-medium text-foreground">Cambiar nombre de usuario</p>
+            <p className="font-medium text-foreground">{t("pf.cambiarUsuario")}</p>
             <p className="mt-1 leading-relaxed">
-              Hoy eres <span className="font-semibold text-foreground">@{me.user.username}</span>. Puedes cambiarlo
-              una vez cada 30 días. Tus kilómetros, logros y pines están asociados a tu correo
-              ({me.user.email}), así que no pierdes nada al cambiarlo.
+              {t("pf.cambiarIntro1")}<span className="font-semibold text-foreground">@{me.user.username}</span>{t("pf.cambiarIntro2", me.user.email)}
             </p>
           </div>
         </div>
         {uLock.locked && uLock.nextAt ? (
           <p className="rounded-lg border border-border bg-background/60 px-3 py-2 text-xs text-muted-foreground">
-            Ya cambiaste tu usuario recientemente. Podrás cambiarlo de nuevo el{" "}
+            {t("pf.usuarioLock")}
             <span className="font-medium text-foreground/90">{uLock.nextAt.toLocaleDateString("es-CL", { day: "numeric", month: "long", year: "numeric" })}</span>.
           </p>
         ) : (
@@ -681,8 +681,8 @@ export default function ProfileTab() {
               <Input
                 value={newUsername}
                 onChange={(e) => setNewUsername(e.target.value.toLowerCase())}
-                placeholder={`nuevo nombre (hoy: ${me.user.username})`}
-                aria-label="Nuevo nombre de usuario"
+                placeholder={t("pf.usuarioPlaceholder", me.user.username)}
+                aria-label={t("pf.usuarioAria")}
                 className="bg-card border-border flex-1"
                 maxLength={20}
               />
@@ -691,11 +691,11 @@ export default function ProfileTab() {
                 disabled={userBusy || !newUsername.trim() || newUsername.trim() === me.user.username}
                 className="bg-emerald-600 hover:bg-emerald-500 text-(--c30-on-accent) font-semibold shrink-0"
               >
-                {userBusy ? "Cambiando…" : "Cambiar"}
+                {userBusy ? t("pf.cambiando") : t("pf.cambiar")}
               </Button>
             </div>
             <p className="text-[11px] text-muted-foreground">
-              3-20 caracteres: letras, números, punto, guion o guion bajo. Así te verán tus amigos.
+              {t("pf.usuarioHint")}
             </p>
           </div>
         )}
@@ -713,14 +713,13 @@ export default function ProfileTab() {
       <Card className="bg-card/80 border-border p-4">
         <div className="flex items-center gap-2 mb-2">
           <MapPin className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-          <p className="font-medium text-foreground text-sm">Pin activo en el mapa</p>
+          <p className="font-medium text-foreground text-sm">{t("pf.pinActivo")}</p>
         </div>
         <p className="text-xs text-muted-foreground">
-          Tu pin <span className="text-foreground">{pin.emoji} {pin.name}</span> es el que ven tus amigos y queda en tus
-          reportes. Desbloquea más en la pestaña <span className="text-foreground/90">Desafíos</span>.
+          {t("pf.pinNota1")}<span className="text-foreground">{pin.emoji} {pin.name}</span>{t("pf.pinNota2")}<span className="text-foreground/90">{t("pf.desafios")}</span>.
         </p>
         <p className="mt-2 text-xs text-muted-foreground flex items-center gap-1">
-          <KeyRound className="h-3.5 w-3.5" /> Tus rides del dispositivo se sincronizan automáticamente al tener sesión.
+          <KeyRound className="h-3.5 w-3.5" /> {t("pf.pinSync")}
         </p>
       </Card>
 
@@ -729,13 +728,11 @@ export default function ProfileTab() {
         <div className="flex items-start gap-3">
           <Trash2 className="h-5 w-5 text-red-600 dark:text-red-400 mt-0.5 shrink-0" />
           <div className="text-sm flex-1 min-w-0">
-            <p className="font-medium text-foreground">Eliminar cuenta</p>
+            <p className="font-medium text-foreground">{t("pf.eliminarCuenta")}</p>
             {delStage === "idle" ? (
               <>
                 <p className="mt-1 leading-relaxed text-muted-foreground">
-                  Borra definitivamente tu cuenta: correo, usuario, kilómetros, logros, pines y todo tu historial de
-                  viajes. Si este era el único usuario del teléfono, también se elimina tu licencia Pro local. La
-                  acción es irreversible.
+                  {t("pf.eliminarIntro")}
                 </p>
                 <Button
                   variant="outline"
@@ -743,14 +740,13 @@ export default function ProfileTab() {
                   onClick={() => setDelStage("confirm")}
                   className="mt-3 h-8 border-red-900/50 px-3 text-[12px] text-red-600 hover:border-red-600 hover:text-red-500 dark:text-red-400"
                 >
-                  <Trash2 className="mr-1 h-3.5 w-3.5" /> Eliminar mi cuenta
+                  <Trash2 className="mr-1 h-3.5 w-3.5" /> {t("pf.eliminarMiCuenta")}
                 </Button>
               </>
             ) : delStage === "confirm" ? (
               <>
                 <p className="mt-1 leading-relaxed text-foreground/90">
-                  ¿Seguro? Esta acción <span className="font-semibold">no se puede deshacer</span> y perderás todo lo
-                  asociado a <span className="font-semibold">{me.user.email}</span>.
+                  {t("pf.eliminarSeguro1")}<span className="font-semibold">{t("pf.eliminarSeguroBold")}</span>{t("pf.eliminarSeguro2")}<span className="font-semibold">{me.user.email}</span>.
                 </p>
                 <div className="mt-3 flex gap-2">
                   <Button
@@ -759,7 +755,7 @@ export default function ProfileTab() {
                     onClick={() => setDelStage("idle")}
                     className="h-8 border-border px-3 text-[12px] text-muted-foreground"
                   >
-                    Cancelar
+                    {t("mapa.cancelar")}
                   </Button>
                   <Button
                     variant="destructive"
@@ -770,12 +766,12 @@ export default function ProfileTab() {
                     }}
                     className="h-8 bg-red-600 px-3 text-[12px] font-semibold text-white hover:bg-red-500"
                   >
-                    Eliminar definitivamente
+                    {t("pf.eliminarDefinitivamente")}
                   </Button>
                 </div>
               </>
             ) : (
-              <p className="mt-1 text-red-600 dark:text-red-400">Eliminando tu cuenta…</p>
+              <p className="mt-1 text-red-600 dark:text-red-400">{t("pf.eliminando")}</p>
             )}
           </div>
         </div>

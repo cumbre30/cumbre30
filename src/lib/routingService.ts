@@ -10,13 +10,14 @@
 //   OSM). Sin conexión: nota clara en la UI.
 // ============================================================
 
-import { attachOrigin, findRoute, haversineM, loadNetwork, snapInfo, type LatLng, type NavRoute, type Network, type RouteStep } from "@/lib/routing";
+import { attachOrigin, findRoute, haversineM, loadNetwork, nearestEdgeDistM, snapInfo, DEST_ANCHOR_MAX_M, type LatLng, type NavRoute, type Network, type RouteStep } from "@/lib/routing";
 import { GATES, PARK_POLYGON, NAV_DESTINATIONS } from "@/lib/park";
 import { CAPA_RUTAS } from "@/lib/mapLayers";
 import { RUTAS_TRAZADOS } from "@/lib/rutasTrazados";
 import { estadoParque } from "@/lib/horario";
 import { GATE_PIO_NONO, PLAZA_MEXICO_POS, PUENTE_TUPAHUE_CUMBRE, conVueltaEnU, crearDirOk } from "@/lib/reglasParque";
 import { SEND_PEATONALES_BLOCK } from "@/lib/senderos";
+import { t } from "@/lib/i18n";
 
 /** Distancia máx. al grafo local para usar el motor propio. */
 const GRAPH_COVER_M = 900;
@@ -88,12 +89,12 @@ function rutaVueltaEnU(base: NavRoute, from: LatLng): { route: NavRoute; aviso: 
   }
   steps.push({
     icon: "straight",
-    text: "Vuelta en U: acceso a la cumbre restringido desde las 13:30 (fin de semana y festivos)",
+    text: t("ruta.vueltaU"),
     distM: vuelta.metrosVuelta,
     point: coords[coords.length - 1],
     idx: lastIdx,
   });
-  steps.push({ icon: "end", text: "Has llegado al puente de Tupahue (corte horario)", distM: 0, point: coords[coords.length - 1], idx: lastIdx });
+  steps.push({ icon: "end", text: t("ruta.destinoTupahue"), distM: 0, point: coords[coords.length - 1], idx: lastIdx });
   const route: NavRoute = {
     ...base,
     coords,
@@ -146,7 +147,7 @@ function avisoPioNono(route: NavRoute, dest: LatLng): string | null {
   if (!cercaDelGate) return null;
   const end = route.coords[route.coords.length - 1];
   if (haversineM(end, dest) <= 150) return null;
-  return "Pío Nono es sólo de subida: la bajada está bloqueada para bici. Te dejamos en el punto más cercano alcanzable.";
+  return t("ruta.pioNonoAviso");
 }
 
 // ----------------------------------------------------------------
@@ -177,13 +178,13 @@ function osrmIcon(step: OsrmStep): RouteStep["icon"] {
 }
 
 function osrmText(step: OsrmStep, icon: RouteStep["icon"]): string {
-  const name = step.name?.trim() || "la vía";
-  if (icon === "start") return `Parte por ${name}`;
-  if (icon === "end") return "Has llegado a tu destino";
-  if (icon === "uturn") return `Retorna hacia ${name}`;
-  if (icon === "left") return `Gira a la izquierda hacia ${name}`;
-  if (icon === "right") return `Gira a la derecha hacia ${name}`;
-  return `Continúa por ${name}`;
+  const name = step.name?.trim() || t("ruta.via");
+  if (icon === "start") return t("ruta.partePor", name);
+  if (icon === "end") return t("ruta.destino");
+  if (icon === "uturn") return t("ruta.retorna", name);
+  if (icon === "left") return t("ruta.giraIzq", name);
+  if (icon === "right") return t("ruta.giraDer", name);
+  return t("ruta.continua", name);
 }
 
 /** Filtra pasos inútiles (cambio de nombre en la misma vía, el último). */
@@ -381,8 +382,8 @@ async function osrmRoute(from: LatLng, to: LatLng, vias: LatLng[] = []): Promise
       steps.push({ icon, text: osrmText(s, icon), distM: Math.round(s.distance), point: coords[Math.min(from0, coords.length - 1)], idx: Math.min(from0, coords.length - 1) });
     }
     if (!steps.length) {
-      steps.push({ icon: "start", text: "Sigue la ruta trazada", distM: Math.round(osrm.distance), point: coords[0], idx: 0 });
-      steps.push({ icon: "end", text: "Has llegado a tu destino", distM: 0, point: coords[coords.length - 1], idx: coords.length - 1 });
+      steps.push({ icon: "start", text: t("ruta.sigueTrazada"), distM: Math.round(osrm.distance), point: coords[0], idx: 0 });
+      steps.push({ icon: "end", text: t("ruta.destino"), distM: 0, point: coords[coords.length - 1], idx: coords.length - 1 });
     }
 
     const distanceM = Math.round(osrm.distance);
@@ -794,7 +795,7 @@ export async function computeRoute(from: LatLng, to: LatLng, opts?: OptsRoute): 
           const l2 =
             findRoute(net, acc.position, d, { nodeOk: inside, ...PAV_DEST_OPTS, edgeDirOk: dirOk }) ??
             findRoute(net, acc.position, d, { nodeOk: inside, ...PAV_DEST_RELAX, edgeDirOk: dirOk });
-          return l2 ? mergeLegs(leg1, l2, `Ingresa por ${acc.nombre} · ingreso oficial de ciclistas`) : null;
+          return l2 ? mergeLegs(leg1, l2, t("ruta.ingresaPor", acc.nombre)) : null;
         });
         if (merged) {
           const route = { ...merged.route, cicloviaPct: cicloPctOf(merged.route) };
@@ -829,8 +830,17 @@ export async function computeRoute(from: LatLng, to: LatLng, opts?: OptsRoute): 
           return localResult(opts?.ingresoExtendido ? extenderInteriorEn(net, local, to, dirOk) : local, from);
         }
       } else {
-        const local = rutaLocalConCorte(from, to, (d: LatLng) => findRoute(net, from, d, undefined));
-        if (local) return localResult(local, from);
+        // v1.12.12: trazar local SOLO si el destino cae SOBRE una calle
+        // del grafo (≤250 m de una arista). Fray Camilo Henríquez 255
+        // (Barrio Franklin): nodo y arista más cercanos a 368 m — el A*
+        // terminaba en ese nodo y la ruta se dibujaba corta (cliente:
+        // «la ruta no llega hasta el destino»). OSRM sí cubre toda la
+        // ciudad, así que los destinos fuera de la cobertura fina del
+        // extracto van directo al respaldo OSRM (abajo).
+        if (nearestEdgeDistM(net, to) <= DEST_ANCHOR_MAX_M) {
+          const local = rutaLocalConCorte(from, to, (d: LatLng) => findRoute(net, from, d, undefined));
+          if (local) return localResult(local, from);
+        }
       }
     }
   }
@@ -886,7 +896,7 @@ export async function computeRoute(from: LatLng, to: LatLng, opts?: OptsRoute): 
     return {
       route: null,
       source: null,
-      error: "No pudimos trazar la ruta (sin conexión al servicio de rutas).",
+      error: t("ruta.errServicio"),
     };
   }
   // clasificación ciclovía: grafo local primero (instantáneo), Overpass después
@@ -1196,11 +1206,11 @@ export async function computePresetRoute(
 ): Promise<RouteResult> {
   const fullTrace = gen?.fullTrace ?? false;
   const ruta = CAPA_RUTAS.find((r) => r.id === preset.rutaId);
-  const t = ruta ? RUTAS_TRAZADOS[ruta.trz] : null;
-  if (!ruta || !t || t.coords.length < 2) {
-    return { route: null, source: null, error: "No encontramos el trazado de esa ruta." };
+  const trz = ruta ? RUTAS_TRAZADOS[ruta.trz] : null;
+  if (!ruta || !trz || trz.coords.length < 2) {
+    return { route: null, source: null, error: t("ruta.errTrazado") };
   }
-  const trace = t.coords.map(([lat, lon]) => ({ lat, lon }));
+  const trace = trz.coords.map(([lat, lon]) => ({ lat, lon }));
 
   const net = await loadNetwork();
   if (!net) {
@@ -1279,7 +1289,7 @@ export async function computePresetRoute(
       return {
         route: null,
         source: null,
-        error: "No pudimos trazar la ruta hasta el acceso ciclista más cercano.",
+        error: t("ruta.errAcceso"),
       };
     }
   }
@@ -1320,7 +1330,7 @@ export async function computePresetRoute(
   // desde su comienzo (mismo trazado que «Ver») y se avisa.
   const avisoConexion =
     joinIdx < 0 && !yaEnInicio && !legInterno
-      ? "No pudimos trazar la conexión hasta el inicio de la ruta; te mostramos el trazado completo desde su comienzo."
+      ? t("ruta.errConexion")
       : null;
 
   // 3. trazado precomputado (desde el punto de empalme si lo hay).
@@ -1380,7 +1390,7 @@ export async function computePresetRoute(
     pushLeg(legAcceso, true);
     steps.push({
       icon: "straight",
-      text: `Ingresa por ${acceso!.nombre} · ingreso oficial de ciclistas`,
+      text: t("ruta.ingresaPor", acceso!.nombre),
       distM: 0,
       point: coords[coords.length - 1],
       idx: coords.length - 1,
@@ -1390,7 +1400,7 @@ export async function computePresetRoute(
   if (joinIdx < 0 && coords.length > 0) {
     steps.push({
       icon: "straight",
-      text: `Comienza ${preset.nombre} (${(traceDistM / 1000).toFixed(1)} km)`,
+      text: t("ruta.comienza", preset.nombre, (traceDistM / 1000).toFixed(1)),
       distM: 0,
       point: coords[coords.length - 1],
       idx: coords.length - 1,
@@ -1406,7 +1416,7 @@ export async function computePresetRoute(
   distanceM += Math.round(traceDistM);
   steps.push({
     icon: "end",
-    text: avisoCorte ? "Fin de la ruta en el puente de Tupahue (corte horario)" : `Fin de ${preset.nombre}`,
+    text: avisoCorte ? t("ruta.finTupahue") : t("ruta.finPreset", preset.nombre),
     distM: 0,
     point: coords[coords.length - 1],
     idx: coords.length - 1,
@@ -1415,14 +1425,14 @@ export async function computePresetRoute(
   if (avisoCorte) {
     steps.splice(steps.length - 1, 0, {
       icon: "straight",
-      text: "Vuelta en U: acceso a la cumbre restringido desde las 13:30 (fin de semana y festivos)",
+      text: t("ruta.vueltaU"),
       distM: 0,
       point: coords[coords.length - 1],
       idx: coords.length - 1,
     });
   }
   if (coords.length < 2) {
-    return { route: null, source: null, error: "No pudimos armar la ruta." };
+    return { route: null, source: null, error: t("ruta.errArmar") };
   }
   const etaMin = Math.max(1, Math.round(distanceM / 1000 / 15 * 60));
   const route: NavRoute = {

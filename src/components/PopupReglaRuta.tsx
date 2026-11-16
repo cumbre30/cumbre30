@@ -12,10 +12,14 @@
 //   cercano a ti?
 // Las rutas predefinidas (botón «Ruta» de las capas del mapa) NO
 // abren este popup: el motor las traza directo (computePresetRoute).
+// Textos vía i18n (claves pop.*). OJO: los valores «portería» y
+// «ingresar» que se pasan a onElegir son IDs comparados en la
+// lógica del motor (useNavEngine) y NO se traducen.
 // ============================================================
 
 import { useState } from "react";
 import type { DecisionPendiente, OpcionRuta } from "@/hooks/useNavEngine";
+import { t, useLang } from "@/lib/i18n";
 
 export default function PopupReglaRuta({
   decision,
@@ -27,14 +31,15 @@ export default function PopupReglaRuta({
   onCancelar: () => void;
 }) {
   const [recordar, setRecordar] = useState(false);
+  const lang = useLang(); // re-render al cambiar el idioma
   if (!decision) return null;
   const esAcceso = decision.tipo === "popupAcceso";
   const titulo = esAcceso
-    ? `¿Ruta hasta el ${decision.gate.name}?`
-    : "¿Por dónde sales del cerro?";
+    ? t("pop.tituloAcceso", decision.gate.name)
+    : t("pop.tituloSalida");
   const detalle = esAcceso
-    ? "El destino es un acceso ciclista del parque. Puedo llevarte solo hasta la portería por la vía pública, o ingresar al cerro por ese acceso y dejarte ya dentro para arrancar el paseo."
-    : `Estás cerca del ${decision.gateMio.name}, pero la salida de ciclistas más cercana a tu destino (${decision.d.name}) es el ${decision.gateDest.name}. ¿Por cuál prefieres salir?`;
+    ? t("pop.detalleAcceso")
+    : t("pop.detalleSalida", decision.gateMio.name, decision.d.name, decision.gateDest.name);
 
   const btnBase =
     "flex-1 rounded-xl px-4 py-2.5 text-sm font-semibold transition-colors";
@@ -55,7 +60,7 @@ export default function PopupReglaRuta({
               onChange={(e) => setRecordar(e.target.checked)}
               className="size-4 accent-sky-500"
             />
-            Elegir siempre esta opción en esta sesión
+            {t("pop.recordar")}
           </label>
         )}
 
@@ -63,24 +68,24 @@ export default function PopupReglaRuta({
           {decision.tipo === "popupSalida" ? (
             <>
               <button type="button" className={btnPrimario} onClick={() => onElegir("salidaDestino")}>
-                Salir por {decision.gateDest.name}
+                {t("pop.salirPor", decision.gateDest.name)}
               </button>
               <button type="button" className={btnSecundario} onClick={() => onElegir("salidaMia")}>
-                Salir por {decision.gateMio.name}
+                {t("pop.salirPor", decision.gateMio.name)}
               </button>
             </>
           ) : (
             <>
               <button type="button" className={btnPrimario} onClick={() => onElegir("ingresar", recordar)}>
-                Ingresar al cerro
+                {t("pop.ingresar")}
               </button>
               <button type="button" className={btnSecundario} onClick={() => onElegir("portería", recordar)}>
-                Solo hasta la portería
+                {t("pop.porteria")}
               </button>
             </>
           )}
           <button type="button" className="mt-1 text-xs font-medium text-muted-foreground underline-offset-2 hover:underline" onClick={onCancelar}>
-            Cancelar ruta
+            {t("pop.cancelar")}
           </button>
         </div>
       </div>

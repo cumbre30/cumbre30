@@ -6,6 +6,7 @@
 
 import { useSyncExternalStore } from "react";
 import { isOfflineMode, offlineChangeUsername, offlineDeleteAccount, offlineForgotReset, offlineGoogleSignIn, offlineImportWebAccount, offlineLogin, offlineLogout, offlineMe, offlineRegister } from "@/lib/offlineAuth";
+import { t } from "@/lib/i18n";
 
 export type MeUser = {
   id: string;
@@ -128,11 +129,11 @@ export async function authAction(kind: "login" | "register", payload: Record<str
       body: JSON.stringify(payload),
     });
     const data = (await r.json()) as { error?: string };
-    if (!r.ok) return data.error ?? "Error inesperado.";
+    if (!r.ok) return data.error ?? t("me.errInesperado");
     await refreshMe();
     return null;
   } catch {
-    return "Sin conexión con el servidor.";
+    return t("me.sinConexion");
   }
 }
 
@@ -142,14 +143,14 @@ export async function authAction(kind: "login" | "register", payload: Record<str
 export async function googleAuthAction(acct: { sub: string; email: string; name?: string; idToken?: string }): Promise<string | null> {
   try {
     if (!isOfflineMode()) {
-      return "El inicio con Google está disponible en la app Android.";
+      return t("me.googleSoloApp");
     }
     const err = await offlineGoogleSignIn(acct);
     if (err) return err;
     await refreshMe();
     return null;
   } catch {
-    return "No pudimos completar el inicio con Google.";
+    return t("me.googleErr");
   }
 }
 
@@ -168,11 +169,11 @@ export async function changeUsername(newUsername: string): Promise<string | null
       body: JSON.stringify({ username: newUsername }),
     });
     const d = (await r.json().catch(() => ({}))) as { error?: string };
-    if (!r.ok) return d.error ?? "No pudimos cambiar el nombre de usuario.";
+    if (!r.ok) return d.error ?? t("me.errUsuario");
     await refreshMe();
     return null;
   } catch {
-    return "Sin conexión. Intenta de nuevo.";
+    return t("me.sinConexionReintenta");
   }
 }
 
@@ -187,10 +188,10 @@ export async function forgotPassword(email: string): Promise<string | null> {
       body: JSON.stringify({ email }),
     });
     const d = (await r.json().catch(() => ({}))) as { error?: string };
-    if (!r.ok) return d.error ?? "No pudimos registrar la solicitud.";
+    if (!r.ok) return d.error ?? t("me.errSolicitud");
     return null;
   } catch {
-    return "Sin conexión con el servidor.";
+    return t("me.sinConexion");
   }
 }
 
@@ -207,10 +208,10 @@ export async function resetPassword(payload: { email: string; code: string; newP
       body: JSON.stringify(payload),
     });
     const d = (await r.json().catch(() => ({}))) as { error?: string };
-    if (!r.ok) return d.error ?? "No pudimos restablecer la contraseña.";
+    if (!r.ok) return d.error ?? t("me.errReset");
     return null;
   } catch {
-    return "Sin conexión con el servidor.";
+    return t("me.sinConexion");
   }
 }
 

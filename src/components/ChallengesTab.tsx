@@ -47,6 +47,7 @@ import { bikeOnly, historyStore, ridesForAccount, type RideSummary } from "@/lib
 import { isOfflineMode, offlineUpdateProfile } from "@/lib/offlineAuth";
 import { useMe, refreshMe, type MeData } from "@/hooks/useMe";
 import { useProLicense } from "@/lib/proLicense";
+import { t, useLang } from "@/lib/i18n";
 
 function ProgressBar({ pct, accent = "bg-emerald-500" }: { pct: number; accent?: string }) {
   return (
@@ -261,6 +262,7 @@ function LevelRing({ pct, km, gold = false }: { pct: number; km: number; gold?: 
 
 export default function ChallengesTab({ onGoPerfil, onGoPro }: { onGoPerfil: () => void; onGoPro?: () => void }) {
   const { me, ready } = useMe();
+  useLang();
   const { pro } = useProLicense();
   const [savingPin, setSavingPin] = useState<string | null>(null);
   // Menús desplegables: grupo del cerro, grupo con fecha y series internas.
@@ -274,7 +276,7 @@ export default function ChallengesTab({ onGoPerfil, onGoPro }: { onGoPerfil: () 
   if (!ready) {
     return (
       <div className="flex h-24 items-center justify-center rounded-xl border border-border bg-card text-sm text-muted-foreground">
-        Cargando desafíos…
+        {t("ch.cargando")}
       </div>
     );
   }
@@ -282,15 +284,15 @@ export default function ChallengesTab({ onGoPerfil, onGoPro }: { onGoPerfil: () 
     return (
       <Card className="bg-card/80 border-border p-5 text-center">
         <span className="text-3xl" aria-hidden>🏆</span>
-        <p className="mt-2 font-semibold text-foreground">Desafíos y recompensas</p>
+        <p className="mt-2 font-semibold text-foreground">{t("menu.premios")}</p>
         <p className="mx-auto mt-1 max-w-[34ch] text-sm leading-relaxed text-muted-foreground">
-          Tus niveles, desafíos y pines viven en tu cuenta. Inicia sesión para ver tu progreso acumulado y desbloquear recompensas.
+          {t("ch.sinSesionCuerpo")}
         </p>
         <Button
           onClick={onGoPerfil}
           className="mt-4 h-11 w-full bg-emerald-600 font-bold text-(--c30-on-accent) hover:bg-emerald-500"
         >
-          <LogIn className="mr-2 h-4 w-4" /> Iniciar sesión
+          <LogIn className="mr-2 h-4 w-4" /> {t("pf.iniciarSesion")}
         </Button>
       </Card>
     );
@@ -347,29 +349,29 @@ export default function ChallengesTab({ onGoPerfil, onGoPro }: { onGoPerfil: () 
     setSavingPin(null);
   };
 
-  const tierRow = (t: Tier, state: "done" | "current" | "locked", accent: string) => {
-    const reward = PINS[t.reward];
-    const val = metricValue(stats, t.metric);
-    const pct = Math.min(100, Math.round((val / t.goal) * 100));
-    const needPro = tierIsPro(t) && !pro.active;
+  const tierRow = (tier: Tier, state: "done" | "current" | "locked", accent: string) => {
+    const reward = PINS[tier.reward];
+    const val = metricValue(stats, tier.metric);
+    const pct = Math.min(100, Math.round((val / tier.goal) * 100));
+    const needPro = tierIsPro(tier) && !pro.active;
     return (
-      <div key={t.code} className={`flex items-start gap-2.5 rounded-lg px-2.5 py-2 ${state === "current" ? "bg-card/90 border border-border" : ""}`}>
+      <div key={tier.code} className={`flex items-start gap-2.5 rounded-lg px-2.5 py-2 ${state === "current" ? "bg-card/90 border border-border" : ""}`}>
         <span className="text-xl leading-none mt-0.5 shrink-0" aria-hidden>
           {state === "done" ? reward.emoji : state === "current" ? <span className="inline-block text-2xl grayscale opacity-70">{reward.emoji}</span> : <Lock className="h-4.5 w-4.5 text-muted-foreground/80 mt-1" />}
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <p className={`text-sm font-medium truncate ${state === "done" ? "text-muted-foreground line-through" : state === "current" ? "text-foreground" : "text-muted-foreground"}`}>{t.name}</p>
+            <p className={`text-sm font-medium truncate ${state === "done" ? "text-muted-foreground line-through" : state === "current" ? "text-foreground" : "text-muted-foreground"}`}>{tier.name}</p>
             {needPro && <ProChip />}
             {state === "done" && <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />}
-            {state === "current" && !needPro && <span className="text-[10px] text-muted-foreground shrink-0">recompensa: {reward.emoji} {reward.name}</span>}
+            {state === "current" && !needPro && <span className="text-[10px] text-muted-foreground shrink-0">{t("ch.recompensa", reward.emoji, reward.name)}</span>}
           </div>
-          <p className={`text-[11px] mt-0.5 ${state === "locked" ? "text-muted-foreground/80" : "text-muted-foreground"}`}>{t.desc}</p>
+          <p className={`text-[11px] mt-0.5 ${state === "locked" ? "text-muted-foreground/80" : "text-muted-foreground"}`}>{tier.desc}</p>
           {state === "current" && (
             <div className="mt-1.5">
               <ProgressBar pct={pct} accent={ACCENT_BAR[accent] ?? "bg-emerald-500"} />
               <p className="text-[10px] text-muted-foreground/80 mt-1">
-                {pct}% · {t.metric === "totalGainM" || t.metric === "totalKm" || t.metric === "totalHours" ? `${Math.round(val).toLocaleString("es-CL")}` : val.toLocaleString("es-CL")} / {t.goal.toLocaleString("es-CL")}
+                {pct}% · {tier.metric === "totalGainM" || tier.metric === "totalKm" || tier.metric === "totalHours" ? `${Math.round(val).toLocaleString("es-CL")}` : val.toLocaleString("es-CL")} / {tier.goal.toLocaleString("es-CL")}
               </p>
               {needPro && onGoPro && (
                 <Button
@@ -377,7 +379,7 @@ export default function ChallengesTab({ onGoPerfil, onGoPro }: { onGoPerfil: () 
                   size="sm"
                   className="mt-2 h-8 w-full rounded-lg bg-amber-500 text-[11px] font-extrabold uppercase tracking-wide text-zinc-950 hover:bg-amber-400"
                 >
-                  <Crown className="mr-1.5 h-3.5 w-3.5" aria-hidden /> Desbloquea con Pro
+                  <Crown className="mr-1.5 h-3.5 w-3.5" aria-hidden /> {t("ch.desbloqueaPro")}
                 </Button>
               )}
             </div>
@@ -422,26 +424,26 @@ export default function ChallengesTab({ onGoPerfil, onGoPro }: { onGoPerfil: () 
     <div className="flex flex-col gap-4">
       {/* ---- Tu progreso ---- */}
       <Card className={`bg-card/80 border-border p-4 ${isLeyenda ? "border-amber-500/50 bg-gradient-to-br from-amber-950/30 to-card" : ""}`}>
-        <p className="text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground">Tu progreso</p>
+        <p className="text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground">{t("ch.tuProgreso")}</p>
         <div className="mt-3 flex items-center gap-4">
           <LevelRing pct={lvlPct} km={km} gold={isLeyenda} />
           <div className="min-w-0 flex-1">
             {isLeyenda ? (
               <>
                 <p className="flex items-center gap-1.5 text-base font-extrabold text-amber-500 dark:text-amber-300">
-                  <span aria-hidden>🌟</span> Leyenda
+                  <span aria-hidden>🌟</span> {t("ch.leyenda")}
                 </p>
                 <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">
-                  Nivel {lvlIdx + 1} · {lvl.emoji} {lvl.name} · +{km.toFixed(0)} km acumulados
+                  {t("ch.leyendaNivel", lvlIdx + 1, lvl.emoji, lvl.name, km.toFixed(0))}
                 </p>
                 <p className="mt-2 text-[11px] leading-snug text-muted-foreground">
-                  Superaste los {LEYENDA_KM} km del Diamante. Título exclusivo de tu progreso - sigue haciendo historia en el cerro 🏔️
+                  {t("ch.leyendaSub", LEYENDA_KM)}
                 </p>
               </>
             ) : (
               <>
                 <p className="text-sm font-bold text-foreground">
-                  Nivel {lvlIdx + 1} · {lvl.emoji} {lvl.name}
+                  {t("ch.nivel", lvlIdx + 1, lvl.emoji, lvl.name)}
                 </p>
                 {next ? (
                   <>
@@ -449,18 +451,18 @@ export default function ChallengesTab({ onGoPerfil, onGoPro }: { onGoPerfil: () 
                       <ProgressBar pct={lvlPct} />
                     </div>
                     <p className="mt-1.5 text-[11px] leading-snug text-muted-foreground">
-                      Te faltan <span className="font-semibold text-foreground">{toNext.toFixed(1)} km</span> para {next.name} · {next.min} km
+                      {t("ch.teFaltan1")}<span className="font-semibold text-foreground">{toNext.toFixed(1)} km</span>{t("ch.teFaltan2", next.name, next.min)}
                     </p>
                   </>
                 ) : (
                   <p className="mt-2 text-[11px] leading-snug text-muted-foreground">
-                    ¡Nivel máximo alcanzado! Sigue sumando km en el cerro 🏔️
+                    {t("ch.nivelMaximo")}
                   </p>
                 )}
               </>
             )}
             <p className="mt-1 text-[10.5px] leading-snug text-muted-foreground/80">
-              Km acumulados con GPS real, asociados a tu cuenta.
+              {t("ch.kmAcumulados")}
             </p>
           </div>
         </div>
@@ -468,7 +470,7 @@ export default function ChallengesTab({ onGoPerfil, onGoPro }: { onGoPerfil: () 
 
       {/* ---- Tus niveles ---- */}
       <Card className="bg-card/80 border-border p-4">
-        <p className="text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground">Tus niveles</p>
+        <p className="text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground">{t("ch.tusNiveles")}</p>
         <div className="mt-3 grid grid-cols-4 gap-2">
           {RIDER_LEVELS.map((L, i) => {
             const done = L.max != null ? km >= L.max : km >= L.min;
@@ -489,7 +491,7 @@ export default function ChallengesTab({ onGoPerfil, onGoPro }: { onGoPerfil: () 
                 </span>
                 {done && !current && <CheckCircle2 className="absolute -top-1.5 -right-1.5 h-4 w-4 rounded-full bg-card text-emerald-600 dark:text-emerald-400" />}
                 {current && (
-                  <span className="absolute -top-2 right-1 rounded-full bg-emerald-500 px-1.5 text-[8px] font-extrabold uppercase tracking-wide text-(--c30-on-accent)">aquí</span>
+                  <span className="absolute -top-2 right-1 rounded-full bg-emerald-500 px-1.5 text-[8px] font-extrabold uppercase tracking-wide text-(--c30-on-accent)">{t("ch.aqui")}</span>
                 )}
                 {!done && !current && <Lock className="absolute -top-1.5 -right-1.5 h-3.5 w-3.5 text-muted-foreground/70" />}
               </div>
@@ -502,11 +504,11 @@ export default function ChallengesTab({ onGoPerfil, onGoPro }: { onGoPerfil: () 
       <Card className="bg-card/80 border-border p-4">
         <GroupHeader
           emoji="🏔️"
-          title="Desafíos del cerro"
+          title={t("ch.cerroTitulo")}
           hint={
             pro.active
-              ? `${cerroDone}/${cerroTotal} completados · Pro activo`
-              : `El primer desafío de cada serie es gratis · ${cerroDone}/${cerroTotal}`
+              ? t("ch.cerroHintPro", cerroDone, cerroTotal)
+              : t("ch.cerroHintFree", cerroDone, cerroTotal)
           }
           pct={cerroPct}
           open={cerroOpen}
@@ -548,8 +550,8 @@ export default function ChallengesTab({ onGoPerfil, onGoPro }: { onGoPerfil: () 
       <Card className="bg-card/80 border-border p-4">
         <GroupHeader
           emoji="⏱️"
-          title="Desafíos con fecha"
-          hint="Gratis · sin recompensas · se reinician con el periodo"
+          title={t("ch.fechaTitulo")}
+          hint={t("ch.fechaHint")}
           pct={timePct}
           open={fechaOpen}
           onToggle={() => setFechaOpen((v) => !v)}
@@ -589,8 +591,8 @@ export default function ChallengesTab({ onGoPerfil, onGoPro }: { onGoPerfil: () 
       <div className="rounded-xl border border-border bg-card/60 p-4">
         <div className="flex items-center gap-2 mb-2">
           <span className="text-xl" aria-hidden>🎯</span>
-          <p className="font-semibold text-sm text-foreground">Retos puntuales</p>
-          <span className="ml-auto text-xs text-muted-foreground">{pro.active ? "todos disponibles" : "primero gratis · resto Pro"}</span>
+          <p className="font-semibold text-sm text-foreground">{t("ch.retosTitulo")}</p>
+          <span className="ml-auto text-xs text-muted-foreground">{pro.active ? t("ch.retosTodos") : t("ch.retosFree")}</span>
         </div>
         <div className="space-y-1">
           {RETOS.map((t) => tierRow(t, unlocked.has(t.code) ? "done" : "current", "emerald"))}
@@ -601,14 +603,14 @@ export default function ChallengesTab({ onGoPerfil, onGoPro }: { onGoPerfil: () 
       <div className="rounded-xl border border-border bg-card/70 p-4">
         <div className="flex items-center gap-2 mb-1">
           <MapPin className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-          <p className="text-sm font-medium text-foreground">Tus pines</p>
+          <p className="text-sm font-medium text-foreground">{t("ch.tusPines")}</p>
           <span className="ml-auto text-xs text-muted-foreground">
-            activo: <span className="text-foreground">{PINS[isPinId(activePin) ? activePin : DEFAULT_PIN].emoji} {PINS[isPinId(activePin) ? activePin : DEFAULT_PIN].name}</span>
+            {t("ch.pinActivo")}<span className="text-foreground">{PINS[isPinId(activePin) ? activePin : DEFAULT_PIN].emoji} {PINS[isPinId(activePin) ? activePin : DEFAULT_PIN].name}</span>
           </span>
         </div>
         <p className="text-[11px] leading-snug text-muted-foreground">
-          El pin que elijas es el que ven tus amigos y queda en tus reportes. Se desbloquean completando desafíos.
-          {!pro.active && <> Los pines <Crown className="inline h-3 w-3 text-amber-500" aria-hidden /> son recompensas de <b className="text-foreground">Cumbre30 Pro</b>.</>}
+          {t("ch.pinesNota1")}
+          {!pro.active && <>{t("ch.pinesNota2")}<Crown className="inline h-3 w-3 text-amber-500" aria-hidden />{t("ch.pinesNota3")}<b className="text-foreground">Cumbre30 Pro</b>.</>}
         </p>
         <div className="grid grid-cols-5 gap-2 mt-2">
           {Object.values(PINS).map((pin) => {

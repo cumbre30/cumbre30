@@ -43,6 +43,7 @@ import { isNativeMapPlatform } from "@/lib/nativeMapBridge";
 import NativeMapCanvas from "@/components/NativeMapCanvas";
 import LeafletNav from "@/components/LeafletNav";
 import { isNativeApp } from "@/lib/rideNative";
+import { t, useLang } from "@/lib/i18n";
 
 // ⚠️ [lng, lat] - MapLibre espera longitud PRIMERO. Antes estaba
 // invertido (-33.408, -70.636) y la cámara arrancaba en el Atlántico
@@ -652,17 +653,18 @@ type ManeuverBannerProps = {
 };
 
 function ManeuverBanner({ className, nextStep, distM, destName, offRoute, laterStep }: ManeuverBannerProps) {
+  useLang();
   return (
     <div className={className}>
       <TurnArrow icon={nextStep.icon} className="h-14 w-14 shrink-0 text-foreground" />
       <div className="min-w-0 flex-1">
         <div className="font-mono text-[26px] font-bold text-foreground leading-none tabular-nums">
-          {nextStep.icon === "end" ? "Llegaste" : fmtKmM(distM)}
+          {nextStep.icon === "end" ? t("mini.llegaste") : fmtKmM(distM)}
         </div>
         <div className="text-lg font-bold text-sky-600 dark:text-sky-400 leading-tight truncate mt-0.5">
           {nextStep.icon === "end" ? destName : streetOfStep(nextStep.text)}
         </div>
-        {offRoute && <div className="text-[11px] text-amber-700 dark:text-amber-300 font-semibold mt-0.5">desviado, recalculando…</div>}
+        {offRoute && <div className="text-[11px] text-amber-700 dark:text-amber-300 font-semibold mt-0.5">{t("mini.desviado")}</div>}
       </div>
       {laterStep && laterStep.icon !== "end" && <TurnArrow icon={laterStep.icon} className="h-7 w-7 shrink-0 mt-1 text-muted-foreground" />}
     </div>
@@ -670,13 +672,14 @@ function ManeuverBanner({ className, nextStep, distM, destName, offRoute, laterS
 }
 
 function LegendChip({ className, route }: { className: string; route: NavEngine["route"] }) {
+  useLang();
   return (
     <div className={className}>
       <span className="inline-block h-[3px] w-4 rounded-full shrink-0" style={{ background: COLOR_CICLO }} />
-      <span className="text-[10px] text-foreground/90">Ciclovía {!!route?.cicloviaPct ? `${route.cicloviaPct}%` : ""}</span>
+      <span className="text-[10px] text-foreground/90">{t("mini.ciclovia", !!route?.cicloviaPct ? `${route.cicloviaPct}%` : "")}</span>
       <span className="text-[10px] text-muted-foreground/80">·</span>
       <span className="inline-block h-[3px] w-4 rounded-full shrink-0" style={{ background: COLOR_VIA }} />
-      <span className="text-[10px] text-foreground/90">Compartida</span>
+      <span className="text-[10px] text-foreground/90">{t("mini.compartida")}</span>
     </div>
   );
 }
@@ -689,12 +692,13 @@ type ControlsProps = {
 };
 
 function Controls({ className, onLocate, hasDest, onClear }: ControlsProps) {
+  useLang();
   return (
     <div className={className}>
       <button
         onClick={onLocate}
-        aria-label="Localizarme"
-        title="Centrar en mi ubicación"
+        aria-label={t("mapa.localizarme")}
+        title={t("mapa.centrarUbicacion")}
         className="h-8 w-8 rounded-md bg-background/90 border border-border text-foreground flex items-center justify-center hover:border-emerald-500"
       >
         <Crosshair className="h-4 w-4" />
@@ -702,8 +706,8 @@ function Controls({ className, onLocate, hasDest, onClear }: ControlsProps) {
       {hasDest && (
         <button
           onClick={onClear}
-          aria-label="Quitar destino"
-          title="Quitar la ruta"
+          aria-label={t("mapa.quitarDestino")}
+          title={t("mapa.quitarRutaTitle")}
           className="h-8 w-8 rounded-md bg-background/90 border border-border text-foreground flex items-center justify-center hover:border-red-500"
         >
           <X className="h-4 w-4" />
@@ -731,20 +735,21 @@ type BottomBarProps = {
 const TODOS_DESTINOS = MINIMAP_ACCESOS;
 
 function BottomBar({ className, onRoute, etaMin, arrivalClock, remainingM, dest, onSetDest, onReport, onOpenMap }: BottomBarProps) {
+  useLang();
   return (
     <div className={className}>
       {onRoute ? (
         <div className="min-w-0 flex-1 text-center">
           <div className="font-mono text-xl font-bold text-foreground leading-none tabular-nums">{etaMin > 0 ? arrivalClock : "-"}</div>
           <div className="text-[11px] text-muted-foreground leading-tight mt-0.5 truncate">
-            {etaMin > 0 ? `${etaMin} min · ${fmtKmM(remainingM)}` : "Ruta lista"}
+            {etaMin > 0 ? t("mini.eta", etaMin, fmtKmM(remainingM)) : t("mini.rutaLista")}
           </div>
         </div>
       ) : (
         <div className="min-w-0 flex-1 flex items-center gap-1.5 rounded-lg border border-border bg-card px-2 py-1.5">
           <RouteIcon className="h-3.5 w-3.5 text-sky-600 dark:text-sky-400 shrink-0" />
           <select
-            aria-label="Ir a"
+            aria-label={t("mini.irAAria")}
             value={
               dest
                 ? TODOS_DESTINOS.find((d) => d.position.lat === dest.position.lat && d.position.lon === dest.position.lon)?.id ?? "mapa"
@@ -763,14 +768,14 @@ function BottomBar({ className, onRoute, etaMin, arrivalClock, remainingM, dest,
             }}
             className="bg-transparent text-[11px] text-foreground outline-none w-full min-w-0"
           >
-            <option value="" className="bg-card">Ir a…</option>
+            <option value="" className="bg-card">{t("mini.irA")}</option>
             {/* Solo los ACCESOS habilitados para ciclistas (limpieza del
                 cliente, 2026-11-12): sin opciones de ruta ni otros destinos */}
             {MINIMAP_ACCESOS.map((d) => (
               <option key={d.id} value={d.id} className="bg-card">{d.name}</option>
             ))}
             {dest && <option value="mapa" className="bg-card">🎯 {dest.name}</option>}
-            {onOpenMap && <option value="listado" className="bg-card">🗺 Revisa el listado completo</option>}
+            {onOpenMap && <option value="listado" className="bg-card">{t("mini.listadoCompleto")}</option>}
           </select>
         </div>
       )}
@@ -778,8 +783,8 @@ function BottomBar({ className, onRoute, etaMin, arrivalClock, remainingM, dest,
       {/* botón amarillo de reporte de incidencias */}
       <button
         onClick={onReport}
-        aria-label="Reportar incidencia en mi posición"
-        title="Reportar incidencia en mi posición"
+        aria-label={t("mini.reportarPos")}
+        title={t("mini.reportarPos")}
         className="relative h-11 w-11 rounded-xl bg-amber-400 hover:bg-amber-300 active:scale-95 transition text-zinc-950 flex items-center justify-center shrink-0"
       >
         <TriangleAlert className="h-6 w-6" strokeWidth={2.4} />
@@ -800,11 +805,12 @@ function ReportSheet({
   onType: (t: IncidentTypeId) => void;
   onClose: () => void;
 }) {
+  useLang();
   return (
     <div className={className}>
       <div className="flex items-center justify-between mb-2">
-        <span className="text-xs font-bold text-foreground">Reportar incidencia {hasPosition ? "en tu posición" : "(sin GPS aún)"}</span>
-        <button onClick={onClose} aria-label="Cerrar reporte" className="text-muted-foreground hover:text-foreground">
+        <span className="text-xs font-bold text-foreground">{t("mini.reportar")} {hasPosition ? t("rep.enPosicion") : t("rep.sinGps")}</span>
+        <button onClick={onClose} aria-label={t("rep.cerrar")} className="text-muted-foreground hover:text-foreground">
           <X className="h-4 w-4" />
         </button>
       </div>
@@ -820,7 +826,7 @@ function ReportSheet({
           </button>
         ))}
       </div>
-      <p className="text-[10px] text-muted-foreground mt-2">Se registra con fecha y hora, y aparece en el mapa compartido.</p>
+      <p className="text-[10px] text-muted-foreground mt-2">{t("rep.nota")}</p>
       {/* Canal ciudadano (2026-11-14): para que el parque lo revise, la
           línea oficial de emergencias queda a un toque. */}
       <div className="mt-2 flex items-center gap-2 border-t border-border/60 pt-2">
@@ -831,7 +837,7 @@ function ReportSheet({
           <Phone className="h-3.5 w-3.5" /> 1466
         </a>
         <p className="min-w-0 flex-1 text-[10px] leading-snug text-muted-foreground">
-          ¿Urgencia o peligro grande? Llama a la línea oficial de emergencias del parque y avisa al personal más cercano.
+          {t("mini.urgencia")}
         </p>
       </div>
     </div>
@@ -846,6 +852,7 @@ function StatusNote({ className, text }: { className: string; text: string }) {
 // Componente principal: lienzo + capa Waze (banner, barra, etc.)
 // ============================================================
 export default function MiniMap({ position, heading, track, accuracyM, userPin, nav, speedKmh = 0, heightClass = "h-52 sm:h-56", heightRouteClass = "h-80", onOpenMap }: Props) {
+  useLang();
   const incidents = useIncidentFeed();
   const [locateTarget, setLocateTarget] = useState<LatLng | null>(null);
   const [reportOpen, setReportOpen] = useState(false);
@@ -911,7 +918,7 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
   // configurado, el reporte se guarda local en el dispositivo.
   const reportIncident = async (type: IncidentTypeId) => {
     if (!position) {
-      setStatus("Aún sin GPS: no podemos fijar la ubicación del reporte.");
+      setStatus(t("rep.sinGpsStatus"));
       setReportOpen(false);
       setTimeout(() => setStatus(null), 4000);
       return;
@@ -924,7 +931,7 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
         ...payload,
         note: null,
         createdAt: new Date().toISOString(),
-        username: "tú (local)",
+        username: t("mapa.tuLocal"),
         authorPin: userPin ?? DEFAULT_PIN,
         mine: true,
         localOnly: true,
@@ -934,7 +941,7 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
       };
       addIncident(local);
       saveLocalIncidents([local, ...loadLocalIncidents()]);
-      setStatus("Sin conexión: reporte guardado en este dispositivo.");
+      setStatus(t("rep.okLocal"));
     };
     const url = apiUrl("/api/incidents");
     if (!url) {
@@ -951,7 +958,7 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
       const d = (await r.json()) as { incident?: IncidentItem; error?: string };
       if (!r.ok || !d.incident) throw new Error(d.error ?? "error");
       addIncident(d.incident);
-      setStatus("Incidencia reportada ✓ visible para toda la comunidad");
+      setStatus(t("rep.okServer"));
     } catch {
       guardarLocal();
     }
@@ -968,7 +975,7 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
             className="rounded-xl border border-border bg-background/95 px-3 py-2 flex items-center gap-3"
             nextStep={nextStep}
             distM={progress?.distToNextStepM ?? nextStep.distM}
-            destName={dest?.name ?? "Destino"}
+            destName={dest?.name ?? t("mini.destino")}
             offRoute={offRoute}
             laterStep={laterStep}
           />
@@ -1001,7 +1008,7 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
           {nav.loading && (
             <span className="rounded-full bg-background/90 border border-sky-700 px-2.5 py-1 text-[10px] font-semibold text-sky-700 dark:text-sky-300 flex items-center gap-1.5">
               <span className="inline-block h-2 w-2 rounded-full bg-sky-400 animate-pulse" />
-              Calculando ruta…
+              {t("mini.calculando")}
             </span>
           )}
           {onRoute && !nav.loading && <LegendChip className="rounded-md bg-background/90 border border-border px-2 py-1 flex items-center gap-2" route={route} />}
@@ -1070,7 +1077,7 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
           className="absolute top-0 inset-x-0 z-[500] bg-background/95 border-b border-border px-3 pt-1.5 pb-2 flex items-center gap-3 pointer-events-none"
           nextStep={nextStep}
           distM={progress?.distToNextStepM ?? nextStep.distM}
-          destName={dest?.name ?? "Destino"}
+          destName={dest?.name ?? t("mini.destino")}
           offRoute={offRoute}
           laterStep={laterStep}
         />
@@ -1080,7 +1087,7 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
       {nav.loading && (
         <div className="absolute top-2 left-2 z-[520] rounded-full bg-background/90 border border-sky-700 px-2.5 py-1 text-[10px] font-semibold text-sky-700 dark:text-sky-300 flex items-center gap-1.5 pointer-events-none">
           <span className="inline-block h-2 w-2 rounded-full bg-sky-400 animate-pulse" />
-          Calculando ruta…
+          {t("mini.calculando")}
         </div>
       )}
 

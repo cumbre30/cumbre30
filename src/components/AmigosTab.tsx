@@ -18,6 +18,7 @@ import { apiUrl } from "@/lib/backend";
 import { serverToken, syncStore } from "@/lib/cloudSync";
 import { VERIFICAR_ORIGEN } from "@/lib/constancia";
 import { PINS, DEFAULT_PIN, type PinId } from "@/lib/pins";
+import { t, useLang } from "@/lib/i18n";
 
 type FriendRow = {
   username: string;
@@ -34,6 +35,7 @@ const MEDALLAS = ["🥇", "🥈", "🥉"];
 
 export function AmigosTab({ onGoPerfil, invitado }: { onGoPerfil?: () => void; invitado?: string | null }) {
   const { me, ready } = useMe();
+  useLang();
   const [friends, setFriends] = useState<FriendRow[] | null>(null); // null = cargando
   const [listError, setListError] = useState(false);
   const [friendName, setFriendName] = useState("");
@@ -95,7 +97,7 @@ export function AmigosTab({ onGoPerfil, invitado }: { onGoPerfil?: () => void; i
   const addFriend = async () => {
     setFriendError(null);
     if (!canUse || url === null) {
-      setFriendError("Inicia sesión para agregar amigos.");
+      setFriendError(t("am.errLogin"));
       return;
     }
     setBusy(true);
@@ -110,13 +112,13 @@ export function AmigosTab({ onGoPerfil, invitado }: { onGoPerfil?: () => void; i
       });
       const d = (await r.json().catch(() => ({}))) as { error?: string };
       if (!r.ok) {
-        setFriendError(d.error ?? "No pudimos agregarlo.");
+        setFriendError(d.error ?? t("am.errAgregar"));
         return;
       }
       setFriendName("");
       await load();
     } catch {
-      setFriendError("Sin conexión con el servidor.");
+      setFriendError(t("me.sinConexion"));
     } finally {
       setBusy(false);
     }
@@ -140,10 +142,9 @@ export function AmigosTab({ onGoPerfil, invitado }: { onGoPerfil?: () => void; i
     return (
       <Card className="bg-card/80 border-border p-6 text-center">
         <Users className="mx-auto mb-2 h-6 w-6 text-muted-foreground" />
-        <p className="text-sm font-medium text-foreground">Amigos</p>
+        <p className="text-sm font-medium text-foreground">{t("am.titulo")}</p>
         <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">
-          Los amigos necesitan el servidor de cuenta. Configúralo en Perfil → Cuenta →
-          Servidor de cuenta y vuelve a esta pantalla.
+          {t("am.noBackend")}
         </p>
       </Card>
     );
@@ -156,16 +157,16 @@ export function AmigosTab({ onGoPerfil, invitado }: { onGoPerfil?: () => void; i
     return (
       <Card className="bg-card/80 border-border p-6 text-center">
         <Users className="mx-auto mb-2 h-6 w-6 text-muted-foreground" />
-        <p className="text-sm font-medium text-foreground">Amigos</p>
+        <p className="text-sm font-medium text-foreground">{t("am.titulo")}</p>
         <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">
-          Inicia sesión para agregar amigos por su nombre de usuario y ver sus km y logros.
+          {t("am.loginCta")}
         </p>
         {onGoPerfil && (
           <Button
             onClick={onGoPerfil}
             className="mt-4 h-10 bg-emerald-600 font-semibold text-(--c30-on-accent) hover:bg-emerald-500"
           >
-            <LogIn className="mr-2 h-4 w-4" /> Ir a iniciar sesión
+            <LogIn className="mr-2 h-4 w-4" /> {t("am.irLogin")}
           </Button>
         )}
       </Card>
@@ -178,16 +179,16 @@ export function AmigosTab({ onGoPerfil, invitado }: { onGoPerfil?: () => void; i
         <div className="mb-3 flex items-center gap-2">
           <Users className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
           <p className="text-sm font-medium text-foreground">
-            Tus amigos {friends ? `(${friends.length})` : ""}
+            {t("am.tusAmigos", friends ? `(${friends.length})` : "")}
           </p>
         </div>
         <div className="mb-3 flex gap-2">
           <Input
             value={friendName}
             onChange={(e) => setFriendName(e.target.value)}
-            placeholder="usuario de tu amigo, ej: pedro_ruta"
+            placeholder={t("am.placeholder")}
             className="border-border bg-card"
-            aria-label="Usuario de tu amigo"
+            aria-label={t("am.usuarioAria")}
             onKeyDown={(e) => {
               if (e.key === "Enter" && friendName.trim()) void addFriend();
             }}
@@ -197,13 +198,13 @@ export function AmigosTab({ onGoPerfil, invitado }: { onGoPerfil?: () => void; i
             disabled={busy || !friendName.trim()}
             className="shrink-0 bg-emerald-600 font-semibold text-(--c30-on-accent) hover:bg-emerald-500"
           >
-            <UserPlus className="mr-1 h-4 w-4" /> Agregar
+            <UserPlus className="mr-1 h-4 w-4" /> {t("am.agregar")}
           </Button>
         </div>
         {friendError && <p className="mb-2 text-xs text-red-600 dark:text-red-400">{friendError}</p>}
         {invitado && (
           <p className="mb-2 text-xs font-medium text-emerald-700 dark:text-emerald-300">
-            Te invitaron a conectar con @{invitado}: revisa el nombre y toca Agregar.
+            {t("am.invitado", invitado)}
           </p>
         )}
         {me?.user.username && (
@@ -222,10 +223,10 @@ export function AmigosTab({ onGoPerfil, invitado }: { onGoPerfil?: () => void; i
                   : setMostrarEnlace(enlace);
               }}
               className="mb-1 flex w-full items-center justify-center gap-1.5 rounded-lg border border-border px-3 py-2 text-xs font-medium text-muted-foreground hover:text-foreground"
-              aria-label="Copiar tu enlace de invitación de amigos"
+              aria-label={t("am.copiarAria")}
             >
               {copiado ? <Check className="h-3.5 w-3.5" /> : <Link2 className="h-3.5 w-3.5" />}
-              {copiado ? "Enlace copiado ✓" : "Copiar mi enlace de invitación"}
+              {copiado ? t("am.enlaceCopiado") : t("am.copiarEnlace")}
             </button>
             {mostrarEnlace && (
               <p className="mb-1 break-all text-center text-[10.5px] text-emerald-700 dark:text-emerald-300">
@@ -236,14 +237,14 @@ export function AmigosTab({ onGoPerfil, invitado }: { onGoPerfil?: () => void; i
         )}
         {listError && (
           <p className="mb-2 text-xs text-red-600 dark:text-red-400">
-            No pudimos cargar la lista. Revisa tu conexión y vuelve a intentar.
+            {t("am.errLista")}
           </p>
         )}
         {friends === null ? (
-          <p className="text-xs text-muted-foreground">Cargando amigos…</p>
+          <p className="text-xs text-muted-foreground">{t("am.cargando")}</p>
         ) : friends.length === 0 ? (
           <p className="text-xs text-muted-foreground">
-            Aún no tienes amigos. Agrega a alguien por su nombre de usuario para ver sus km y logros.
+            {t("am.vacio")}
           </p>
         ) : (
           <ul className="max-h-72 space-y-2 overflow-y-auto pr-1">
@@ -254,7 +255,7 @@ export function AmigosTab({ onGoPerfil, invitado }: { onGoPerfil?: () => void; i
                   <div className="flex items-center gap-2">
                     <span className="text-xl">{fp.emoji}</span>
                     {posiciones.get(f.username) && posiciones.get(f.username)! <= 3 && (
-                      <span aria-label={`Puesto ${posiciones.get(f.username)} por km`} className="text-sm">
+                      <span aria-label={t("am.puesto", posiciones.get(f.username) ?? 0)} className="text-sm">
                         {MEDALLAS[posiciones.get(f.username)! - 1]}
                       </span>
                     )}
@@ -264,7 +265,7 @@ export function AmigosTab({ onGoPerfil, invitado }: { onGoPerfil?: () => void; i
                     </span>
                     <button
                       onClick={() => void removeFriend(f.username)}
-                      aria-label={`Eliminar a ${f.username}`}
+                      aria-label={t("am.eliminar", f.username)}
                       className="text-muted-foreground/80 hover:text-red-600 dark:hover:text-red-400"
                     >
                       <Trash2 className="h-4 w-4" />
@@ -272,9 +273,9 @@ export function AmigosTab({ onGoPerfil, invitado }: { onGoPerfil?: () => void; i
                   </div>
                   <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
                     <span className="font-mono text-emerald-700 dark:text-emerald-300">{f.totalKm.toFixed(1)} km</span>
-                    <span>{f.rideCount} rides</span>
-                    <span>máx {f.maxKmh.toFixed(1)} km/h</span>
-                    {f.lastRideDate && <span>último: {new Date(f.lastRideDate).toLocaleDateString("es-CL")}</span>}
+                    <span>{t("am.rides", f.rideCount)}</span>
+                    <span>{t("am.max", f.maxKmh.toFixed(1))}</span>
+                    {f.lastRideDate && <span>{t("am.ultimo", new Date(f.lastRideDate).toLocaleDateString("es-CL"))}</span>}
                   </div>
                 </li>
               );
@@ -283,9 +284,7 @@ export function AmigosTab({ onGoPerfil, invitado }: { onGoPerfil?: () => void; i
         )}
       </Card>
       <p className="text-[11px] leading-relaxed text-muted-foreground/80">
-        Al agregar a alguien la conexión es mutua e inmediata: verás sus km y logros, y aparecerás
-        en su lista. Las medallas 🥇🥈🥉 ordenan por km totales. El nombre de usuario se cambia en
-        Perfil (1 vez cada 30 días).
+        {t("am.nota")}
       </p>
     </div>
   );

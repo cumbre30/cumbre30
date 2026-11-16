@@ -5,6 +5,7 @@
 // ============================================================
 
 import { aplicarPuentes } from "@/lib/puentesGrafo";
+import { t } from "@/lib/i18n";
 
 export type NetNode = [number, number]; // [lat, lon]
 export type NetEdge = [number, number, number, number, 0 | 1]; // [a,b,classIdx,nameIdx,ciclovia]
@@ -102,22 +103,23 @@ const PENALTY: Record<string, number> = {
   primary_link: 2.4,
 };
 
+// Etiquetas de clase de vía: valores = claves i18n (se traducen al usarlas).
 const CLASS_LABEL: Record<string, string> = {
-  cycleway: "ciclovía",
-  path: "sendero",
-  footway: "vereda",
-  pedestrian: "paseo peatonal",
-  track: "camino",
-  living_street: "calle local",
-  residential: "calle",
-  service: "vía de servicio",
-  unclassified: "calle",
-  tertiary: "avenida",
-  tertiary_link: "avenida",
-  secondary: "avenida",
-  secondary_link: "avenida",
-  primary: "avenida principal",
-  primary_link: "avenida principal",
+  cycleway: "ruta.clsCycleway",
+  path: "ruta.clsPath",
+  footway: "ruta.clsFootway",
+  pedestrian: "ruta.clsPedestrian",
+  track: "ruta.clsTrack",
+  living_street: "ruta.clsLivingStreet",
+  residential: "ruta.clsResidential",
+  service: "ruta.clsService",
+  unclassified: "ruta.clsUnclassified",
+  tertiary: "ruta.clsTertiary",
+  tertiary_link: "ruta.clsTertiaryLink",
+  secondary: "ruta.clsSecondary",
+  secondary_link: "ruta.clsSecondaryLink",
+  primary: "ruta.clsPrimary",
+  primary_link: "ruta.clsPrimaryLink",
 };
 
 export function haversineM(a: LatLng, b: LatLng): number {
@@ -299,6 +301,30 @@ function nearestEdge(
   return best ? lim(best) : null;
 }
 
+/** Distancia de un punto a la ARISTA más cercana del grafo (sin filtros).
+ *  Mide la cobertura fina del extracto: si el destino queda a >250 m de
+ *  cualquier arista, el A* local terminaría en el nodo más cercano (ruta
+ *  dibujada corta) y corresponde caer a OSRM, que sí cubre toda la
+ *  ciudad (cliente 2026-11-16: Fray Camilo Henríquez 255, Barrio
+ *  Franklin — nodo y arista más cercanos a 368 m). */
+export function nearestEdgeDistM(net: Network, p: LatLng): number {
+  const kx = Math.cos((p.lat * Math.PI) / 180);
+  let bestD = Infinity;
+  for (let i = 0; i < net.edges.length; i++) {
+    const na = net.nodes[net.edges[i][0]];
+    const nb = net.nodes[net.edges[i][1]];
+    const ax = na[1] * kx, ay = na[0], bx = nb[1] * kx, by = nb[0];
+    const px = p.lon * kx, py = p.lat;
+    const dx = bx - ax, dy = by - ay;
+    const len2 = dx * dx + dy * dy;
+    let t = len2 > 0 ? ((px - ax) * dx + (py - ay) * dy) / len2 : 0;
+    t = Math.max(0, Math.min(1, t));
+    const dM = Math.hypot(px - (ax + dx * t), py - (ay + dy * t)) * 111_320;
+    if (dM < bestD) bestD = dM;
+  }
+  return bestD;
+}
+
 /** Ruta óptima (A*) con preferencia por ciclovías.
  *  El origen se ancla a la ARISTA (calle) más cercana al ciclista mediante
  *  un nodo virtual en la proyección: la ruta nace en la calle donde estás,
@@ -313,9 +339,19 @@ function nearestEdge(
  *  desde la posición real siguiendo calles. */
 export const ORIGIN_ANCHOR_MAX_M = 250;
 
+/** El destino se ancla a la ARISTA más cercana (nodo virtual en la
+ *  proyección) cuando el NODO del grafo queda a más de DEST_NODE_SNAP_M
+ *  del punto pedido y hay una arista a ≤ DEST_ANCHOR_MAX_M. Sin esto,
+ *  una dirección buscada en una zona con calles poco cubiertas por el
+ *  grafo terminaba en el nodo más cercano (hasta 800 m antes del pin:
+ *  cliente 2026-11-16, Fray Camilo Henríquez 255 → la ruta quedaba a
+ *  368 m del destino). Espejo exacto del anclaje del origen. */
+export const DEST_NODE_SNAP_M = 60;
+export const DEST_ANCHOR_MAX_M = 250;
+
 export function findRoute(net: Network, from: LatLng, to: LatLng, opts?: FindRouteOpts): NavRoute | null {
-  const t = opts?.targetNode ?? nearestNode(net, to);
-  if (t === null || t < 0 || t >= net.nodes.length) return null;
+  const tObj = opts?.targetNode ?? nearestNode(net, to);
+  if (tObj === null || tObj < 0 || tObj >= net.nodes.length) return null;
 
   // --- origen: la ruta nace en la CALLE más cercana al ciclista ---
   // Antes se arrancaba en el NODO más próximo del grafo, que puede quedar
@@ -356,12 +392,50 @@ export function findRoute(net: Network, from: LatLng, to: LatLng, opts?: FindRou
     s = s0;
   }
 
+  // --- destino: la ruta TERMINA en la calle de la dirección pedida ---
+  // Espejo del anclaje del origen: si el NODO del grafo más cercano al
+  // punto queda lejos (dirección en una zona poco cubierta), el A*
+  // terminaría en ese nodo y la ruta se dibujaría corta (cliente
+  // 2026-11-16: Fray Camilo Henríquez 255 → final a 368 m del pin).
+  // Se agrega un nodo virtual en la proyección sobre la ARISTA más
+  // cercana (respetando los filtros de vía y de nodo) y ese nodo pasa a
+  // ser el destino del A*. Con aristas a >250 m (zona realmente sin
+  // cobertura) se mantiene el comportamiento anterior.
+  let tEff = tObj;
+  if (!opts?.targetNode) {
+    const nodeT = runNet.nodes[tObj];
+    if (haversineM(to, { lat: nodeT[0], lon: nodeT[1] }) > DEST_NODE_SNAP_M) {
+      const edgeT = nearestEdge(runNet, to, DEST_ANCHOR_MAX_M, opts);
+      if (edgeT) {
+        const iv2 = runNet.nodes.length;
+        const nodes3 = runNet.nodes.slice();
+        nodes3.push([edgeT.point.lat, edgeT.point.lon]);
+        const pu2 = { lat: runNet.nodes[edgeT.u][0], lon: runNet.nodes[edgeT.u][1] };
+        const pv2 = { lat: runNet.nodes[edgeT.v][0], lon: runNet.nodes[edgeT.v][1] };
+        const dU2 = Math.max(0.1, haversineM(edgeT.point, pu2));
+        const dV2 = Math.max(0.1, haversineM(edgeT.point, pv2));
+        const pen2 = PENALTY[edgeT.cls] ?? 1;
+        const brU2 = bearing(edgeT.point, pu2);
+        const brV2 = bearing(edgeT.point, pv2);
+        const adj3 = runNet.adj.slice();
+        adj3[iv2] = [
+          { to: edgeT.u, w: dU2 * pen2, dist: dU2, cls: edgeT.cls, name: edgeT.name, ciclovia: edgeT.ciclovia, bearing: brU2 },
+          { to: edgeT.v, w: dV2 * pen2, dist: dV2, cls: edgeT.cls, name: edgeT.name, ciclovia: edgeT.ciclovia, bearing: brV2 },
+        ];
+        adj3[edgeT.u] = [...runNet.adj[edgeT.u], { to: iv2, w: dU2 * pen2, dist: dU2, cls: edgeT.cls, name: edgeT.name, ciclovia: edgeT.ciclovia, bearing: (brU2 + 180) % 360 }];
+        adj3[edgeT.v] = [...runNet.adj[edgeT.v], { to: iv2, w: dV2 * pen2, dist: dV2, cls: edgeT.cls, name: edgeT.name, ciclovia: edgeT.ciclovia, bearing: (brV2 + 180) % 360 }];
+        runNet = { ...runNet, nodes: nodes3, adj: adj3 };
+        tEff = iv2;
+      }
+    }
+  }
+
   const n = runNet.nodes.length;
   const g = new Float64Array(n).fill(Infinity);
   const prevEdgeRef: Array<Network["adj"][number][number] | null> = new Array(n).fill(null);
   const prevNode = new Int32Array(n).fill(-1);
   const done = new Uint8Array(n);
-  const target = { lat: runNet.nodes[t][0], lon: runNet.nodes[t][1] };
+  const target = { lat: runNet.nodes[tEff][0], lon: runNet.nodes[tEff][1] };
   const heap = new MinHeap();
   g[s] = 0;
   heap.push({ f: haversineM({ lat: runNet.nodes[s][0], lon: runNet.nodes[s][1] }, target) * 0.65, i: s });
@@ -386,7 +460,7 @@ export function findRoute(net: Network, from: LatLng, to: LatLng, opts?: FindRou
       bestDist = du;
       bestNode = u;
     }
-    if (u === t) break;
+    if (u === tEff) break;
     for (const e of runNet.adj[u]) {
       if (done[e.to]) continue;
       const [nlat, nlon] = runNet.nodes[e.to];
@@ -410,7 +484,7 @@ export function findRoute(net: Network, from: LatLng, to: LatLng, opts?: FindRou
       }
     }
   }
-  const end = done[t] ? t : bestNode;
+  const end = done[tEff] ? tEff : bestNode;
   if (end < 0) return null;
 
   // reconstruir secuencia de aristas
@@ -434,7 +508,7 @@ export function findRoute(net: Network, from: LatLng, to: LatLng, opts?: FindRou
     distanceM += edge.dist;
     if (edge.ciclovia) cicloM += edge.dist;
     flags.push(edge.ciclovia);
-    segNames.push(edge.name || CLASS_LABEL[edge.cls] || "");
+    segNames.push(edge.name || (CLASS_LABEL[edge.cls] ? t(CLASS_LABEL[edge.cls]) : ""));
     coords.push({ lat: runNet.nodes[v][0], lon: runNet.nodes[v][1] });
     void u;
   }
@@ -451,8 +525,8 @@ export function findRoute(net: Network, from: LatLng, to: LatLng, opts?: FindRou
   // origen quedó anclado a un FRAGMENTO aislado (isla) aunque "avance"
   // unos metros hacia el destino (pasa el umbral de progreso pero la
   // ruta es falsa: termina a 2+ km del destino pedido).
-  if (!done[t] && explored < 500) return null;
-  if (!done[t] && endToM > startToM - 50) return null;
+  if (!done[tEff] && explored < 500) return null;
+  if (!done[tEff] && endToM > startToM - 50) return null;
 
   // --- instrucciones paso a paso ---
   const steps: RouteStep[] = [];
@@ -468,12 +542,12 @@ export function findRoute(net: Network, from: LatLng, to: LatLng, opts?: FindRou
     acc = 0;
   };
 
-  push("start", `Parte por ${seq[0].edge.name || CLASS_LABEL[seq[0].edge.cls] || "la vía"}`, coords[0], 0);
+  push("start", t("ruta.partePor", seq[0].edge.name || t(CLASS_LABEL[seq[0].edge.cls] ?? "ruta.via")), coords[0], 0);
 
   for (let i = 0; i < seq.length; i++) {
     const e = seq[i].edge;
     const turnOfThis = prevBearing !== null ? ((e.bearing - prevBearing + 540) % 360) - 180 : 0;
-    const label = e.name || CLASS_LABEL[e.cls] || "la vía";
+    const label = e.name || t(CLASS_LABEL[e.cls] ?? "ruta.via");
     const isCiclo = e.ciclovia;
 
     if (i > 0 && (Math.abs(turnOfThis) > 40 || label !== lastName || (isCiclo !== inCiclo && isCiclo))) {
@@ -481,12 +555,12 @@ export function findRoute(net: Network, from: LatLng, to: LatLng, opts?: FindRou
       // siendo esquina izq/der, no retorno
       const dir = Math.abs(turnOfThis) >= 140 ? "uturn" : turnOfThis < -40 ? "left" : turnOfThis > 40 ? "right" : "straight";
       let text: string;
-      if (dir === "uturn") text = `Retorna hacia ${label}`;
-      else if (dir === "left") text = `Gira a la izquierda hacia ${label}`;
-      else if (dir === "right") text = `Gira a la derecha hacia ${label}`;
-      else if (isCiclo) text = `Continúa por la ciclovía ${label}`;
-      else if (lastCls === "cycleway" && !isCiclo) text = `Sigue por ${label}`;
-      else text = `Continúa por ${label}`;
+      if (dir === "uturn") text = t("ruta.retorna", label);
+      else if (dir === "left") text = t("ruta.giraIzq", label);
+      else if (dir === "right") text = t("ruta.giraDer", label);
+      else if (isCiclo) text = t("ruta.continuaCiclo", label);
+      else if (lastCls === "cycleway" && !isCiclo) text = t("ruta.sigue", label);
+      else text = t("ruta.continua", label);
       push(dir, text, coords[i], i);
       prevBearing = e.bearing;
     } else if (i === 0) {
@@ -498,7 +572,7 @@ export function findRoute(net: Network, from: LatLng, to: LatLng, opts?: FindRou
     inCiclo = isCiclo;
   }
   const lastIdx = coords.length - 1;
-  push("end", `Has llegado a tu destino`, coords[lastIdx], lastIdx);
+  push("end", t("ruta.destino"), coords[lastIdx], lastIdx);
 
   return {
     coords,
@@ -633,10 +707,10 @@ export function attachOrigin(route: NavRoute, from: LatLng): NavRoute {
       });
       firstKept = false;
     }
-    const startName = segNames[1]?.trim() || "la vía";
+    const startName = segNames[1]?.trim() || t("ruta.via");
     steps.unshift({
       icon: "start",
-      text: `Parte por ${startName}`,
+      text: t("ruta.partePor", startName),
       distM: Math.max(1, Math.round(pr.distM)),
       point: coords[0],
       idx: 0,
@@ -665,7 +739,7 @@ export function attachOrigin(route: NavRoute, from: LatLng): NavRoute {
   for (let k = 0; k < coords.length - 1; k++) distanceM += haversineM(coords[k], coords[k + 1]);
   distanceM = Math.round(distanceM);
 
-  const startName = route.segNames[0]?.trim() || "la vía";
+  const startName = route.segNames[0]?.trim() || t("ruta.via");
   const steps: RouteStep[] = [];
   for (const st of route.steps) {
     if (st.icon === "start") continue; // lo reemplaza el start anclado al pin
@@ -674,7 +748,7 @@ export function attachOrigin(route: NavRoute, from: LatLng): NavRoute {
   }
   steps.unshift({
     icon: "start",
-    text: `Parte desde tu ubicación por ${startName}`,
+    text: t("ruta.parteDesde", startName),
     distM: Math.max(1, Math.round(haversineM(from, route.coords[0]))),
     point: coords[0],
     idx: 0,
@@ -717,9 +791,15 @@ export function streetAt(route: NavRoute, idx: number): string {
 }
 
 /** Extrae la calle de un texto de paso ("Gira a la derecha hacia X" → "X",
- *  "Continúa por la ciclovía Y" → "Y"). */
+ *  "Continúa por la ciclovía Y" → "Y"). También entiende los pasos en
+ *  inglés ("Turn left onto X", "Continue on X") y portugués
+ *  ("Vire à esquerda para X", "Continue pela ciclovia Y"). */
 export function streetOfStep(text: string): string {
-  const m = text.match(/hacia\s+(.+)$/) ?? text.match(/por\s+(?:la\s+)?(?:ciclov[ií]a\s+|sendero\s+|vereda\s+)?(.+)$/);
+  const m =
+    text.match(/hacia\s+(.+)$/) ??
+    text.match(/por\s+(?:la\s+)?(?:ciclov[ií]a\s+|sendero\s+|vereda\s+)?(.+)$/) ??
+    text.match(/(?:onto|on)\s+(?:the\s+)?(?:bike\s+path\s+|cycle\s+path\s+)?(.+)$/) ??
+    text.match(/(?:para|pela)\s+(?:a\s+)?(?:ciclovia\s+)?(.+)$/);
   return m ? m[1] : text;
 }
 

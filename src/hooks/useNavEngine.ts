@@ -18,6 +18,7 @@ import { haversineM, routeProgress, type NavRoute, type LatLng } from "@/lib/rou
 import { computeRoute, computePresetRoute } from "@/lib/routingService";
 import { evaluarRuta } from "@/lib/reglasAcceso";
 import { GATES, type Gate } from "@/lib/park";
+import { t } from "@/lib/i18n";
 
 /** Origen provisional mientras no hay GPS (acceso Pío Nono). */
 export const DEFAULT_ORIGIN: LatLng = GATES[0].position;
@@ -161,7 +162,7 @@ export function useNavEngine(position: LatLng | null, running: boolean): NavEngi
       if (!res.route) {
         setRoute(null);
         setProvisional(false);
-        setNote(res.error ?? "No encontramos una ruta ciclable hasta ese destino.");
+        setNote(res.error ?? t("nav.errSinRuta"));
         return;
       }
       setRoute(res.route);
@@ -172,14 +173,14 @@ export function useNavEngine(position: LatLng | null, running: boolean): NavEngi
       setNote(
         res.aviso ??
           (kind === "fallback"
-            ? "Partida provisional desde el Acceso Pío Nono - activa tu GPS para rutear desde tu ubicación."
+            ? t("nav.partidaProvisional")
             : null)
       );
     } catch {
       if (seq !== calcSeqRef.current) return; // llegó uno más nuevo
       setRoute(null);
       setProvisional(false);
-      setNote("No pudimos trazar la ruta ahora. Revisa tu conexión e inténtalo de nuevo.");
+      setNote(t("nav.errTrazar"));
     } finally {
       if (seq === calcSeqRef.current) setLoading(false);
     }
@@ -204,7 +205,7 @@ export function useNavEngine(position: LatLng | null, running: boolean): NavEngi
         let origin = o;
         if (!origin) {
           setLoading(true);
-          setNote("Buscando tu ubicación para rutear desde ahí…");
+          setNote(t("nav.buscandoUbicacion"));
           // 2 intentos: el GPS frío (recién abierto / bajo techo) suele
           // necesitar más de un disparo para dar un fix utilizable.
           // Solo si ambos fallan se usa el origen provisional del acceso.

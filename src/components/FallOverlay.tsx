@@ -18,7 +18,7 @@ import { MessageSquare, Phone, Share2, Siren, UserRound } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import type { LatLng } from "@/lib/park";
 import { alerts } from "@/lib/alertEngine";
-import { t } from "@/lib/i18n";
+import { t, useLang } from "@/lib/i18n";
 import { getIceConfig, iceSmsHref, iceWaHref, triggerIceAutoAlert } from "@/lib/iceContacts";
 import { fallConfirmSegs } from "@/lib/fallDetect";
 
@@ -41,6 +41,7 @@ export function FallOverlay({
 }) {
   const [now, setNow] = useState(Date.now());
   const [msg, setMsg] = useState<string | null>(null);
+  const lang = useLang(); // re-render al cambiar el idioma
   // El auto-aviso ICE corre UNA vez por alerta (identificada por su timestamp).
   const iceAutoAt = useRef<number | null>(null);
   const iceAutoMsg = useRef<number | null>(null);

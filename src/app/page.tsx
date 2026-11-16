@@ -42,39 +42,53 @@ import { autoCheckAlAbrir, registrarToqueActualizacion } from "@/lib/actualizaci
 import { t, useLang } from "@/lib/i18n";
 import type { ProLockFeature } from "@/lib/planData";
 
+/** Pantalla de carga de las secciones con import dinámico (i18n-aware). */
+function Loading({ k, className }: { k: string; className: string }) {
+  useLang();
+  return (
+    <div className={`${className} text-sm text-muted-foreground`}>
+      {t(k)}
+    </div>
+  );
+}
+
 const Wallet = dynamic(() => import("@/components/Wallet"), {
   ssr: false,
   loading: () => (
-    <div className="h-40 rounded-xl border border-border bg-card flex items-center justify-center text-sm text-muted-foreground">
-      Cargando billetera…
-    </div>
+    <Loading
+      k="pg.cargandoBilletera"
+      className="h-40 rounded-xl border border-border bg-card flex items-center justify-center"
+    />
   ),
 });
 
 const MapView = dynamic(() => import("@/components/MapView"), {
   ssr: false,
   loading: () => (
-    <div className="h-full min-h-[420px] bg-card flex items-center justify-center text-sm text-muted-foreground">
-      Cargando mapa…
-    </div>
+    <Loading
+      k="pg.cargandoMapa"
+      className="h-full min-h-[420px] bg-card flex items-center justify-center"
+    />
   ),
 });
 
 const ProfileTab = dynamic(() => import("@/components/ProfileTab"), {
   ssr: false,
   loading: () => (
-    <div className="h-40 rounded-xl border border-border bg-card flex items-center justify-center text-sm text-muted-foreground">
-      Cargando perfil…
-    </div>
+    <Loading
+      k="pg.cargandoPerfil"
+      className="h-40 rounded-xl border border-border bg-card flex items-center justify-center"
+    />
   ),
 });
 
 const ChallengesTab = dynamic(() => import("@/components/ChallengesTab"), {
   ssr: false,
   loading: () => (
-    <div className="h-40 rounded-xl border border-border bg-card flex items-center justify-center text-sm text-muted-foreground">
-      Cargando desafíos…
-    </div>
+    <Loading
+      k="pg.cargandoDesafios"
+      className="h-40 rounded-xl border border-border bg-card flex items-center justify-center"
+    />
   ),
 });
 
@@ -391,7 +405,7 @@ export default function Home() {
 
       {/* Barra inferior: 3 destinos (Ride · Explorar · Acceso) */}
       <nav
-        aria-label="Navegación principal"
+        aria-label={t("pg.navegacionAria")}
         className="fixed bottom-0 inset-x-0 z-40 border-t border-border bg-background/95 backdrop-blur pb-[env(safe-area-inset-bottom)]"
       >
         <div className="mx-auto grid max-w-md grid-cols-3 px-3 py-1.5">

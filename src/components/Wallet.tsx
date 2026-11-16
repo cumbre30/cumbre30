@@ -15,6 +15,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { KeepAwake } from "@capacitor-community/keep-awake";
 import { openExternal } from "@/lib/proConfig";
+import { t, useLang } from "@/lib/i18n";
 
 // ============================================================
 // QR Pedalea Seguro (Parquemet)
@@ -30,6 +31,8 @@ import { openExternal } from "@/lib/proConfig";
 // archivo) y la app la guarda en el teléfono para mostrarla
 // incluso sin señal. 100% local: la imagen no sale del
 // dispositivo y la app no gestiona ninguno de sus datos.
+// Textos vía i18n (claves qr.*); los nombres propios del
+// programa (Pedalea Seguro, Parquemet, ClaveÚnica) se mantienen.
 // ============================================================
 
 type EntryQr = { img: string; savedAt: string };
@@ -80,8 +83,13 @@ async function processQrImage(file: File): Promise<string> {
 }
 
 export default function Wallet() {
+  const lang = useLang(); // re-render al cambiar el idioma
+  // Locale de fecha según idioma (el QR solo existe en cliente,
+  // así que esto no afecta el HTML del servidor).
+  const loc = lang === "en" ? "en-US" : lang === "pt" ? "pt-BR" : "es-CL";
   const [entryQr, setEntryQr] = useState<EntryQr | null>(() => loadEntryQr());
   const [qrBusy, setQrBusy] = useState(false);
+  // qrError guarda la CLAVE i18n (no el texto) para respetar el idioma activo.
   const [qrError, setQrError] = useState("");
   const [fullQr, setFullQr] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -115,11 +123,11 @@ export default function Wallet() {
     if (!f) return;
     setQrError("");
     if (!f.type.startsWith("image/")) {
-      setQrError("Ese archivo no es una imagen. Elige una foto o captura del QR.");
+      setQrError("qr.errNoImagen");
       return;
     }
     if (f.size > 12 * 1024 * 1024) {
-      setQrError("La imagen es demasiado grande (máximo 12 MB).");
+      setQrError("qr.errGrande");
       return;
     }
     setQrBusy(true);
@@ -129,7 +137,7 @@ export default function Wallet() {
       localStorage.setItem(QR_KEY, JSON.stringify(rec));
       setEntryQr(rec);
     } catch {
-      setQrError("No pudimos procesar la imagen. Intenta con otra.");
+      setQrError("qr.errProceso");
     } finally {
       setQrBusy(false);
     }
@@ -149,13 +157,7 @@ export default function Wallet() {
           <IdCard className="h-5 w-5 text-emerald-600 dark:text-emerald-400 mt-0.5 shrink-0" />
           <div className="text-sm text-muted-foreground">
             <p className="font-medium text-foreground">QR Pedalea Seguro (Parquemet)</p>
-            <p className="mt-1 leading-relaxed">
-              El registro Pedalea Seguro es para ciclistas de montaña (MTB y enduro) que usan los senderos de
-              enduro habilitados del parque. Lo haces en pedaleaseguro.parquemet.cl -con ClaveÚnica o formulario
-              manual- y ahí Parquemet te entrega tu QR y tu número de registro. Esta app no genera ni gestiona
-              ese QR: solo te sirve para guardarlo y mostrarlo cuando lo pidan. La imagen se guarda solo en tu
-              teléfono. Los ciclistas de ruta y recreativos quedan eximidos del registro QR.
-            </p>
+            <p className="mt-1 leading-relaxed">{t("qr.intro")}</p>
           </div>
         </div>
       </Card>
@@ -165,20 +167,20 @@ export default function Wallet() {
         <div className="flex items-start gap-3">
           <CalendarDays className="h-5 w-5 text-emerald-600 dark:text-emerald-400 mt-0.5 shrink-0" />
           <div className="flex-1 text-sm text-muted-foreground">
-            <p className="font-medium text-foreground">Fechas del programa</p>
+            <p className="font-medium text-foreground">{t("qr.fechasTitulo")}</p>
             <p className="mt-1 leading-relaxed">
-              Marcha blanca desde el <span className="font-medium text-foreground">1 de diciembre de 2026</span>.
-              Registro <span className="font-medium text-foreground">obligatorio desde el 15 de diciembre de 2026</span> para
-              quien pedalee en los senderos de enduro habilitados: QR pegado en la bici. Los ciclistas de ruta y
-              recreativos no necesitan QR, pero deben llevar casco y luces y respetar el límite de 30 km/h (el
-              chaleco reflectante propuesto quedó descartado). La velocidad la fiscaliza Carabineros.
+              {t("qr.fechas1")}
+              <span className="font-medium text-foreground">{t("qr.fecha1")}</span>
+              {t("qr.fechas2")}
+              <span className="font-medium text-foreground">{t("qr.fecha2")}</span>
+              {t("qr.fechas3")}
             </p>
             <Button
               variant="outline"
               className="mt-3 border-border text-foreground/90 hover:bg-card"
               onClick={() => void openExternal("https://pedaleaseguro.parquemet.cl")}
             >
-              <ExternalLink className="h-4 w-4 mr-2" /> Ir al registro oficial
+              <ExternalLink className="h-4 w-4 mr-2" /> {t("qr.irRegistro")}
             </Button>
           </div>
         </div>
@@ -189,7 +191,7 @@ export default function Wallet() {
         type="file"
         accept="image/*"
         className="hidden"
-        aria-label="Cargar imagen del QR Pedalea Seguro"
+        aria-label={t("qr.inputAria")}
         onChange={(e) => {
           void onPickFile(e.target.files?.[0] ?? null);
           e.target.value = "";
@@ -202,19 +204,16 @@ export default function Wallet() {
             <div className="rounded-full bg-muted p-3">
               <QrCode className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
             </div>
-            <p className="font-medium text-foreground">Aún no cargas tu QR Pedalea Seguro</p>
-            <p className="text-sm text-muted-foreground max-w-sm">
-              Regístrate en la web oficial, guarda la foto o captura del QR que te entrega y tócala aquí para
-              llevarla siempre a mano - pegada en tu bici y en tu teléfono.
-            </p>
+            <p className="font-medium text-foreground">{t("qr.sinQrTitulo")}</p>
+            <p className="text-sm text-muted-foreground max-w-sm">{t("qr.sinQrSub")}</p>
             <Button
               onClick={() => fileRef.current?.click()}
               disabled={qrBusy}
               className="bg-emerald-600 hover:bg-emerald-500 text-(--c30-on-accent) font-semibold"
             >
-              <Upload className="h-4 w-4 mr-2" /> {qrBusy ? "Procesando…" : "Cargar mi QR"}
+              <Upload className="h-4 w-4 mr-2" /> {qrBusy ? t("qr.procesando") : t("qr.cargar")}
             </Button>
-            {qrError && <p className="text-sm text-red-600 dark:text-red-400">{qrError}</p>}
+            {qrError && <p className="text-sm text-red-600 dark:text-red-400">{t(qrError)}</p>}
           </div>
         </Card>
       ) : (
@@ -224,7 +223,7 @@ export default function Wallet() {
               type="button"
               onClick={() => setFullQr(true)}
               className="rounded-xl bg-white p-3 shadow transition-transform active:scale-[0.98]"
-              aria-label="Ampliar QR Pedalea Seguro"
+              aria-label={t("qr.ampliarAria")}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={entryQr.img} alt="QR Pedalea Seguro de Parquemet" className="h-56 w-56 object-contain" />
@@ -234,7 +233,7 @@ export default function Wallet() {
                 onClick={() => setFullQr(true)}
                 className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-(--c30-on-accent) font-semibold"
               >
-                <Maximize2 className="h-4 w-4 mr-2" /> Pantalla completa
+                <Maximize2 className="h-4 w-4 mr-2" /> {t("qr.pantallaCompleta")}
               </Button>
               <Button
                 variant="outline"
@@ -242,21 +241,21 @@ export default function Wallet() {
                 disabled={qrBusy}
                 className="border-border text-foreground/90 hover:bg-card"
               >
-                <RefreshCw className="h-4 w-4 mr-1" /> Cambiar
+                <RefreshCw className="h-4 w-4 mr-1" /> {t("qr.cambiar")}
               </Button>
               <Button
                 variant="outline"
                 onClick={removeQr}
-                aria-label="Eliminar QR cargado"
+                aria-label={t("qr.eliminarAria")}
                 className="border-border text-muted-foreground hover:bg-card"
               >
                 <Trash2 className="h-4 w-4" />
               </Button>
             </div>
-            {qrError && <p className="text-sm text-red-600 dark:text-red-400">{qrError}</p>}
+            {qrError && <p className="text-sm text-red-600 dark:text-red-400">{t(qrError)}</p>}
             {entryQr.savedAt && (
               <p className="text-[11px] text-muted-foreground/80">
-                Cargado el {new Date(entryQr.savedAt).toLocaleString("es-CL")}
+                {t("qr.cargadoEl", new Date(entryQr.savedAt).toLocaleString(loc))}
               </p>
             )}
           </div>
@@ -269,7 +268,7 @@ export default function Wallet() {
           className="fixed inset-0 z-[100] bg-white flex flex-col items-center justify-center cursor-pointer select-none"
           onClick={() => setFullQr(false)}
           role="button"
-          aria-label="Cerrar pantalla completa del QR"
+          aria-label={t("qr.cerrarFullAria")}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
@@ -278,7 +277,7 @@ export default function Wallet() {
             className="max-h-[80vh] max-w-[94vw] object-contain"
           />
           <p className="mt-5 px-6 text-center text-sm text-zinc-500">
-            Toca en cualquier parte para salir · la pantalla no se apaga
+            {t("qr.fullHint")}
           </p>
         </div>
       )}

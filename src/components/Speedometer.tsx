@@ -14,6 +14,7 @@
 // ============================================================
 
 import { speedoFontPx, speedoGaugeWidth, type SpeedoSize, type SpeedoStyle } from "@/lib/rideTheme";
+import { t, useLang } from "@/lib/i18n";
 
 type Props = {
   speedKmh: number;
@@ -144,6 +145,7 @@ function NeedleGauge({ frac, className }: { frac: number; className: string }) {
 }
 
 export function Speedometer({ speedKmh, idle, over, caution, inPark, style, size }: Props) {
+  const lang = useLang(); // re-render al cambiar el idioma
   const colorCls = stateTextClass(idle, over, caution, inPark);
   const frac = Math.max(0, Math.min(1, speedKmh / MAX_KMH));
   const shown = Math.round(speedKmh);
@@ -154,7 +156,7 @@ export function Speedometer({ speedKmh, idle, over, caution, inPark, style, size
       <div
         className={`text-center font-mono font-extrabold tabular-nums leading-none tracking-tighter ${colorCls}`}
         style={{ fontSize: px }}
-        aria-label={`Velocidad actual ${shown} kilómetros por hora`}
+        aria-label={t("vel.ariaActual", shown)}
       >
         {shown}
         <span className="ml-2 align-baseline font-sans text-base font-semibold normal-case tracking-normal text-muted-foreground">km/h</span>
@@ -174,7 +176,7 @@ export function Speedometer({ speedKmh, idle, over, caution, inPark, style, size
         style={{ width, maxWidth: "100%" }}
         className="mx-auto block"
         role="img"
-        aria-label={`Velocidad actual ${shown} kilómetros por hora`}
+        aria-label={t("vel.ariaActual", shown)}
       >
         <NeedleGauge frac={frac} className={colorCls} />
         <text
@@ -201,7 +203,7 @@ export function Speedometer({ speedKmh, idle, over, caution, inPark, style, size
       style={{ width, maxWidth: "100%" }}
       className="mx-auto block"
       role="img"
-      aria-label={`Velocidad actual ${shown} kilómetros por hora`}
+      aria-label={t("vel.ariaActual", shown)}
     >
       <GaugeArc frac={frac} className={colorCls} ticks={style === "dial"} />
       <text

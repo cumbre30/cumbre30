@@ -73,7 +73,11 @@ export const APPS: AppCatalogo[] = [
       {
         titulo: "Funciones principales",
         cuerpo:
-          "• Ciclocomputador completo: velocidad actual y máxima, distancia, tiempo, desnivel acumulado y mapa en tiempo real.\n• Límite 30 km/h con alertas de voz, pitidos y vibración dentro del parque.\n• Rutas y navegación hacia Plaza México, Pío Nono, Pedro de Valdivia, La Pirámide, Piscina Antilén, Jardín Japonés y más.\n• Desafíos por nivel (diarios, semanales y mensuales) con pines exclusivos para tu perfil.\n• Credencial digital de enrolamiento Parquemet con código QR.\n• Historial de rides con trazado GPS, exportación en GPX y resumen para compartir.\n• Detección de viaje en vehículo motorizado para que tus estadísticas reflejen solo tus pedaleos.",
+                    "• Ruta 4 y rutas del catálogo por el lado correcto: desde el oriente suben por Costanera Sur · Puente Centenario (~9 km) y no por Recoleta y Polanco (~15 km).\n" +
+          "• Búsqueda de direcciones: la ruta llega hasta el destino exacto (antes se cortaba hasta 400 m antes del pin).\n" +
+          "• Configuración rediseñada: secciones General y Acerca de; General con 3 tarjetas (Seguridad, Monitoreo y salud, Personalización).\n" +
+          "• Toda la app en inglés y portugués (antes solo Ride y avisos) y modo claro/oscuro revisado pantalla por pantalla.\n" +
+"• Ciclocomputador completo: velocidad actual y máxima, distancia, tiempo, desnivel acumulado y mapa en tiempo real.\n• Límite 30 km/h con alertas de voz, pitidos y vibración dentro del parque.\n• Rutas y navegación hacia Plaza México, Pío Nono, Pedro de Valdivia, La Pirámide, Piscina Antilén, Jardín Japonés y más.\n• Desafíos por nivel (diarios, semanales y mensuales) con pines exclusivos para tu perfil.\n• Credencial digital de enrolamiento Parquemet con código QR.\n• Historial de rides con trazado GPS, exportación en GPX y resumen para compartir.\n• Detección de viaje en vehículo motorizado para que tus estadísticas reflejen solo tus pedaleos.",
       },
       {
         titulo: "Requisitos y compatibilidad",

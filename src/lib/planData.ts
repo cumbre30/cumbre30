@@ -18,42 +18,47 @@
 //   · Estadísticas avanzadas (resumen mensual): solo Pro
 //     (StatsTab → lib/statsMonthly).
 // Nada inventado: si cambia el gating, actualizar aquí también.
+// i18n: los textos son CLAVES del diccionario (src/lib/i18n.ts,
+// grupos plan.* y p.*); PlanesTab y ProContextModal las pintan
+// con t(). Las claves NO se comparan en lógica.
 // ============================================================
 
 export type PlanRow = {
   feature: string;
-  free: string | boolean; // true = Sí · false = No · string = límite
+  free: string | boolean; // true = Sí · false = No · string = clave i18n
   pro: string | boolean;
 };
 
 export const PLAN_ROWS: PlanRow[] = [
-  { feature: "Ciclocomputador y límite 30 km/h", free: true, pro: true },
-  { feature: "GPS real y registro de viajes", free: true, pro: true },
-  { feature: "Mapa del cerro y rutas a destinos", free: true, pro: true },
-  { feature: "Acceso QR y ficha médica", free: true, pro: true },
-  { feature: "Desafíos diarios, semanales y mensuales", free: true, pro: true },
-  { feature: "Desafíos del cerro", free: "1.º de cada serie", pro: "Todos" },
-  { feature: "Pines de recompensa", free: "Los de retos gratis", pro: "Todos" },
-  { feature: "Constancias PDF", free: "3 al mes", pro: "Ilimitadas" },
-  { feature: "Historial de viajes", free: "Últimos 20", pro: "Ilimitado" },
-  { feature: "Estadísticas avanzadas (mes a mes)", free: false, pro: true },
-  { feature: "Buscador universal de direcciones", free: false, pro: true },
-  { feature: "Segmentos del cerro con récords", free: false, pro: true },
-  { feature: "Export GPX (Strava, Garmin, Komoot)", free: false, pro: true },
-  { feature: "Temas de color y velocímetro personalizable", free: false, pro: true },
+  { feature: "plan.f.cc", free: true, pro: true },
+  { feature: "plan.f.gps", free: true, pro: true },
+  { feature: "plan.f.mapa", free: true, pro: true },
+  { feature: "plan.f.qr", free: true, pro: true },
+  { feature: "plan.f.desafiosTiempo", free: true, pro: true },
+  { feature: "plan.f.desafiosCerro", free: "plan.c.primero", pro: "plan.c.todos" },
+  { feature: "plan.f.pines", free: "plan.c.retosGratis", pro: "plan.c.todos" },
+  { feature: "plan.f.constancias", free: "plan.c.tresMes", pro: "plan.c.ilimitadas" },
+  { feature: "plan.f.historial", free: "plan.c.ultimos20", pro: "plan.c.ilimitado" },
+  { feature: "plan.f.stats", free: false, pro: true },
+  { feature: "plan.f.buscador", free: false, pro: true },
+  { feature: "plan.f.segmentos", free: false, pro: true },
+  { feature: "plan.f.gpx", free: false, pro: true },
+  { feature: "plan.f.temas", free: false, pro: true },
 ];
 
-/** Texto del beneficio Pro que abre el modal contextual del mapa. */
+/** Texto del beneficio Pro que abre el modal contextual del mapa.
+ *  Valores = claves i18n (grupo p.*): ProContextModal las renderiza
+ *  con t(copy.title) / t(copy.body) / t(copy.free). */
 export const PRO_LOCK_COPY = {
   buscador: {
-    title: "Buscador universal de direcciones",
-    body: "Escribe cualquier dirección de Santiago -tu casa, el trabajo, otra ciclovía- y el mapa traza la ruta ciclable hasta ahí, sola. También desde cualquier lugar del cerro.",
-    free: "En FREE igual puedes navegar: el mapa, los destinos del cerro y el reporte de incidencias funcionan completos. El buscador de texto libre y tus lugares guardados son la parte Pro.",
+    title: "p.buscadorTitle",
+    body: "p.buscadorBody",
+    free: "p.buscadorFree",
   },
   marcador: {
-    title: "Mis lugares y marcadores",
-    body: "Guarda tus propios puntos -miradores, fuentes, el punto de encuentro del grupo- tocando el mapa, y traza ruta a cada uno con un toque.",
-    free: "En FREE el mapa completo sigue disponible. Guardar lugares y marcar puntos personalizados es parte de Cumbre30 Pro.",
+    title: "p.marcadorTitle",
+    body: "p.marcadorBody",
+    free: "p.marcadorFree",
   },
 } as const;
 

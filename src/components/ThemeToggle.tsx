@@ -4,6 +4,7 @@ import { useTheme } from "next-themes";
 import { Moon, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useSyncExternalStore } from "react";
+import { t, useLang } from "@/lib/i18n";
 
 // ------------------------------------------------------------
 // Control de modo oscuro / claro: un único botón compacto
@@ -22,6 +23,7 @@ const emptySubscribe = () => () => {};
 
 export function ThemeIconButton() {
   const { resolvedTheme, setTheme } = useTheme();
+  const lang = useLang(); // re-render al cambiar el idioma
   const mounted = useSyncExternalStore(emptySubscribe, () => true, () => false);
   // Antes de montar asumimos oscuro (el default de la app).
   const dark = mounted ? resolvedTheme !== "light" : true;
@@ -30,8 +32,8 @@ export function ThemeIconButton() {
       variant="ghost"
       size="icon"
       onClick={() => setTheme(dark ? "light" : "dark")}
-      aria-label={dark ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
-      title={dark ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
+      aria-label={dark ? t("tema.aClaro") : t("tema.aOscuro")}
+      title={dark ? t("tema.aClaro") : t("tema.aOscuro")}
       className="h-8 w-8 text-muted-foreground"
     >
       {mounted ? (

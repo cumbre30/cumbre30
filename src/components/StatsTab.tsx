@@ -26,6 +26,7 @@ import { useProLicense } from "@/lib/proLicense";
 import { useMe } from "@/hooks/useMe";
 import { ProTag } from "@/components/ProUI";
 import { SubTabs } from "@/components/SubTabs";
+import { t, useLang } from "@/lib/i18n";
 
 function Kpi({ icon, label, value, unit }: { icon: React.ReactNode; label: string; value: string; unit?: string }) {
   return (
@@ -46,6 +47,7 @@ function Kpi({ icon, label, value, unit }: { icon: React.ReactNode; label: strin
 export function StatsTab({ onGoPro }: { onGoPro: () => void }) {
   const rides = useSyncExternalStore(historyStore.subscribe, historyStore.get, historyStore.getServer);
   const { pro } = useProLicense();
+  useLang();
   const { me } = useMe();
 
   // Subsecciones: General (totales) | Pro (segmentos del cerro)
@@ -86,11 +88,11 @@ export function StatsTab({ onGoPro }: { onGoPro: () => void }) {
   return (
     <div className="flex flex-col gap-4">
       <SubTabs
-        ariaLabel="Subsecciones de Estadísticas generales"
+        ariaLabel={t("st.subAria")}
         value={sub}
         onChange={(k) => setSub(k as "general" | "pro")}
         tabs={[
-          { key: "general", label: "General" },
+          { key: "general", label: t("st.tabGeneral") },
           { key: "pro", label: "Pro", crown: true },
         ]}
       />
@@ -98,47 +100,49 @@ export function StatsTab({ onGoPro }: { onGoPro: () => void }) {
       {sub === "general" && (
         <>
           <div className="grid grid-cols-2 gap-2.5">
-            <Kpi icon={<Route className="h-3.5 w-3.5" />} label="Distancia" value={totals.dist.toFixed(1)} unit="km" />
-            <Kpi icon={<Trophy className="h-3.5 w-3.5" />} label="Viajes" value={String(totals.count)} />
-            <Kpi icon={<Clock className="h-3.5 w-3.5" />} label="Tiempo" value={formatClock(totals.time)} />
-            <Kpi icon={<Mountain className="h-3.5 w-3.5" />} label="Desnivel" value={`+${Math.round(totals.gain)}`} unit="m" />
-            <Kpi icon={<Gauge className="h-3.5 w-3.5" />} label="Vel. máx" value={totals.max.toFixed(1)} unit="km/h" />
-            <Kpi icon={<Gauge className="h-3.5 w-3.5" />} label="Vel. prom" value={totals.avg.toFixed(1)} unit="km/h" />
+            <Kpi icon={<Route className="h-3.5 w-3.5" />} label={t("st.kDistancia")} value={totals.dist.toFixed(1)} unit="km" />
+            <Kpi icon={<Trophy className="h-3.5 w-3.5" />} label={t("st.kViajes")} value={String(totals.count)} />
+            <Kpi icon={<Clock className="h-3.5 w-3.5" />} label={t("st.kTiempo")} value={formatClock(totals.time)} />
+            <Kpi icon={<Mountain className="h-3.5 w-3.5" />} label={t("st.kDesnivel")} value={`+${Math.round(totals.gain)}`} unit="m" />
+            <Kpi icon={<Gauge className="h-3.5 w-3.5" />} label={t("st.velMax")} value={totals.max.toFixed(1)} unit="km/h" />
+            <Kpi icon={<Gauge className="h-3.5 w-3.5" />} label={t("st.velProm")} value={totals.avg.toFixed(1)} unit="km/h" />
           </div>
           <p className="-mt-1 text-center text-[11px] text-muted-foreground">
-            Solo cuentan viajes con GPS real en bici (los demo y los viajes en vehículo no) · se guardan en este teléfono (gratis: últimos 20).
+            {t("st.notaGps")}
           </p>
 
           {/* Rachas de actividad (Ola 1): días y semanas consecutivas con ride */}
           <Card className="p-4">
             <div className="flex items-center gap-2">
               <Flame className="h-4 w-4 text-orange-500" />
-              <p className="text-sm font-semibold text-foreground">Rachas</p>
+              <p className="text-sm font-semibold text-foreground">{t("st.rachas")}</p>
             </div>
             <div className="mt-3 grid grid-cols-3 gap-2.5 text-center">
               <div className="rounded-lg border border-border/70 bg-background/40 p-2.5">
                 <p className="font-mono text-[20px] font-bold leading-none tabular-nums text-foreground">
                   {rachas.diasActual}
                 </p>
-                <p className="mt-1 text-[10px] leading-tight text-muted-foreground">días seguidos</p>
+                <p className="mt-1 text-[10px] leading-tight text-muted-foreground">{t("st.diasSeguidos")}</p>
               </div>
               <div className="rounded-lg border border-border/70 bg-background/40 p-2.5">
                 <p className="font-mono text-[20px] font-bold leading-none tabular-nums text-foreground">
                   {rachas.diasMaxima}
                 </p>
-                <p className="mt-1 text-[10px] leading-tight text-muted-foreground">récord de días</p>
+                <p className="mt-1 text-[10px] leading-tight text-muted-foreground">{t("st.recordDias")}</p>
               </div>
               <div className="rounded-lg border border-border/70 bg-background/40 p-2.5">
                 <p className="font-mono text-[20px] font-bold leading-none tabular-nums text-foreground">
                   {rachas.semanasActual}
                 </p>
-                <p className="mt-1 text-[10px] leading-tight text-muted-foreground">semanas seguidas</p>
+                <p className="mt-1 text-[10px] leading-tight text-muted-foreground">{t("st.semanasSeguidas")}</p>
               </div>
             </div>
             <p className="mt-2.5 text-center text-[11px] text-muted-foreground">
               {rachas.diasTotales > 0
-                ? `${rachas.diasTotales} ${rachas.diasTotales === 1 ? "día distinto con pedaleo" : "días distintos con pedaleo"} en tu historial`
-                : "Pedalea un día para arrancar tu primera racha"}
+                ? rachas.diasTotales === 1
+                  ? t("st.diaDistinto", rachas.diasTotales)
+                  : t("st.diasDistintos", rachas.diasTotales)
+                : t("st.arrancaRacha")}
             </p>
           </Card>
 
@@ -149,19 +153,18 @@ export function StatsTab({ onGoPro }: { onGoPro: () => void }) {
                 <CalendarRange className="h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400 mt-0.5" />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <p className="text-sm font-semibold text-foreground">Resumen mensual avanzado</p>
+                    <p className="text-sm font-semibold text-foreground">{t("st.resumenMensual")}</p>
                     <ProTag />
                   </div>
                   <p className="mt-1 text-[12.5px] leading-relaxed text-muted-foreground">
-                    Tus kilómetros mes a mes con desnivel y horas en bici, comparación contra el mes anterior y tu
-                    récord de mejor mes.
+                    {t("st.resumenSub")}
                   </p>
                   <Button
                     onClick={onGoPro}
                     size="sm"
                     className="mt-3 h-9 bg-amber-500 font-bold text-zinc-950 hover:bg-amber-400"
                   >
-                    <Lock className="mr-1.5 h-3.5 w-3.5" /> Con PRO
+                    <Lock className="mr-1.5 h-3.5 w-3.5" /> {t("st.conPro")}
                   </Button>
                 </div>
               </div>
@@ -175,30 +178,30 @@ export function StatsTab({ onGoPro }: { onGoPro: () => void }) {
           {/* Resumen mensual - estadísticas avanzadas (Pro) */}
           <div>
             <div className="mb-2 flex items-center gap-2">
-              <p className="text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground">Resumen mensual</p>
+              <p className="text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground">{t("st.resumenMensualTitulo")}</p>
               {!pro.active && <ProTag />}
             </div>
             {pro.active ? (
               <div className="flex flex-col gap-2">
                 <div className="grid grid-cols-3 gap-2">
-                  <Kpi icon={<TrendingUp className="h-3.5 w-3.5" />} label="Este mes" value={(months[months.length - 1]?.km ?? 0).toFixed(1)} unit="km" />
-                  <Kpi icon={<CalendarRange className="h-3.5 w-3.5" />} label="Mes anterior" value={(months[months.length - 2]?.km ?? 0).toFixed(1)} unit="km" />
-                  <Kpi icon={<Trophy className="h-3.5 w-3.5" />} label="Mejor mes" value={(best?.km ?? 0).toFixed(1)} unit="km" />
+                  <Kpi icon={<TrendingUp className="h-3.5 w-3.5" />} label={t("st.esteMes")} value={(months[months.length - 1]?.km ?? 0).toFixed(1)} unit="km" />
+                  <Kpi icon={<CalendarRange className="h-3.5 w-3.5" />} label={t("st.mesAnterior")} value={(months[months.length - 2]?.km ?? 0).toFixed(1)} unit="km" />
+                  <Kpi icon={<Trophy className="h-3.5 w-3.5" />} label={t("st.mejorMes")} value={(best?.km ?? 0).toFixed(1)} unit="km" />
                 </div>
                 {delta && (
                   <p className="text-center text-[11.5px] text-muted-foreground">
-                    Variación vs mes anterior: <b className="text-foreground">{delta}</b>
-                    {best ? ` · récord: ${best.label} con ${best.km.toFixed(1)} km` : ""}
+                    {t("st.variacion")}<b className="text-foreground">{delta}</b>
+                    {best ? t("st.recordMes", best.label, best.km.toFixed(1)) : ""}
                   </p>
                 )}
                 <Card className="overflow-hidden p-0">
                   <table className="w-full border-collapse text-[12.5px]">
                     <thead>
                       <tr className="bg-muted/70">
-                        <th className="px-3 py-2 text-left text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground">Mes</th>
-                        <th className="px-2 py-2 text-right text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground">Km</th>
-                        <th className="px-2 py-2 text-right text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground">Viajes</th>
-                        <th className="px-3 py-2 text-right text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground">Desnivel</th>
+                        <th className="px-3 py-2 text-left text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground">{t("st.thMes")}</th>
+                        <th className="px-2 py-2 text-right text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground">{t("st.thKm")}</th>
+                        <th className="px-2 py-2 text-right text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground">{t("st.thViajes")}</th>
+                        <th className="px-3 py-2 text-right text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground">{t("st.thDesnivel")}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -215,13 +218,13 @@ export function StatsTab({ onGoPro }: { onGoPro: () => void }) {
                     </tbody>
                   </table>
                 </Card>
-                <p className="text-center text-[11px] text-muted-foreground">Últimos 6 meses · solo viajes con GPS real en bici.</p>
+                <p className="text-center text-[11px] text-muted-foreground">{t("st.ultimos6")}</p>
               </div>
             ) : (
               <Card className="p-4 text-center text-xs leading-relaxed text-muted-foreground">
-                Kilómetros mes a mes, desnivel, horas en bici y tu mejor mes.
+                {t("st.proTeaserMes")}
                 <Button onClick={onGoPro} size="sm" className="mt-3 h-9 bg-amber-500 font-bold text-zinc-950 hover:bg-amber-400">
-                  <Lock className="mr-1.5 h-3.5 w-3.5" /> Desbloquear con PRO
+                  <Lock className="mr-1.5 h-3.5 w-3.5" /> {t("st.desbloquearPro")}
                 </Button>
               </Card>
             )}
@@ -230,7 +233,7 @@ export function StatsTab({ onGoPro }: { onGoPro: () => void }) {
           {/* Segmentos del cerro - función Pro validada (lib/segments) */}
           <div>
             <div className="mb-2 flex items-center gap-2">
-              <p className="text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground">Segmentos del cerro</p>
+              <p className="text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground">{t("his.segmentosCerro")}</p>
               {!pro.active && <ProTag />}
             </div>
             {pro.active ? (
@@ -242,8 +245,8 @@ export function StatsTab({ onGoPro }: { onGoPro: () => void }) {
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-[13.5px] font-bold text-foreground">{s.def.name}</p>
                         <p className="text-[11px] text-muted-foreground">
-                          {s.count} {s.count === 1 ? "intento" : "intentos"}
-                          {s.pb ? ` · récord: ${fmtEffort(s.pb.timeSec)}` : ""}
+                          {s.count === 1 ? t("his.intento", s.count) : t("his.intentos", s.count)}
+                          {s.pb ? t("st.conRecord", fmtEffort(s.pb.timeSec)) : ""}
                         </p>
                       </div>
                     </Card>
@@ -251,7 +254,7 @@ export function StatsTab({ onGoPro }: { onGoPro: () => void }) {
                 </div>
               ) : (
                 <Card className="p-4 text-center text-xs text-muted-foreground">
-                  Pedalea el cerro con GPS real y tus tiempos por segmento aparecerán aquí.
+                  {t("st.segVacio")}
                 </Card>
               )
             ) : (
@@ -271,7 +274,7 @@ export function StatsTab({ onGoPro }: { onGoPro: () => void }) {
                   ))}
                 </div>
                 <Button onClick={onGoPro} size="sm" className="h-9 shrink-0 self-center rounded-lg bg-emerald-600 px-3 text-xs font-bold text-(--c30-on-accent) hover:bg-emerald-500">
-                  <Lock className="mr-1 h-3 w-3" /> Con PRO
+                  <Lock className="mr-1 h-3 w-3" /> {t("st.conPro")}
                 </Button>
               </>
             )}
