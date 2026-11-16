@@ -9,7 +9,7 @@
 // ============================================================
 
 import { useState } from "react";
-import { Mail, Mountain } from "lucide-react";
+import { Mail, Mountain, Map, ShieldCheck, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -107,6 +107,45 @@ export function HelpTab() {
         <p className="text-[13px] leading-relaxed text-muted-foreground">
           {t("ay.constanciasCuerpo1")}<b className="text-foreground">{t("ay.misViajes")}</b>{t("ay.constanciasCuerpo2")}
         </p>
+      </Card>
+
+      {/* ---- Fuentes cartográficas y licencias (OSM/ODbL) ---- */}
+      <Card className="p-4">
+        <div className="mb-1.5 flex items-center gap-2 font-bold text-foreground">
+          <Map className="h-4 w-4 text-emerald-500" /> {t("ay.fuentesTitulo")}
+        </div>
+        <p className="text-[13px] leading-relaxed text-muted-foreground">
+          {t("ay.fuentesCuerpo")}
+        </p>
+        <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
+          © <a className="underline underline-offset-2" href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors · <a className="underline underline-offset-2" href="https://opendatacommons.org/licenses/odbl/1-0/">ODbL</a>
+        </p>
+      </Card>
+
+      {/* ---- Términos de uso: mensaje de responsabilidad exigido ---- */}
+      <Card className="p-4">
+        <div className="mb-1.5 flex items-center gap-2 font-bold text-foreground">
+          <ShieldCheck className="h-4 w-4 text-emerald-500" /> {t("ay.terminosTitulo")}
+        </div>
+        <p className="text-[13px] leading-relaxed text-muted-foreground">
+          {t("ay.terminosCuerpo")}
+        </p>
+      </Card>
+
+      {/* ---- Privacidad y datos personales (Ley 21.719) ---- */}
+      <Card className="p-4">
+        <div className="mb-1.5 flex items-center gap-2 font-bold text-foreground">
+          <Lock className="h-4 w-4 text-emerald-500" /> {t("ay.privacidadTitulo")}
+        </div>
+        <p className="text-[13px] leading-relaxed text-muted-foreground">
+          {t("ay.privacidadCuerpo1")}
+        </p>
+        <ul className="mt-2 list-disc space-y-1 pl-5 text-[12.5px] leading-relaxed text-muted-foreground">
+          <li>{t("ay.privacidadFinalidad")}</li>
+          <li>{t("ay.privacidadDuracion")}</li>
+          <li>{t("ay.privacidadEliminacion")}</li>
+          <li>{t("ay.privacidadSeguridad")}</li>
+        </ul>
       </Card>
       </>
       )}

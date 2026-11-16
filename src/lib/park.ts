@@ -26,6 +26,7 @@
 // se extiende hasta esa misma esquina (ver comentario en PARK_POLYGON).
 // ============================================================
 
+import { TRAZABILIDAD_GEOCERCAS, type TrazabilidadGeocerca } from "@/lib/geocercas";
 export const LIMIT_KMH = 30;
 export const CAUTION_KMH = LIMIT_KMH - 3; // aviso previo a los 27 km/h
 
@@ -319,6 +320,8 @@ export type RiskZone = {
   radiusM: number;
   /** Mensaje de voz al aproximarse. */
   voice: string;
+  /** Trazabilidad y clasificación (requerimiento de cumplimiento, geocercas.ts). */
+  trazabilidad?: TrazabilidadGeocerca;
 };
 
 /** Zonas de riesgo: puntos sensibles de control y accidentes.
@@ -337,6 +340,7 @@ export const RISK_ZONES: RiskZone[] = [
     position: { lat: -33.416704, lon: -70.623639 },
     radiusM: 55,
     voice: "Atención, curva cerrada de la Casa Anáhuac. Reduce velocidad.",
+    trazabilidad: TRAZABILIDAD_GEOCERCAS["anahuac"],
   },
   {
     id: "antiluen",
@@ -345,6 +349,7 @@ export const RISK_ZONES: RiskZone[] = [
     position: { lat: -33.407601, lon: -70.611192 },
     radiusM: 55,
     voice: "Proximidad a la piscina Antilén. Cruza con precaución, área peatonal.",
+    trazabilidad: TRAZABILIDAD_GEOCERCAS["antiluen"],
   },
   {
     id: "jardin-japones",
@@ -354,6 +359,7 @@ export const RISK_ZONES: RiskZone[] = [
     position: { lat: -33.413703, lon: -70.614831 },
     radiusM: 55,
     voice: "Jardín Japonés a la vista. Peatones cruzando.",
+    trazabilidad: TRAZABILIDAD_GEOCERCAS["jardin-japones"],
   },
   {
     id: "salida-pv",
@@ -366,6 +372,7 @@ export const RISK_ZONES: RiskZone[] = [
     position: { lat: -33.416209, lon: -70.619256 },
     radiusM: 55,
     voice: "Tramo previo a la salida Pedro de Valdivia. Confluencia de ciclistas y vehículos.",
+    trazabilidad: TRAZABILIDAD_GEOCERCAS["salida-pv"],
   },
   {
     id: "zoologico",
@@ -374,6 +381,7 @@ export const RISK_ZONES: RiskZone[] = [
     position: { lat: -33.429544, lon: -70.636007 },
     radiusM: 55,
     voice: "Zona de Zoológico. Niños y peatones en el camino.",
+    trazabilidad: TRAZABILIDAD_GEOCERCAS["zoologico"],
   },
 ];
 

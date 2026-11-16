@@ -460,6 +460,11 @@ export function ConfigTab({
       <Row icon={<BellRing className="h-5 w-5" />} title={t("cfg.iceAuto")} sub={t("cfg.iceAutoSub")}>
         <Toggle on={ice.auto} onChange={toggleIceAuto} label={t("cfg.iceAuto")} />
       </Row>
+      {/* Mensaje de responsabilidad (requerimiento de cumplimiento,
+          2026-11-16): texto oficial exigido para las alertas geográficas. */}
+      <Row icon={<Info className="h-5 w-5" />} title={t("cfg.disclaimerTitulo")} sub={t("cfg.disclaimerTexto")}>
+        <span />
+      </Row>
       {/* Avisos push del parque: solo web (el APK tiene notificaciones
           locales nativas). Vivía suelto en General; ahora es parte de
           Seguridad · Alertas. */}

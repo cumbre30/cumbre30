@@ -1329,7 +1329,7 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
         >
           <TileLayer
             url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors · <a href="https://opendatacommons.org/licenses/odbl/1-0/">ODbL</a>'
             maxZoom={19}
           />
 
@@ -1350,6 +1350,28 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
               <Tooltip direction="top" offset={[0, -6]}>
                 <span className="text-xs font-medium">⚠ {z.name}</span>
               </Tooltip>
+              <Popup minWidth={215}>
+                <div className="text-[11.5px] leading-snug">
+                  <p className="font-semibold">⚠ {z.name}</p>
+                  <p className="mt-1">
+                    <b>{t("geo.categoria")}:</b> {t("geo.cat.SAFETY")}
+                  </p>
+                  {z.trazabilidad && (
+                    <>
+                      <p>
+                        <b>{t("geo.fuente")}:</b> {z.trazabilidad.source}
+                      </p>
+                      <p>
+                        <b>{t("geo.verificado")}:</b> {z.trazabilidad.updated_at}
+                      </p>
+                      <p>
+                        <b>{t("geo.confianza")}:</b> {z.trazabilidad.confidence_level}
+                      </p>
+                    </>
+                  )}
+                  <p className="mt-1.5 opacity-75">{t("geo.orientativo")}</p>
+                </div>
+              </Popup>
             </Circle>
           ))}
 

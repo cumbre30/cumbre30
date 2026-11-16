@@ -1151,6 +1151,65 @@ const D: Record<string, E> = {
   "tema.aOscuro": ["Cambiar a modo oscuro", "Switch to dark mode", "Mudar para modo escuro"],
   "cfg.lockVelocimetro": ["El velocímetro {0}", "The {0} speedometer", "O velocímetro {0}"],
   "cfg.lockTamano": ["El tamaño {0} del velocímetro", "The {0} speedometer size", "O tamanho {0} do velocímetro"],
+
+  // ---------- cumplimiento geocercas y privacidad (fase 4, 2026-11-16) ----------
+  // Clasificación de geocercas (INFORMATIVE/SAFETY/OFFICIAL_RESTRICTION)
+  // y trazabilidad visible en el popup de cada zona del mapa Explorar.
+  "geo.categoria": ["Clasificación", "Classification", "Classificação"],
+  "geo.cat.SAFETY": ["Zona de riesgo y precaución", "Risk and caution zone", "Zona de risco e precaução"],
+  "geo.cat.INFORMATIVE": ["Advertencia orientativa", "Orientation warning", "Aviso orientativo"],
+  "geo.cat.OFFICIAL_RESTRICTION": ["Restricción oficial", "Official restriction", "Restrição oficial"],
+  "geo.fuente": ["Fuente", "Source", "Fonte"],
+  "geo.verificado": ["Verificado", "Verified", "Verificado"],
+  "geo.confianza": ["Confianza", "Confidence", "Confiança"],
+  "geo.orientativo": ["Información orientativa; no sustituye la señalización ni la normativa oficial.", "Orientation-only information; it does not replace official signage or rules.", "Informação orientativa; não substitui a sinalização nem as regras oficiais."],
+  // Mensaje de responsabilidad EXIGIDO por el requerimiento (§5) — el
+  // texto en español es la versión oficial; en/pt son traducciones.
+  "cfg.disclaimerTitulo": ["Alertas orientativas", "Orientation alerts", "Alertas orientativas"],
+  "cfg.disclaimerTexto": [
+    "Las alertas geográficas son orientativas y no sustituyen la señalización oficial, las disposiciones de la administración del parque ni las condiciones reales del terreno.",
+    "Geographic alerts are informational only and do not replace official signage, the park administration's rules, or actual terrain conditions.",
+    "Os alertas geográficos são orientativos e não substituem a sinalização oficial, as disposições da administração do parque nem as condições reais do terreno.",
+  ],
+  // Ayuda: fuentes OSM/ODbL, términos de uso y privacidad (Ley 21.719)
+  "ay.fuentesTitulo": ["Fuentes cartográficas y licencias", "Map sources and licenses", "Fontes cartográficas e licenças"],
+  "ay.fuentesCuerpo": [
+    "El mapa y las rutas usan información de OpenStreetMap, mantenida por la comunidad bajo la licencia ODbL. El grafo de ruteo propio de Cumbre30 (red-ciclista.json) es una obra derivada de OSM y comparte la misma atribución y licencia. La información cartográfica de la app es orientativa: ninguna restricción se presenta como normativa oficial salvo las respaldadas por la administración del parque (clasificadas «Restricción oficial»).",
+    "The map and routes use OpenStreetMap information, maintained by the community under the ODbL license. Cumbre30's own routing graph (red-ciclista.json) is a derivative work of OSM and shares the same attribution and license. The app's cartographic information is orientation-only: no restriction is presented as official regulation except those backed by the park administration (classified «Official restriction»).",
+    "O mapa e as rotas usam informações do OpenStreetMap, mantido pela comunidade sob a licença ODbL. O grafo de roteamento próprio do Cumbre30 (red-ciclista.json) é uma obra derivada do OSM e compartilha a mesma atribuição e licença. As informações cartográficas do app são orientativas: nenhuma restrição é apresentada como normativa oficial, exceto as respaldadas pela administração do parque (classificadas «Restrição oficial»).",
+  ],
+  "ay.terminosTitulo": ["Términos de uso", "Terms of use", "Termos de uso"],
+  "ay.terminosCuerpo": [
+    "Las alertas geográficas son orientativas y no sustituyen la señalización oficial, las disposiciones de la administración del parque ni las condiciones reales del terreno.",
+    "Geographic alerts are informational only and do not replace official signage, the park administration's rules, or actual terrain conditions.",
+    "Os alertas geográficos são orientativos e não substituem a sinalização oficial, as disposições da administração do parque nem as condições reais do terreno.",
+  ],
+  "ay.privacidadTitulo": ["Tus datos y privacidad (Ley 21.719)", "Your data and privacy (Law 21.719)", "Seus dados e privacidade (Lei 21.719)"],
+  "ay.privacidadCuerpo1": [
+    "La ubicación GPS se recopila solo mientras usas la app y se procesa en tu propio dispositivo para detectar zonas, alertas y registrar tus viajes. Esto es lo que debes saber:",
+    "Your GPS location is collected only while you use the app and is processed on your own device to detect zones, alerts and record your rides. This is what you should know:",
+    "Sua localização GPS é coletada apenas enquanto você usa o app e é processada no seu próprio dispositivo para detectar zonas, alertas e registrar seus passeios. Isto é o que você deve saber:",
+  ],
+  "ay.privacidadFinalidad": [
+    "Finalidad: tu ubicación se usa únicamente para detectar geocercas, calcular las distancias del ride y trazarte rutas; no se comparte con otros usuarios ni se usa para publicidad.",
+    "Purpose: your location is used solely to detect geofences, calculate ride distances and trace routes; it is not shared with other users or used for advertising.",
+    "Finalidade: sua localização é usada apenas para detectar geocercas, calcular as distâncias do passeio e traçar rotas; não é compartilhada com outros usuários nem usada para publicidade.",
+  ],
+  "ay.privacidadDuracion": [
+    "Duración: los viajes se guardan primero en tu teléfono (en el plan gratis se conservan los últimos 20). Si inicias sesión, tus estadísticas y hasta 100 viajes con su pista GPS se sincronizan con tu cuenta para constancias, GPX y recuperación, hasta que los borres o elimines tu cuenta.",
+    "Duration: rides are first stored on your phone (the free plan keeps the last 20). If you sign in, your statistics and up to 100 rides with their GPS track sync with your account for certificates, GPX and recovery, until you delete them or your account.",
+    "Duração: os passeios são guardados primeiro no seu telefone (no plano grátis ficam os últimos 20). Se você entrar, suas estatísticas e até 100 passeios com a trilha GPS sincronizam com sua conta para constâncias, GPX e recuperação, até que você os apague ou elimine sua conta.",
+  ],
+  "ay.privacidadEliminacion": [
+    "Eliminación: puedes borrar cada viaje desde Mis viajes, desuscribirte de los avisos push en Configuración y eliminar tu cuenta completa con todos sus datos del servidor desde Perfil → Eliminar cuenta.",
+    "Deletion: you can delete each ride from My rides, unsubscribe from push alerts in Settings, and delete your whole account with all its server data from Profile → Delete account.",
+    "Eliminação: você pode apagar cada passeio em Meus passeios, cancelar os alertas push em Configurações e eliminar sua conta completa com todos os dados do servidor em Perfil → Eliminar conta.",
+  ],
+  "ay.privacidadSeguridad": [
+    "Seguridad y acceso: los datos de tu cuenta viajan cifrados (HTTPS) y se protegen con un token de sesión privado; solo tu cuenta puede leerlos. La app no usa tu ubicación en segundo plano fuera de un ride.",
+    "Security and access: your account data travels encrypted (HTTPS) and is protected with a private session token; only your account can read it. The app does not use your location in the background outside a ride.",
+    "Segurança e acesso: os dados da sua conta viajam criptografados (HTTPS) e são protegidos com um token de sessão privado; apenas sua conta pode lê-los. O app não usa sua localização em segundo plano fora de um passeio.",
+  ],
 };
 
 /** Texto para el índice activo con fallback al español y a la clave. */
