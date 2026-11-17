@@ -331,6 +331,7 @@ const D: Record<string, E> = {
   "cfg.velocimetro": ["Velocímetro", "Speedometer", "Velocímetro"],
   "cfg.minimapa": ["Minimapa", "Mini-map", "Minimapa"],
   "cfg.vistaPrevia": ["Vista previa · 27 km/h en el parque", "Preview · 27 km/h in the park", "Prévia · 27 km/h no parque"],
+  "cfg.vistaPreviaMini": ["Vista previa del minimapa", "Mini-map preview", "Prévia do minimapa"],
   "cfg.proNota": ["{0} es parte de Cumbre30 Pro.", "{0} is part of Cumbre30 Pro.", "{0} faz parte do Cumbre30 Pro."],
   "cfg.verPlanes": ["Ver planes", "See plans", "Ver planos"],
   "cfg.proFoot": ["Con Pro eliges el color de la app, el estilo (arco, dial o aguja) y el tamaño del velocímetro, y el minimapa grande.", "With Pro you choose the app color, the style (arc, dial or needle) and speedometer size, plus the large mini-map.", "Com o Pro você escolhe a cor do app, o estilo (arco, mostrador ou agulha) e o tamanho do velocímetro, além do minimapa grande."],

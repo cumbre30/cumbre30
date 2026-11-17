@@ -15,7 +15,10 @@
 //   · minimapSize - compacto / normal / grande (altura del minimapa).
 //   · minimapStyle - clásico / tarjeta / plano (marco estético).
 //   · speedoStyle también agrega anillo (círculo 360°) y bloque
-//     (tablero de segmentos) desde v1.12.13, sólo estética.
+//     (tablero de segmentos) desde v1.12.13, sólo estética, y neon
+//     (dial 360° con aguja neón + odometer del ride) y rayos
+//     (semicírculo de segmentos radiales, como un dashboard digital)
+//     desde v1.12.14 - diseños adjuntos del cliente.
 //
 // Persistencia: localStorage (funciona offline en el APK). El
 // snapshot del servidor son los valores por defecto, así que el
@@ -30,7 +33,7 @@
 import { useSyncExternalStore } from "react";
 
 export type ThemeColorId = "cerro" | "andes" | "atardecer" | "lila" | "grafito";
-export type SpeedoStyle = "digital" | "arco" | "dial" | "aguja" | "anillo" | "bloque";
+export type SpeedoStyle = "digital" | "arco" | "dial" | "aguja" | "anillo" | "bloque" | "neon" | "rayos";
 export type SpeedoSize = "normal" | "grande" | "gigante";
 export type MinimapSize = "compacto" | "normal" | "grande";
 // Estilo estético del minimapa (v1.12.13): el marco y el acabado,
@@ -70,6 +73,10 @@ export const SPEEDO_STYLES: { id: SpeedoStyle; label: string; proOnly: boolean }
   // Nuevos diseños (cliente 2026-11-17, sólo estética):
   { id: "anillo", label: "Anillo", proOnly: true },
   { id: "bloque", label: "Bloque", proOnly: true },
+  // Diseños neón del cliente (adjuntos, v1.12.14): dial 360° con
+  // aguja y glow, y semicírculo de segmentos radiales tipo dashboard.
+  { id: "neon", label: "Neón", proOnly: true },
+  { id: "rayos", label: "Rayos", proOnly: true },
 ];
 
 export const SPEEDO_SIZES: { id: SpeedoSize; label: string; proOnly: boolean }[] = [

@@ -34,15 +34,17 @@ export const NAV_COLORS = {
   labelDim: "#7d8a9c",
 };
 
-/** Base principal: ráster OSM estándar (misma fuente validada
- *  en el resto de la app). */
-export const OSM_RASTER_TILES = ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"];
-
-/** Fallback: CyclOSM (OSM-France) - ráster orientado a bicicletas,
- *  destaca ciclovías y sendas del cerro. */
+/** Base principal (v1.12.14): ráster CyclOSM (OSM-France) - el mix
+ *  pedido por el cliente: datos de ciclovías actualizados (OSM se
+ *  renderiza de forma continua) con el estilo ciclista de OSM, que
+ *  destaca ciclovías, sendas y servicios para bicicleta. */
 export const CYCLOSM_TILES = ["a", "b", "c"].map(
   (s) => `https://${s}.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png`
 );
+
+/** Fallback: ráster OSM estándar (misma fuente validada en el resto
+ *  de la app) si CyclOSM falla (rate-limit, caída). */
+export const OSM_RASTER_TILES = ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"];
 
 /** Polígono circular (32 lados) alrededor de un punto - para zonas
  *  de riesgo y porteras, porque circle-layer usa píxeles, no metros. */
@@ -63,20 +65,20 @@ export function navStyle(): StyleSpecification {
     sources: {
       base: {
         type: "raster",
-        tiles: OSM_RASTER_TILES,
+        tiles: CYCLOSM_TILES,
         tileSize: 256,
         maxzoom: 19,
         attribution:
-          '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors · <a href="https://opendatacommons.org/licenses/odbl/1-0/">ODbL</a>',
+          '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors · <a href="https://wiki.openstreetmap.org/wiki/CyclOSM">CyclOSM</a> · <a href="https://opendatacommons.org/licenses/odbl/1-0/">ODbL</a>',
       },
     },
     layers: [
       // Fondo mientras cargan los tiles (claro, coherente con la
-      // pestaña Mapa que ya usa OSM estándar).
+      // pestaña Mapa, que ahora también usa CyclOSM).
       { id: "bg", type: "background", paint: { "background-color": "#dfe2e6" } },
-      // Base ráster OSM estándar; la inclinación 3D la aplica
-      // la cámara (pitch/bearing) sobre estos tiles, como un mapa
-      // de papel inclinado.
+      // Base ráster CyclOSM (estilo ciclista, datos OSM frescos);
+      // la inclinación 3D la aplica la cámara (pitch/bearing) sobre
+      // estos tiles, como un mapa de papel inclinado.
       { id: "base", type: "raster", source: "base", paint: { "raster-fade-duration": 300 } },
     ],
   };

@@ -533,6 +533,7 @@ export function RideView(p: Props) {
           inPark={p.insidePark}
           style={theme.speedoStyle}
           size={theme.speedoSize}
+          odoKm={p.distanceKm}
         />
       </div>
 

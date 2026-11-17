@@ -32,7 +32,7 @@ import { GATES, PARK_POLYGON, RISK_ZONES, type LatLng } from "@/lib/park";
 import { MINIMAP_ACCESOS } from "@/lib/mapLayers";
 import { DEFAULT_PIN, PINS, type PinId } from "@/lib/pins";
 import { INCIDENT_BY_ID } from "@/lib/incidents";
-import { circlePolygon, navStyle, CYCLOSM_TILES } from "@/lib/navStyle";
+import { circlePolygon, navStyle, CYCLOSM_TILES, OSM_RASTER_TILES } from "@/lib/navStyle";
 import { haversineM, routeProgress, streetAt, streetOfStep } from "@/lib/routing";
 import { bearingOf, buildRouteFeatures, lineFeat, polyFeat, toFc } from "@/lib/navCanvasLogic";
 import { INCIDENT_TYPES, type IncidentTypeId } from "@/lib/incidents";
@@ -296,9 +296,10 @@ function NavCanvas(props: NavCanvasProps) {
     });
     mapRef.current = map;
 
-    // --- fallback de base (v1.3.2): si OSM estándar falla repetidamente
-    // (rate-limit 429, caída), cambiamos a CyclOSM (OSM-France) -
-    // prioriza funcionamiento: peor es quedarse sin mapa.
+    // --- fallback de base (v1.3.2, invertido en v1.12.14): la base
+    // es ahora CyclOSM (estilo ciclista con datos OSM frescos); si
+    // falla repetidamente (caída de OSM-France), cambiamos a OSM
+    // estándar - prioriza funcionamiento: peor es quedarse sin mapa.
     let baseTileErr = 0;
     map.on("error", (e) => {
       if (baseTileErr < 0) return; // ya cambiamos; no insistir
@@ -310,7 +311,7 @@ function NavCanvas(props: NavCanvasProps) {
       if (baseTileErr >= 5) {
         const src = map.getSource("base") as maplibregl.RasterTileSource | undefined;
         if (src && typeof src.setTiles === "function") {
-          src.setTiles(CYCLOSM_TILES);
+          src.setTiles(OSM_RASTER_TILES);
           baseTileErr = -1; // un solo cambio por sesión
         }
       }

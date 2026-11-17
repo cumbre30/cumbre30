@@ -24,6 +24,7 @@ import { useEffect, useState } from "react";
 import { Volume2, VolumeX, Mic, MicOff, Info, Mail, Moon, Palette, Lock, Languages, Siren, ShieldAlert, UserPlus, UserRound, BellRing, HeartPulse, RefreshCw, Download, ChevronRight, ArrowLeft, Gauge, Map } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Speedometer } from "@/components/Speedometer";
+import { MinimapPreview } from "@/components/MinimapPreview";
 import { SubTabs } from "@/components/SubTabs";
 import { ThemeIconButton } from "@/components/ThemeToggle";
 import { APP_VERSION, APP_VERSION_CODE } from "@/lib/appVersion";
@@ -686,6 +687,12 @@ export function ConfigTab({
                 onPick={(v: MinimapSize) => pick(theme.minimapSize, v, (x) => saveRideTheme({ minimapSize: x }))}
                 onLocked={(label) => locked(`El minimapa ${label.toLowerCase()}`)}
               />
+              </div>
+              {/* Vista previa: el mismo motor MapLibre del minimapa
+                  real (base CyclOSM) con el marco y tamaño elegidos */}
+              <div className="mt-3 rounded-xl border border-border/70 bg-background/50 p-3">
+                <MinimapPreview style={theme.minimapStyle} size={theme.minimapSize} />
+                <p className="mt-1.5 text-center text-[10px] text-muted-foreground">{t("cfg.vistaPreviaMini")}</p>
               </div>
             </div>
           </Card>

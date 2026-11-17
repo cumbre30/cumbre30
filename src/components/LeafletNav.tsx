@@ -194,8 +194,10 @@ export default function LeafletNav({
           style={{ background: "#09090b" }}
         >
           <TileLayer
-            url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            // Base ciclista CyclOSM (v1.12.14), misma del resto de mapas.
+            url="https://{s}.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png"
+            subdomains="abc"
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors · <a href="https://wiki.openstreetmap.org/wiki/CyclOSM">CyclOSM</a> · <a href="https://opendatacommons.org/licenses/odbl/1-0/">ODbL</a>'
             maxZoom={19}
           />
 
