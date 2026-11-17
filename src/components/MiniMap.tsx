@@ -32,7 +32,7 @@ import { GATES, PARK_POLYGON, RISK_ZONES, type LatLng } from "@/lib/park";
 import { MINIMAP_ACCESOS } from "@/lib/mapLayers";
 import { DEFAULT_PIN, PINS, type PinId } from "@/lib/pins";
 import { INCIDENT_BY_ID } from "@/lib/incidents";
-import { circlePolygon, navStyle, CYCLOSM_TILES, OSM_RASTER_TILES } from "@/lib/navStyle";
+import { circlePolygon, navStyle, OMT_STYLE_URL } from "@/lib/navStyle";
 import { haversineM, routeProgress, streetAt, streetOfStep } from "@/lib/routing";
 import { bearingOf, buildRouteFeatures, lineFeat, polyFeat, toFc } from "@/lib/navCanvasLogic";
 import { INCIDENT_TYPES, type IncidentTypeId } from "@/lib/incidents";
@@ -278,12 +278,12 @@ function NavCanvas(props: NavCanvasProps) {
     if (!boxRef.current || mapRef.current) return;
     const map = new maplibregl.Map({
       container: boxRef.current,
-      style: navStyle(),
+      style: OMT_STYLE_URL,
       center: PARK_CENTER,
       zoom: 13.5,
       pitch: 0,
       bearing: 0,
-      // Atribución compacta (obligatoria para tiles OSM/CARTO).
+      // Atribución compacta (obligatoria: OpenStreetMap/OpenMapTiles).
       attributionControl: { compact: true },
       dragRotate: false,
       dragPan: false,
@@ -296,91 +296,73 @@ function NavCanvas(props: NavCanvasProps) {
     });
     mapRef.current = map;
 
-    // --- fallback de base (v1.3.2, invertido en v1.12.14): la base
-    // es ahora CyclOSM (estilo ciclista con datos OSM frescos); si
-    // falla repetidamente (caída de OSM-France), cambiamos a OSM
-    // estándar - prioriza funcionamiento: peor es quedarse sin mapa.
-    let baseTileErr = 0;
-    map.on("error", (e) => {
-      if (baseTileErr < 0) return; // ya cambiamos; no insistir
-      const ev = e as unknown as { sourceId?: string; error?: { message?: string } };
-      if (ev.sourceId && ev.sourceId !== "base") return;
-      const msg = ev.error?.message ?? "";
-      if (!ev.sourceId && !/tile|base|fetch|status|ajax/i.test(msg)) return;
-      baseTileErr++;
-      if (baseTileErr >= 5) {
-        const src = map.getSource("base") as maplibregl.RasterTileSource | undefined;
-        if (src && typeof src.setTiles === "function") {
-          src.setTiles(OSM_RASTER_TILES);
-          baseTileErr = -1; // un solo cambio por sesión
-        }
-      }
-    });
-
-    map.on("load", () => {
-      map.addImage("c30-chev", makeChevronImage());
+    // Fuentes/capas de la app sobre el estilo base. Corre en el primer
+    // "load" y también tras un failover de estilo: setStyle descarta
+    // lo añadido, así que se reinstala todo encima del estilo nuevo.
+    const installAppLayers = (m: MlMap) => {
+      m.addImage("c30-chev", makeChevronImage());
 
       // asa de depuración/E2E (no interfiere en producción)
-      (window as unknown as Record<string, unknown>).__c30nav = map;
+      (window as unknown as Record<string, unknown>).__c30nav = m;
 
       // --- fuentes ---
-      map.addSource("park", { type: "geojson", data: toFc([polyFeat(PARK_POLYGON.map((p) => [p.lon, p.lat] as [number, number]))]) });
-      map.addSource("risk", {
+      m.addSource("park", { type: "geojson", data: toFc([polyFeat(PARK_POLYGON.map((p) => [p.lon, p.lat] as [number, number]))]) });
+      m.addSource("risk", {
         type: "geojson",
         data: toFc(RISK_ZONES.map((z) => polyFeat(circlePolygon(z.position.lat, z.position.lon, z.radiusM), { id: z.id }))),
       });
-      map.addSource("gates", {
+      m.addSource("gates", {
         type: "geojson",
         // Limpieza del minimapa: SOLO los 4 accesos habilitados para
         // ciclistas (normativa Parquemet). El resto de accesos no se dibuja.
         data: toFc(GATES.filter((g) => g.ciclistas).map((g) => polyFeat(circlePolygon(g.position.lat, g.position.lon, 18), { id: g.id }))),
       });
-      map.addSource("track", { type: "geojson", data: toFc([]) });
-      map.addSource("route-remaining", { type: "geojson", data: toFc([]) });
-      map.addSource("route-traveled", { type: "geojson", data: toFc([]) });
+      m.addSource("track", { type: "geojson", data: toFc([]) });
+      m.addSource("route-remaining", { type: "geojson", data: toFc([]) });
+      m.addSource("route-traveled", { type: "geojson", data: toFc([]) });
 
       // --- capas ---
-      map.addLayer({ id: "park-fill", type: "fill", source: "park", paint: { "fill-color": "#10b981", "fill-opacity": 0.09 } });
-      map.addLayer({ id: "park-line", type: "line", source: "park", paint: { "line-color": "#34d399", "line-width": 1.4, "line-opacity": 0.8 } });
-      map.addLayer({ id: "risk-fill", type: "fill", source: "risk", paint: { "fill-color": "#f59e0b", "fill-opacity": 0.14 } });
-      map.addLayer({ id: "risk-line", type: "line", source: "risk", paint: { "line-color": "#f59e0b", "line-width": 1, "line-opacity": 0.7 } });
-      map.addLayer({ id: "gates-fill", type: "fill", source: "gates", paint: { "fill-color": "#0f766e", "fill-opacity": 0.9 } });
-      map.addLayer({
+      m.addLayer({ id: "park-fill", type: "fill", source: "park", paint: { "fill-color": "#10b981", "fill-opacity": 0.09 } });
+      m.addLayer({ id: "park-line", type: "line", source: "park", paint: { "line-color": "#34d399", "line-width": 1.4, "line-opacity": 0.8 } });
+      m.addLayer({ id: "risk-fill", type: "fill", source: "risk", paint: { "fill-color": "#f59e0b", "fill-opacity": 0.14 } });
+      m.addLayer({ id: "risk-line", type: "line", source: "risk", paint: { "line-color": "#f59e0b", "line-width": 1, "line-opacity": 0.7 } });
+      m.addLayer({ id: "gates-fill", type: "fill", source: "gates", paint: { "fill-color": "#0f766e", "fill-opacity": 0.9 } });
+      m.addLayer({
         id: "track-line", type: "line", source: "track",
         layout: { "line-cap": "round", "line-join": "round" },
         paint: { "line-color": "#a3e635", "line-width": 3.5, "line-opacity": 0.9 },
       });
-      map.addLayer({
+      m.addLayer({
         id: "traveled-line", type: "line", source: "route-traveled",
         filter: ["==", ["get", "ciclo"], true],
         layout: { "line-cap": "round", "line-join": "round" },
         paint: { "line-color": COLOR_CICLO, "line-width": 5, "line-opacity": 0.3 },
       });
-      map.addLayer({
+      m.addLayer({
         id: "traveled-line-via", type: "line", source: "route-traveled",
         filter: ["==", ["get", "ciclo"], false],
         layout: { "line-cap": "round", "line-join": "round" },
         paint: { "line-color": COLOR_VIA, "line-width": 4, "line-opacity": 0.28 },
       });
-      map.addLayer({
+      m.addLayer({
         id: "route-casing", type: "line", source: "route-remaining",
         filter: ["==", ["get", "kind"], "casing"],
         layout: { "line-cap": "round", "line-join": "round" },
         paint: { "line-color": COLOR_CASING, "line-width": ["interpolate", ["linear"], ["zoom"], 15, 9, 18, 14], "line-opacity": 0.9 },
       });
-      map.addLayer({
+      m.addLayer({
         id: "route-ciclo", type: "line", source: "route-remaining",
         filter: ["==", ["get", "ciclo"], true],
         layout: { "line-cap": "round", "line-join": "round" },
         paint: { "line-color": COLOR_CICLO, "line-width": ["interpolate", ["linear"], ["zoom"], 15, 6.5, 18, 10], "line-opacity": 0.98 },
       });
-      map.addLayer({
+      m.addLayer({
         id: "route-via", type: "line", source: "route-remaining",
         filter: ["all", ["==", ["get", "ciclo"], false], ["==", ["get", "kind"], "seg"]],
         layout: { "line-cap": "round", "line-join": "round" },
         paint: { "line-color": COLOR_VIA, "line-width": ["interpolate", ["linear"], ["zoom"], 15, 5, 18, 8], "line-opacity": 0.98 },
       });
-      map.addLayer({
+      m.addLayer({
         id: "route-arrows", type: "symbol", source: "route-remaining",
         filter: ["==", ["get", "kind"], "seg"],
         layout: {
@@ -396,7 +378,39 @@ function NavCanvas(props: NavCanvasProps) {
       });
 
       setReady(true);
+    };
+
+    // --- failover de base (v1.3.2, actualizado v1.12.14): la base es
+    // el estilo vectorial OMT de OpenFreeMap (Liberty); si el estilo o
+    // sus tiles fallan repetidamente (rate-limit, caída), volvemos al
+    // ráster OSM estándar y re-instalamos las capas de la app - prioriza
+    // funcionamiento: peor es quedarse sin mapa. Los errores de las
+    // fuentes propias (park/risk/...) no cuentan: son de datos, no de base.
+    const APP_SOURCES = new Set(["park", "risk", "gates", "track", "route-remaining", "route-traveled"]);
+    let baseTileErr = 0;
+    map.on("error", (e) => {
+      if (baseTileErr < 0) return; // ya cambiamos; no insistir
+      const ev = e as unknown as { sourceId?: string; error?: { message?: string } };
+      if (ev.sourceId && APP_SOURCES.has(ev.sourceId)) return;
+      const msg = ev.error?.message ?? "";
+      if (!ev.sourceId && !/tile|base|fetch|status|ajax|style|font|glif/i.test(msg)) return;
+      baseTileErr++;
+      if (baseTileErr >= 5) {
+        map.setStyle(navStyle());
+        const onStyleData = () => {
+          if (!map.isStyleLoaded()) return;
+          map.off("styledata", onStyleData);
+          installAppLayers(map);
+          // re-corre los efectos que llenan las fuentes con datos vivos
+          setReady(false);
+          requestAnimationFrame(() => setReady(true));
+        };
+        map.on("styledata", onStyleData);
+        baseTileErr = -1; // un solo cambio por sesión
+      }
     });
+
+    map.on("load", () => installAppLayers(map));
 
     const ro = new ResizeObserver(() => map.resize());
     ro.observe(boxRef.current);

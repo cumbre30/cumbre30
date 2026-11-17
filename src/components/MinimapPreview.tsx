@@ -2,11 +2,11 @@
 
 // ============================================================
 // Vista previa del minimapa en Configuración (v1.12.14).
-// El mismo motor del minimapa real (MapLibre + navStyle, base
-// CyclOSM) montado en modo estático: centro del parque, un tramo
-// de ciclovía violeta de muestra y el pin del ciclista. Solo
-// estética: el marco y el acabado los da minimapStyleCls y la
-// altura minimapHeight, así la preview refleja el estilo y el
+// El mismo motor del minimapa real (MapLibre + estilo OMT de
+// OpenFreeMap) montado en modo estático: centro del parque, un
+// tramo de ciclovía violeta de muestra y el pin del ciclista.
+// Solo estética: el marco y el acabado los da minimapStyleCls y
+// la altura minimapHeight, así la preview refleja el estilo y el
 // tamaño elegidos, como la vista previa del velocímetro.
 // ============================================================
 
@@ -14,7 +14,7 @@ import { useEffect, useRef } from "react";
 import * as maplibregl from "maplibre-gl";
 import type { Map as MlMap } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
-import { navStyle } from "@/lib/navStyle";
+import { navStyle, OMT_STYLE_URL } from "@/lib/navStyle";
 import { minimapHeight, minimapStyleCls, type MinimapSize, type MinimapStyle } from "@/lib/rideTheme";
 
 // Centro del parque San Cristóbal (misma referencia del minimapa
@@ -41,7 +41,7 @@ export function MinimapPreview({ style, size }: { style: MinimapStyle; size: Min
     try {
       map = new maplibregl.Map({
         container: boxRef.current,
-        style: navStyle(),
+        style: OMT_STYLE_URL,
         center: CENTER,
         zoom: 14.6,
         pitch: 0,
@@ -56,9 +56,8 @@ export function MinimapPreview({ style, size }: { style: MinimapStyle; size: Min
         keyboard: false,
         boxZoom: false,
       });
-      map.on("load", () => {
-        const m = mapRef.current;
-        if (!m) return;
+      // Capas demo (re-instalables: el failover de estilo las descarta).
+      const installDemo = (m: MlMap) => {
         // Ciclovía violeta de muestra (color de la ruta ciclista).
         m.addSource("demo-route", { type: "geojson", data: { type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: DEMO_ROUTE } } });
         m.addLayer({
@@ -86,6 +85,31 @@ export function MinimapPreview({ style, size }: { style: MinimapStyle; size: Min
             "circle-stroke-width": 2.5,
           },
         });
+      };
+      map.on("load", () => {
+        const m = mapRef.current;
+        if (!m) return;
+        installDemo(m);
+      });
+      // Failover: si el estilo OMT no carga, ráster OSM estándar.
+      let errs = 0;
+      map.on("error", (e) => {
+        if (errs < 0) return;
+        const m = mapRef.current;
+        if (!m) return;
+        const ev = e as unknown as { sourceId?: string };
+        if (ev.sourceId === "demo-route" || ev.sourceId === "demo-pin") return;
+        errs++;
+        if (errs >= 5) {
+          m.setStyle(navStyle());
+          const onStyleData = () => {
+            if (!m.isStyleLoaded()) return;
+            m.off("styledata", onStyleData);
+            installDemo(m);
+          };
+          m.on("styledata", onStyleData);
+          errs = -1;
+        }
       });
       mapRef.current = map;
     } catch {

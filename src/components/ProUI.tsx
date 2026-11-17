@@ -94,7 +94,7 @@ export function ProContextModal({
   const copy = PRO_LOCK_COPY[feature];
   return (
     <div
-      className="fixed inset-0 z-[80] flex items-end justify-center bg-black/60 p-4 pb-8"
+      className="fixed inset-0 z-[900] flex items-end justify-center bg-black/60 p-4 pb-8"
       onClick={onClose}
       role="dialog"
       aria-modal="true"

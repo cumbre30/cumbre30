@@ -1314,11 +1314,13 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
       </div>
 
       {/* Capas del mapa flotantes (abajo): 5 menús desplegables + generar ruta.
-          bottom 80px = nav real (~69 px) + holgura; antes quedaba a 64 y
-          tapaba la barra inferior al hacer scroll el documento (queja del
-          cliente 2026-11-11: "al mover la búsqueda o el botón de capas se
-          superpone a la información"). */}
-      <div className="absolute inset-x-2 bottom-[calc(80px+env(safe-area-inset-bottom))] z-[690]">
+          bottom 104px = nav real (~69 px) + holgura y espacio para que la
+          etiqueta de atribución (OpenStreetMap contributors) quede legible
+          debajo (queja del cliente 2026-11-17: la barra tapaba la etiqueta);
+          antes quedaba a 80 y tapaba la barra inferior al hacer scroll el
+          documento (queja del cliente 2026-11-11: "al mover la búsqueda o el
+          botón de capas se superpone a la información"). */}
+      <div className="absolute inset-x-2 bottom-[calc(104px+env(safe-area-inset-bottom))] z-[690]">
         <CapasPanel vis={capasVis} onVer={toggleCapa} onFocus={enfocar} onGenerarRuta={generarRuta} />
       </div>
 
@@ -1348,11 +1350,13 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
           attributionControl
         >
           <TileLayer
-            // Base ciclista CyclOSM (v1.12.14): datos de ciclovías
-            // actualizados de OSM con el estilo ciclista de OSM.
-            url="https://{s}.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png"
+            // Base ráster estándar OSM France (v1.12.14): el estilo OMT
+            // exacto (MapTiler) exige API key de pago y CARTO también;
+            // OSM estándar responde 429 con usuarios concurrentes. El
+            // minimapa web sí usa OMT (Liberty, sin key).
+            url="https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png"
             subdomains="abc"
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors · <a href="https://wiki.openstreetmap.org/wiki/CyclOSM">CyclOSM</a> · <a href="https://opendatacommons.org/licenses/odbl/1-0/">ODbL</a>'
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors · <a href="https://www.openstreetmap.fr/">OSM France</a> · <a href="https://opendatacommons.org/licenses/odbl/1-0/">ODbL</a>'
             maxZoom={19}
           />
 
