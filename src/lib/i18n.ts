@@ -1151,6 +1151,17 @@ const D: Record<string, E> = {
   "tema.aOscuro": ["Cambiar a modo oscuro", "Switch to dark mode", "Mudar para modo escuro"],
   "cfg.lockVelocimetro": ["El velocímetro {0}", "The {0} speedometer", "O velocímetro {0}"],
   "cfg.lockTamano": ["El tamaño {0} del velocímetro", "The {0} speedometer size", "O tamanho {0} do velocímetro"],
+  // Subpantallas de segundo nivel (v1.12.13): General → Seguridad →
+  // Alertas, etc. Botón de regreso renombrado a «Volver».
+  "cfg.volver": ["Volver", "Back", "Voltar"],
+  "cfg.subAlertas": ["Pitidos de velocidad y avisos de voz", "Speed beeps and voice alerts", "Bipes de velocidade e avisos de voz"],
+  "cfg.subDeteccion": ["Detección de caídas y estado", "Fall detection and status check", "Detecção de quedas e checagem de estado"],
+  "cfg.subEmergencia": ["Contactos de emergencia (ICE)", "Emergency contacts (ICE)", "Contatos de emergência (ICE)"],
+  "cfg.subPush": ["Avisos del parque en el navegador", "Park notices in the browser", "Avisos do parque no navegador"],
+  "cfg.subMonitoreo": ["Zonas de esfuerzo con el sensor BT", "Effort zones with the BT sensor", "Zonas de esforço com o sensor BT"],
+  "cfg.subApariencia": ["Temas de color de la app", "App color themes", "Temas de cor do app"],
+  "cfg.subVelocimetro": ["Estilo, tamaño y vista previa", "Style, size and preview", "Estilo, tamanho e pré-visualização"],
+  "cfg.subMinimapa": ["Tamaño del minimapa de navegación", "Navigation minimap size", "Tamanho do minimapa de navegação"],
 
   // ---------- cumplimiento geocercas y privacidad (fase 4, 2026-11-16) ----------
   // Clasificación de geocercas (INFORMATIVE/SAFETY/OFFICIAL_RESTRICTION)
