@@ -2,19 +2,20 @@
 
 // ============================================================
 // Vista previa del minimapa en Configuración (v1.12.14).
-// El mismo motor del minimapa real (MapLibre + estilo OMT de
-// OpenFreeMap) montado en modo estático: centro del parque, un
-// tramo de ciclovía violeta de muestra y el pin del ciclista.
-// Solo estética: el marco y el acabado los da minimapStyleCls y
-// la altura minimapHeight, así la preview refleja el estilo y el
-// tamaño elegidos, como la vista previa del velocímetro.
+// El mismo motor del minimapa real (MapLibre + navStyle, ráster
+// estándar OSM France - la misma base del mapa grande) montado en
+// modo estático: centro del parque, un tramo de ciclovía violeta de
+// muestra y el pin del ciclista. Solo estética: el marco y el
+// acabado los da minimapStyleCls y la altura minimapHeight, así la
+// preview refleja el estilo y el tamaño elegidos, como la vista
+// previa del velocímetro.
 // ============================================================
 
 import { useEffect, useRef } from "react";
 import * as maplibregl from "maplibre-gl";
 import type { Map as MlMap } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
-import { navStyle, OMT_STYLE_URL } from "@/lib/navStyle";
+import { navStyle, OSM_ORG_FALLBACK_TILES } from "@/lib/navStyle";
 import { minimapHeight, minimapStyleCls, type MinimapSize, type MinimapStyle } from "@/lib/rideTheme";
 
 // Centro del parque San Cristóbal (misma referencia del minimapa
@@ -41,7 +42,9 @@ export function MinimapPreview({ style, size }: { style: MinimapStyle; size: Min
     try {
       map = new maplibregl.Map({
         container: boxRef.current,
-        style: OMT_STYLE_URL,
+        // Base ráster estándar OSM (v1.12.14b): la misma del minimapa
+        // real y del mapa grande.
+        style: navStyle(),
         center: CENTER,
         zoom: 14.6,
         pitch: 0,
@@ -56,7 +59,7 @@ export function MinimapPreview({ style, size }: { style: MinimapStyle; size: Min
         keyboard: false,
         boxZoom: false,
       });
-      // Capas demo (re-instalables: el failover de estilo las descarta).
+      // Capas demo de la vista previa (el failover setTiles no las toca).
       const installDemo = (m: MlMap) => {
         // Ciclovía violeta de muestra (color de la ruta ciclista).
         m.addSource("demo-route", { type: "geojson", data: { type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: DEMO_ROUTE } } });
@@ -91,7 +94,7 @@ export function MinimapPreview({ style, size }: { style: MinimapStyle; size: Min
         if (!m) return;
         installDemo(m);
       });
-      // Failover: si el estilo OMT no carga, ráster OSM estándar.
+      // Failover: si la base estándar (OSM France) cae, OSM estándar.
       let errs = 0;
       map.on("error", (e) => {
         if (errs < 0) return;
@@ -101,14 +104,11 @@ export function MinimapPreview({ style, size }: { style: MinimapStyle; size: Min
         if (ev.sourceId === "demo-route" || ev.sourceId === "demo-pin") return;
         errs++;
         if (errs >= 5) {
-          m.setStyle(navStyle());
-          const onStyleData = () => {
-            if (!m.isStyleLoaded()) return;
-            m.off("styledata", onStyleData);
-            installDemo(m);
-          };
-          m.on("styledata", onStyleData);
-          errs = -1;
+          const src = m.getSource("base") as maplibregl.RasterTileSource | undefined;
+          if (src && typeof src.setTiles === "function") {
+            src.setTiles(OSM_ORG_FALLBACK_TILES);
+            errs = -1;
+          }
         }
       });
       mapRef.current = map;

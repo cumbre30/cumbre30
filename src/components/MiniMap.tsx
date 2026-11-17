@@ -32,7 +32,7 @@ import { GATES, PARK_POLYGON, RISK_ZONES, type LatLng } from "@/lib/park";
 import { MINIMAP_ACCESOS } from "@/lib/mapLayers";
 import { DEFAULT_PIN, PINS, type PinId } from "@/lib/pins";
 import { INCIDENT_BY_ID } from "@/lib/incidents";
-import { circlePolygon, navStyle, OMT_STYLE_URL } from "@/lib/navStyle";
+import { circlePolygon, navStyle, OSM_ORG_FALLBACK_TILES } from "@/lib/navStyle";
 import { haversineM, routeProgress, streetAt, streetOfStep } from "@/lib/routing";
 import { bearingOf, buildRouteFeatures, lineFeat, polyFeat, toFc } from "@/lib/navCanvasLogic";
 import { INCIDENT_TYPES, type IncidentTypeId } from "@/lib/incidents";
@@ -278,12 +278,13 @@ function NavCanvas(props: NavCanvasProps) {
     if (!boxRef.current || mapRef.current) return;
     const map = new maplibregl.Map({
       container: boxRef.current,
-      style: OMT_STYLE_URL,
+      // Base ráster estándar OSM (v1.12.14b): la misma del mapa grande.
+      style: navStyle(),
       center: PARK_CENTER,
       zoom: 13.5,
       pitch: 0,
       bearing: 0,
-      // Atribución compacta (obligatoria: OpenStreetMap/OpenMapTiles).
+      // Atribución compacta (obligatoria: OpenStreetMap contributors).
       attributionControl: { compact: true },
       dragRotate: false,
       dragPan: false,
@@ -296,9 +297,7 @@ function NavCanvas(props: NavCanvasProps) {
     });
     mapRef.current = map;
 
-    // Fuentes/capas de la app sobre el estilo base. Corre en el primer
-    // "load" y también tras un failover de estilo: setStyle descarta
-    // lo añadido, así que se reinstala todo encima del estilo nuevo.
+    // Fuentes/capas de la app sobre el estilo base (primer "load").
     const installAppLayers = (m: MlMap) => {
       m.addImage("c30-chev", makeChevronImage());
 
@@ -380,12 +379,13 @@ function NavCanvas(props: NavCanvasProps) {
       setReady(true);
     };
 
-    // --- failover de base (v1.3.2, actualizado v1.12.14): la base es
-    // el estilo vectorial OMT de OpenFreeMap (Liberty); si el estilo o
-    // sus tiles fallan repetidamente (rate-limit, caída), volvemos al
-    // ráster OSM estándar y re-instalamos las capas de la app - prioriza
-    // funcionamiento: peor es quedarse sin mapa. Los errores de las
-    // fuentes propias (park/risk/...) no cuentan: son de datos, no de base.
+    // --- fallback de base (v1.3.2, actualizado v1.12.14b): la base es
+    // el ráster estándar OSM France (la misma del mapa grande); si
+    // falla repetidamente (caída), cambiamos a tile.openstreetmap.org -
+    // prioriza funcionamiento: peor es quedarse sin mapa. setTiles es
+    // in-place: las capas de la app ya instaladas no se pierden. Los
+    // errores de las fuentes propias (park/risk/...) no cuentan: son
+    // de datos, no de base.
     const APP_SOURCES = new Set(["park", "risk", "gates", "track", "route-remaining", "route-traveled"]);
     let baseTileErr = 0;
     map.on("error", (e) => {
@@ -393,20 +393,14 @@ function NavCanvas(props: NavCanvasProps) {
       const ev = e as unknown as { sourceId?: string; error?: { message?: string } };
       if (ev.sourceId && APP_SOURCES.has(ev.sourceId)) return;
       const msg = ev.error?.message ?? "";
-      if (!ev.sourceId && !/tile|base|fetch|status|ajax|style|font|glif/i.test(msg)) return;
+      if (!ev.sourceId && !/tile|base|fetch|status|ajax/i.test(msg)) return;
       baseTileErr++;
       if (baseTileErr >= 5) {
-        map.setStyle(navStyle());
-        const onStyleData = () => {
-          if (!map.isStyleLoaded()) return;
-          map.off("styledata", onStyleData);
-          installAppLayers(map);
-          // re-corre los efectos que llenan las fuentes con datos vivos
-          setReady(false);
-          requestAnimationFrame(() => setReady(true));
-        };
-        map.on("styledata", onStyleData);
-        baseTileErr = -1; // un solo cambio por sesión
+        const src = map.getSource("base") as maplibregl.RasterTileSource | undefined;
+        if (src && typeof src.setTiles === "function") {
+          src.setTiles(OSM_ORG_FALLBACK_TILES);
+          baseTileErr = -1; // un solo cambio por sesión
+        }
       }
     });
 

@@ -8,21 +8,19 @@
 // espera [lng, lat]. El "océano" era real: estábamos mirando mar,
 // no tiles rotos.
 //
-// v1.12.14 - pedido del cliente: look MapTiler / OMT (OpenMapTiles).
-// El minimapa web (MapLibre) carga el estilo vectorial OMT de
-// OpenFreeMap (Liberty, sin API key - el esquema OpenMapTiles lo
-// mantiene MapTiler, pero sus tiles exigen key de pago; CARTO, la
-// alternativa raster gratuita, ahora también pide key: en producción
-// devuelve el tile placeholder "API KEY REQUIRED"). El fallback y la
-// base del APK nativo siguen siendo el ráster OSM estándar validado:
-// el JSON íntegro del estilo nativo no puede apuntar a una URL de
-// estilo externa sin tocar el bridge del plugin.
+// v1.12.14b - pedido del cliente: la versión ESTÁNDAR OSM en ambos
+// mapas. El intento OMT del commit anterior (OpenFreeMap Liberty,
+// vectorial) queda en el historial: el minimapa web vuelve al ráster
+// estándar - la misma base del mapa grande (Leaflet) y del APK
+// nativo. Fuente: OSM France (mismo render que tile.openstreetmap.org
+// y límites más generosos: OSM estándar responde 429 con usuarios
+// concurrentes).
 // ============================================================
 
 import type { StyleSpecification } from "maplibre-gl";
 
 /** Paleta del tema oscuro del lienzo nativo (nativeStyle la
- *  re-exporta; el estilo ráster claro de arriba no la usa). */
+ *  re-exporta; el estilo ráster claro de abajo no la usa). */
 export const NAV_COLORS = {
   bg: "#0a0e14",
   park: "#0f2a1d",
@@ -38,18 +36,15 @@ export const NAV_COLORS = {
   labelDim: "#7d8a9c",
 };
 
-/** Estilo vectorial OpenMapTiles (look MapTiler) del minimapa web,
- *  servido por OpenFreeMap sin API key. Carga async: si falla, el
- *  failover de MiniMap vuelve a navStyle() (ráster OSM estándar). */
-export const OMT_STYLE_URL = "https://tiles.openfreemap.org/styles/liberty";
-
-/** Base ráster: estilo estándar OSM France (mismo render que OSM
- *  estándar, sin key y con límites más generosos - tile.openstreetmap.org
- *  responde 429 con usuarios concurrentes). Fallback del minimapa web
- *  y base del APK nativo. */
-export const OSM_RASTER_TILES = ["a", "b", "c"].map(
+/** Base principal (v1.12.14b): ráster estándar OSM France - mismo
+ *  render que tile.openstreetmap.org, sin key y con límites más
+ *  generosos (OSM estándar responde 429 con usuarios concurrentes). */
+export const BASE_RASTER_TILES = ["a", "b", "c"].map(
   (s) => `https://${s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png`
 );
+
+/** Respaldo del failover: OSM estándar si OSM France cae. */
+export const OSM_ORG_FALLBACK_TILES = ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"];
 
 /** Polígono circular (32 lados) alrededor de un punto - para zonas
  *  de riesgo y porteras, porque circle-layer usa píxeles, no metros. */
@@ -70,11 +65,11 @@ export function navStyle(): StyleSpecification {
     sources: {
       base: {
         type: "raster",
-        tiles: OSM_RASTER_TILES,
+        tiles: BASE_RASTER_TILES,
         tileSize: 256,
         maxzoom: 19,
         attribution:
-          '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors · <a href="https://opendatacommons.org/licenses/odbl/1-0/">ODbL</a>',
+          '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors · <a href="https://www.openstreetmap.fr/">OSM France</a> · <a href="https://opendatacommons.org/licenses/odbl/1-0/">ODbL</a>',
       },
     },
     layers: [
