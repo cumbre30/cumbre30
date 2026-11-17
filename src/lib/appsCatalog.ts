@@ -82,7 +82,7 @@ export const APPS: AppCatalogo[] = [
       {
         titulo: "Requisitos y compatibilidad",
         cuerpo:
-          "• Android 7.0 o superior.\n• No requiere datos móviles en el cerro: mapas, rutas, GPS y alertas funcionan 100% offline.\n• Tamaño de descarga aproximado: 52 MB.",
+          "• Android 7.0 o superior.\n• No requiere datos móviles en el cerro: mapas, rutas, GPS y alertas funcionan 100% offline.\n• Tamaño de descarga aproximado: 57 MB.",
       },
       {
         titulo: "Permisos que usa y para qué",
