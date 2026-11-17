@@ -9,7 +9,7 @@ import {
   RISK_ZONES,
   type LatLng,
 } from "@/lib/park";
-import { Ema, SpeedKalman, haversineM, pointInPolygon, distToPolygonM } from "@/lib/geo";
+import { Ema, SpeedKalman, haversineM, bearingDeg, pointInPolygon, distToPolygonM } from "@/lib/geo";
 import { PARK_HOURS } from "@/lib/park";
 import { estadoParque, minutosParaCierre, cierraHoraTexto } from "@/lib/horario";
 import { GATE_PIO_NONO, PUENTE_TUPAHUE_CUMBRE, enCorredorPioNono } from "@/lib/reglasParque";
@@ -156,7 +156,7 @@ export function useRideEngine() {
 
   /** Procesa un fix (GPS real o simulado) con el mismo pipeline. */
   const processFix = useCallback(
-    (fix: LatLng & { speedKmh: number; alt: number; accuracyM: number; t: number; course?: number | null }) => {
+    (fix: LatLng & { speedKmh: number; speedFromDelta?: boolean; alt: number; accuracyM: number; t: number; course?: number | null }) => {
       const e = engine.current;
       // Rumbo nativo (v1.12.8): course del GPS Doppler si hay avance real
       // (≥4 km/h); detenido no es confiable y se deja a courseHeading/última orientación.
@@ -179,8 +179,11 @@ export function useRideEngine() {
       //    Los sensores (Bluetooth y acelerómetro) se retiraron: el WebView
       //    de Capacitor no entrega datos fiables de ellos; el GPS nativo a
       //    1 Hz es la única fuente y basta para fiscalizar los 30 km/h.
-      const measuredKmh = fix.speedKmh;
-      const vMeasured = measuredKmh / 3.6; // m/s
+      //    v1.12.14c: si la velocidad vino de delta de posición (sin
+      //    Doppler) y la precisión es mala (≥60 m), el delta es ruido de
+      //    posición, no velocidad real: NaN hace que el Kalman devuelva
+      //    su estado sin corromperse.
+      const vMeasured = fix.speedFromDelta && fix.accuracyM >= 60 ? NaN : fix.speedKmh / 3.6; // m/s
       const vKf = e.kalman.update(vMeasured, dt);
       let accel = 0;
       if (e.prevSpeed !== null && dt > 0) accel = (vKf - e.prevSpeed) / dt;
@@ -515,15 +518,20 @@ export function useRideEngine() {
       setOverLimitSec(e.overSec);
       setAccuracyM(fix.accuracyM);
       setPosition(fix);
-      setTrack((tr) => (tr.length && haversineM(tr[tr.length - 1], fix) < 2 ? tr : [...tr.slice(-6000), fix]));
-      // Pista para GPX: ~1 punto cada 5 s, máx 600 (si se llena, se
-      // adelgaza a la mitad y se duplica el intervalo - ~21 KB por ride).
-      if (!e.trackPts.length || fix.t - e.trackPts[e.trackPts.length - 1][3] * 1000 >= e.trackEveryMs) {
-        if (e.trackPts.length >= 600) {
-          e.trackPts = e.trackPts.filter((_, i) => i % 2 === 0);
-          e.trackEveryMs *= 2;
+      // Track y pista GPX solo con precisión decente (v1.12.14c): un fix
+      // ≥60 m ya se rechaza para la distancia; si entrara igual, dibujaría
+      // un salto falso en el recorrido y metería un punto inventado al GPX.
+      if (fix.accuracyM < 60) {
+        setTrack((tr) => (tr.length && haversineM(tr[tr.length - 1], fix) < 2 ? tr : [...tr.slice(-6000), fix]));
+        // Pista para GPX: ~1 punto cada 5 s, máx 600 (si se llena, se
+        // adelgaza a la mitad y se duplica el intervalo - ~21 KB por ride).
+        if (!e.trackPts.length || fix.t - e.trackPts[e.trackPts.length - 1][3] * 1000 >= e.trackEveryMs) {
+          if (e.trackPts.length >= 600) {
+            e.trackPts = e.trackPts.filter((_, i) => i % 2 === 0);
+            e.trackEveryMs *= 2;
+          }
+          e.trackPts.push([fix.lat, fix.lon, fix.alt, Math.round(fix.t / 1000)]);
         }
-        e.trackPts.push([fix.lat, fix.lon, fix.alt, Math.round(fix.t / 1000)]);
       }
       e.lastFix = { ...fix };
     },
@@ -544,24 +552,31 @@ export function useRideEngine() {
         // Modo ahorro: procesa 1 fix de cada 2 (≈0,5 Hz efectivo).
         if (saltarFix(pos.timestamp)) return;
         const c = pos.coords;
-        // Velocidad GPS (Doppler) si existe; si no, por delta de posición
+        const e = engine.current;
+        // Velocidad GPS (Doppler) si existe; si no, por delta de posición.
+        const doppler = c.speed !== null && c.speed >= 0 && isFinite(c.speed);
         let kmh: number;
-        if (c.speed !== null && c.speed >= 0 && isFinite(c.speed)) {
+        let course: number | null = null;
+        if (doppler) {
           kmh = c.speed * 3.6;
         } else {
-          const e = engine.current;
-          kmh = e.lastFix
-            ? (haversineM(e.lastFix, { lat: c.latitude, lon: c.longitude }) / Math.max(0.2, (pos.timestamp - e.lastFix.t) / 1000)) * 3.6
-            : 0;
+          const dM = e.lastFix ? haversineM(e.lastFix, { lat: c.latitude, lon: c.longitude }) : 0;
+          kmh = e.lastFix ? (dM / Math.max(0.2, (pos.timestamp - e.lastFix.t) / 1000)) * 3.6 : 0;
+          // Course derivado por delta (v1.12.14c): la web no entrega
+          // bearing — mismo criterio que el nativo, solo con avance real
+          // (≥4 km/h y desplazamiento ≥3 m para no rotar con ruido).
+          if (e.lastFix && kmh >= 4 && dM >= 3) course = bearingDeg(e.lastFix, { lat: c.latitude, lon: c.longitude });
         }
         engine.current.lastTick = performance.now();
         processFix({
           lat: c.latitude,
           lon: c.longitude,
           speedKmh: kmh,
+          speedFromDelta: !doppler,
           alt: c.altitude ?? 0,
           accuracyM: c.accuracy ?? 20,
           t: pos.timestamp,
+          course,
         });
       },
       (err) => {
@@ -601,6 +616,7 @@ export function useRideEngine() {
           lat: f.lat,
           lon: f.lng,
           speedKmh,
+          speedFromDelta: !(f.speed >= 0 && isFinite(f.speed)),
           alt: f.alt,
           accuracyM: f.accuracy,
           t: f.t,

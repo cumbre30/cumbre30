@@ -18,7 +18,7 @@
 // ============================================================
 
 import dynamic from "next/dynamic";
-import { AlertTriangle, BadgeCheck, BatteryCharging, Bike, ChevronDown, Cloud, CloudDrizzle, CloudFog, CloudLightning, CloudRain, CloudRainWind, CloudSnow, CloudSun, Copy, Droplets, Gauge, HeartPulse, ListTree, Mountain, Navigation, Pause, Phone, Play, Route, ScrollText, Share2, ShieldAlert, Siren, Square, Sun, Timer, TrendingDown, TrendingUp, Wind, X, Info } from "lucide-react";
+import { AlertTriangle, BadgeCheck, BatteryCharging, Bike, Bluetooth, ChevronDown, Cloud, CloudDrizzle, CloudFog, CloudLightning, CloudRain, CloudRainWind, CloudSnow, CloudSun, Copy, Droplets, Gauge, HeartPulse, ListTree, Mountain, Navigation, Pause, Phone, Play, Route, ScrollText, Share2, ShieldAlert, Siren, Square, Sun, Timer, TrendingDown, TrendingUp, Wind, X, Info } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Speedometer } from "@/components/Speedometer";
@@ -106,6 +106,9 @@ export function RideView(p: Props) {
   // Música (v1.12.3): panel de sesiones de media en el ride. Solo
   // APK: en la web no hay sesiones de media que controlar.
   const [musicaOpen, setMusicaOpen] = useState(false);
+  // Sensores Bluetooth (v1.12.14c): pulso y rueda viven en un panel
+  // que se abre desde el botón del banner (al lado del de música).
+  const [sensorOpen, setSensorOpen] = useState(false);
   const esNativo = isNativeApp();
   // Punto 4: banner de avisos colapsado a icono por defecto.
   const [avisosOpen, setAvisosOpen] = useState(false);
@@ -441,6 +444,18 @@ export function RideView(p: Props) {
             derecho del ahorro de batería — solo APK, sin abandonar
             las métricas del ride. */}
         {esNativo && <MusicaBoton abierto={musicaOpen} onToggle={() => setMusicaOpen((v) => !v)} activo={false} />}
+        {/* Sensores Bluetooth (v1.12.14c): el apartado sale de la caja de
+            stats y vive en este botón del banner, al lado derecho del de
+            música. Borde verde con pulso conectado. */}
+        <button
+          onClick={() => setSensorOpen((v) => !v)}
+          aria-label={t("sens.aria")}
+          aria-expanded={sensorOpen}
+          title={t("sens.aria")}
+          className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border ${bpm !== null ? "border-emerald-600 bg-emerald-950/60 text-emerald-300" : "border-border bg-card/90 text-muted-foreground"} ${sensorOpen ? "ring-2 ring-current/40" : ""}`}
+        >
+          <Bluetooth className="h-4 w-4" />
+        </button>
         <button
           onClick={() => setSosOpen(true)}
           className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-red-800/70 bg-red-950/50 px-3 py-1.5 text-[11px] font-bold tracking-wide text-red-300 hover:bg-red-900/60"
@@ -452,6 +467,13 @@ export function RideView(p: Props) {
 
       {/* Panel de música (v1.12.3): sesiones de media activas + control */}
       {esNativo && <MusicaPanel abierto={musicaOpen} onCerrar={() => setMusicaOpen(false)} />}
+
+      {/* Panel de sensores (v1.12.14c): SIEMPRE montado, se oculta con CSS
+          al cerrar — desmontarlo mataría las conexiones BLE ya establecidas
+          (pulso/rueda se tendrían que re-emparejar en cada apertura). */}
+      <div className={sensorOpen ? "" : "hidden"}>
+        <SensorPanel onBpm={onBpm} />
+      </div>
 
       {/* Punto 4: banner de avisos completo (colapsado por defecto) */}
       {avisosOpen && (
@@ -711,11 +733,6 @@ export function RideView(p: Props) {
                 <span className="font-mono text-foreground/90">{p.maxInParkKmh.toFixed(1)} km/h</span>
               </p>
             )}
-            {/* Sensor Bluetooth + zonas de esfuerzo (Ola 1): empareja el
-                monitor de pulso, acumula el tiempo por zona del ride. */}
-            <div className="mt-3">
-              <SensorPanel onBpm={onBpm} />
-            </div>
             {hrStats && (
               <div className="mt-2.5 grid grid-cols-5 gap-1.5">
                 {([1, 2, 3, 4, 5] as ZonaId[]).map((z) => (

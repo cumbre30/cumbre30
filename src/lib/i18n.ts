@@ -1137,6 +1137,7 @@ const D: Record<string, E> = {
 
   // ---------- sensores Bluetooth ----------
   "sens.titulo": ["Sensores Bluetooth", "Bluetooth sensors", "Sensores Bluetooth"],
+  "sens.aria": ["Abrir sensores Bluetooth", "Open Bluetooth sensors", "Abrir sensores Bluetooth"],
   "sens.spdNombre": ["Sensor de velocidad de rueda", "Wheel speed sensor", "Sensor de velocidade de roda"],
   "sens.sustituyeGps": ["sustituye al GPS", "replaces GPS", "substitui o GPS"],
   "sens.conectado": ["conectado", "connected", "conectado"],
