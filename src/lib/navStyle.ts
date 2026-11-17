@@ -69,7 +69,7 @@ export function navStyle(): StyleSpecification {
         tileSize: 256,
         maxzoom: 19,
         attribution:
-          '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors · <a href="https://www.openstreetmap.fr/">OSM France</a> · <a href="https://opendatacommons.org/licenses/odbl/1-0/">ODbL</a>',
+          '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors · <a href="https://opendatacommons.org/licenses/odbl/1-0/">ODbL</a>',
       },
     },
     layers: [

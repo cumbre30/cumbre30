@@ -378,15 +378,12 @@ details[data-capa][open] > summary .details-chev{transform:rotate(180deg)}
 /* >>> CUMBRE30:CAPAS-MAPA:FIN <<< */
 
 /* >>> CUMBRE30:ATRIBUTION-MAPLIBRE:INI <<< */
-/* Atribución del minimapa (MapLibre) siempre legible - queja del
-   cliente 2026-11-17: "la etiqueta de OpenStreetMap contributors no
-   se ve". compact:false en MiniMap/MinimapPreview muestra el texto
-   completo (no el icono ⓘ); aquí se asegura tamaño y fondo legibles. */
+/* Atribución del minimapa (MapLibre) legible - queja del cliente
+   2026-11-17: "la etiqueta de OpenStreetMap contributors no se ve".
+   compact:false muestra el texto completo (no el icono ⓘ) y desde el
+   mismo día la barra «Ir a...» salió del mapa, así que la etiqueta
+   vuelve al borde inferior sin que nadie la tape. Se asegura tamaño y
+   fondo legibles sobre los tiles. */
 .maplibregl-ctrl-attrib{font-size:12px !important;background-color:rgba(255,255,255,0.88) !important;color:#18181b !important}
 .maplibregl-ctrl-attrib a{color:#166534 !important}
-/* El minimapa real (c30-minimap) tiene la barra inferior tipo Waze
-   pegada al borde (bottom-0, ~48px) que tapaba la etiqueta - queja del
-   cliente 2026-11-17. Se sube la atribución a la franja libre sobre la
-   barra; la vista previa de Configuración no tiene la clase ni barra. */
-.c30-minimap .maplibregl-ctrl-bottom-right{bottom:50px !important}
 /* >>> CUMBRE30:ATRIBUTION-MAPLIBRE:FIN <<< */

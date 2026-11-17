@@ -198,7 +198,7 @@ export default function LeafletNav({
             // Leaflet del minimapa, coherente con el mapa grande.
             url="https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png"
             subdomains="abc"
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors · <a href="https://www.openstreetmap.fr/">OSM France</a> · <a href="https://opendatacommons.org/licenses/odbl/1-0/">ODbL</a>'
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors · <a href="https://opendatacommons.org/licenses/odbl/1-0/">ODbL</a>'
             maxZoom={19}
           />
 

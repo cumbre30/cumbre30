@@ -1350,13 +1350,12 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
           attributionControl
         >
           <TileLayer
-            // Base ráster estándar OSM France (v1.12.14): el estilo OMT
-            // exacto (MapTiler) exige API key de pago y CARTO también;
-            // OSM estándar responde 429 con usuarios concurrentes. El
-            // minimapa web sí usa OMT (Liberty, sin key).
+            // Base ráster estándar OSM France (v1.12.14b): la misma base
+            // del minimapa web y del APK nativo (OSM estándar responde 429
+            // con usuarios concurrentes).
             url="https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png"
             subdomains="abc"
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors · <a href="https://www.openstreetmap.fr/">OSM France</a> · <a href="https://opendatacommons.org/licenses/odbl/1-0/">ODbL</a>'
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors · <a href="https://opendatacommons.org/licenses/odbl/1-0/">ODbL</a>'
             maxZoom={19}
           />
 

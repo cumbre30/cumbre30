@@ -1052,7 +1052,10 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
   }
 
   return (
-    <div className={`relative overflow-hidden z-0 c30-minimap ${onRoute ? heightRouteClass : `${heightClass} ${styleClass ?? ""}`}`}>
+    // La barra «Ir a...» sale del mapa (pedido del cliente 2026-11-17:
+    // "cubre parte del mapa"): fila separada justo debajo del minimapa.
+    <>
+      <div className={`relative overflow-hidden z-0 c30-minimap ${onRoute ? heightRouteClass : `${heightClass} ${styleClass ?? ""}`}`}>
       {webglOk && !isNativeApp() ? (
         <NavCanvas
           position={position}
@@ -1112,9 +1115,10 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
         />
       )}
 
-      {/* Píldora con la calle actual sobre el pin (modo ruta) */}
+      {/* Píldora con la calle actual sobre el pin (modo ruta) - cerca
+          del borde inferior: la barra «Ir a...» ya no está dentro */}
       {onRoute && currentStreet && !offRoute && !(progress && progress.remainingM < ARRIVAL_M) && (
-        <div className="absolute bottom-[108px] inset-x-0 z-[500] flex justify-center pointer-events-none">
+        <div className="absolute bottom-[28px] inset-x-0 z-[500] flex justify-center pointer-events-none">
           <span className="rounded-full bg-zinc-100 text-zinc-900 text-[11px] font-semibold px-3 py-1 shadow-lg max-w-[70%] truncate">
             {currentStreet}
           </span>
@@ -1129,9 +1133,25 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
         onClear={() => nav.setDestination(null)}
       />
 
-      {/* ===== Barra inferior tipo Waze - SIN velocímetro ===== */}
+      {/* Hoja de reporte rápido (flota sobre el mapa; el botón que la
+          abre vive en la barra de abajo, fuera del minimapa) */}
+      {reportOpen && (
+        <ReportSheet
+          className="absolute bottom-3 inset-x-2 z-[650] rounded-xl bg-background/95 border border-border shadow-2xl p-3"
+          hasPosition={!!position}
+          onType={reportIncident}
+          onClose={() => setReportOpen(false)}
+        />
+      )}
+
+      {/* Confirmación / avisos */}
+      {status && <StatusNote className="absolute bottom-3 inset-x-3 z-[700] rounded-lg bg-card/95 border border-border px-3 py-2 text-[11px] text-foreground" text={status} />}
+      </div>
+
+      {/* ===== Barra «Ir a...» + reporte: fila propia debajo del mapa =====
+          (pedido del cliente 2026-11-17: la barra cubría parte del mapa) */}
       <BottomBar
-        className="absolute bottom-0 inset-x-0 z-[500] bg-background/95 border-t border-border px-2.5 py-2 flex items-center gap-2.5"
+        className="mt-1.5 rounded-xl border border-border bg-background/95 px-2.5 py-2 flex items-center gap-2.5"
         onRoute={onRoute}
         etaMin={etaMin}
         arrivalClock={arrivalClock}
@@ -1141,20 +1161,6 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
         onReport={() => setReportOpen((v) => !v)}
         onOpenMap={onOpenMap}
       />
-
-      {/* Hoja de reporte rápido (76px: deja libre la franja 50-70px de
-          la atribución, queja del cliente 2026-11-17) */}
-      {reportOpen && (
-        <ReportSheet
-          className="absolute bottom-[76px] inset-x-2 z-[650] rounded-xl bg-background/95 border border-border shadow-2xl p-3"
-          hasPosition={!!position}
-          onType={reportIncident}
-          onClose={() => setReportOpen(false)}
-        />
-      )}
-
-      {/* Confirmación / avisos (76px: no pisa la atribución a 50px) */}
-      {status && <StatusNote className="absolute bottom-[76px] inset-x-3 z-[700] rounded-lg bg-card/95 border border-border px-3 py-2 text-[11px] text-foreground" text={status} />}
-    </div>
+    </>
   );
 }
