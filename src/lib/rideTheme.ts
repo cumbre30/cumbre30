@@ -13,6 +13,9 @@
 //                   zonas ámbar/rojo sobre 25 y 30 km/h).
 //   · speedoSize  - normal / grande / gigante.
 //   · minimapSize - compacto / normal / grande (altura del minimapa).
+//   · minimapStyle - clásico / tarjeta / plano (marco estético).
+//   · speedoStyle también agrega anillo (círculo 360°) y bloque
+//     (tablero de segmentos) desde v1.12.13, sólo estética.
 //
 // Persistencia: localStorage (funciona offline en el APK). El
 // snapshot del servidor son los valores por defecto, así que el
@@ -27,15 +30,19 @@
 import { useSyncExternalStore } from "react";
 
 export type ThemeColorId = "cerro" | "andes" | "atardecer" | "lila" | "grafito";
-export type SpeedoStyle = "digital" | "arco" | "dial" | "aguja";
+export type SpeedoStyle = "digital" | "arco" | "dial" | "aguja" | "anillo" | "bloque";
 export type SpeedoSize = "normal" | "grande" | "gigante";
 export type MinimapSize = "compacto" | "normal" | "grande";
+// Estilo estético del minimapa (v1.12.13): el marco y el acabado,
+// independiente del tamaño.
+export type MinimapStyle = "clasico" | "tarjeta" | "plano";
 
 export type RideThemeSettings = {
   color: ThemeColorId;
   speedoStyle: SpeedoStyle;
   speedoSize: SpeedoSize;
   minimapSize: MinimapSize;
+  minimapStyle: MinimapStyle;
 };
 
 export const DEFAULT_RIDE_THEME: RideThemeSettings = {
@@ -43,6 +50,7 @@ export const DEFAULT_RIDE_THEME: RideThemeSettings = {
   speedoStyle: "digital",
   speedoSize: "normal",
   minimapSize: "normal",
+  minimapStyle: "clasico",
 };
 
 /** Paletas: swatch = color del punto en el selector de Configuración. */
@@ -59,6 +67,9 @@ export const SPEEDO_STYLES: { id: SpeedoStyle; label: string; proOnly: boolean }
   { id: "arco", label: "Arco", proOnly: true },
   { id: "dial", label: "Dial", proOnly: true },
   { id: "aguja", label: "Aguja", proOnly: true },
+  // Nuevos diseños (cliente 2026-11-17, sólo estética):
+  { id: "anillo", label: "Anillo", proOnly: true },
+  { id: "bloque", label: "Bloque", proOnly: true },
 ];
 
 export const SPEEDO_SIZES: { id: SpeedoSize; label: string; proOnly: boolean }[] = [
@@ -73,6 +84,12 @@ export const MINIMAP_SIZES: { id: MinimapSize; label: string; proOnly: boolean }
   { id: "grande", label: "Grande", proOnly: true },
 ];
 
+export const MINIMAP_STYLES: { id: MinimapStyle; label: string; proOnly: boolean }[] = [
+  { id: "clasico", label: "Clásico", proOnly: false },
+  { id: "tarjeta", label: "Tarjeta", proOnly: true },
+  { id: "plano", label: "Plano", proOnly: true },
+];
+
 // --- alturas del minimapa por tamaño (clases Tailwind) ---
 export function minimapHeight(size: MinimapSize): { base: string; route: string } {
   switch (size) {
@@ -82,6 +99,18 @@ export function minimapHeight(size: MinimapSize): { base: string; route: string 
       return { base: "h-64 sm:h-72", route: "h-[24rem]" };
     default:
       return { base: "h-52 sm:h-56", route: "h-80" };
+  }
+}
+
+// --- clases del marco del minimapa por estilo ---
+export function minimapStyleCls(style: MinimapStyle): string {
+  switch (style) {
+    case "tarjeta":
+      return "rounded-3xl border-2 border-emerald-600/70 shadow-xl ring-1 ring-emerald-500/20";
+    case "plano":
+      return "rounded-xl border-0 shadow-none ring-1 ring-border";
+    default:
+      return "rounded-2xl border border-border shadow-lg";
   }
 }
 
@@ -125,6 +154,7 @@ function readStored(): RideThemeSettings | null {
       speedoStyle: SPEEDO_STYLES.some((s) => s.id === p.speedoStyle) ? (p.speedoStyle as SpeedoStyle) : DEFAULT_RIDE_THEME.speedoStyle,
       speedoSize: SPEEDO_SIZES.some((s) => s.id === p.speedoSize) ? (p.speedoSize as SpeedoSize) : DEFAULT_RIDE_THEME.speedoSize,
       minimapSize: MINIMAP_SIZES.some((m) => m.id === p.minimapSize) ? (p.minimapSize as MinimapSize) : DEFAULT_RIDE_THEME.minimapSize,
+      minimapStyle: MINIMAP_STYLES.some((m) => m.id === p.minimapStyle) ? (p.minimapStyle as MinimapStyle) : DEFAULT_RIDE_THEME.minimapStyle,
     };
   } catch {
     return null;

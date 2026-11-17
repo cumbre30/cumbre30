@@ -30,6 +30,7 @@ import { Crosshair, AlertTriangle, Trash2, X, Search, MapPin, Flag, Crown, Lock,
 import { apiUrl } from "@/lib/backend";
 import { useCamaraRumbo } from "@/hooks/useCamaraRumbo";
 import { NAV_DESTINATIONS, PARK_POLYGON, RISK_ZONES, type LatLng } from "@/lib/park";
+import { SECTORES_EMERGENCIA } from "@/lib/sectoresEmergencia";
 import {
   CAPA_ACCESOS,
   CAPA_NORMATIVA,
@@ -206,6 +207,7 @@ const MENUS_CAPAS: MenuCapa[] = [
   { id: "pois", titulo: "mapa.capaPois", sub: "mapa.capaPoisSub", emoji: "📍", items: CAPA_POIS.length },
   { id: "normativa", titulo: "mapa.capaNormativa", sub: "mapa.capaNormativaSub", emoji: "🛡️", items: CAPA_NORMATIVA.length },
   { id: "urbana", titulo: "mapa.capaUrbana", sub: "mapa.capaUrbanaSub", emoji: "🏙️", items: CAPA_URBANA.length },
+  { id: "sectores", titulo: "mapa.capaSectores", sub: "mapa.capaSectoresSub", emoji: "🚨", items: SECTORES_EMERGENCIA.length },
 ];
 
 /** Colores de burbuja por subcategoría de Puntos de Interés y por capa de puntos. */
@@ -472,6 +474,24 @@ function CapasPanel({
                   </>
                 )}
 
+                {m.id === "sectores" && (
+                  <>
+                    <div className="mb-1 flex items-center justify-between gap-2">
+                      <p className="text-[10px] text-muted-foreground">{t("mapa.sectoresNota")}</p>
+                      <SwitchCapa on={on} onClick={() => onVer("sectores")} label="sectores" />
+                    </div>
+                    <ul>
+                      {SECTORES_EMERGENCIA.map((sec) => (
+                        <FilaPunto
+                          key={sec.id}
+                          p={{ nombre: `${sec.nombre} · ${t(sec.sectorKey)}`, detalle: `${t("sos.emergencias")} ${sec.telefono}`, emoji: sec.emoji }}
+                          color={sec.color}
+                          onFocus={() => onFocus({ kind: "punto", p: sec.polygon[Math.floor(sec.polygon.length / 2)] })}
+                        />
+                      ))}
+                    </ul>
+                  </>
+                )}
                 {m.id === "pois" && (
                   <>
                     <div className="mb-1 flex items-center justify-between gap-2">
@@ -885,7 +905,7 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
   // (sin course GPS apunta como el rumbo de la cámara, no al norte fijo).
   const rumboPin = heading ?? (modoCamara === "rumbo" ? mapBearing : null);
   // Capas del mapa (arquitectura GPX): visibilidad por capa/ruta
-  const [capasVis, setCapasVis] = useState<Record<string, boolean>>({ accesos: true, senderos: true, "paseo-met": true });
+  const [capasVis, setCapasVis] = useState<Record<string, boolean>>({ accesos: true, senderos: true, "paseo-met": true, sectores: true });
   const [focus, setFocus] = useState<Focus>(null);
   const last = track.length > 0 ? track[track.length - 1] : null;
   // Sin fix aún: el centro por defecto es el parque. Con fix GPS la
@@ -1338,6 +1358,24 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
             positions={PARK_POLYGON.map((p) => [p.lat, p.lon])}
             pathOptions={{ color: "#34d399", weight: 2, fillColor: "#10b981", fillOpacity: 0.08 }}
           />
+
+          {/* Capa Sectores de emergencia (cliente 2026-11-17): división
+              orientativa del parque por sector municipal, destacada por
+              color con el teléfono de contacto de cada patrulla. */}
+          {capasVis["sectores"] &&
+            SECTORES_EMERGENCIA.map((sec) => (
+              <Polygon
+                key={sec.id}
+                positions={sec.polygon.map((p) => [p.lat, p.lon])}
+                pathOptions={{ color: sec.color, weight: 2, dashArray: "6 4", fillColor: sec.color, fillOpacity: 0.14 }}
+              >
+                <Tooltip direction="top" offset={[0, -6]}>
+                  <span className="text-xs font-medium">
+                    {sec.emoji} {sec.nombre} · {t(sec.sectorKey)} · {sec.telefono}
+                  </span>
+                </Tooltip>
+              </Polygon>
+            ))}
 
           {/* Zonas de riesgo */}
           {RISK_ZONES.map((z) => (

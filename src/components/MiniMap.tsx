@@ -71,6 +71,8 @@ type Props = {
   speedKmh?: number;
   /** Altura del contenedor sin ruta activa (tema Pro: minimapa compacto/grande). */
   heightClass?: string;
+  /** Clases del marco (minimapStyleCls) — estética del minimapa. */
+  styleClass?: string;
   /** Altura del contenedor con ruta activa. */
   heightRouteClass?: string;
   /** Abrir el mapa general (listado completo de destinos y capas). */
@@ -851,7 +853,7 @@ function StatusNote({ className, text }: { className: string; text: string }) {
 // ============================================================
 // Componente principal: lienzo + capa Waze (banner, barra, etc.)
 // ============================================================
-export default function MiniMap({ position, heading, track, accuracyM, userPin, nav, speedKmh = 0, heightClass = "h-52 sm:h-56", heightRouteClass = "h-80", onOpenMap }: Props) {
+export default function MiniMap({ position, heading, track, accuracyM, userPin, nav, speedKmh = 0, heightClass = "h-52 sm:h-56", styleClass, heightRouteClass = "h-80", onOpenMap }: Props) {
   useLang();
   const incidents = useIncidentFeed();
   const [locateTarget, setLocateTarget] = useState<LatLng | null>(null);
@@ -982,7 +984,7 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
         )}
 
         {/* SOLO el lienzo nativo dentro de la ventana: sin HTML encima */}
-        <div className={`relative rounded-xl overflow-hidden border border-border shrink-0 ${onRoute ? heightRouteClass : heightClass}`}>
+        <div className={`relative overflow-hidden shrink-0 ${onRoute ? heightRouteClass : `${heightClass} ${styleClass ?? ""}`}`}>
           <NativeMapCanvas
             id="minimap"
             mode="nav"
@@ -1039,7 +1041,7 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
   }
 
   return (
-    <div className={`relative rounded-xl overflow-hidden border border-border z-0 c30-minimap ${onRoute ? heightRouteClass : heightClass}`}>
+    <div className={`relative overflow-hidden z-0 c30-minimap ${onRoute ? heightRouteClass : `${heightClass} ${styleClass ?? ""}`}`}>
       {webglOk && !isNativeApp() ? (
         <NavCanvas
           position={position}

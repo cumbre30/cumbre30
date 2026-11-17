@@ -18,43 +18,7 @@
 // ============================================================
 
 import dynamic from "next/dynamic";
-import {
-  AlertTriangle,
-  BadgeCheck,
-  BatteryCharging,
-  Bike,
-  ChevronDown,
-  Cloud,
-  CloudDrizzle,
-  CloudFog,
-  CloudLightning,
-  CloudRain,
-  CloudRainWind,
-  CloudSnow,
-  CloudSun,
-  Copy,
-  Droplets,
-  Gauge,
-  HeartPulse,
-  ListTree,
-  Mountain,
-  Navigation,
-  Pause,
-  Phone,
-  Play,
-  Route,
-  ScrollText,
-  Share2,
-  ShieldAlert,
-  Siren,
-  Square,
-  Sun,
-  Timer,
-  TrendingDown,
-  TrendingUp,
-  Wind,
-  X,
-} from "lucide-react";
+import { AlertTriangle, BadgeCheck, BatteryCharging, Bike, ChevronDown, Cloud, CloudDrizzle, CloudFog, CloudLightning, CloudRain, CloudRainWind, CloudSnow, CloudSun, Copy, Droplets, Gauge, HeartPulse, ListTree, Mountain, Navigation, Pause, Phone, Play, Route, ScrollText, Share2, ShieldAlert, Siren, Square, Sun, Timer, TrendingDown, TrendingUp, Wind, X, Info } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Speedometer } from "@/components/Speedometer";
@@ -65,7 +29,7 @@ import { formatStepRemaining, routeProgress, stepGlyph } from "@/lib/routing";
 import { estadoParque, horaSantiago } from "@/lib/horario";
 import { etiquetaAire, etiquetaClima, etiquetaUV, useClima } from "@/hooks/useClima";
 import { useCiudad } from "@/hooks/useCiudad";
-import { minimapHeight, useRideTheme } from "@/lib/rideTheme";
+import { minimapHeight, minimapStyleCls, useRideTheme } from "@/lib/rideTheme";
 import { alerts } from "@/lib/alertEngine";
 import { fetchAvisosOperativos, textoAviso, type AvisoOperativo } from "@/lib/avisos";
 import { getFcConfig, HrTracker, zonaLabel, type ZonaId } from "@/lib/zonasFc";
@@ -551,6 +515,7 @@ export function RideView(p: Props) {
         nav={p.nav}
         speedKmh={p.speedKmh}
         heightClass={mm.base}
+        styleClass={minimapStyleCls(theme.minimapStyle)}
         heightRouteClass={mm.route}
         onOpenMap={p.onOpenMap}
       />
@@ -831,47 +796,68 @@ export function RideView(p: Props) {
             </div>
             <div className="mt-3">
               <p className="text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground">{t("sos.emergencias")}</p>
-              <div className="mt-1.5 grid grid-cols-3 gap-2">
-                <a href="tel:133" className="flex flex-col items-center gap-1 rounded-lg border border-border bg-card py-3 text-center hover:border-red-500/70">
-                  <Phone className="h-4 w-4 text-red-600 dark:text-red-400" />
-                  <span className="text-sm font-bold text-foreground">133</span>
-                  <span className="text-[10px] text-muted-foreground">{t("sos.carabineros")}</span>
-                </a>
-                <a href="tel:131" className="flex flex-col items-center gap-1 rounded-lg border border-border bg-card py-3 text-center hover:border-red-500/70">
-                  <Phone className="h-4 w-4 text-red-600 dark:text-red-400" />
-                  <span className="text-sm font-bold text-foreground">131</span>
-                  <span className="text-[10px] text-muted-foreground">{t("sos.ambulancia")}</span>
-                </a>
-                <a href="tel:132" className="flex flex-col items-center gap-1 rounded-lg border border-border bg-card py-3 text-center hover:border-red-500/70">
-                  <Phone className="h-4 w-4 text-red-600 dark:text-red-400" />
-                  <span className="text-sm font-bold text-foreground">132</span>
-                  <span className="text-[10px] text-muted-foreground">{t("sos.bomberos")}</span>
-                </a>
+              {/* Emergencias (cliente 2026-11-17): fila única de 5 columnas
+                  con los números nacionales, de izquierda a derecha:
+                  130 CONAF · 131 Ambulancia · 132 Bomberos · 133 Carabineros
+                  · 134 PDI. */}
+              <div className="mt-1.5 grid grid-cols-5 gap-1.5">
+                {[
+                  { tel: "tel:130", n: "130", s: t("sos.conaf") },
+                  { tel: "tel:131", n: "131", s: t("sos.ambulancia") },
+                  { tel: "tel:132", n: "132", s: t("sos.bomberos") },
+                  { tel: "tel:133", n: "133", s: t("sos.carabineros") },
+                  { tel: "tel:134", n: "134", s: t("sos.pdi") },
+                ].map((x) => (
+                  <a
+                    key={x.n}
+                    href={x.tel}
+                    className="flex flex-col items-center gap-0.5 rounded-lg border border-border bg-card py-2.5 text-center hover:border-red-500/70"
+                  >
+                    <Phone className="h-3.5 w-3.5 text-red-600 dark:text-red-400" />
+                    <span className="text-[13px] font-bold tabular-nums text-foreground">{x.n}</span>
+                    <span className="px-0.5 text-[8.5px] leading-tight text-muted-foreground">{x.s}</span>
+                  </a>
+                ))}
               </div>
             </div>
             <div className="mt-2.5">
               <p className="text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground">{t("sos.parqueYApoyo")}</p>
-              <div className="mt-1.5 grid grid-cols-3 gap-2">
-                {/* Número oficial de EMERGENCIAS del parque (cliente 2026-11-13,
-                    insignia roja «EMERGENCIAS 1466»): reemplaza a la antigua
-                    línea de informaciones +56 2 2730 1404. Estilo rojo como
-                    los números nacionales de urgencia. */}
-                <a href="tel:1466" className="flex flex-col items-center gap-1 rounded-lg border border-border bg-card py-3 text-center hover:border-red-500/70">
-                  <Phone className="h-4 w-4 text-red-600 dark:text-red-400" />
+              {/* Parque y apoyo (cliente 2026-11-17): emergencias del parque
+                  (1466, insignia roja del cliente) + los 3 municipales por
+                  sector (Providencia sur 1414 · Recoleta poniente 1440 ·
+                  Huechuraba norte 1417) + informaciones con horario. La
+                  tenencia de Carabineros va como nota informativa. */}
+              <div className="mt-1.5 grid grid-cols-5 gap-1.5">
+                <a
+                  href="tel:1466"
+                  className="flex flex-col items-center gap-0.5 rounded-lg border border-border bg-card py-2.5 text-center hover:border-red-500/70"
+                >
+                  <Phone className="h-3.5 w-3.5 text-red-600 dark:text-red-400" />
                   <span className="text-[13px] font-bold tabular-nums text-foreground">1466</span>
-                  <span className="text-[10px] text-muted-foreground">{t("sos.emergParquemet")}</span>
+                  <span className="px-0.5 text-[8.5px] leading-tight text-muted-foreground">{t("sos.emergParquemet")}</span>
                 </a>
-                <a href="tel:+56226543200" className="flex flex-col items-center gap-1 rounded-lg border border-border bg-card py-3 text-center hover:border-emerald-500/70">
-                  <Phone className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                  <span className="text-[13px] font-bold tabular-nums text-foreground">+56 2 2654 3200</span>
-                  <span className="text-[10px] text-muted-foreground">{t("sos.providencia")}</span>
-                </a>
-                <a href="tel:6003607777" className="flex flex-col items-center gap-1 rounded-lg border border-border bg-card py-3 text-center hover:border-emerald-500/70">
-                  <Phone className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                  <span className="text-[13px] font-bold tabular-nums text-foreground">600 360 7777</span>
-                  <span className="text-[10px] text-muted-foreground">{t("sos.saludResponde")}</span>
-                </a>
+                {[
+                  { tel: "tel:1414", n: "1414", s: "Providencia", sec: t("sos.sectorSur"), rojo: false },
+                  { tel: "tel:1440", n: "1440", s: "Recoleta", sec: t("sos.sectorPoniente"), rojo: false },
+                  { tel: "tel:1417", n: "1417", s: "Huechuraba", sec: t("sos.sectorNorte"), rojo: false },
+                  { tel: "tel:+56227301404", n: "+56 2 2730 1404", s: t("sos.informaciones"), sec: t("sos.horario"), rojo: false },
+                ].map((x) => (
+                  <a
+                    key={x.tel}
+                    href={x.tel}
+                    className="flex flex-col items-center gap-0.5 rounded-lg border border-border bg-card py-2.5 text-center hover:border-emerald-500/70"
+                  >
+                    <Phone className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                    <span className="text-[11px] font-bold tabular-nums text-foreground">{x.n}</span>
+                    <span className="px-0.5 text-[8.5px] leading-tight font-semibold text-foreground/80">{x.s}</span>
+                    <span className="px-0.5 text-[8.5px] leading-tight text-muted-foreground">{x.sec}</span>
+                  </a>
+                ))}
               </div>
+              <p className="mt-2 flex items-start gap-1.5 text-[10.5px] leading-snug text-muted-foreground">
+                <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                <span>{t("sos.tenencia")}</span>
+              </p>
             </div>
             {p.position ? (
               <>

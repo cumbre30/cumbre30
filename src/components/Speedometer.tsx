@@ -1,12 +1,16 @@
 "use client";
 
 // ============================================================
-// Velocímetro de Cumbre30 - cuatro estilos (Pro):
+// Velocímetro de Cumbre30 - seis estilos (Pro desde v1.12.13):
 //   · digital - el número grande de siempre (tamaño ajustable).
 //   · arco    - gauge de 270 grados: arco de progreso + número.
 //   · dial    - gauge con marcas de escala (cada 5 y 10 km/h).
 //   · aguja   - analógico: aguja giratoria, marcas de escala y
 //               zonas ámbar (25-30) y roja (30-60) en la pista.
+//   · anillo  - círculo 360° estilo fitness: progreso fino, zonas
+//               ámbar/roja al final y número gigante al centro.
+//   · bloque  - tablero de 30 segmentos horizontales con la marca
+//               del límite del parque (30 km/h) al centro.
 // La escala llega a 60 km/h: el parque limita a 30, así que la
 // mitad del arco es la zona segura. Colores por estado de
 // velocidad con clases Tailwind (currentColor en el SVG), de
@@ -192,6 +196,165 @@ export function Speedometer({ speedKmh, idle, over, caution, inPark, style, size
           <tspan dx={numPx * 0.16} className="font-sans font-semibold text-muted-foreground" style={{ fontSize: unitPx }}>
             km/h
           </tspan>
+        </text>
+      </svg>
+    );
+  }
+
+  if (style === "anillo") {
+    // Anillo completo 360° estilo fitness (cliente 2026-11-17): pista
+    // circular fina, zonas ámbar (25-30) y roja (30-60) al final del
+    // recorrido, punto en la punta del progreso y número gigante al
+    // centro. ViewBox cuadrado 240×240.
+    const S = 240;
+    const C = S / 2;
+    const RR = 96;
+    const ST = 13;
+    const LEN = 2 * Math.PI * RR;
+    const fClamped = Math.max(0, Math.min(1, frac));
+    const f25 = 25 / MAX_KMH;
+    const f30 = 30 / MAX_KMH;
+    const numPxR = Math.round(width * 0.3);
+    const unitPxR = Math.max(11, Math.round(width * 0.05));
+    const ang = -90 + 360 * fClamped;
+    const [dx, dy] = polar(C, C, RR, ang);
+    return (
+      <svg
+        viewBox={`0 0 ${S} ${S}`}
+        style={{ width: Math.min(width, 230), maxWidth: "100%" }}
+        className="mx-auto block"
+        role="img"
+        aria-label={t("vel.ariaActual", shown)}
+      >
+        {/* pista */}
+        <circle cx={C} cy={C} r={RR} fill="none" stroke="currentColor" strokeWidth={ST} className="text-muted-foreground/20" />
+        {/* zona ámbar 25-30 y roja 30-60 (arcos del final) */}
+        <circle
+          cx={C} cy={C} r={RR} fill="none" stroke="currentColor" strokeWidth={ST}
+          className="text-amber-500/40"
+          strokeDasharray={`${LEN * (f30 - f25)} ${LEN + 4}`}
+          strokeDashoffset={-LEN * f25}
+        />
+        <circle
+          cx={C} cy={C} r={RR} fill="none" stroke="currentColor" strokeWidth={ST}
+          className="text-red-500/40"
+          strokeDasharray={`${LEN * (1 - f30)} ${LEN + 4}`}
+          strokeDashoffset={-LEN * f30}
+        />
+        {/* progreso */}
+        <circle
+          cx={C} cy={C} r={RR} fill="none" stroke="currentColor" strokeWidth={ST}
+          strokeLinecap="round"
+          className={colorCls}
+          strokeDasharray={`${LEN * fClamped} ${LEN + 4}`}
+          transform={`rotate(-90 ${C} ${C})`}
+          style={{ transition: "stroke-dasharray 0.35s ease" }}
+        />
+        {/* punto en la punta del progreso */}
+        {fClamped > 0.01 && fClamped < 0.99 && (
+          <circle cx={dx} cy={dy} r={ST / 2 + 2} fill="currentColor" className={colorCls} transform={`rotate(90 ${dx} ${dy})`} style={{ transition: "cx 0.35s ease, cy 0.35s ease" }} />
+        )}
+        <text
+          x={C} y={C - 6}
+          textAnchor="middle" dominantBaseline="central"
+          fill="currentColor"
+          className={`${colorCls} font-mono font-extrabold tabular-nums`}
+          style={{ fontSize: numPxR }}
+        >
+          {shown}
+        </text>
+        <text
+          x={C} y={C + numPxR * 0.42}
+          textAnchor="middle"
+          fill="currentColor"
+          className="font-sans font-semibold text-muted-foreground"
+          style={{ fontSize: unitPxR }}
+        >
+          km/h
+        </text>
+      </svg>
+    );
+  }
+
+  if (style === "bloque") {
+    // Tablero de segmentos (cliente 2026-11-17): 30 bloques verticales
+    // (2 km/h cada uno) que se encienden hasta la velocidad; ámbar
+    // 25-30 y rojo 30-60 según posición, marca del límite del parque
+    // (30 km/h) al centro y número grande a la izquierda. ViewBox 300×120.
+    const SEG = 30;
+    const X0 = 118;
+    const X1 = 292;
+    const Y0 = 44;
+    const HH = 30;
+    const GAP = 1.5;
+    const SW = (X1 - X0 - GAP * (SEG - 1)) / SEG;
+    const lit = Math.max(0, Math.min(SEG, Math.round(frac * SEG)));
+    const numPxB = Math.round(width * 0.24);
+    const unitPxB = Math.max(11, Math.round(width * 0.05));
+    const segCls = (i: number) => {
+      const vHasta = ((i + 1) / SEG) * MAX_KMH;
+      if (vHasta > 30) return "text-red-500/75";
+      if (vHasta > 25) return "text-amber-500/75";
+      return colorCls;
+    };
+    return (
+      <svg
+        viewBox="0 0 300 120"
+        style={{ width, maxWidth: "100%" }}
+        className="mx-auto block"
+        role="img"
+        aria-label={t("vel.ariaActual", shown)}
+      >
+        {/* número grande a la izquierda */}
+        <text
+          x={14} y={54}
+          textAnchor="start" dominantBaseline="central"
+          fill="currentColor"
+          className={`${colorCls} font-mono font-extrabold tabular-nums`}
+          style={{ fontSize: numPxB }}
+        >
+          {shown}
+        </text>
+        <text
+          x={16} y={54 + numPxB * 0.55}
+          textAnchor="start"
+          fill="currentColor"
+          className="font-sans font-semibold text-muted-foreground"
+          style={{ fontSize: unitPxB }}
+        >
+          km/h
+        </text>
+        {/* escala */}
+        <text x={X0} y={Y0 - 10} textAnchor="middle" fill="currentColor" className="font-sans font-semibold text-muted-foreground" style={{ fontSize: 9 }}>0</text>
+        <text x={(X0 + X1) / 2} y={Y0 - 10} textAnchor="middle" fill="currentColor" className="font-sans font-bold text-amber-600 dark:text-amber-400" style={{ fontSize: 9 }}>30</text>
+        <text x={X1} y={Y0 - 10} textAnchor="middle" fill="currentColor" className="font-sans font-semibold text-muted-foreground" style={{ fontSize: 9 }}>60</text>
+        {/* segmentos */}
+        {Array.from({ length: SEG }, (_, i) => (
+          <rect
+            key={i}
+            x={X0 + i * (SW + GAP)}
+            y={Y0}
+            width={SW}
+            height={HH}
+            rx={2.5}
+            fill="currentColor"
+            className={i < lit ? segCls(i) : "text-muted-foreground/15"}
+            style={{ transition: "fill 0.3s ease" }}
+          />
+        ))}
+        {/* marca del límite del parque (30 km/h) */}
+        <line
+          x1={X0 + 15 * (SW + GAP) - GAP / 2}
+          y1={Y0 - 5}
+          x2={X0 + 15 * (SW + GAP) - GAP / 2}
+          y2={Y0 + HH + 5}
+          stroke="currentColor"
+          strokeWidth={2.5}
+          strokeLinecap="round"
+          className="text-amber-600 dark:text-amber-400"
+        />
+        <text x={(X0 + X1) / 2} y={Y0 + HH + 20} textAnchor="middle" fill="currentColor" className="font-sans font-semibold text-muted-foreground" style={{ fontSize: 9.5 }}>
+          límite del parque
         </text>
       </svg>
     );

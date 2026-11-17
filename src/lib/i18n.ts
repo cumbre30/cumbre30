@@ -1162,6 +1162,21 @@ const D: Record<string, E> = {
   "cfg.subApariencia": ["Temas de color de la app", "App color themes", "Temas de cor do app"],
   "cfg.subVelocimetro": ["Estilo, tamaño y vista previa", "Style, size and preview", "Estilo, tamanho e pré-visualização"],
   "cfg.subMinimapa": ["Tamaño del minimapa de navegación", "Navigation minimap size", "Tamanho do minimapa de navegação"],
+  // Estilos nuevos (cliente 2026-11-17) + SOS 5x2 + capa sectores
+  "cfg.estiloMinimapa": ["Estilo", "Style", "Estilo"],
+  "cfg.tamanoMinimapa": ["Tamaño", "Size", "Tamanho"],
+  "cfg.lockEstiloMinimapa": ["El estilo {0} del minimapa", "The {0} minimap style", "O estilo {0} do minimapa"],
+  "sos.conaf": ["CONAF · Incendios forestales", "CONAF · Forest fires", "CONAF · Incêndios florestais"],
+  "sos.pdi": ["PDI", "PDI", "PDI"],
+  "sos.sectorSur": ["sector sur", "south sector", "setor sul"],
+  "sos.sectorPoniente": ["sector poniente", "west sector", "setor oeste"],
+  "sos.sectorNorte": ["sector norte", "north sector", "setor norte"],
+  "sos.informaciones": ["Informaciones", "Information", "Informações"],
+  "sos.horario": ["09:00 a 17:00", "09:00 to 17:00", "09:00 às 17:00"],
+  "sos.tenencia": ["Tenencia de Carabineros en acceso Pedro de Valdivia", "Carabineros police post at the Pedro de Valdivia entrance", "Destacamento da Carabineros no acesso Pedro de Valdivia"],
+  "mapa.capaSectores": ["Sectores de emergencia", "Emergency sectors", "Setores de emergência"],
+  "mapa.capaSectoresSub": ["Providencia (sur) · Recoleta (poniente) · Huechuraba (norte)", "Providencia (south) · Recoleta (west) · Huechuraba (north)", "Providencia (sul) · Recoleta (oeste) · Huechuraba (norte)"],
+  "mapa.sectoresNota": ["División orientativa por sector de emergencia", "Orientation-only emergency sector split", "Divisão orientativa por setor de emergência"],
 
   // ---------- cumplimiento geocercas y privacidad (fase 4, 2026-11-16) ----------
   // Clasificación de geocercas (INFORMATIVE/SAFETY/OFFICIAL_RESTRICTION)

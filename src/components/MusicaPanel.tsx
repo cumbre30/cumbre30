@@ -18,7 +18,7 @@
 // ============================================================
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Music2, Pause, Play, SkipBack, SkipForward } from "lucide-react";
+import { Music2, Pause, Play, SkipBack, SkipForward, Info } from "lucide-react";
 import { t, useLang } from "@/lib/i18n";
 import {
   abrirAjustesMedia,
@@ -46,6 +46,7 @@ export function MusicaPanel({ abierto, onCerrar }: { abierto: boolean; onCerrar:
   const lang = useLang(); // re-render al cambiar el idioma
   const [permitido, setPermitido] = useState<boolean | null>(null);
   const [sesiones, setSesiones] = useState<MediaSesion[]>([]);
+  const [infoOpen, setInfoOpen] = useState(false);
   const vivo = useRef(true);
 
   useEffect(() => {
@@ -92,6 +93,17 @@ export function MusicaPanel({ abierto, onCerrar }: { abierto: boolean; onCerrar:
       <div className="flex items-center gap-2">
         <Music2 className="h-4 w-4 shrink-0 text-emerald-500" />
         <p className="flex-1 text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground">{t("mus.titulo")}</p>
+        {/* Explicación larga en el icono de información (cliente
+            2026-11-17): el control de música es lo prioritario. */}
+        <button
+          onClick={() => setInfoOpen((v) => !v)}
+          aria-expanded={infoOpen}
+          aria-label={t("mus.aria")}
+          title={t("mus.aria")}
+          className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-border/60 text-muted-foreground hover:text-foreground"
+        >
+          <Info className="h-3.5 w-3.5" />
+        </button>
         <button
           onClick={onCerrar}
           className="rounded-full border border-border/60 px-2 py-0.5 text-[10px] font-bold text-muted-foreground hover:text-foreground"
@@ -100,7 +112,9 @@ export function MusicaPanel({ abierto, onCerrar }: { abierto: boolean; onCerrar:
           ✕
         </button>
       </div>
-      <p className="mt-1.5 text-[11px] leading-snug text-muted-foreground">{t("mus.sub")}</p>
+      {infoOpen && (
+        <p className="mt-1.5 text-[11px] leading-snug text-muted-foreground">{t("mus.sub")}</p>
+      )}
 
       {/* Sin el acceso a notificaciones: explicar + abrir ajuste */}
       {permitido === false && (

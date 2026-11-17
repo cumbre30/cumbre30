@@ -42,18 +42,7 @@ import { t, useLang, setLang, type Lang } from "@/lib/i18n";
 import { isNativeApp } from "@/lib/rideNative";
 import { revisarActualizacion, nuevaConocida, abrirDescarga, type EstadoActualizacion } from "@/lib/actualizacion";
 import { serverToken } from "@/lib/cloudSync";
-import {
-  MINIMAP_SIZES,
-  SPEEDO_SIZES,
-  SPEEDO_STYLES,
-  THEME_COLORS,
-  saveRideTheme,
-  useRideTheme,
-  type MinimapSize,
-  type SpeedoSize,
-  type SpeedoStyle,
-  type ThemeColorId,
-} from "@/lib/rideTheme";
+import { MINIMAP_SIZES, SPEEDO_SIZES, SPEEDO_STYLES, THEME_COLORS, saveRideTheme, useRideTheme, type MinimapSize, type SpeedoSize, type SpeedoStyle, type ThemeColorId, MINIMAP_STYLES, type MinimapStyle } from "@/lib/rideTheme";
 
 function Row({ icon, title, sub, children }: { icon: React.ReactNode; title: string; sub?: string; children: React.ReactNode }) {
   return (
@@ -678,6 +667,18 @@ export function ConfigTab({
         return (
           <Card className="p-0">
             <div className="px-4 py-3.5">
+              <p className="text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground">{t("cfg.estiloMinimapa")}</p>
+              <div className="mt-2.5">
+                <Seg
+                  options={MINIMAP_STYLES}
+                  value={theme.minimapStyle}
+                  pro={pro}
+                  onPick={(v: MinimapStyle) => pick(theme.minimapStyle, v, (x) => saveRideTheme({ minimapStyle: x }))}
+                  onLocked={(label) => locked(t("cfg.lockEstiloMinimapa", label.toLowerCase()))}
+                />
+              </div>
+              <p className="mt-3 text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground">{t("cfg.tamanoMinimapa")}</p>
+              <div className="mt-2.5">
               <Seg
                 options={MINIMAP_SIZES}
                 value={theme.minimapSize}
@@ -685,6 +686,7 @@ export function ConfigTab({
                 onPick={(v: MinimapSize) => pick(theme.minimapSize, v, (x) => saveRideTheme({ minimapSize: x }))}
                 onLocked={(label) => locked(`El minimapa ${label.toLowerCase()}`)}
               />
+              </div>
             </div>
           </Card>
         );
