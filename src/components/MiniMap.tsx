@@ -284,8 +284,10 @@ function NavCanvas(props: NavCanvasProps) {
       zoom: 13.5,
       pitch: 0,
       bearing: 0,
-      // Atribución compacta (obligatoria: OpenStreetMap contributors).
-      attributionControl: { compact: true },
+      // Atribución SIEMPRE legible (queja del cliente 2026-11-17: "la
+      // etiqueta de OpenStreetMap contributors no se ve"): compact:false
+      // muestra el texto completo, no el icono ⓘ colapsado.
+      attributionControl: { compact: false },
       dragRotate: false,
       dragPan: false,
       scrollZoom: false,
@@ -1140,18 +1142,19 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
         onOpenMap={onOpenMap}
       />
 
-      {/* Hoja de reporte rápido */}
+      {/* Hoja de reporte rápido (76px: deja libre la franja 50-70px de
+          la atribución, queja del cliente 2026-11-17) */}
       {reportOpen && (
         <ReportSheet
-          className="absolute bottom-[60px] inset-x-2 z-[650] rounded-xl bg-background/95 border border-border shadow-2xl p-3"
+          className="absolute bottom-[76px] inset-x-2 z-[650] rounded-xl bg-background/95 border border-border shadow-2xl p-3"
           hasPosition={!!position}
           onType={reportIncident}
           onClose={() => setReportOpen(false)}
         />
       )}
 
-      {/* Confirmación / avisos */}
-      {status && <StatusNote className="absolute bottom-[60px] inset-x-3 z-[700] rounded-lg bg-card/95 border border-border px-3 py-2 text-[11px] text-foreground" text={status} />}
+      {/* Confirmación / avisos (76px: no pisa la atribución a 50px) */}
+      {status && <StatusNote className="absolute bottom-[76px] inset-x-3 z-[700] rounded-lg bg-card/95 border border-border px-3 py-2 text-[11px] text-foreground" text={status} />}
     </div>
   );
 }

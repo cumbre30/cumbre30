@@ -49,7 +49,8 @@ export function MinimapPreview({ style, size }: { style: MinimapStyle; size: Min
         zoom: 14.6,
         pitch: 0,
         bearing: 0,
-        attributionControl: { compact: true },
+        // Atribución siempre legible (queja del cliente 2026-11-17).
+        attributionControl: { compact: false },
         // Estático: sin interacción (es una vista previa).
         dragRotate: false,
         dragPan: false,
