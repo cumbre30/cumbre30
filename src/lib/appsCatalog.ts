@@ -82,7 +82,7 @@ export const APPS: AppCatalogo[] = [
       {
         titulo: "Requisitos y compatibilidad",
         cuerpo:
-          "• Android 7.0 o superior.\n• No requiere datos móviles en el cerro: mapas, rutas, GPS y alertas funcionan 100% offline.\n• Tamaño de descarga aproximado: 61 MB.",
+          "• Android 7.0 o superior.\n• No requiere datos móviles en el cerro: mapas, rutas, GPS y alertas funcionan 100% offline.\n• Tamaño de descarga aproximado: 52 MB.",
       },
       {
         titulo: "Permisos que usa y para qué",
@@ -96,17 +96,11 @@ export const APPS: AppCatalogo[] = [
         // vigente (Ola 2 y 3 del roadmap 2026-11-14).
         cuerpo:
           `v${APP_VERSION} (${APP_VERSION_CODE}):\n` +
-          "• Navegación en el minimapa corregida: la ruta siempre se ve vertical (estilo Waze) y el pin apunta en la dirección en que avanzas, incluso parado o sin rumbo GPS fresco.\n" +
-          "• Nuevo: «Revisar actualizaciones» en Configuración → Acerca de + aviso automático (una vez al día, con notificación) cuando sale una versión nueva: la descargas con un toque, sin buscar el enlace.\n" +
-          "• Control de música universal en la pantalla ride, al lado del ahorro de batería: pausa, play, siguiente y anterior sobre la app que estés usando (Spotify gratis o Premium, YouTube Music, cualquier reproductor) sin salir de tus métricas. Pide una vez el «acceso a las notificaciones» que Android exige para este control · no leemos tus notificaciones.\n" +
-          "• Corregido el error al tocar el banner de clima (ya puedes ver viento, calidad del aire e índice UV sin que se cierre la app).\n" +
-          "• Configuración reorganizada por secciones: General (Seguridad, Monitoreo y salud, Personalización) y Acerca de.\n" +
-          "• Nuevo control «Confirmación de estado»: cuánto espera el «¿Estás bien?» antes de avisar a tus contactos (15/30/60 s).\n" +
-          "• Verificar constancias desde la web: enlace directo bajo el botón de descarga del APK.\n" +
-          "• Ranking entre amigos: medallas por km totales y enlace de invitación para conectarte.\n" +
-          "• Enlace público del ride desde Historial: comparte tus estadísticas sin exponer tu GPS.\n" +
-          "• Tus rides en la web: cumbregeo.cl/rides con tu cuenta, desde cualquier navegador.\n" +
-          "• Avisos push del parque en la web (luces, cierres): Configuración → Avisos del parque (web).\n",
+          "• Minimapa renovado: usa la misma base cartográfica estándar de OpenStreetMap del mapa grande y del APK, con cambio automático a la base de respaldo si el servicio cae.\n" +
+          "• Créditos del mapa legibles y compactos («© OpenStreetMap contributors · ODbL») en el minimapa y en el mapa grande.\n" +
+          "• La barra «Ir a...» ya no cubre el minimapa: ahora es una fila separada justo debajo y el mapa se ve completo hasta el borde.\n" +
+          "• Sensores Bluetooth en un botón del banner, al lado derecho del de música: el panel se abre desde ahí, deja de ocupar la caja de estadísticas y tus conexiones de pulso/rueda no se cortan al cerrarlo.\n" +
+          "• Precisión del GPS mejorada: rumbo derivado también en la web, velocidad más estable cuando la señal llega imprecisa y recorrido y GPX guardados solo con puntos de buena precisión.\n",
       },
     ],
     // APK directo: ACTIVO - descarga vía /api/apk, que redirige al APK de la
