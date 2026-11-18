@@ -2,12 +2,13 @@
 // Generador CLI de códigos Cumbre30 Pro.
 //   Uso:  node scripts/gen-license.mjs correo@ejemplo.cl
 // Devuelve un código C30P-XXXX-XXXX-XXXX-XXXX ligado al correo.
-// ⚠️ El secreto debe coincidir con src/lib/proLicense.ts
+// El secreto debe coincidir con src/lib/proLicenseServer.ts
+// (secreto vigente, rotado 2026-11-18; solo servidor).
 // ============================================================
 
 import { webcrypto as crypto } from "node:crypto";
 
-const SECRET = "1992d7a7763bbde37bea8ba747831c2d40aff7041ddc3c3da895b8b566ebf702";
+const SECRET = "f4578021d16b8302bb52aa0ce5ac41624b3019253b6533b567c1f65620ea15f1";
 const B32 = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
 
 const normalizeEmail = (e) => e.trim().toLowerCase();

@@ -28,8 +28,8 @@ export async function POST(req: Request) {
     if (code.length !== 6) {
       return NextResponse.json({ error: "El código tiene 6 dígitos." }, { status: 400 });
     }
-    if (newPassword.length < 6) {
-      return NextResponse.json({ error: "La contraseña debe tener al menos 6 caracteres." }, { status: 400 });
+    if (newPassword.length < 8) {
+      return NextResponse.json({ error: "La contraseña debe tener al menos 8 caracteres." }, { status: 400 });
     }
 
     const user = await db.user.findUnique({ where: { email } });

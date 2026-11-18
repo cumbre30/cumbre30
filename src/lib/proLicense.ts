@@ -14,6 +14,7 @@ import {
   type ProLicensePublic,
 } from "./proLicenseCore";
 import { playProOwned, setPlayProOwned } from "./playBilling";
+import { apiUrl } from "./backend";
 
 const STORE_KEY = "cumbre30-pro-v1";
 
@@ -66,7 +67,10 @@ async function recompute(): Promise<void> {
     notify();
     return;
   }
-  const ok = await validateProCode(s.email, s.code);
+  // Códigos validados por el servidor (B-03) se confían tal cual:
+  // el secreto vigente no viaja en el APK, así que la reválida
+  // criptográfica offline solo aplica al secreto legado.
+  const ok = s.server === true ? true : await validateProCode(s.email, s.code);
   snap = ok ? { active: true, email: s.email, at: s.at } : INITIAL_PRO;
   notify();
 }
@@ -93,13 +97,48 @@ export function useProLicense() {
     email: string,
     code: string,
   ): Promise<{ ok: boolean; error?: string }> => {
-    const ok = await validateProCode(email, code);
+    // Validación server-first (B-03): el secreto vigente vive solo
+    // en el servidor. Si no hay red (APK offline) cae al secreto
+    // legado, que solo acepta licencias ya emitidas.
+    let ok = false;
+    let serverOk = false;
+    const urlValidar = apiUrl("/api/licencia/validar");
+    if (urlValidar) {
+      try {
+        const r = await fetch(urlValidar, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, code }),
+        });
+        if (r.ok) {
+          const d = (await r.json()) as { valid?: boolean };
+          if (d.valid === true) {
+            ok = true;
+            serverOk = true;
+          } else {
+            // El servidor conoce el secreto legado Y el vigente: un
+            // "no" definitivo no se reintenta offline.
+            return { ok: false, error: "El código no corresponde a ese correo. Revisa mayúsculas y guiones." };
+          }
+        }
+      } catch {
+        // Sin conexión: el fallback offline decide más abajo.
+      }
+    }
+    if (!ok) {
+      ok = await validateProCode(email, code);
+    }
     if (!ok) {
       return { ok: false, error: "El código no corresponde a ese correo. Revisa mayúsculas y guiones." };
     }
     localStorage.setItem(
       STORE_KEY,
-      JSON.stringify({ email: normalizeEmail(email), code: cleanCode(code), at: Date.now() }),
+      JSON.stringify({
+        email: normalizeEmail(email),
+        code: cleanCode(code),
+        at: Date.now(),
+        ...(serverOk ? { server: true } : {}),
+      }),
     );
     await recompute();
     return { ok: true };

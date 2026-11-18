@@ -55,6 +55,8 @@ export type TrazabilidadGeocerca = {
   confidence_level: ConfianzaGeocerca;
   /** Tipo de restricción; "none" para las orientativas. */
   restriction_type: string;
+  /** A-04: cuándo re-verificar la restricción (opcional). */
+  vigencia?: string;
 };
 
 /** La fuente es EXCLUSIVAMENTE OpenStreetMap (directa o derivada). */
@@ -242,6 +244,16 @@ export const CLASIFICACION_GEOCERCAS: Record<string, ClasificacionGeocerca> = {
  *  se trata como INFORMATIVE/unverified — nunca como oficial). */
 export function trazabilidadDe(id: string): TrazabilidadGeocerca | null {
   return TRAZABILIDAD_GEOCERCAS[id] ?? null;
+}
+
+// Vigencias (A-04): las restricciones oficiales heredan una fecha
+// de re-verificación por el plan Pedalea Seguro (aplicación desde
+// el 2026-12-15). El resto queda sin vigencia: son zonas físicas
+// estables o geocercas informativas.
+for (const traz of Object.values(TRAZABILIDAD_GEOCERCAS)) {
+  if (!traz.vigencia && traz.verification_status === "verified_official") {
+    traz.vigencia = "Re-verificar con Parquemet a partir del 2026-12-15 (plan Pedalea Seguro)";
+  }
 }
 
 /** Categoría efectiva de un id: aplica la regla OSM sobre la

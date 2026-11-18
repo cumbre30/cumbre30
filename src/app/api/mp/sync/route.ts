@@ -14,14 +14,16 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { fetchRecentApprovedPayments, isProPayment, deliverCodeForPayment } from "@/lib/proDeliver";
+import { adminKeysEqual } from "@/lib/adminKey";
 
 function authorized(req: Request): boolean {
   const token = process.env.MP_SYNC_TOKEN;
   if (!token) return false;
   const header = req.headers.get("authorization") ?? "";
-  if (header === `Bearer ${token}`) return true;
+  // C-04: comparación timing-safe (hash SHA-256 de ambos lados).
+  if (adminKeysEqual(header.replace(/^Bearer /i, ""), token)) return true;
   const url = new URL(req.url);
-  return url.searchParams.get("token") === token;
+  return adminKeysEqual(url.searchParams.get("token") ?? "", token);
 }
 
 export async function GET(req: Request) {

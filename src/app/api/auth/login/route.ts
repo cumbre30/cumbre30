@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { createSession, SESSION_COOKIE, verifyPassword } from "@/lib/auth";
 import { normalizeCodes } from "@/lib/pins";
 import { corsHeaders, isAppOrigin } from "@/lib/apiCors";
+import { guard } from "@/lib/rateLimit";
 
 // CORS para la app Android (APK): el WebView sirve la app desde
 // https://localhost, así que su llamada al servidor de la web es
@@ -23,6 +24,11 @@ export async function POST(req: Request) {
     const body = (await req.json()) as { email?: string; password?: string };
     const email = (body.email ?? "").trim().toLowerCase();
     const password = body.password ?? "";
+
+    // Rate limit (C-01): 5 intentos por minuto por IP y correo,
+    // con mensaje genérico para no revelar información de la cuenta.
+    const limited = guard(req, "login", email, 5, 60_000, cors);
+    if (limited) return limited;
 
     const user = await db.user.findUnique({ where: { email } });
     if (!user || !verifyPassword(password, user.passwordHash)) {

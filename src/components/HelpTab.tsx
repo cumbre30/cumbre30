@@ -120,6 +120,15 @@ export function HelpTab() {
         <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
           © <a className="underline underline-offset-2" href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors · <a className="underline underline-offset-2" href="https://opendatacommons.org/licenses/odbl/1-0/">ODbL</a>
         </p>
+        {/* C-06: inventario formal de licencias de terceros. */}
+        <a
+          href="/THIRD-PARTY-NOTICES.md"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-2 inline-block text-[12px] font-semibold text-emerald-600 underline-offset-2 hover:underline dark:text-emerald-400"
+        >
+          {t("ay.licenciasNotices")}
+        </a>
       </Card>
 
       {/* ---- Términos de uso: mensaje de responsabilidad exigido ---- */}
@@ -130,6 +139,15 @@ export function HelpTab() {
         <p className="text-[13px] leading-relaxed text-muted-foreground">
           {t("ay.terminosCuerpo")}
         </p>
+        {/* A-01: enlaces a los documentos legales completos. */}
+        <div className="mt-2 flex gap-4">
+          <a href="/terminos" target="_blank" rel="noopener noreferrer" className="text-[12px] font-semibold text-emerald-600 underline-offset-2 hover:underline dark:text-emerald-400">
+            {t("ay.verTerminos")}
+          </a>
+          <a href="/privacidad" target="_blank" rel="noopener noreferrer" className="text-[12px] font-semibold text-emerald-600 underline-offset-2 hover:underline dark:text-emerald-400">
+            {t("ay.verPrivacidad")}
+          </a>
+        </div>
       </Card>
 
       {/* ---- Privacidad y datos personales (Ley 21.719) ---- */}

@@ -3,12 +3,16 @@
 // cliente y en rutas de API del servidor).
 //   Código = C30P-XXXX-XXXX-XXXX-XXXX = base32(HMAC-SHA256(
 //   secreto, correo)). La app lo valida sin servidor.
-// El secreto viaja en el APK: detiene la copia casual, no la
-// ingeniería inversa - equilibrio razonable para una app de nicho.
+//
+// ROTACIÓN 2026-11-18 (auditoría R-03/B-03): este secreto queda
+// SOLO para validar licencias ya emitidas (grandfathering). Los
+// códigos nuevos se generan con el secreto actual que vive en
+// proLicenseServer.ts (solo servidor, nunca en el APK) y se
+// validan en /api/licencia/validar o con Play Billing.
 // ============================================================
 
-// ⚠️ Debe coincidir con scripts/gen-license.mjs
-export const PRO_LICENSE_SECRET =
+// Legado: solo verificación de licencias heredadas.
+export const PRO_LICENSE_SECRET_LEGACY =
   "1992d7a7763bbde37bea8ba747831c2d40aff7041ddc3c3da895b8b566ebf702";
 
 const CONST_KEY = "cumbre30-const-v1";
@@ -38,11 +42,11 @@ function toBase32(bytes: Uint8Array): string {
   return out;
 }
 
-async function hmacEmail(email: string): Promise<Uint8Array> {
+async function hmacEmail(email: string, secret: string): Promise<Uint8Array> {
   const enc = new TextEncoder();
   const key = await crypto.subtle.importKey(
     "raw",
-    enc.encode(PRO_LICENSE_SECRET),
+    enc.encode(secret),
     { name: "HMAC", hash: "SHA-256" },
     false,
     ["sign"],
@@ -52,8 +56,11 @@ async function hmacEmail(email: string): Promise<Uint8Array> {
 }
 
 /** Código con formato C30P-XXXX-XXXX-XXXX-XXXX (16 caracteres base32). */
-export async function generateProLicenseCode(email: string): Promise<string> {
-  const sig = await hmacEmail(email);
+export async function generateProLicenseCode(
+  email: string,
+  secret: string = PRO_LICENSE_SECRET_LEGACY,
+): Promise<string> {
+  const sig = await hmacEmail(email, secret);
   const raw = toBase32(sig.slice(0, 10)); // 10 bytes → 16 chars
   return `C30P-${raw.slice(0, 4)}-${raw.slice(4, 8)}-${raw.slice(8, 12)}-${raw.slice(12, 16)}`;
 }
@@ -66,8 +73,9 @@ function cleanCode(code: string): string {
 }
 export { cleanCode };
 
-/** Lo que la app guarda en localStorage al activar Pro. */
-export type ProLicensePublic = { email: string; code: string; at: number };
+/** Lo que la app guarda en localStorage al activar Pro.
+ *  `server: true` = validado por /api/licencia/validar (código nuevo). */
+export type ProLicensePublic = { email: string; code: string; at: number; server?: boolean };
 
 /** ¿El código corresponde a este correo? (offline, sin servidor) */
 export async function validateProCode(email: string, code: string): Promise<boolean> {

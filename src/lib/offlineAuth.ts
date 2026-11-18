@@ -188,7 +188,7 @@ export async function offlineForgotReset(payload: {
 
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return "Ingresa un correo válido.";
   if (!/^[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(code)) return "El código de recuperación tiene el formato XXXX-XXXX.";
-  if (newPassword.length < 6) return "La contraseña debe tener al menos 6 caracteres.";
+  if (newPassword.length < 8) return "La contraseña debe tener al menos 8 caracteres.";
 
   const users = readUsers();
   const user = users[email];
@@ -212,7 +212,7 @@ export async function offlineRegister(payload: { email?: string; username?: stri
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return "Ingresa un correo válido.";
   if (!/^[a-z0-9_.-]{3,20}$/.test(username))
     return "El usuario debe tener 3-20 caracteres (letras, números, punto, guion o guion bajo).";
-  if (password.length < 6) return "La contraseña debe tener al menos 6 caracteres.";
+  if (password.length < 8) return "La contraseña debe tener al menos 8 caracteres.";
 
   const users = readUsers();
   const dupEmail = Object.values(users).some((u) => u.email === email);

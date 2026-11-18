@@ -228,6 +228,10 @@ export default function Wallet() {
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={entryQr.img} alt="QR Pedalea Seguro de Parquemet" className="h-56 w-56 object-contain" />
             </button>
+            {/* C-05: la credencial la emite Parquemet; la app solo la guarda. */}
+            <p className="text-center text-[11px] leading-snug text-muted-foreground/80 max-w-[20rem]">
+              {t("qr.etiqueta")}
+            </p>
             <div className="flex gap-2 w-full">
               <Button
                 onClick={() => setFullQr(true)}

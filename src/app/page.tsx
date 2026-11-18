@@ -20,6 +20,7 @@ import { HistoryTab } from "@/components/HistoryTab";
 import { VehicleConfirmModal } from "@/components/VehicleConfirmModal";
 import PopupReglaRuta from "@/components/PopupReglaRuta";
 import { AppDrawer, type MenuScreen } from "@/components/AppDrawer";
+import { BannerPedalea } from "@/components/BannerPedalea";
 import { PlanPill, ProContextModal } from "@/components/ProUI";
 import { PlanesTab } from "@/components/PlanesTab";
 import { StatsTab } from "@/components/StatsTab";
@@ -280,6 +281,8 @@ export default function Home() {
 
   return (
     <div className="min-h-dvh bg-background text-foreground flex flex-col">
+      {/* A-04: aviso del plan Pedalea Seguro (cierre con fecha). */}
+      <BannerPedalea />
       {/* Header compacto (brief §2.1): marca · GPS · plan · menú */}
       <header className="sticky top-0 z-40 bg-background/95 backdrop-blur border-b border-border">
         <div className="max-w-md mx-auto px-4 py-3 flex items-center gap-3">

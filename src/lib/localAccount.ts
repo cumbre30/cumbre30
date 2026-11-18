@@ -88,7 +88,7 @@ export async function localRegister(payload: { email?: string; username?: string
   if (!EMAIL_RE.test(email)) return { ok: false, error: "Ingresa un correo válido." };
   if (!USER_RE.test(username))
     return { ok: false, error: "El usuario debe tener 3-20 caracteres (letras, números, punto, guion o guion bajo)." };
-  if (password.length < 6) return { ok: false, error: "La contraseña debe tener al menos 6 caracteres." };
+  if (password.length < 8) return { ok: false, error: "La contraseña debe tener al menos 8 caracteres." };
 
   const users = readUsers();
   const dupEmail = Object.values(users).find((u) => u.email === email);

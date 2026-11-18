@@ -1411,6 +1411,11 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
                       <p>
                         <b>{t("geo.confianza")}:</b> {z.trazabilidad.confidence_level}
                       </p>
+                      {z.trazabilidad.vigencia && (
+                        <p>
+                          <b>{t("geo.vigencia")}:</b> {z.trazabilidad.vigencia}
+                        </p>
+                      )}
                     </>
                   )}
                   <p className="mt-1.5 opacity-75">{t("geo.orientativo")}</p>

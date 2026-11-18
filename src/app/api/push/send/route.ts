@@ -10,10 +10,12 @@ export const dynamic = "force-dynamic";
 
 import { NextResponse } from "next/server";
 import { enviarPush } from "@/lib/push";
+import { adminKeysEqual } from "@/lib/adminKey";
 
 export async function POST(req: Request) {
   const adminKey = process.env.PUSH_ADMIN_KEY;
-  if (!adminKey || req.headers.get("x-admin-key") !== adminKey) {
+  // C-04: comparación timing-safe de la clave de administración.
+  if (!adminKey || !adminKeysEqual(req.headers.get("x-admin-key") ?? "", adminKey)) {
     return NextResponse.json({ error: "Sin autorización" }, { status: 401 });
   }
   const body = (await req.json().catch(() => null)) as {

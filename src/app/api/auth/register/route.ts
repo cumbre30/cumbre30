@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { createSession, hashPassword, SESSION_COOKIE } from "@/lib/auth";
 import { corsHeaders, corsPreflight, isAppOrigin } from "@/lib/apiCors";
+import { guard } from "@/lib/rateLimit";
 
 export async function OPTIONS(req: Request) {
   // Preflight del fetch cross-origin desde el APK (registro + sync).
@@ -11,11 +12,32 @@ export async function OPTIONS(req: Request) {
 export async function POST(req: Request) {
   const cors = corsHeaders(req);
   try {
-    const body = (await req.json()) as { email?: string; username?: string; password?: string };
+    const body = (await req.json()) as {
+      email?: string; username?: string; password?: string;
+      terminos?: boolean; edad14?: boolean;
+    };
     const email = (body.email ?? "").trim().toLowerCase();
     const username = (body.username ?? "").trim().toLowerCase();
     const password = body.password ?? "";
 
+    // Rate limit (C-01): 5 registros por minuto por IP.
+    const limited = guard(req, "register", "", 5, 60_000, cors);
+    if (limited) return limited;
+
+    // Aceptación explícita de términos y política (A-01) y
+    // confirmación de edad mínima de 14 años (B-05).
+    if (body.terminos !== true) {
+      return NextResponse.json(
+        { error: "Debes aceptar los Términos y la Política de Privacidad." },
+        { status: 400, headers: cors }
+      );
+    }
+    if (body.edad14 !== true) {
+      return NextResponse.json(
+        { error: "Debes confirmar que tienes 14 años o más para crear una cuenta." },
+        { status: 400, headers: cors }
+      );
+    }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return NextResponse.json({ error: "Ingresa un correo válido." }, { status: 400, headers: cors });
     }
@@ -25,8 +47,8 @@ export async function POST(req: Request) {
         { status: 400, headers: cors }
       );
     }
-    if (password.length < 6) {
-      return NextResponse.json({ error: "La contraseña debe tener al menos 6 caracteres." }, { status: 400, headers: cors });
+    if (password.length < 8) {
+      return NextResponse.json({ error: "La contraseña debe tener al menos 8 caracteres." }, { status: 400, headers: cors });
     }
 
     const exists = await db.user.findFirst({

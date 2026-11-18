@@ -11,9 +11,22 @@ import { t, useLang } from "@/lib/i18n";
 // Panel de sensores Bluetooth (velocidad de rueda + pulso).
 // Textos vía i18n (claves sens.*); el mensaje de error crudo del
 // navegador ({error}) se muestra tal cual, no es traducible.
+// B-01: la frecuencia cardíaca es un dato de salud, así que el
+// emparejamiento del sensor de pulso exige un consentimiento
+// explícito una vez (se recuerda en localStorage).
 // ============================================================
 
 type Status = "idle" | "connecting" | "connected" | "error";
+
+/** Consentimiento de datos de salud (B-01): on = autorizado una vez. */
+const SALUD_KEY = "cumbre30-consenso-salud-v1";
+function consentSaludOtorgado(): boolean {
+  try {
+    return localStorage.getItem(SALUD_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
 
 export function SensorPanel({
   onSensorSpeed,
@@ -31,6 +44,7 @@ export function SensorPanel({
   const [spdStatus, setSpdStatus] = useState<Status>("idle");
   const [spdName, setSpdName] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [pidiendoConsent, setPidiendoConsent] = useState(false);
   const supported = btSupported();
   const native = isNativeBle();
 
@@ -72,6 +86,25 @@ export function SensorPanel({
     }
   };
 
+  /** Emparejar pulso: exige consentimiento de salud la primera vez (B-01). */
+  const pedirPulso = () => {
+    if (!consentSaludOtorgado()) {
+      setPidiendoConsent(true);
+      return;
+    }
+    void connectHr();
+  };
+
+  const aceptarConsent = () => {
+    try {
+      localStorage.setItem(SALUD_KEY, "1");
+    } catch {
+      // sin almacenamiento: el consentimiento se pedirá cada vez
+    }
+    setPidiendoConsent(false);
+    void connectHr();
+  };
+
   const chip = (s: Status) =>
     s === "connected"
       ? "text-emerald-300 border-emerald-700"
@@ -111,11 +144,26 @@ export function SensorPanel({
           {hrStatus === "connected" ? (
             <span className={`rounded-full border px-2.5 py-1 text-[11px] font-medium ${chip(hrStatus)}`}>{t("sens.conectado")}</span>
           ) : (
-            <Button size="sm" variant="outline" onClick={connectHr} disabled={!supported || hrStatus === "connecting"} className="border-zinc-700 text-zinc-300 hover:bg-zinc-800 h-9">
+            <Button size="sm" variant="outline" onClick={pedirPulso} disabled={!supported || hrStatus === "connecting"} className="border-zinc-700 text-zinc-300 hover:bg-zinc-800 h-9">
               {t("sens.emparejar")}
             </Button>
           )}
         </div>
+
+        {/* Consentimiento explícito de salud (B-01): solo para el pulso. */}
+        {pidiendoConsent && hrStatus !== "connected" && (
+          <div className="rounded-lg border border-zinc-700 bg-zinc-800/60 p-3 text-[12px] leading-snug text-zinc-300">
+            <p>{t("sens.consentTexto")}</p>
+            <div className="mt-2.5 flex gap-2">
+              <Button size="sm" onClick={aceptarConsent} className="h-8 bg-red-600 hover:bg-red-500 text-white font-semibold">
+                {t("sens.consentAceptar")}
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => setPidiendoConsent(false)} className="h-8 border-zinc-700 text-zinc-300 hover:bg-zinc-800">
+                {t("sens.consentCancelar")}
+              </Button>
+            </div>
+          </div>
+        )}
 
         {!supported && (
           <p className="text-xs text-amber-300/80 flex items-start gap-1.5">

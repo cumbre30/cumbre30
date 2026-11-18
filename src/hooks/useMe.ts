@@ -106,10 +106,17 @@ export function refreshMe(): Promise<MeData | null> {
   return inflight.then(() => cache);
 }
 
-export async function authAction(kind: "login" | "register", payload: Record<string, string>): Promise<string | null> {
+export async function authAction(kind: "login" | "register", payload: Record<string, unknown>): Promise<string | null> {
   try {
     if (isOfflineMode()) {
-      const err = kind === "login" ? await offlineLogin(payload) : await offlineRegister(payload);
+      // La cuenta local solo necesita credenciales; los flags de
+      // términos y edad ya fueron validados en el formulario.
+      const credenciales = {
+        email: String(payload.email ?? ""),
+        username: String(payload.username ?? ""),
+        password: String(payload.password ?? ""),
+      };
+      const err = kind === "login" ? await offlineLogin(credenciales) : await offlineRegister(credenciales);
       if (err) {
         // APK: si el correo no existe en el teléfono puede ser una
         // cuenta creada en la web (cumbregeo.cl). Con internet, la
@@ -228,6 +235,24 @@ export async function logout(): Promise<void> {
   cache = null;
   ready = true;
   notify();
+}
+
+/**
+ * Cierra TODAS las sesiones de la cuenta excepto la actual (C-02:
+ * dispositivo perdido). Solo servidor; en el APK la cuenta local
+ * no tiene sesiones remotas que revocar (salvo el token de sync,
+ * que se renueva al entrar de nuevo). Devuelve cuántas cerró.
+ */
+export async function revokeOtherSessions(): Promise<number | null> {
+  try {
+    if (isOfflineMode()) return null;
+    const r = await fetch("/api/auth/sessions", { method: "DELETE" });
+    if (!r.ok) return null;
+    const d = (await r.json()) as { revocadas?: number };
+    return typeof d.revocadas === "number" ? d.revocadas : null;
+  } catch {
+    return null;
+  }
 }
 
 /**

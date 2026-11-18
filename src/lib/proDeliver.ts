@@ -17,7 +17,8 @@
 
 import nodemailer from "nodemailer";
 import { db } from "@/lib/db";
-import { generateProLicenseCode, normalizeEmail } from "@/lib/proLicenseCore";
+import { normalizeEmail } from "@/lib/proLicenseCore";
+import { generateCurrentProLicenseCode } from "@/lib/proLicenseServer";
 
 export interface MpPayment {
   id: number | string;
@@ -172,7 +173,8 @@ export async function deliverCodeForPayment(params: {
   if (existing) {
     return { ok: true, action: "already", code: existing.code };
   }
-  const code = await generateProLicenseCode(email);
+  // Códigos nuevos bajo el secreto vigente del servidor (B-03).
+  const code = await generateCurrentProLicenseCode(email);
   try {
     await sendLicenseEmail(email, code);
   } catch (e) {

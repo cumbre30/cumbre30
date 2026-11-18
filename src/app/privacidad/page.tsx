@@ -113,6 +113,93 @@ export default function PrivacidadPage() {
         </ul>
       </Section>
 
+      <Section title="Ubicación y servicios de mapa y clima">
+        <p>
+          La ubicación GPS se captura solo mientras el ride está activo, en primer plano y con la
+          notificación visible del servicio. Se procesa en tu teléfono (geocercas, alertas, registro del
+          recorrido) y la pista completa de coordenadas no sale del dispositivo: al servidor sube únicamente
+          el resumen del ride (fecha, distancia, velocidades, desnivel) si la cuenta está sincronizada.
+        </p>
+        <p>
+          Para funciones de apoyo se envían consultas puntuales a servicios externos:{" "}
+          <span className="font-medium text-foreground">Photon (Komoot)</span> y{" "}
+          <span className="font-medium text-foreground">Nominatim (OpenStreetMap)</span> para convertir una
+          ubicación en nombre de sector o calle, y{" "}
+          <span className="font-medium text-foreground">Open-Meteo</span> para el banner de clima y UV, al que
+          se le envían coordenadas del momento. Estas consultas no van asociadas a tu cuenta ni a tu identidad.
+        </p>
+      </Section>
+
+      <Section title="Sensores Bluetooth y datos de salud">
+        <p>
+          Si conectas un sensor de frecuencia cardíaca (o de velocidad de rueda) por Bluetooth, la app trata
+          esos datos en tu teléfono y en tiempo real. La frecuencia cardíaca es un dato de salud: se procesa
+          con tu consentimiento explícito, que la app te pide la primera vez que emparejas un sensor, y no se
+          guarda ni se envía a ningún servidor. Puedes revocar ese consentimiento dejando de usar el sensor y
+          borrando el permiso de Bluetooth.
+        </p>
+      </Section>
+
+      <Section title="Contactos de emergencia (ICE)">
+        <p>
+          Puedes guardar hasta 3 contactos de emergencia (nombre y teléfono) para que la app les haga llegar un
+          aviso con tu ubicación si sufres una caída y no respondes a la confirmación. Esos contactos viven
+          únicamente en tu teléfono: nunca se suben a un servidor. Como son datos de personas distintas a ti,
+          te pedimos avisarles que los guardaste en la app. El mensaje que reciben sale por tu propia app de
+          mensajería (SMS o WhatsApp), así que ese envío también queda sujeto a las políticas de esa
+          aplicación. La detección de caídas es orientativa: puede no detectar todas las caídas y Cumbre30 no
+          reemplaza a los servicios de emergencia.
+        </p>
+      </Section>
+
+      <Section title="Notificaciones push (web)">
+        <p>
+          Si te suscribes a los avisos del parque en la web, guardamos el identificador técnico de
+          suscripción (endpoint) que entrega tu navegador, junto con las claves criptográficas necesarias para
+          enviarte la notificación. No incluye contenido de tus mensajes ni datos de identidad adicionales. Puedes
+          darte de baja desde el navegador en cualquier momento; los endpoints caducados se eliminan al
+          intentar enviar.
+        </p>
+      </Section>
+
+      <Section title="Constancias de trayecto">
+        <p>
+          Al emitir una constancia se guarda un hash SHA-256 de su contenido y un resumen del ride (incluido tu
+          nombre de usuario) para que cualquier persona con el enlace o el QR pueda verificar la autenticidad del
+          documento. El enlace es público: compártelo solo con quien quieras mostrarle esos datos. La pista GPS
+          completa nunca se incluye.
+        </p>
+      </Section>
+
+      <Section title="Menores de edad">
+        <p>
+          Cumbre30 no está dirigida a menores de 14 años y al crear una cuenta se pide confirmar esa edad. Si
+          tomamos conocimiento de que una cuenta pertenece a un menor de esa edad, la eliminamos y borramos sus
+          datos. La app trata geolocalización y, si el usuario lo activa, datos de salud, por lo que el uso por
+          menores requiere supervisión de un adulto responsable.
+        </p>
+      </Section>
+
+      <Section title="Cuánto tiempo conservamos los datos">
+        <ul className="list-disc space-y-1.5 pl-5">
+          <li>Cuenta y rides sincronizados: hasta que los borres o elimines tu cuenta (máximo 100 rides guardados).</li>
+          <li>Sesión: expira a los 30 días; puedes cerrar todas tus sesiones desde Perfil.</li>
+          <li>Códigos de restablecimiento: 30 minutos, con máximo 5 intentos.</li>
+          <li>Registros de ventas Pro: los que exija la normativa tributaria vigente.</li>
+          <li>Incidencias comunitarias: se ocultan del mapa después de 30 días sin confirmaciones.</li>
+          <li>Pista GPS completa: solo en tu teléfono, hasta que la borres (tu historial local tiene un tope automático).</li>
+        </ul>
+      </Section>
+
+      <Section title="Transferencias internacionales">
+        <p>
+          Los proveedores que alojan el servicio (hosting y base de datos) operan desde centros de datos que
+          pueden estar fuera de Chile, bajo contratos y condiciones de procesamiento estándar de cada proveedor.
+          Las consultas de mapa y clima descritas arriba se dirigen a servicios ubicados en la Unión Europea. No
+          vendemos ni transferimos tus datos personales a terceros para publicidad.
+        </p>
+      </Section>
+
       <Section title="Para qué usamos los datos">
         <p>
           Única y exclusivamente para funcionar: mostrar tus estadísticas e historial, emitir tu constancia de

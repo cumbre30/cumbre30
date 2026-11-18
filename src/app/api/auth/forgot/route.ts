@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import crypto from "crypto";
 import { db } from "@/lib/db";
 import { RESET_TTL_MIN } from "@/lib/auth";
+import { guard } from "@/lib/rateLimit";
 
 // ============================================================
 // POST /api/auth/forgot - solicita un código de restablecimiento.
@@ -15,6 +16,11 @@ export async function POST(req: Request) {
   try {
     const body = (await req.json()) as { email?: string };
     const email = (body.email ?? "").trim().toLowerCase();
+
+    // Rate limit (C-01): 3 solicitudes por 10 minutos por IP.
+    const limited = guard(req, "forgot", "", 3, 10 * 60_000);
+    if (limited) return limited;
+
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return NextResponse.json({ error: "Ingresa un correo válido." }, { status: 400 });
     }

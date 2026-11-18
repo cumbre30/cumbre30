@@ -29,7 +29,8 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { authAction, deleteAccount, forgotPassword, googleAuthAction, changeUsername, logout, resetPassword, useMe } from "@/hooks/useMe";
+import { authAction, deleteAccount, forgotPassword, googleAuthAction, changeUsername, logout, resetPassword, revokeOtherSessions, useMe } from "@/hooks/useMe";
+import { Checkbox } from "@/components/ui/checkbox";
 import { isOfflineMode } from "@/lib/offlineAuth";
 import { manualSync, syncStore } from "@/lib/cloudSync";
 import { CONTACT_WHATSAPP } from "@/lib/proConfig";
@@ -38,6 +39,8 @@ import { renderBotonGoogle } from "@/lib/googleWeb";
 import { Capacitor } from "@capacitor/core";
 import { shareOrDownloadFile } from "@/lib/shareFile";
 import { usernameLocked } from "@/lib/username";
+import { exportarMisDatos } from "@/lib/exportDatos";
+import { FileDown } from "lucide-react";
 import { PINS, DEFAULT_PIN, RIDER_LEVELS, riderLevelForKm, type PinId } from "@/lib/pins";
 import { buildShareImage, sharePngBlob } from "@/lib/shareImage";
 import { PagosTab } from "@/components/PagosTab";
@@ -87,6 +90,13 @@ export default function ProfileTab() {
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  // A-01/B-05: aceptación de términos y confirmación de edad al crear cuenta.
+  const [aceptaTerminos, setAceptaTerminos] = useState(false);
+  const [confirmaEdad, setConfirmaEdad] = useState(false);
+  // C-02: resultado de "cerrar otras sesiones".
+  const [sesionesMsg, setSesionesMsg] = useState<string | null>(null);
+  // A-02: resultado de la exportación de datos personales.
+  const [exportMsg, setExportMsg] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [busyGoogle, setBusyGoogle] = useState(false);
@@ -117,9 +127,28 @@ export default function ProfileTab() {
   const submit = async () => {
     setBusy(true);
     setError(null);
-    const err = await authAction(mode, mode === "register" ? { email, username, password } : { email, password });
+    if (mode === "register") {
+      const err = await authAction(mode, {
+        email,
+        username,
+        password,
+        terminos: aceptaTerminos,
+        edad14: confirmaEdad,
+      });
+      setBusy(false);
+      if (err) setError(err);
+      return;
+    }
+    const err = await authAction(mode, { email, password });
     setBusy(false);
     if (err) setError(err);
+  };
+
+  // C-02: cierra las sesiones en otros dispositivos.
+  const cerrarOtrasSesiones = async () => {
+    setSesionesMsg(null);
+    const n = await revokeOtherSessions();
+    setSesionesMsg(n === null ? t("pf.sesionesError") : n === 0 ? t("pf.sesionesCero") : t("pf.sesionesOk").replace("{n}", String(n)));
   };
 
   // Paso 1: pedir el código (server). En offline no hay solicitud remota.
@@ -440,18 +469,34 @@ export default function ProfileTab() {
             <Input id="pf-email" name="email" type="email" inputMode="email" autoCapitalize="none" spellCheck={false} autoComplete="email" className="bg-card border-border" placeholder="tu@correo.cl" value={email} onChange={(e) => setEmail(e.target.value)} />
           </div>
           {mode === "register" && (
-            <div className="grid gap-1.5">
-              <Label htmlFor="pf-user" className="text-foreground/90">{t("pf.usuario")}</Label>
-              <Input id="pf-user" name="username" autoCapitalize="none" autoComplete="username" spellCheck={false} className="bg-card border-border" placeholder="ej: ciclista_stgo" value={username} onChange={(e) => setUsername(e.target.value)} />
-              <p className="text-[11px] text-muted-foreground">{t("pf.usuarioHint")}</p>
-            </div>
+            <>
+              <div className="grid gap-1.5">
+                <Label htmlFor="pf-user" className="text-foreground/90">{t("pf.usuario")}</Label>
+                <Input id="pf-user" name="username" autoCapitalize="none" autoComplete="username" spellCheck={false} className="bg-card border-border" placeholder="ej: ciclista_stgo" value={username} onChange={(e) => setUsername(e.target.value)} />
+                <p className="text-[11px] text-muted-foreground">{t("pf.usuarioHint")}</p>
+              </div>
+              {/* A-01/B-05: aceptación explícita y confirmación de edad. */}
+              <label className="flex items-start gap-2.5 text-[12px] leading-snug text-muted-foreground">
+                <Checkbox checked={aceptaTerminos} onCheckedChange={(v) => setAceptaTerminos(v === true)} className="mt-0.5" />
+                <span>
+                  {t("pf.aceptoA")}{" "}
+                  <a href="/terminos" className="font-medium text-emerald-600 underline-offset-2 hover:underline dark:text-emerald-400">{t("pf.terminos")}</a>{" "}
+                  {t("pf.aceptoY")}{" "}
+                  <a href="/privacidad" className="font-medium text-emerald-600 underline-offset-2 hover:underline dark:text-emerald-400">{t("pf.privacidad")}</a>
+                </span>
+              </label>
+              <label className="flex items-start gap-2.5 text-[12px] leading-snug text-muted-foreground">
+                <Checkbox checked={confirmaEdad} onCheckedChange={(v) => setConfirmaEdad(v === true)} className="mt-0.5" />
+                <span>{t("pf.confirmaEdad")}</span>
+              </label>
+            </>
           )}
           <div className="grid gap-1.5">
             <Label htmlFor="pf-pass" className="text-foreground/90">{t("pf.contrasena")}</Label>
             <Input id="pf-pass" name="password" type="password" autoComplete={mode === "register" ? "new-password" : "current-password"} className="bg-card border-border" placeholder={t("pf.min6")} value={password} onChange={(e) => setPassword(e.target.value)} />
           </div>
           {error && <p className="text-sm text-red-600 dark:text-red-400" role="alert">{error}</p>}
-          <Button type="submit" disabled={busy || !email || !password || (mode === "register" && !username)} className="h-11 bg-emerald-600 hover:bg-emerald-500 text-(--c30-on-accent) font-bold">
+          <Button type="submit" disabled={busy || !email || !password || (mode === "register" && (!username || !aceptaTerminos || !confirmaEdad))} className="h-11 bg-emerald-600 hover:bg-emerald-500 text-(--c30-on-accent) font-bold">
             {busy ? t("pf.conectando") : mode === "login" ? t("pf.entrar") : t("pf.crearMiCuenta")}
           </Button>
           {mode === "login" && (
@@ -568,6 +613,20 @@ export default function ProfileTab() {
             >
               <LogOut className="mr-1 h-3.5 w-3.5" /> {t("pf.salir")}
             </Button>
+            {/* C-02: revoca las sesiones activas en otros dispositivos. */}
+            {!offline && (
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => void cerrarOtrasSesiones()}
+                  className="h-8 border-border px-2.5 text-[11px] text-muted-foreground"
+                >
+                  {t("pf.sesionesBoton")}
+                </Button>
+                {sesionesMsg && <p className="max-w-[16rem] text-[10.5px] leading-snug text-muted-foreground">{sesionesMsg}</p>}
+              </>
+            )}
           </div>
         </div>
         <div className="mt-3 grid grid-cols-2 gap-2">
@@ -721,6 +780,42 @@ export default function ProfileTab() {
         <p className="mt-2 text-xs text-muted-foreground flex items-center gap-1">
           <KeyRound className="h-3.5 w-3.5" /> {t("pf.pinSync")}
         </p>
+      </Card>
+
+      {/* A-02: portabilidad de datos personales (Ley 21.719). */}
+      <Card className="border-border bg-card p-4">
+        <div className="flex items-start gap-3">
+          <FileDown className="h-5 w-5 text-emerald-600 dark:text-emerald-400 mt-0.5 shrink-0" />
+          <div className="text-sm flex-1 min-w-0">
+            <p className="font-medium text-foreground">{t("pf.exportarTitulo")}</p>
+            <p className="mt-1 leading-relaxed text-muted-foreground">{t("pf.exportarIntro")}</p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                const perfil = {
+                  email: me?.user.email ?? null,
+                  username: me?.user.username ?? null,
+                  bicicleta: {
+                    marca: me?.user.bikeBrand ?? null,
+                    tipo: me?.user.bikeType ?? null,
+                    modelo: me?.user.bikeModel ?? null,
+                    talla: me?.user.bikeSize ?? null,
+                    color: me?.user.bikeColor ?? null,
+                  },
+                };
+                void exportarMisDatos(perfil).then((ok) => {
+                  setExportMsg(ok ? t("pf.exportarOk") : t("pf.exportarError"));
+                  window.setTimeout(() => setExportMsg(null), 6000);
+                });
+              }}
+              className="mt-3 h-8 border-border px-3 text-[12px]"
+            >
+              <FileDown className="mr-1 h-3.5 w-3.5" /> {t("pf.exportarBoton")}
+            </Button>
+            {exportMsg && <p className="mt-2 text-[11.5px] text-muted-foreground">{exportMsg}</p>}
+          </div>
+        </div>
       </Card>
 
       {/* Zona de cuenta - baja definitiva (Google Play exige eliminación in-app) */}

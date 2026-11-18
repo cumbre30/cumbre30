@@ -414,6 +414,13 @@ export function ConfigTab({
                 onLocked={() => undefined}
               />
             </div>
+            {/* B-02: alcance real de la detección, siempre visible. */}
+            <div className="px-4 py-3.5">
+              <p className="text-[11.5px] leading-snug text-muted-foreground flex items-start gap-1.5">
+                <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                {t("cfg.caidaLimites")}
+              </p>
+            </div>
           </Card>
         );
       case "emergencia":

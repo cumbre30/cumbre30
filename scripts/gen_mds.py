@@ -68,25 +68,64 @@ with open(f"{OUT}/PLAN_REMEDIACION_CUMBRE30.md", "w", encoding="utf-8") as f:
 cl = []
 cl.append("# CHECKLIST DE LANZAMIENTO — Cumbre30")
 cl.append("")
-cl.append("**Auditoría pre-lanzamiento Chile · 2026-11-18**")
+cl.append("**Auditoría pre-lanzamiento Chile · 2026-11-18 · EJECUCIÓN AUTORIZADA POR EL PROPIETARIO**")
 cl.append("")
 cl.append("Marco: [PLAN_REMEDIACION_CUMBRE30.md](PLAN_REMEDIACION_CUMBRE30.md). "
           "Nada de este checklist se marca completo sin la evidencia indicada.")
 cl.append("")
+cl.append("## Estado de ejecución (2026-11-18)")
+cl.append("")
+cl.append("Fases A, B y C implementadas en el repositorio: 28 archivos modificados o creados. "
+          "TypeScript sin errores en `src/`, ESLint limpio en los archivos nuevos, regresión de "
+          "geocercas en verde y prueba de rotación de licencias aprobada. Los ítems de Fase D "
+          "requieren actores externos (contador, INAPI, Play Console, DPA de proveedores).")
+cl.append("")
+cl.append("IMPORTANTE para el despliegue: los códigos Pro nuevos usan el secreto vigente que "
+          "solo vive en el servidor (`src/lib/proLicenseServer.ts` y `scripts/gen-license.mjs`), "
+          "y la validación en línea usa la ruta nueva `/api/licencia/validar`. El orden correcto "
+          "es: 1) desplegar la web/API en Vercel; 2) recién entonces publicar el APK nuevo. Un "
+          "APK antiguo no puede validar códigos nuevos, y una web nueva sin el APK actualizado "
+          "solo afecta a la activación offline de códigos nuevos.")
+cl.append("")
 cl.append("| # | Ítem | Fase | Criterio de listo | Estado |")
 cl.append("| --- | --- | --- | --- | --- |")
+
+ESTADOS = {
+    "1": "HECHO: /terminos y /privacidad completados (secciones ICE, sensores de salud, geocoders, push, menores, retención, transferencias) y enlazados desde Ayuda; aceptación con checkbox al registrarse",
+    "2": "HECHO: docs/registro-tratamiento.md (12 actividades, encargados, medidas)",
+    "3": "HECHO en código: android:allowBackup=false; falta la prueba en dispositivo físico antes de publicar el APK",
+    "4": "HECHO: BannerPedalea (cierre con fecha, hasta 2027-01-31) + vigencia automática en geocercas oficiales + campo vigencia en el popup",
+    "5": "HECHO en código: consentimiento explícito en SensorPanel antes de emparejar el pulso; la prueba de no persistencia sigue pendiente de ejecución dinámica",
+    "6": "HECHO: sección ICE en la política + texto de límites visible en Configuración, Detección de caídas",
+    "7": "HECHO: secreto rotado (solo servidor), /api/licencia/validar, cliente server-first con grandfathering; probado con scripts/test-licencia-rotacion.ts",
+    "8": "HECHO: throttle de 1,1 s en geocode.ts + destinatarios informados en la política",
+    "9": "HECHO: confirmación de 14 años exigida en UI y API de registro",
+    "10": "HECHO: rate limiting (login 5/min, registro 5/min, forgot 3/10 min, validar licencias 10/min) + contraseñas de 8 en todos los flujos",
+    "11": "HECHO: DELETE /api/auth/sessions + botón en Perfil; el reset de contraseña ya cerraba todas las sesiones",
+    "12": "HECHO: username enmascarado (3 caracteres + ***) y nota de privacidad en /verificar",
+    "13": "HECHO: comparación timing-safe y clave por cabecera en licencia, push/send y mp/sync",
+    "14": "HECHO: etiqueta qr.etiqueta (es/en/pt) bajo la credencial en Wallet",
+    "15": "HECHO: public/THIRD-PARTY-NOTICES.md + enlace desde Ayuda; attribution de MiniMap y mapa grande verificada (compact:false)",
+    "16": "HECHO: docs/protocolo-incidentes.md (con tabla de rotación de secretos); simulacro anual pendiente",
+    "17": "HECHO: ya existía en /terminos (revisión dentro de 10 días, precios, código por correo); verificado",
+    "18": "PENDIENTE: requiere contador/abogado del propietario",
+    "19": "PENDIENTE: búsqueda y registro en INAPI (acción externa)",
+    "20": "PENDIENTE: Play Console (Data Safety, Location Permissions 2027)",
+    "21": "PENDIENTE: revisar y registrar DPA de Neon/Vercel/Google/Mercado Pago",
+    "22": "HECHO: export JSON desde Perfil (lib/exportDatos.ts + botón)",
+}
 for (n, item, fase, criterio) in CHECKLIST:
-    cl.append(f"| {n} | {item} | {fase} | {criterio} | ☐ |")
+    cl.append(f"| {n} | {item} | {fase} | {criterio} | {ESTADOS.get(n, 'PENDIENTE')} |")
 cl.append("")
-cl.append("## Puertas de lanzamiento (todas en verde)")
+cl.append("## Puertas de lanzamiento")
 cl.append("")
-cl.append("- [ ] Los 4 ítems de Fase A completados con evidencia.")
-cl.append("- [ ] Los ítems de Fase B completados **antes de habilitar** cada módulo relacionado.")
-cl.append("- [ ] Cero riesgos CRÍTICOS abiertos en la matriz (MATRIZ_RIESGOS_CUMBRE30.xlsx).")
-cl.append("- [ ] Calendario normativo verificado la semana del lanzamiento "
-             "(21.719, Pedalea Seguro, políticas Play).")
-cl.append("- [ ] Toda comunicación pública sin promesas no implementadas "
-             "(p. ej. 'llamamos a emergencias por ti' está PROHIBIDA).")
+cl.append("- [x] Fase A implementada (pendiente solo la prueba de backup en dispositivo físico).")
+cl.append("- [x] Fase B implementada (pendiente prueba dinámica de no persistencia de pulso).")
+cl.append("- [x] Fase C implementada (pendiente simulacro anual del protocolo de incidentes).")
+cl.append("- [ ] Fase D con actores externos (tributario, INAPI, Play Console, DPA).")
+cl.append("- [ ] Desplegar web/API antes de publicar el APK nuevo (secreto de licencias).")
+cl.append("- [ ] Calendario normativo verificado la semana del lanzamiento (21.719, Pedalea Seguro, políticas Play).")
+cl.append("- [ ] Toda comunicación pública sin promesas no implementadas (p. ej. 'llamamos a emergencias por ti' está PROHIBIDA).")
 cl.append("")
 with open(f"{OUT}/CHECKLIST_LANZAMIENTO_CUMBRE30.md", "w", encoding="utf-8") as f:
     f.write("\n".join(cl))

@@ -47,6 +47,16 @@ function fmtDur(s: number): string {
   return h > 0 ? `${h} h ${m} min` : `${m} min`;
 }
 
+// C-03: la página pública enmascara el identificador del ciclista.
+// El emisor de la constancia ya conoce sus propios datos; el enlace
+// compartido no debe regalarlos a terceros.
+function maskUsuario(u: string): string {
+  const s = u.trim();
+  if (!s) return "";
+  if (s.length <= 3) return `${s.slice(0, 1)}***`;
+  return `${s.slice(0, 3)}***`;
+}
+
 export default function VerificarClient() {
   const lang = useLang();
   const [raw, setRaw] = useState("");
@@ -175,10 +185,11 @@ export default function VerificarClient() {
               k={L("ver.sobreLimite")}
               v={estado.p.o > 0 ? fmtDur(estado.p.o) : "0 s"}
             />
-            <Row k={L("ver.ciclista")} v={estado.p.u || estado.p.n || "-"} />
+            <Row k={L("ver.ciclista")} v={maskUsuario(estado.p.u || estado.p.n || "") || "-"} />
             <Row k={L("ver.version")} v={estado.p.v} />
             <Row k={L("ver.registroId")} v={estado.p.id.slice(0, 12)} mono />
           </dl>
+          <p className="mt-2 text-[11.5px] leading-snug text-muted-foreground">{L("ver.privacidadNota")}</p>
         </section>
       )}
 

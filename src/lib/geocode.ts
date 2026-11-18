@@ -66,6 +66,21 @@ async function fetchT(url: string, ms: number, outer?: AbortSignal): Promise<Res
   }
 }
 
+// B-04: política de uso de los geocoders públicos. Nominatim exige
+// como máximo 1 consulta por segundo y Photon pide uso moderado.
+// Espaciamos las consultas de red (mínimo 1,1 s entre pedidos) y
+// la cancelación externa sigue funcionando: tras la espera, fetchT
+// revisa la señal y aborta si llegó una tecla nueva.
+let ultimaConsultaGeocoder = 0;
+async function fetchGeocoder(url: string, ms: number, outer?: AbortSignal): Promise<Response> {
+  const espera = ultimaConsultaGeocoder + 1100 - Date.now();
+  if (espera > 0) {
+    await new Promise<void>((res) => setTimeout(res, Math.min(espera, 2000)));
+  }
+  ultimaConsultaGeocoder = Date.now();
+  return fetchT(url, ms, outer);
+}
+
 // ---------------------------------------------------------------- Photon
 
 type PhotonFeat = {
@@ -147,7 +162,7 @@ export async function geocodeAddress(query: string, near: LatLng, signal?: Abort
   let photonNetFail = false;
   try {
     const url = `${PHOTON}?q=${encodeURIComponent(q)}&lat=${near.lat.toFixed(5)}&lon=${near.lon.toFixed(5)}&limit=6&lang=default`;
-    const r = await fetchT(url, 8000, signal);
+    const r = await fetchGeocoder(url, 8000, signal);
     if (r.ok) {
       const d = (await r.json()) as { features?: PhotonFeat[] };
       const list = (d.features ?? []).map(fromPhoton).filter((x): x is AddrResult => !!x);
