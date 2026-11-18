@@ -42,6 +42,7 @@ import { getFcConfig, saveFcConfig, type FcConfig } from "@/lib/zonasFc";
 import { t, useLang, setLang, type Lang } from "@/lib/i18n";
 import { isNativeApp } from "@/lib/rideNative";
 import { revisarActualizacion, nuevaConocida, abrirDescarga, type EstadoActualizacion } from "@/lib/actualizacion";
+import { recolectarDiagMapa } from "@/lib/mapaDiag";
 import { serverToken } from "@/lib/cloudSync";
 import { MINIMAP_SIZES, SPEEDO_SIZES, SPEEDO_STYLES, THEME_COLORS, saveRideTheme, useRideTheme, type MinimapSize, type SpeedoSize, type SpeedoStyle, type ThemeColorId, MINIMAP_STYLES, type MinimapStyle } from "@/lib/rideTheme";
 
@@ -751,6 +752,11 @@ export function ConfigTab({
   );
 
   // ACERCA DE: versión, actualizaciones, contacto y marca Cumbre GEO
+  // Diagnóstico de mapas (v1.13.5): GPU/WebGL que reporta el WebView,
+  // visible desde Acerca de. Con una captura sabemos qué soporta de
+  // verdad el teléfono antes de volver a intentar el render nativo.
+  const [verDiag, setVerDiag] = useState(false);
+  const diag = verDiag ? recolectarDiagMapa() : null;
   const acercaCard = (
     <Card className="p-0">
       <Row
@@ -796,6 +802,30 @@ export function ConfigTab({
       )}
       {actEstado !== "idle" && actEstado !== "check" && actEstado.estado === "error" && (
         <p className="border-t border-border/60 px-4 py-2.5 text-[11px] text-muted-foreground">{t("act.error")}</p>
+      )}
+      {/* Diagnóstico de mapas (v1.13.5): el nativo quedó dormido tras
+          v1.13.2–v1.13.4 (negro en dispositivo con Vulkan y con GL ES).
+          Estos datos dicen qué GPU soporta de verdad este equipo. */}
+      <Row icon={<Map className="h-5 w-5" />} title={t("cfg.diag")} sub={t("cfg.diagSub")}>
+        <button
+          onClick={() => setVerDiag((v) => !v)}
+          className="h-9 shrink-0 rounded-lg border border-border bg-card px-3 text-[12px] font-bold text-foreground hover:bg-accent"
+        >
+          {verDiag ? t("cfg.diagOcultar") : t("cfg.diagVer")}
+        </button>
+      </Row>
+      {diag && (
+        <div className="mx-4 mb-3 rounded-lg border border-border/60 bg-muted/40 px-3 py-2.5 text-[11px] leading-relaxed text-muted-foreground">
+          <p>
+            <span className="font-bold text-foreground">{diag.android}</span> · WebView {diag.webview}
+          </p>
+          <p>
+            WebGL1: {diag.webgl1 ? "sí" : "NO"} · WebGL2: {diag.webgl2 ? "sí" : "NO"}
+          </p>
+          <p className="break-words">GPU: {diag.gpu}</p>
+          <p>Motor de mapas: {diag.motorMapas}</p>
+          <p className="opacity-70">{diag.cuando}</p>
+        </div>
       )}
       <Row icon={<Mail className="h-5 w-5" />} title={t("cfg.contacto")} sub={t("cfg.contactoSub")}>
         <span />

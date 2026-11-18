@@ -971,13 +971,14 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
   const route = nav.route;
   const dest = nav.dest;
   // Mapa nativo (MapLibre Native vía plugin) o lienzo web (MapLibre GL JS)
-  // v1.13.2 — NATIVE_MAPS_ENABLED=true: reactivamos el render nativo tras
-  // corregir la causa del blanco de v1.3.1 (SurfaceView bajo el WebView
-  // translúcido → TextureView, ver NativeMapPlugin.kt) y subir MapLibre
-  // Android 11.11.0 → 13.7.1. Red de seguridad intacta: si el mapa nativo
-  // no reporta mapready en 7 s, cae a LeafletNav (el WebView sin WebGL
-  // nunca debe caer a MapLibre GL JS dentro del APK).
-  const NATIVE_MAPS_ENABLED = true;
+  // v1.13.5 — NATIVE_MAPS_ENABLED=false: vuelta al modo compatibilidad.
+  // Los intentos de reactivar el nativo (v1.13.2 con MapLibre 13.7.1/
+  // Vulkan y v1.13.4 con 13.7.1-opengl/GL ES) quedaron negros en el
+  // dispositivo, el mismo síntoma del GL JS web documentado en v1.3.1:
+  // ese WebView no dibuja GL de ningún backend. LeafletNav ráster es el
+  // único camino con uso comprobado (v1.3.1→v1.12). El código nativo
+  // queda dormido y el diagnóstico en Acerca de reporta la GPU real.
+  const NATIVE_MAPS_ENABLED = false;
   const nativeDetected = useMemo(() => isNativeMapPlatform(), []);
   const [nativeFail, setNativeFail] = useState(false);
   const native = NATIVE_MAPS_ENABLED && nativeDetected && !nativeFail;

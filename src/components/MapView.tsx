@@ -913,11 +913,15 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
   // centras tú con el botón «Centrar en mi ubicación».
   const center = last ?? position ?? { lat: -33.408, lon: -70.636 };
   // Mapa nativo (MapLibre Native) o Leaflet en la web
-  // v1.13.2 — NATIVE_MAPS_ENABLED=true: reactivamos el render nativo (misma
-  // causa/corrección del minimapa: TextureView en NativeMapPlugin.kt +
-  // MapLibre Android 13.7.1). Si el nativo no llega a mapready en 7 s cae
-  // a Leaflet ráster, como hoy.
-  const NATIVE_MAPS_ENABLED = true;
+  // v1.13.5 — NATIVE_MAPS_ENABLED=false: vuelva al modo compatibilidad
+  // (Leaflet ráster), el único con uso comprobado en el WebView del
+  // dispositivo desde v1.3.1. Los intentos de reactivar el nativo en
+  // v1.13.2 (MapLibre 13.7.1/Vulkan) y v1.13.4 (13.7.1-opengl/GL ES)
+  // quedaron negros en el teléfono, igual que el GL JS web desde v1.3.1:
+  // el WebView de ese equipo no dibuja GL de ningún backend. El código
+  // nativo queda dormido; el diagnóstico (Configuración → Acerca de)
+  // reporta la GPU real para un próximo intento con datos.
+  const NATIVE_MAPS_ENABLED = false;
   const nativeDetected = useMemo(() => isNativeMapPlatform(), []);
   const [nativeFail, setNativeFail] = useState(false);
   const nativeMap = NATIVE_MAPS_ENABLED && nativeDetected && !nativeFail;
