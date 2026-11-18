@@ -51,10 +51,15 @@ export function useCamaraRumbo({
   const [mapBearing, setMapBearing] = useState(0);
 
   // Al activarse la navegación la cámara se bloquea al rumbo; al
-  // desactivarse, vuelve a norte arriba. Con modo forzado (v1.13.6)
-  // este ciclo no toca el modo: lo manda el botón brújula.
+  // desactivarse, vuelve a norte arriba. Con modo forzado (v1.13.6/7)
+  // el modo VIENE de fuera (brújula única) y se aplica aquí: useState
+  // solo fija el valor INICIAL, así que sin este set el botón no hacía
+  // nada (v1.13.6: el rombo «no funcionaba» por esto).
   useEffect(() => {
-    if (modoForzado) return;
+    if (modoForzado) {
+      setModo(modoForzado);
+      return;
+    }
     setModo(activa ? "rumbo" : "norte");
   }, [activa, modoForzado]);
 

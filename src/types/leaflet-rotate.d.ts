@@ -1,6 +1,12 @@
 // Augmentos de tipos para el plugin leaflet-rotate (sin types oficiales).
 import "leaflet";
 
+// El paquete es un IIFE sin tipos: solo importa por efecto (parchea L).
+declare module "leaflet-rotate" {
+  const plugin: void;
+  export default plugin;
+}
+
 declare module "leaflet" {
   interface MapOptions {
     /** Habilita rotación del mapa (plugin leaflet-rotate). */

@@ -22,9 +22,12 @@
 //    pin personal queda para el mapa grande; el puck no tapa
 //    edificios ni veredas al norte de la posición.
 //
-// Leaflet no rota de forma nativa: la rotación es un wrapper
-// CSS (150% para no mostrar esquinas vacías) y los iconos se
-// contra-rotan (userPinIcon/flagIcon con mapBearing).
+// ROTACIÓN (v1.13.7): nativa vía plugin leaflet-rotate (setBearing).
+// El wrapper CSS de v1.12.9 (transform + will-change + filter sobre
+// un div al 150%) se eliminó: en el WebView del dispositivo giraba
+// el rectángulo pero NO el mapa. El plugin rota los paneles internos
+// de Leaflet: tiles, ruta, pin y gestos quedan coherentes. Los
+// iconos siguen contra-rotando (userPinIcon/flagIcon con mapBearing).
 // ============================================================
 
 import { useEffect, useMemo, useRef } from "react";
@@ -38,6 +41,10 @@ import {
   TileLayer,
   useMap,
 } from "react-leaflet";
+// El orden IMPORTA: el setup pone L en la global ANTES de que el
+// IIFE del plugin lo lea al evaluarse.
+import "@/lib/leaflet-rotate-setup";
+import "leaflet-rotate";
 import type { LatLng } from "@/lib/park";
 import { groupSegments, type NavRoute } from "@/lib/routing";
 import { useCamaraRumbo, type ModoCamara } from "@/hooks/useCamaraRumbo";
@@ -128,8 +135,19 @@ function Follow({
   return null;
 }
 
-/** Botón brújula: (eliminado en v1.13.6) — la brújula única vive en
- *  el minimapa (CompassButton) y manda el modo por prop. */
+/** Rotación del mapa (v1.13.7): aplica mapBearing con setBearing del
+ *  plugin — rotación NATIVA de Leaflet (paneles internos), no CSS de
+ *  un wrapper. El hook ya cuantiza el estado a pasos grandes; el
+ *  guard de delta evita setBearing redundantes entre renders. */
+function Bearing({ mapBearing }: { mapBearing: number }) {
+  const map = useMap();
+  useEffect(() => {
+    const d = ((mapBearing - map.getBearing() + 540) % 360) - 180;
+    if (Math.abs(d) < 0.5) return;
+    map.setBearing(mapBearing);
+  }, [map, mapBearing]);
+  return null;
+}
 
 export default function LeafletNav({
   position,
@@ -180,12 +198,12 @@ export default function LeafletNav({
 
   return (
     <div className="relative h-full w-full overflow-hidden" style={{ background: "#09090b" }}>
-      {/* Mapa rotado: wrapper al 150% para que no se vean esquinas
-          vacías al girar; el centro del wrapper es el centro de la
-          vista, así que el pin pegado al centro queda clavado en
-          pantalla mientras el mundo rota bajo él.
-          v1.13.1: will-change + transición corta — la rotación se
-          vuelve trabajo de compositor, no re-render del árbol. */}
+      {/* Contenedor SOBREDIMENSIONADO (150%): margen de tiles para que
+          las esquinas no queden vacías cuando el mapa rota vía plugin
+          (<Bearing/>). SIN transform CSS — la rotación del wrapper de
+          v1.12.9/v1.13.1 giraba el rectángulo pero no el mapa en el
+          WebView del dispositivo, y el filter de v1.13.3 era el otro
+          sospechoso de romper la composición. */}
       <div
         style={{
           position: "absolute",
@@ -193,26 +211,24 @@ export default function LeafletNav({
           top: "-25%",
           width: "150%",
           height: "150%",
-          transform: `rotate(${-mapBearing}deg)`,
-          transition: "transform 0.25s linear",
-          willChange: "transform",
-          // v1.13.3 (mockup ciclocomputador): realce de contraste sobre
-          // los tiles, coherente con raster-contrast de navStyle (web y
-          // nativo). En la misma capa de composición que la rotación:
-          // el costo de GPU es marginal frente al re-render que evitó
-          // v1.13.1.
-          filter: "contrast(1.08) saturate(0.92) brightness(1.02)",
         }}
       >
         <MapContainer
           center={[center.lat, center.lon]}
           zoom={16}
           zoomControl={false}
+          // v1.13.7: rotación nativa del mapa (plugin leaflet-rotate).
+          // Sin control flotante ni gesto de dos dedos: el rumbo lo fija
+          // la brújula única del minimapa.
+          rotate
+          bearing={0}
+          rotateControl={false}
+          touchRotate={false}
           // v1.13.1: SIN control de atribución de Leaflet — vivía dentro
           // del wrapper rotado y al girar la cámara salía del viewport
           // («se pierde la etiqueta de OSM», queja del cliente). La
           // atribución exigida por la ODbL ahora es una capa FIJA fuera
-          // del wrapper (abajo, junto a la brújula), igual en web y APK.
+          // (abajo a la derecha), igual en web y APK.
           attributionControl={false}
           className="h-full w-full"
           style={{ background: "#09090b" }}
@@ -291,6 +307,7 @@ export default function LeafletNav({
           )}
 
           <Follow position={position} onRoute={onRoute} locateTarget={locateTarget} modo={modo} />
+          <Bearing mapBearing={mapBearing} />
         </MapContainer>
       </div>
 
