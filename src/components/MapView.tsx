@@ -1338,7 +1338,8 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
             width: rotado ? "150%" : "100%",
             height: rotado ? "150%" : "100%",
             transform: rotado ? `rotate(${-mapBearing}deg)` : undefined,
-            transition: rotado ? "transform 0.45s ease-out" : undefined,
+            transition: rotado ? "transform 0.25s linear" : undefined,
+            willChange: rotado ? "transform" : undefined,
           }}
         >
         <MapContainer
@@ -1347,7 +1348,10 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
           zoomControl={false}
           scrollWheelZoom
           className={`${darkMap ? "map-dark" : ""} h-full w-full bg-background ${reportMode ? "cursor-crosshair" : ""}`}
-          attributionControl
+          // v1.13.1: sin control de Leaflet (vivía dentro del wrapper
+          // rotado y desaparecía al girar); la atribución exigida por la
+          // ODbL va FIJA fuera del wrapper, igual en web y APK.
+          attributionControl={false}
         >
           <TileLayer
             // Base ráster estándar OSM France (v1.12.14b): la misma base
@@ -1637,6 +1641,35 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
           <LocateHandler target={locateTarget} />
           <ClickHandler enabled={reportMode} onPick={setPending} />
         </MapContainer>
+        </div>
+
+        {/* Atribución OSM (v1.13.1): FIJA fuera del wrapper rotado — la
+            licencia ODbL exige verla siempre, con la cámara girada o no
+            («se pierde la etiqueta de OSM», queja del cliente). */}
+        <div
+          className="absolute bottom-0 right-0 z-[600] rounded-tl-md bg-white/85 px-1.5 py-0.5 text-[10px] leading-tight text-zinc-800 dark:bg-zinc-900/85 dark:text-zinc-300"
+          style={{ pointerEvents: "none" }}
+        >
+          &copy;{" "}
+          <a
+            href="https://www.openstreetmap.org/copyright"
+            target="_blank"
+            rel="noreferrer"
+            className="underline"
+            style={{ pointerEvents: "auto" }}
+          >
+            OpenStreetMap
+          </a>{" "}
+          contributors ·{" "}
+          <a
+            href="https://opendatacommons.org/licenses/odbl/1-0/"
+            target="_blank"
+            rel="noreferrer"
+            className="underline"
+            style={{ pointerEvents: "auto" }}
+          >
+            ODbL
+          </a>
         </div>
 
         {/* Controles flotantes (bajo la barra de direcciones) */}

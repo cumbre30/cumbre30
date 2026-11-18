@@ -26,7 +26,7 @@
 // contra-rotan (userPinIcon/flagIcon con mapBearing).
 // ============================================================
 
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import "leaflet/dist/leaflet.css";
 import {
   Circle,
@@ -168,12 +168,22 @@ export default function LeafletNav({
   // lado (el cliente la vio a la izquierda con la ruta hacia el este).
   const rumboPin = heading ?? (modo === "rumbo" ? mapBearing : null);
 
+  // Segmentos de la ruta (v1.13.1): memoizados fuera del render para que
+  // los ticks de brújula no recalculen groupSegments sobre cientos de
+  // vértices (era el grueso del retraso del minimapa en el APK).
+  const segments = useMemo(
+    () => (onRoute && route && route.coords.length > 1 ? groupSegments(route.coords, route.flags, 0, route.coords.length - 2) : []),
+    [onRoute, route]
+  );
+
   return (
     <div className="relative h-full w-full overflow-hidden" style={{ background: "#09090b" }}>
       {/* Mapa rotado: wrapper al 150% para que no se vean esquinas
           vacías al girar; el centro del wrapper es el centro de la
           vista, así que el pin pegado al centro queda clavado en
-          pantalla mientras el mundo rota bajo él. */}
+          pantalla mientras el mundo rota bajo él.
+          v1.13.1: will-change + transición corta — la rotación se
+          vuelve trabajo de compositor, no re-render del árbol. */}
       <div
         style={{
           position: "absolute",
@@ -182,14 +192,20 @@ export default function LeafletNav({
           width: "150%",
           height: "150%",
           transform: `rotate(${-mapBearing}deg)`,
-          transition: "transform 0.45s ease-out",
+          transition: "transform 0.25s linear",
+          willChange: "transform",
         }}
       >
         <MapContainer
           center={[center.lat, center.lon]}
           zoom={16}
           zoomControl={false}
-          attributionControl
+          // v1.13.1: SIN control de atribución de Leaflet — vivía dentro
+          // del wrapper rotado y al girar la cámara salía del viewport
+          // («se pierde la etiqueta de OSM», queja del cliente). La
+          // atribución exigida por la ODbL ahora es una capa FIJA fuera
+          // del wrapper (abajo, junto a la brújula), igual en web y APK.
+          attributionControl={false}
           className="h-full w-full"
           style={{ background: "#09090b" }}
         >
@@ -202,7 +218,9 @@ export default function LeafletNav({
             maxZoom={19}
           />
 
-          {/* Ruta activa: casing oscuro + segmentos por condición */}
+          {/* Ruta activa: casing oscuro + segmentos por condición.
+              Memoizado (v1.13.1): antes se recalculaba groupSegments en
+              cada tick de brújula y el APK se arrastraba. */}
           {onRoute && route && route.coords.length > 1 && (
             <>
               <Polyline
@@ -210,7 +228,7 @@ export default function LeafletNav({
                 pathOptions={{ color: "#05070a", weight: 10, opacity: 0.8 }}
                 interactive={false}
               />
-              {groupSegments(route.coords, route.flags, 0, route.coords.length - 2).map((g, i) => (
+              {segments.map((g, i) => (
                 <Polyline
                   key={`seg-${i}`}
                   positions={g.coords.map((p) => [p.lat, p.lon] as [number, number])}
@@ -266,6 +284,35 @@ export default function LeafletNav({
 
           <Follow position={position} onRoute={onRoute} locateTarget={locateTarget} modo={modo} />
         </MapContainer>
+      </div>
+
+      {/* Atribución OSM (v1.13.1): FIJA fuera del wrapper rotado — la
+          licencia ODbL exige visible siempre, girada o no. Misma
+          posición que la web (esquina inferior derecha del mapa). */}
+      <div
+        className="absolute bottom-0 right-0 z-[800] rounded-tl-md bg-white/85 px-1.5 py-0.5 text-[9px] leading-tight text-zinc-800 dark:bg-zinc-900/85 dark:text-zinc-300"
+        style={{ pointerEvents: "none" }}
+      >
+        &copy;{" "}
+        <a
+          href="https://www.openstreetmap.org/copyright"
+          target="_blank"
+          rel="noreferrer"
+          className="underline"
+          style={{ pointerEvents: "auto" }}
+        >
+          OpenStreetMap
+        </a>{" "}
+        contributors ·{" "}
+        <a
+          href="https://opendatacommons.org/licenses/odbl/1-0/"
+          target="_blank"
+          rel="noreferrer"
+          className="underline"
+          style={{ pointerEvents: "auto" }}
+        >
+          ODbL
+        </a>
       </div>
 
       <Brújula mapBearing={mapBearing} modo={modo} onToggle={() => setModo((m) => (m === "rumbo" ? "norte" : "rumbo"))} />

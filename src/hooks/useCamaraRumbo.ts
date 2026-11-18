@@ -26,15 +26,23 @@ export function useCamaraRumbo({
   heading,
   route,
   position,
+  pasoEstado = 2,
 }: {
   /** true mientras hay navegación/rumbo que alinear (ruta activa o course GPS) */
   activa: boolean;
   heading: number | null;
   route: NavRoute | null;
   position: LatLng | null;
+  /** Delta mínimo (°) entre actualizaciones del ESTADO React. El magnetómetro
+   *  entrega rumbo varias veces por segundo: si el estado cambia en cada tick
+   *  (≥0.5°) todo el árbol del mapa re-renderiza y el APK se arrastraba
+   *  (v1.13.1). Los iconos contra-rotados no necesitan precisión finer que
+   *  este paso; la suavidad visual la da la transición CSS del wrapper. */
+  pasoEstado?: number;
 }) {
   const [modo, setModo] = useState<ModoCamara>("norte");
   const bearingRef = useRef(0);
+  const estadoRef = useRef(0);
   const [mapBearing, setMapBearing] = useState(0);
 
   // Al activarse la navegación la cámara se bloquea al rumbo; al
@@ -76,8 +84,14 @@ export function useCamaraRumbo({
     if (Math.abs(d) < 0.5) return;
     const nb = (cur + d + 360) % 360;
     bearingRef.current = nb;
-    setMapBearing(nb);
-  }, [modo, heading, segBearing]);
+    // Estado React solo en pasos grandes: entre pasos el giro lo suaviza
+    // la transición CSS del wrapper (0.25s), sin re-render del árbol.
+    const de = ((nb - estadoRef.current + 540) % 360) - 180;
+    if (Math.abs(de) >= pasoEstado) {
+      estadoRef.current = nb;
+      setMapBearing(nb);
+    }
+  }, [modo, heading, segBearing, pasoEstado]);
 
   return { modo, mapBearing, setModo };
 }
