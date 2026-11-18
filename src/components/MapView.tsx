@@ -913,10 +913,11 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
   // centras tú con el botón «Centrar en mi ubicación».
   const center = last ?? position ?? { lat: -33.408, lon: -70.636 };
   // Mapa nativo (MapLibre Native) o Leaflet en la web
-  // ⚠️ NATIVE_MAPS_ENABLED=false (v1.3.1): el WebView del dispositivo no
-  // renderiza el mapa nativo (ni el GL JS web). Prioriza funcionamiento:
-  // siempre Leaflet con tiles ráster. Código nativo dormido tras el flag.
-  const NATIVE_MAPS_ENABLED = false;
+  // v1.13.2 — NATIVE_MAPS_ENABLED=true: reactivamos el render nativo (misma
+  // causa/corrección del minimapa: TextureView en NativeMapPlugin.kt +
+  // MapLibre Android 13.7.1). Si el nativo no llega a mapready en 7 s cae
+  // a Leaflet ráster, como hoy.
+  const NATIVE_MAPS_ENABLED = true;
   const nativeDetected = useMemo(() => isNativeMapPlatform(), []);
   const [nativeFail, setNativeFail] = useState(false);
   const nativeMap = NATIVE_MAPS_ENABLED && nativeDetected && !nativeFail;
@@ -1271,6 +1272,22 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
             cicloFeature={cicloFeature}
             onUnavailable={() => setNativeFail(true)}
           />
+          {/* Atribución ODbL (v1.13.2): el MapView nativo es fullscreen bajo
+              el backdrop, así que su atribución interna queda bajo la UI.
+              La exigida por la ODbL va FIJA aquí, como en la web. */}
+          <div
+            className="absolute bottom-0 right-0 z-[800] rounded-tl-md bg-white/85 px-1.5 py-0.5 text-[10px] leading-tight text-zinc-800"
+            style={{ pointerEvents: "none" }}
+          >
+            &copy;{" "}
+            <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer" className="underline" style={{ pointerEvents: "auto" }}>
+              OpenStreetMap
+            </a>{" "}
+            contributors ·{" "}
+            <a href="https://opendatacommons.org/licenses/odbl/1-0/" target="_blank" rel="noreferrer" className="underline" style={{ pointerEvents: "auto" }}>
+              ODbL
+            </a>
+          </div>
         </div>
 
         {(status || pending) && (

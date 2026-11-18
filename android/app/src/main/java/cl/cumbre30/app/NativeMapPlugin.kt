@@ -41,6 +41,7 @@ import org.maplibre.android.camera.CameraPosition
 import org.maplibre.android.camera.CameraUpdateFactory
 import org.maplibre.android.geometry.LatLng
 import org.maplibre.android.maps.MapLibreMap
+import org.maplibre.android.maps.MapLibreMapOptions
 import org.maplibre.android.maps.MapView
 import org.maplibre.android.maps.Style
 import org.maplibre.android.style.sources.GeoJsonSource
@@ -188,7 +189,18 @@ class NativeMapPlugin : Plugin() {
                 val old = maps.remove(id)
                 old?.let { teardown(it) }
 
-                val mv = MapView(bridge.activity)
+                // v1.13.2 — causa raíz del blanco de v1.3.1: el MapView
+                // default renderiza sobre SurfaceView, que vive FUERA de la
+                // jerarquía de vistas y choca con el WebView translúcido que
+                // lo cubre (z-order → fondo de color sin mapa). Con
+                // textureMode(true) el mapa dibuja sobre TextureView, una
+                // vista común que compone correctamente bajo el WebView.
+                // Cuesta algo de FPS, pero sigue siendo mucho más rápido
+                // que el fallback Leaflet.
+                val mv = MapView(
+                    bridge.activity,
+                    MapLibreMapOptions.createFromAttributes(bridge.activity).textureMode(true)
+                )
                 mv.layoutParams = ViewGroup.LayoutParams(MATCH_PARENT, MATCH_PARENT)
                 val root = contentView()
                 root.addView(mv, 0, ViewGroup.LayoutParams(MATCH_PARENT, MATCH_PARENT))

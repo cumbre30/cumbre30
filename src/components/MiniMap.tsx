@@ -873,12 +873,13 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
   const route = nav.route;
   const dest = nav.dest;
   // Mapa nativo (MapLibre Native vía plugin) o lienzo web (MapLibre GL JS)
-  // ⚠️ NATIVE_MAPS_ENABLED=false (v1.3.1): el WebView del dispositivo no
-  // renderiza ni el nativo ni MapLibre GL JS (WebGL caído) - se muestra un
-  // fondo de color sin mapa. Prioriza funcionamiento: en la app nativa
-  // corre Leaflet con tiles ráster (LeafletNav); el código nativo queda
-  // dormido detrás de este flag para depurarlo más adelante.
-  const NATIVE_MAPS_ENABLED = false;
+  // v1.13.2 — NATIVE_MAPS_ENABLED=true: reactivamos el render nativo tras
+  // corregir la causa del blanco de v1.3.1 (SurfaceView bajo el WebView
+  // translúcido → TextureView, ver NativeMapPlugin.kt) y subir MapLibre
+  // Android 11.11.0 → 13.7.1. Red de seguridad intacta: si el mapa nativo
+  // no reporta mapready en 7 s, cae a LeafletNav (el WebView sin WebGL
+  // nunca debe caer a MapLibre GL JS dentro del APK).
+  const NATIVE_MAPS_ENABLED = true;
   const nativeDetected = useMemo(() => isNativeMapPlatform(), []);
   const [nativeFail, setNativeFail] = useState(false);
   const native = NATIVE_MAPS_ENABLED && nativeDetected && !nativeFail;
@@ -1014,6 +1015,22 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
             locateTarget={locateTarget}
             onUnavailable={() => setNativeFail(true)}
           />
+          {/* Atribución ODbL (v1.13.2): el MapView nativo es fullscreen bajo
+              el backdrop, así que su atribución interna queda bajo la UI.
+              La exigida por la ODbL va FIJA aquí, como en la web. */}
+          <div
+            className="absolute bottom-0 right-0 z-[800] rounded-tl-md bg-white/85 px-1.5 py-0.5 text-[9px] leading-tight text-zinc-800"
+            style={{ pointerEvents: "none" }}
+          >
+            &copy;{" "}
+            <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer" className="underline" style={{ pointerEvents: "auto" }}>
+              OpenStreetMap
+            </a>{" "}
+            contributors ·{" "}
+            <a href="https://opendatacommons.org/licenses/odbl/1-0/" target="_blank" rel="noreferrer" className="underline" style={{ pointerEvents: "auto" }}>
+              ODbL
+            </a>
+          </div>
         </div>
 
         {/* Estado + leyenda + controles (debajo del lienzo) */}

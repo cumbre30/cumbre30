@@ -41,8 +41,8 @@ android {
         applicationId "cl.cumbre30.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 55
-        versionName "1.13.1"
+        versionCode 56
+        versionName "1.13.2"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -82,7 +82,9 @@ dependencies {
     implementation "androidx.coordinatorlayout:coordinatorlayout:$androidxCoordinatorLayoutVersion"
     implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
     // Mapas nativos (MapLibre Native - mismo motor WebGL que el minimapa web)
-    implementation "org.maplibre.gl:android-sdk:11.11.0"
+    // v1.13.2: 11.11.0 → 13.7.1 (línea estable al día; el plugin usa la API
+    // estable MapView/MapLibreMapOptions, sin cambios de paquete)
+    implementation "org.maplibre.gl:android-sdk:13.7.1"
     // Google Sign-In (selector de cuentas nativo, sin Firebase)
     implementation "com.google.android.gms:play-services-auth:21.3.0"
     implementation project(':capacitor-android')
