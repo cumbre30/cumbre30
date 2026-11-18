@@ -76,12 +76,11 @@ type Props = {
   /** Subida acumulada del ride (altitud GPS, useRideEngine.gainM):
    *  celda «Subida» de la franja. Sin velocímetro en esta franja. */
   gainM?: number;
-  /** Altura del contenedor sin ruta activa (tema Pro: minimapa compacto/grande). */
+  /** Altura del contenedor sin ruta activa (tema Pro: minimapa compacto/grande).
+   *  v1.13.8: FIJA también con ruta activa — el marco ya no cambia de tamaño. */
   heightClass?: string;
   /** Clases del marco (minimapStyleCls) — estética del minimapa. */
   styleClass?: string;
-  /** Altura del contenedor con ruta activa. */
-  heightRouteClass?: string;
   /** Abrir el mapa general (listado completo de destinos y capas). */
   onOpenMap?: () => void;
 };
@@ -952,7 +951,7 @@ function StatusNote({ className, text }: { className: string; text: string }) {
 // ============================================================
 // Componente principal: lienzo + capa Waze (banner, barra, etc.)
 // ============================================================
-export default function MiniMap({ position, heading, track, accuracyM, userPin, nav, speedKmh = 0, gainM = 0, heightClass = "h-52 sm:h-56", styleClass, heightRouteClass = "h-80", onOpenMap }: Props) {
+export default function MiniMap({ position, heading, track, accuracyM, userPin, nav, speedKmh = 0, gainM = 0, heightClass = "h-52 sm:h-56", styleClass, onOpenMap }: Props) {
   useLang();
   const incidents = useIncidentFeed();
   const [locateTarget, setLocateTarget] = useState<LatLng | null>(null);
@@ -1085,7 +1084,7 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
         {/* Banner de maniobra ENCIMA del lienzo nativo */}
         {onRoute && nextStep && (
           <ManeuverBanner
-            className="rounded-xl border border-border bg-background/95 px-3 py-2 flex items-center gap-3"
+            className="h-20 rounded-xl border border-border bg-background/95 px-3 flex items-center gap-3"
             nextStep={nextStep}
             distM={progress?.distToNextStepM ?? nextStep.distM}
             destName={dest?.name ?? t("mini.destino")}
@@ -1094,8 +1093,10 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
           />
         )}
 
-        {/* SOLO el lienzo nativo dentro de la ventana: sin HTML encima */}
-        <div className={`relative overflow-hidden shrink-0 ${onRoute ? heightRouteClass : `${heightClass} ${styleClass ?? ""}`}`}>
+        {/* SOLO el lienzo nativo dentro de la ventana: sin HTML encima.
+            ALTURA FIJA (v1.13.8): el marco ya no cambia entre base/ruta —
+            la tarjeta saltaba de tamaño al activar la ruta. */}
+        <div className={`relative overflow-hidden shrink-0 ${heightClass} ${styleClass ?? ""}`}>
           <NativeMapCanvas
             id="minimap"
             mode="nav"
@@ -1177,7 +1178,13 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
     // La barra «Ir a...» sale del mapa (pedido del cliente 2026-11-17:
     // "cubre parte del mapa"): fila separada justo debajo del minimapa.
     <>
-      <div className={`relative overflow-hidden z-0 c30-minimap ${onRoute ? heightRouteClass : `${heightClass} ${styleClass ?? ""}`}`}>
+      {/* Minimapa — ALTURA FIJA (v1.13.8): el contenedor ya NO cambia a
+          heightRouteClass al activar la ruta. Ese salto de tamaño dejaba
+          a Leaflet con el tamaño interno viejo (sin invalidateSize): el
+          centro matemático se desplazaba del visible y el pin «se
+          perdía» o se veía descentrado. El banner ahora es overlay de
+          altura fija y el marco no cambia de tamaño nunca. */}
+      <div className={`relative overflow-hidden z-0 c30-minimap ${heightClass} ${styleClass ?? ""}`}>
       {webglOk && !isNativeApp() ? (
         <NavCanvas
           position={position}
@@ -1216,10 +1223,12 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
         />
       )}
 
-      {/* ===== Banner de maniobra (modo ruta), estilo Waze ===== */}
+      {/* ===== Banner de maniobra (modo ruta), estilo Waze — overlay de
+          ALTURA FIJA (h-20): el texto cambia de contenido pero el
+          «ventana» visible del mapa debajo no salta de tamaño ===== */}
       {onRoute && nextStep && (
         <ManeuverBanner
-          className="absolute top-0 inset-x-0 z-[500] bg-background/95 border-b border-border px-3 pt-1.5 pb-2 flex items-center gap-3 pointer-events-none"
+          className="absolute top-0 inset-x-0 z-[500] h-20 bg-background/95 border-b border-border px-3 flex items-center gap-3 pointer-events-none"
           nextStep={nextStep}
           distM={progress?.distToNextStepM ?? nextStep.distM}
           destName={dest?.name ?? t("mini.destino")}

@@ -119,12 +119,20 @@ function Follow({
     } else {
       zoom = map.getZoom(); // respetar el zoom del ciclista
     }
-    map.setView([position.lat, position.lon], zoom, {
-      animate: true,
-      duration: 0.9, // ≈ intervalo entre fixes (1 Hz): paneo continuo
-      easeLinearity: 1,
-    });
-  }, [position, onRoute, map]);
+    // v1.13.8: en RUMBO el recentrado es SECO (sin paneo animado): el
+    // pin queda CLAVADO al centro fix a fix y el mapa se mueve bajo él
+    // (Waze real). La animación de 0.9 s dejaba al pin «flotando» lejos
+    // del centro entre fixes — se veía moverse o salir del cuadro.
+    if (modo === "rumbo") {
+      map.setView([position.lat, position.lon], zoom, { animate: false });
+    } else {
+      map.setView([position.lat, position.lon], zoom, {
+        animate: true,
+        duration: 0.9, // ≈ intervalo entre fixes (1 Hz): paneo continuo
+        easeLinearity: 1,
+      });
+    }
+  }, [position, onRoute, modo, map]);
 
   useEffect(() => {
     if (!locateTarget) return;
@@ -132,6 +140,24 @@ function Follow({
     map.flyTo([locateTarget.lat, locateTarget.lon], Math.max(map.getZoom(), 16), { duration: 0.8 });
   }, [locateTarget, map]);
 
+  return null;
+}
+
+/** v1.13.8: Leaflet solo escucha el resize de la VENTANA; si el
+ *  contenedor del minimapa cambia de tamaño por otra vía (temas Pro,
+ *  rotación del teléfono), el mapa queda con el tamaño interno viejo:
+ *  el centro matemático se desplaza del centro visible y el pin sale
+ *  del cuadro. ResizeObserver → invalidateSize (mantiene el centro). */
+function AutoResize() {
+  const map = useMap();
+  useEffect(() => {
+    const el = map.getContainer();
+    const ro = new ResizeObserver(() => {
+      map.invalidateSize({ animate: false });
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [map]);
   return null;
 }
 
@@ -307,6 +333,7 @@ export default function LeafletNav({
           )}
 
           <Follow position={position} onRoute={onRoute} locateTarget={locateTarget} modo={modo} />
+          <AutoResize />
           <Bearing mapBearing={mapBearing} />
         </MapContainer>
       </div>

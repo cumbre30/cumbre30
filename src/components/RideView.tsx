@@ -540,7 +540,6 @@ export function RideView(p: Props) {
         gainM={p.gainM}
         heightClass={mm.base}
         styleClass={minimapStyleCls(theme.minimapStyle)}
-        heightRouteClass={mm.route}
         onOpenMap={p.onOpenMap}
       />
       {p.nav.note && (
