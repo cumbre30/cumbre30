@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700;900&family=Noto+Serif+SC:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  @page { size: 794px 1123px; margin: 0; }
+  :root {
+    --c-bg: #0a1628;
+    --c-accent: #4da8da;
+    --c-text: #e8f0f8;
+    --c-muted: #7a9bb8;
+    --c-glow: #2d7ab3;
+  }
+  html, body { margin: 0; padding: 0; width: 794px; height: 1123px;
+               background: var(--c-bg); color: var(--c-text);
+               font-family: 'Inter', 'Noto Serif SC', sans-serif; }
+  @media screen {
+    html { height: auto; display: flex; justify-content: center; min-height: 100vh; background: var(--c-bg); }
+    body { transform-origin: top center; scale: min(1, calc(100vw / 794), calc(100vh / 1123));
+           margin: 0 auto; box-shadow: 0 0 60px rgba(0,0,0,0.4); }
+  }
+  .cover { width: 794px; height: 1123px; position: relative; box-sizing: border-box;
+           border: none; outline: none; box-shadow: none; }
+  /* Layer 1 — fondo con brillos sutiles (clip en esta capa únicamente) */
+  .layer-bg { position: absolute; inset: 0; overflow: hidden; z-index: 1; }
+  .glow-a { position: absolute; left: 40px; top: 60px; width: 420px; height: 420px;
+            background: radial-gradient(circle, rgba(45,122,179,0.08) 0%, rgba(45,122,179,0) 70%); }
+  .glow-b { position: absolute; right: 40px; bottom: 90px; width: 460px; height: 460px;
+            background: radial-gradient(circle, rgba(77,168,218,0.07) 0%, rgba(77,168,218,0) 70%); }
+  /* Layer 2 — marco luminoso */
+  .layer-frame { position: absolute; inset: 0; z-index: 2; }
+  .frame { position: absolute; left: 60px; right: 60px; top: 80px; bottom: 80px;
+           border: 2px solid var(--c-accent); }
+  /* Layer 3 — contenido */
+  .layer-content { position: absolute; inset: 0; z-index: 3; }
+  .kicker { position: absolute; left: 105px; top: 135px; max-width: 560px;
+            font-size: 11pt; font-weight: 300; color: var(--c-accent);
+            letter-spacing: 5px; text-transform: uppercase; line-height: 1.7; }
+  .title { position: absolute; left: 105px; top: 240px; max-width: 600px;
+           font-family: 'Noto Serif SC', 'Inter', serif; font-weight: 900;
+           font-size: 58pt; line-height: 1.12; color: var(--c-text);
+           text-shadow: 0 0 26px rgba(77,168,218,0.35); }
+  .summary { position: absolute; left: 105px; top: 505px; max-width: 520px;
+             font-size: 15pt; font-weight: 300; line-height: 1.7; color: var(--c-muted); }
+  .org { position: absolute; left: 105px; top: 762px; max-width: 560px;
+         font-size: 18pt; font-weight: 500; color: var(--c-text); line-height: 1.5; }
+  .org small { display: block; margin-top: 10px; font-size: 11pt; font-weight: 300;
+               color: var(--c-muted); letter-spacing: 1px; }
+  .date { position: absolute; left: 105px; bottom: 108px; right: 105px;
+          font-size: 10pt; font-weight: 300; color: var(--c-muted); letter-spacing: 3px;
+          text-transform: uppercase; }
+</style>
+</head>
+<body>
+  <div class="cover">
+    <div class="layer-bg">
+      <div class="glow-a"></div>
+      <div class="glow-b"></div>
+    </div>
+    <div class="layer-frame"><div class="frame"></div></div>
+    <div class="layer-content">
+      <div class="kicker">Auditoría integral de cumplimiento legal, privacidad y seguridad</div>
+      <div class="title">CUMBRE30</div>
+      <div class="summary">Diagnóstico técnico-jurídico del ciclocomputador GPS del Cerro San
+        Cristóbal: inventario funcional verificado en el repositorio, análisis de la Ley 21.719
+        y normativa aplicable en Chile, matriz de veinte riesgos y plan de remediación por fases.
+        Documento de auditoría: no modifica código ni arquitectura.</div>
+      <div class="org">Informe de auditoría pre-lanzamiento Chile
+        <small>Mercado inicial: Chile · Titular: persona natural · Primera versión gratuita</small>
+      </div>
+      <div class="date">18 de noviembre de 2026 · Santiago de Chile</div>
+    </div>
+  </div>
+</body>
+</html>
