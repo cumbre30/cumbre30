@@ -2,13 +2,18 @@
 // Generador CLI de códigos Cumbre30 Pro.
 //   Uso:  node scripts/gen-license.mjs correo@ejemplo.cl
 // Devuelve un código C30P-XXXX-XXXX-XXXX-XXXX ligado al correo.
-// El secreto debe coincidir con src/lib/proLicenseServer.ts
-// (secreto vigente, rotado 2026-11-18; solo servidor).
+// El secreto vive SOLO en la variable de entorno PRO_LICENSE_SECRET
+// (la misma que usa Vercel en producción; coincide con
+// src/lib/proLicenseServer.ts). El repo es público: jamás hardcodearlo.
 // ============================================================
 
 import { webcrypto as crypto } from "node:crypto";
 
-const SECRET = "f4578021d16b8302bb52aa0ce5ac41624b3019253b6533b567c1f65620ea15f1";
+const SECRET = process.env.PRO_LICENSE_SECRET ?? "";
+if (!SECRET) {
+  console.error("Exporta PRO_LICENSE_SECRET antes de generar códigos.");
+  process.exit(1);
+}
 const B32 = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
 
 const normalizeEmail = (e) => e.trim().toLowerCase();
