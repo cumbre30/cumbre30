@@ -14,7 +14,7 @@ function chk(label, ok, extra = "") {
   if (!ok) fails++;
 }
 
-const CONSOLE_IGNORE = [/401 \(Unauthorized\)/];
+const CONSOLE_IGNORE = [/401 \(Unauthorized\)/, /status of 401/];
 
 async function main() {
   const browser = await chromium.launch();
