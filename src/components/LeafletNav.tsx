@@ -14,8 +14,9 @@
 //    mapa y las tiles; el pin se mantiene fijo y centrado.
 //  · Seguimiento pegado: recentra en cada fix con animación
 //    continua (~duración del intervalo entre fixes), sin saltos.
-//  · Botón brújula: alterna entre «rumbo» (girado) y «norte»
-//    (norte arriba). Fuera de navegación: norte arriba.
+//  · Brújula (v1.13.6): UN solo botón, el del minimapa, que fija
+//    el modo por prop (camMode). El botón interno propio se eliminó:
+//    rendía dos rombos superpuestos y el externo no movía el mapa.
 //  · Pin: puck plano centrado sobre la posición (snapped a la
 //    calzada por navSnap) con flecha al rumbo — la burbuja del
 //    pin personal queda para el mapa grande; el puck no tapa
@@ -42,7 +43,6 @@ import { groupSegments, type NavRoute } from "@/lib/routing";
 import { useCamaraRumbo, type ModoCamara } from "@/hooks/useCamaraRumbo";
 import { DEFAULT_PIN } from "@/lib/pins";
 import { flagIcon, userPinIcon } from "@/lib/mapIcons";
-import { t } from "@/lib/i18n";
 
 type Props = {
   position: LatLng | null;
@@ -54,6 +54,13 @@ type Props = {
   dest: { name: string; position: LatLng } | null;
   userPin?: string;
   locateTarget: LatLng | null;
+  /** v1.13.6: modo de cámara impuesto por la brújula única del minimapa
+   *  (RUMBO = mapa girado a la marcha, NORTE = fijo con la flecha girando).
+   *  Antes cada lienzo tenía su propio botón y estado: dos rombos que se
+   *  pisaban y el externo no afectaba al mapa. */
+  camMode?: ModoCamara;
+  /** Rumbo de cámara (mapBearing) para la aguja de la brújula externa. */
+  onBearing?: (b: number) => void;
 };
 
 /** Seguimiento Waze: recentra en cada fix con animación continua
@@ -121,26 +128,8 @@ function Follow({
   return null;
 }
 
-/** Botón brújula: flecha hacia donde queda el NORTE real en pantalla
- *  (rota con el mapa); al tocarlo alterna rumbo ↔ norte. */
-function Brújula({ mapBearing, modo, onToggle }: { mapBearing: number; modo: ModoCamara; onToggle: () => void }) {
-  return (
-    <button
-      onClick={onToggle}
-      aria-label={modo === "rumbo" ? t("mini.brujulaRumboAria") : t("mini.brujulaNorteAria")}
-      title={modo === "rumbo" ? t("mini.brujulaRumboTitle") : t("mini.brujulaNorteTitle")}
-      className="absolute right-2 top-2 z-[800] flex h-9 w-9 items-center justify-center rounded-full border border-border bg-background/90 shadow-md backdrop-blur"
-      style={{ pointerEvents: "auto" }}
-    >
-      <svg width="22" height="22" viewBox="0 0 24 24" style={{ transform: `rotate(${-Math.round(mapBearing)}deg)`, transition: "transform 0.45s ease-out" }} aria-hidden>
-        <path d="M12 2.5 L15.5 12 L12 10.2 L8.5 12 Z" fill="#ef4444" />
-        <path d="M12 21.5 L8.5 12 L12 13.8 L15.5 12 Z" fill="#71717a" />
-        <circle cx="12" cy="12" r="1.4" fill="#09090b" />
-      </svg>
-      {modo === "rumbo" && <span className="absolute -bottom-0.5 rounded bg-emerald-600 px-1 text-[8px] font-bold text-white">RUMBO</span>}
-    </button>
-  );
-}
+/** Botón brújula: (eliminado en v1.13.6) — la brújula única vive en
+ *  el minimapa (CompassButton) y manda el modo por prop. */
 
 export default function LeafletNav({
   position,
@@ -152,17 +141,29 @@ export default function LeafletNav({
   dest,
   userPin,
   locateTarget,
+  camMode,
+  onBearing,
 }: Props) {
   const center = position ?? { lat: -33.408, lon: -70.636 };
   // Cámara Waze compartida (hook v1.12.10): rumbo bloqueado mientras hay
   // navegación O rumbo GPS conocido — la ruta se ve recta y el pin queda
   // fijo al centro; norte arriba cuando todo está en reposo (exploración).
-  const { modo, mapBearing, setModo } = useCamaraRumbo({
+  // v1.13.6: el MODO lo fija la brújula única del minimapa (modoForzado);
+  // el hook sigue calculando el bearing según heading/ruta dentro de cada
+  // modo (rumbo = gira con la marcha, norte = 0 fijo).
+  const { modo, mapBearing } = useCamaraRumbo({
     activa: onRoute || heading !== null,
     heading,
     route: onRoute ? route : null,
     position,
+    modoForzado: camMode,
   });
+  // La aguja de la brújula externa apunta hacia donde queda el norte en
+  // pantalla (mismo canal que NavCanvas): el hook ya cuantiza a pasos
+  // grandes, así que esto no introduce re-renders extra.
+  useEffect(() => {
+    onBearing?.(mapBearing);
+  }, [mapBearing, onBearing]);
   // v1.12.10: la flecha del puck mira SIEMPRE hacia donde mira la cámara.
   // Sin course GPS (parado/interior) el mapa gira al rumbo de la ruta; si
   // la flecha siguiera en 0° (norte del mapa) quedaría viendo hacia un
@@ -321,8 +322,6 @@ export default function LeafletNav({
           ODbL
         </a>
       </div>
-
-      <Brújula mapBearing={mapBearing} modo={modo} onToggle={() => setModo((m) => (m === "rumbo" ? "norte" : "rumbo"))} />
     </div>
   );
 }

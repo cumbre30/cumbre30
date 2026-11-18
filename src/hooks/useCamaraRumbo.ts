@@ -27,6 +27,7 @@ export function useCamaraRumbo({
   route,
   position,
   pasoEstado = 2,
+  modoForzado,
 }: {
   /** true mientras hay navegación/rumbo que alinear (ruta activa o course GPS) */
   activa: boolean;
@@ -39,17 +40,23 @@ export function useCamaraRumbo({
    *  (v1.13.1). Los iconos contra-rotados no necesitan precisión finer que
    *  este paso; la suavidad visual la da la transición CSS del wrapper. */
   pasoEstado?: number;
+  /** v1.13.6: modo de cámara impuesto desde fuera (la brújula única del
+   *  minimapa). Si llega, el ciclo de navegación ya NO cambia el modo:
+   *  rumbo/norte lo decide solo el ciclista con el botón brújula. */
+  modoForzado?: ModoCamara;
 }) {
-  const [modo, setModo] = useState<ModoCamara>("norte");
+  const [modo, setModo] = useState<ModoCamara>(modoForzado ?? "norte");
   const bearingRef = useRef(0);
   const estadoRef = useRef(0);
   const [mapBearing, setMapBearing] = useState(0);
 
   // Al activarse la navegación la cámara se bloquea al rumbo; al
-  // desactivarse, vuelve a norte arriba.
+  // desactivarse, vuelve a norte arriba. Con modo forzado (v1.13.6)
+  // este ciclo no toca el modo: lo manda el botón brújula.
   useEffect(() => {
+    if (modoForzado) return;
     setModo(activa ? "rumbo" : "norte");
-  }, [activa]);
+  }, [activa, modoForzado]);
 
   // Rumbo de respaldo de la ruta: vértice más cercano → rumbo del tramo
   // siguiente (cuando el GPS no entrega course, p. ej. detenido).

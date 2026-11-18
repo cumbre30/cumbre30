@@ -1197,7 +1197,10 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
           onBearing={onBearing}
         />
       ) : (
-        /* WebView del APK (o navegador sin WebGL): Leaflet ráster, sin WebGL */
+        /* WebView del APK (o navegador sin WebGL): Leaflet ráster, sin WebGL.
+           v1.13.6: recibe el MISMO camMode y onBearing que NavCanvas — una
+           sola brújula que de verdad gira el mapa (antes LeafletNav tenía
+           su propio rombo interno y el externo no afectaba al lienzo). */
         <LeafletNav
           position={position}
           heading={heading}
@@ -1208,6 +1211,8 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
           dest={dest ? { name: dest.name, position: dest.position } : null}
           userPin={userPin}
           locateTarget={locateTarget}
+          camMode={camMode}
+          onBearing={onBearing}
         />
       )}
 
