@@ -9,4 +9,4 @@
 export const APP_VERSION = "1.13.2";
 export const APP_VERSION_CODE = 56;
 export const APK_FILE_NAME = "cumbre30-v1.13.2-code56.apk";
-export const APK_SIZE_MB = 54;
+export const APK_SIZE_MB = 60;
