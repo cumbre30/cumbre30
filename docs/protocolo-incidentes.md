@@ -47,4 +47,24 @@
 | GMAIL_APP_PASSWORD | Cuenta Gmail del titular | Revocar en la cuenta de Google y crear nueva |
 | MP_ACCESS_TOKEN | .env de Vercel (Mercado Pago) | Rotar desde las credenciales de MP |
 | DATABASE_URL | .env de Vercel (Neon) | Rotar credenciales en Neon |
-| Secreto de licencias Pro (vigente) | Solo servidor: proLicenseServer.ts | Cambiar constante y scripts/gen-license.mjs juntos; los códigos viejos siguen validando con el legado |
+| Secreto de licencias Pro (vigente) | Variable de entorno PRO_LICENSE_SECRET de Vercel (solo servidor) | Generar hex de 32 bytes, actualizar la env de Vercel y redeploy; los códigos viejos siguen validando con el legado. NUNCA hardcodearlo en el repo (es público) ni dejarlo en scripts/gen-license.mjs, que ahora la lee del entorno |
+| Secreto de licencias Pro (legado) | proLicenseCore.ts, dentro del APK | No rota: es inherentemente público por la validación offline; solo cubre códigos emitidos antes de la rotación |
+
+## Incidente 2026-11-18: secreto de licencias en repo público (post-mortem breve)
+
+Durante el release v1.13.0 se detectó que el secreto de licencias rotado había
+quedado como constante en `src/lib/proLicenseServer.ts` y
+`scripts/gen-license.mjs`. Como el repo de GitHub es público, cualquiera pudo
+leerlo desde el push de hoy. Impacto real: ~35 minutos de deploy con ese
+secreto y con la generación admin bloqueada (sin ADMIN_KEY en Vercel), por lo
+que no se emitió ningún código afectado.
+
+Correcciones aplicadas:
+- El secreto vigente vive solo en la env `PRO_LICENSE_SECRET` de Vercel y fue
+  rotado de nuevo (el valor filtrado quedó invalidado; verificado con prueba
+  negativa en `/api/licencia/validar`).
+- `gen-license.mjs` lee `PRO_LICENSE_SECRET` del entorno y aborta si falta.
+- Se crearon en Vercel las envs faltantes `ADMIN_KEY`, `PUSH_ADMIN_KEY` y
+  `PRO_LICENSE_SECRET` (Production).
+- Lección: ningún secreto de servidor debe entrar jamás al repo; el APK ya
+  contiene el secreto legado por diseño (offline), y ese no rota.
