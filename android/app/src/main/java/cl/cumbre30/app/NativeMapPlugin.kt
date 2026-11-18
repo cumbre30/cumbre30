@@ -197,6 +197,10 @@ class NativeMapPlugin : Plugin() {
                 // vista común que compone correctamente bajo el WebView.
                 // Cuesta algo de FPS, pero sigue siendo mucho más rápido
                 // que el fallback Leaflet.
+                // v1.13.4: textureMode REQUIERE el artefacto
+                // org.maplibre.gl:android-sdk-opengl (ver build.gradle) — el
+                // artefacto estándar usa Vulkan desde 13.0 y Vulkan +
+                // TextureView no dibuja nada (mapa negro, sin crash).
                 val mv = MapView(
                     bridge.activity,
                     MapLibreMapOptions.createFromAttributes(bridge.activity).textureMode(true)
