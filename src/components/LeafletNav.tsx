@@ -42,6 +42,7 @@ import { groupSegments, type NavRoute } from "@/lib/routing";
 import { useCamaraRumbo, type ModoCamara } from "@/hooks/useCamaraRumbo";
 import { DEFAULT_PIN } from "@/lib/pins";
 import { flagIcon, userPinIcon } from "@/lib/mapIcons";
+import { t } from "@/lib/i18n";
 
 type Props = {
   position: LatLng | null;
@@ -126,8 +127,8 @@ function Brújula({ mapBearing, modo, onToggle }: { mapBearing: number; modo: Mo
   return (
     <button
       onClick={onToggle}
-      aria-label={modo === "rumbo" ? "Orientar el mapa al norte" : "Orientar el mapa al rumbo de la ruta"}
-      title={modo === "rumbo" ? "Vista girada al rumbo · tocar para norte arriba" : "Norte arriba · tocar para girar al rumbo"}
+      aria-label={modo === "rumbo" ? t("mini.brujulaRumboAria") : t("mini.brujulaNorteAria")}
+      title={modo === "rumbo" ? t("mini.brujulaRumboTitle") : t("mini.brujulaNorteTitle")}
       className="absolute right-2 top-2 z-[800] flex h-9 w-9 items-center justify-center rounded-full border border-border bg-background/90 shadow-md backdrop-blur"
       style={{ pointerEvents: "auto" }}
     >
@@ -194,6 +195,12 @@ export default function LeafletNav({
           transform: `rotate(${-mapBearing}deg)`,
           transition: "transform 0.25s linear",
           willChange: "transform",
+          // v1.13.3 (mockup ciclocomputador): realce de contraste sobre
+          // los tiles, coherente con raster-contrast de navStyle (web y
+          // nativo). En la misma capa de composición que la rotación:
+          // el costo de GPU es marginal frente al re-render que evitó
+          // v1.13.1.
+          filter: "contrast(1.08) saturate(0.92) brightness(1.02)",
         }}
       >
         <MapContainer

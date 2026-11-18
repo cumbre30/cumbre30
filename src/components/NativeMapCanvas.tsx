@@ -5,7 +5,8 @@
 // Misma lógica que NavCanvas (web) pero las capas/cámara viven en
 // una vista nativa: el plugin perfore una ventana en el backdrop y
 // el WebView solo dibuja la UI HTML alrededor.
-// · mode "nav" → cámara Waze: pin abajo-centrado, pitch 50, rumbo.
+// · mode "nav" → cámara ciclocomputador: pin abajo-centrado, 2D
+//   cenital (pitch 0, v1.13.3), rumbo Track Up o Norte arriba.
 // · mode "flat" → mapa grande plano con gestos nativos.
 // ============================================================
 
@@ -43,6 +44,10 @@ type Props = {
   userPin?: string;
   incidents: IncidentItem[];
   locateTarget: LatLng | null;
+  /** v1.13.3: «rumbo» = Track Up o «norte» = Norte arriba (Norte arriba fija bearing 0). */
+  camMode?: "rumbo" | "norte";
+  /** Rumbo de cámara final (por fix) para la aguja de la brújula. */
+  onBearing?: (b: number) => void;
   /** Ciclovías del cerro (solo modo flat). */
   cicloFeature?: FeatureCollection | null;
   /** Aviso de que el mapa nativo no llegó a estar listo (fallback a web). */
@@ -55,7 +60,6 @@ export default function NativeMapCanvas(props: Props) {
   const [ready, setReady] = useState(false);
   const readyRef = useRef(false);
   const unavailableRef = useRef(props.onUnavailable);
-  unavailableRef.current = props.onUnavailable;
   const rectRef = useRef<{ x: number; y: number; w: number; h: number } | null>(null);
   const firstFixRef = useRef(false);
   const lastBearingRef = useRef(0);
@@ -64,10 +68,13 @@ export default function NativeMapCanvas(props: Props) {
   // refs vivas para handlers registrados una sola vez
   const pickModeRef = useRef(props.pickMode);
   const onPickRef = useRef(props.onPick);
+  const onBearingRef = useRef(props.onBearing);
   useEffect(() => {
     pickModeRef.current = props.pickMode;
     onPickRef.current = props.onPick;
-  }, [props.pickMode, props.onPick]);
+    onBearingRef.current = props.onBearing;
+    unavailableRef.current = props.onUnavailable;
+  }, [props.pickMode, props.onPick, props.onBearing, props.onUnavailable]);
   // (en el minimapa ya no existen: props undefined = sin pick)
 
   // ---- crear / destruir el mapa nativo ----
@@ -241,7 +248,12 @@ export default function NativeMapCanvas(props: Props) {
       route: props.route ?? null,
       lastBearing: lastBearingRef.current,
     });
-    lastBearingRef.current = cam.bearing;
+    // v1.13.3 (mockup ciclocomputador): en Norte arriba el mapa queda
+    // fijo (bearing 0) y el pin flecha sigue girando al rumbo real.
+    const bearing = props.camMode === "norte" ? 0 : cam.bearing;
+    lastBearingRef.current = bearing;
+    // la brújula (aguja) apunta hacia donde queda el norte en pantalla
+    onBearingRef.current?.(bearing);
 
     const vw = window.innerWidth;
     const vh = window.innerHeight;
@@ -262,12 +274,12 @@ export default function NativeMapCanvas(props: Props) {
       lng: cam.center.lon,
       zoom: cam.zoom,
       pitch: NAV_PITCH,
-      bearing: cam.bearing,
+      bearing,
       padding,
       animated,
       duration: 680,
     }).catch(() => {});
-  }, [ready, mode, id, props.position, props.heading, props.onRoute, props.remainingM, props.nearestIdx, props.route]);
+  }, [ready, mode, id, props.position, props.heading, props.onRoute, props.remainingM, props.nearestIdx, props.route, props.camMode]);
 
   // ---- cámara flat: seguir mi ubicación / volver al pulsar localizar ----
   useEffect(() => {

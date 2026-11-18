@@ -1,22 +1,25 @@
 "use client";
 
 // ============================================================
-// Minimapa del velocímetro - NAVEGACIÓN REAL 3D (MapLibre GL).
-// Nada de trucos CSS: el motor WebGL de MapLibre (el mismo núcleo
-// que MapLibre Native en apps Android/iOS) dibuja con cámara de
-// perspectiva: inclinación (pitch), rotación al rumbo y el pin del
-// ciclista anclado abajo, como Waze.
-// · Banner superior: flecha de maniobra + metros + calle en celeste.
+// Minimapa del velocímetro - NAVEGACIÓN 2D CENITAL (MapLibre GL).
+// v1.13.3 - rediseño tipo CICLOCOMPUTADOR (mockup aprobado): sin
+// perspectiva (pitch 0), alto contraste sobre la base ráster y
+// lectura de un vistazo bajo el sol.
+// · Banner superior: flecha de maniobra + distancia GIGANTE + calle
+//   + «luego» (la maniobra siguiente). Fuera de ruta: aviso ámbar.
 // · Ruta COMPLETA inicio→fin: ciclovía violeta, vía compartida
 //   blanca, flechas de dirección sobre la ruta y tramo recorrido
 //   atenuado.
-// · Barra inferior: llegada estimada + botón amarillo de reporte.
-//   SIN velocímetro: la velocidad vive en el velocímetro principal.
+// · Franja inferior: restante + llegada + subida acumulada (altitud
+//   GPS del ride). SIN velocímetro: la velocidad vive en el
+//   velocímetro principal, aparte.
+// · Brújula: Track Up (girado al rumbo) ↔ Norte arriba, en web y
+//   en el lienzo nativo; Leaflet ya la traía.
 // · Pin de posición = elegido por el usuario (o flecha clásica).
-// · Si el WebView no soporta WebGL: aviso elegante sin romper la UI.
+// · Si el WebView no soporta WebGL: Leaflet ráster, sin romper la UI.
 // ============================================================
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as maplibregl from "maplibre-gl";
 import { setWorkerUrl } from "maplibre-gl";
 import type { Map as MlMap } from "maplibre-gl";
@@ -34,7 +37,8 @@ import { DEFAULT_PIN, PINS, type PinId } from "@/lib/pins";
 import { INCIDENT_BY_ID } from "@/lib/incidents";
 import { circlePolygon, navStyle, OSM_ORG_FALLBACK_TILES } from "@/lib/navStyle";
 import { haversineM, routeProgress, streetAt, streetOfStep } from "@/lib/routing";
-import { bearingOf, buildRouteFeatures, lineFeat, polyFeat, toFc } from "@/lib/navCanvasLogic";
+import { bearingOf, buildRouteFeatures, lineFeat, polyFeat, toFc, NAV_PITCH } from "@/lib/navCanvasLogic";
+import { cn } from "@/lib/utils";
 import { INCIDENT_TYPES, type IncidentTypeId } from "@/lib/incidents";
 import { addIncident, loadLocalIncidents, saveLocalIncidents, useIncidentFeed, type IncidentItem } from "@/hooks/useIncidentFeed";
 import type { NavEngine } from "@/hooks/useNavEngine";
@@ -51,11 +55,11 @@ import { t, useLang } from "@/lib/i18n";
 // (v1.3.2, causa raíz de "el 3d no carga").
 const PARK_CENTER: [number, number] = [-70.636, -33.408];
 
-/** Anticipación de la cámara: con el pin abajo, estilo Waze. */
+/** Anticipación de la cámara: con el pin abajo (v1.13.3: 2D cenital,
+ *  NAV_PITCH = 0 vive en navCanvasLogic — fuente única web/nativo). */
 const ARRIVAL_M = 150;
 const NAV_ZOOM = 16.5;
 const ARRIVAL_ZOOM = 17.4;
-const NAV_PITCH = 50;
 
 const COLOR_CICLO = "#a855f7";
 const COLOR_VIA = "#f4f4f5";
@@ -69,6 +73,9 @@ type Props = {
   userPin?: string;
   nav: NavEngine;
   speedKmh?: number;
+  /** Subida acumulada del ride (altitud GPS, useRideEngine.gainM):
+   *  celda «Subida» de la franja. Sin velocímetro en esta franja. */
+  gainM?: number;
   /** Altura del contenedor sin ruta activa (tema Pro: minimapa compacto/grande). */
   heightClass?: string;
   /** Clases del marco (minimapStyleCls) — estética del minimapa. */
@@ -243,6 +250,10 @@ type NavCanvasProps = {
   userPin?: string;
   incidents: IncidentItem[];
   locateTarget: LatLng | null;
+  /** v1.13.3: «rumbo» = Track Up (mapa girado a la marcha) o «norte» = Norte arriba. */
+  camMode: "rumbo" | "norte";
+  /** Rumbo de cámara final (por fix) para la aguja de la brújula. */
+  onBearing?: (b: number) => void;
 };
 
 function NavCanvas(props: NavCanvasProps) {
@@ -250,6 +261,10 @@ function NavCanvas(props: NavCanvasProps) {
   const mapRef = useRef<MlMap | null>(null);
   const [ready, setReady] = useState(false);
   const firstFixRef = useRef(false);
+  const onBearingRef = useRef(props.onBearing);
+  useEffect(() => {
+    onBearingRef.current = props.onBearing;
+  }, [props.onBearing]);
 
   // Rumbo del tramo de ruta más cercano a la posición (v1.12.11):
   // paridad con useCamaraRumbo del mapa grande — se calcula AQUÍ con el
@@ -565,9 +580,12 @@ function NavCanvas(props: NavCanvasProps) {
     const padding = { top: Math.max(0, Math.round(h) - anchorBottom * 2), bottom: 0, left: 0, right: 0 };
 
     // rumbo: curso del GPS → RUMBO DE LA RUTA (routeBearing, calculado
-    // arriba con el vértice más cercano) → mantener actual
+    // arriba con el vértice más cercano) → mantener actual.
+    // v1.13.3: en modo «norte» (Norte arriba) el mapa NO gira: rumbo 0.
     let b: number;
-    if (props.heading !== null) {
+    if (props.camMode === "norte") {
+      b = 0;
+    } else if (props.heading !== null) {
       b = props.heading;
     } else if (routeBearing !== null) {
       b = routeBearing;
@@ -578,6 +596,9 @@ function NavCanvas(props: NavCanvasProps) {
     // giro por el camino corto (evita vueltas de 340°)
     while (b - cur > 180) b -= 360;
     while (b - cur < -180) b += 360;
+
+    // la brújula (aguja) apunta hacia donde queda el norte en pantalla
+    onBearingRef.current?.(b);
 
     const camZoom = props.onRoute && props.remainingM < ARRIVAL_M ? ARRIVAL_ZOOM : NAV_ZOOM;
 
@@ -602,7 +623,7 @@ function NavCanvas(props: NavCanvasProps) {
       duration: 680,
       easing: (t) => t,
     });
-  }, [ready, props.position, props.heading, props.onRoute, props.remainingM, routeBearing, props.route]);
+  }, [ready, props.position, props.heading, props.onRoute, props.remainingM, props.camMode, routeBearing, props.route]);
 
   // rotación del pin flecha (v1.12.11, reporte del cliente: «que el pin
   // apunte en la dirección que se traza la ruta, ahora apunta a cualquier
@@ -665,22 +686,76 @@ type ManeuverBannerProps = {
   laterStep: RouteStep | null;
 };
 
+/**
+ * Banner de maniobra tipo CICLOCOMPUTADOR (v1.13.3, mockup aprobado):
+ * la distancia a la próxima maniobra domina la pantalla (números
+ * tabulares gigantes, se lee en medio segundo bajo el sol), la flecha
+ * a la izquierda y la calle + «luego» en secundario. Fuera de ruta:
+ * banner ámbar con recalculando.
+ */
 function ManeuverBanner({ className, nextStep, distM, destName, offRoute, laterStep }: ManeuverBannerProps) {
   useLang();
+  if (offRoute) {
+    return (
+      <div className={cn(className, "border-amber-600/60 bg-amber-950/95")}>
+        <TriangleAlert className="h-11 w-11 shrink-0 text-amber-400" strokeWidth={2.2} />
+        <div className="min-w-0 flex-1">
+          <div className="text-[19px] font-bold text-amber-400 leading-tight">{t("mini.fuera")}</div>
+          <div className="text-[13px] font-semibold text-amber-300/90 leading-tight animate-pulse">{t("mini.desviado")}</div>
+        </div>
+      </div>
+    );
+  }
+  const llego = nextStep.icon === "end";
+  const later =
+    laterStep && laterStep.icon !== "end" && !llego
+      ? `${streetOfStep(laterStep.text)} · ${fmtKmM(laterStep.distM)}`
+      : null;
   return (
     <div className={className}>
-      <TurnArrow icon={nextStep.icon} className="h-14 w-14 shrink-0 text-foreground" />
+      <TurnArrow icon={nextStep.icon} className="h-12 w-12 shrink-0 text-foreground" />
       <div className="min-w-0 flex-1">
-        <div className="font-mono text-[26px] font-bold text-foreground leading-none tabular-nums">
-          {nextStep.icon === "end" ? t("mini.llegaste") : fmtKmM(distM)}
+        <div className="font-mono text-[34px] font-bold text-foreground leading-none tabular-nums">
+          {llego ? t("mini.llegaste") : fmtKmM(distM)}
         </div>
-        <div className="text-lg font-bold text-sky-600 dark:text-sky-400 leading-tight truncate mt-0.5">
-          {nextStep.icon === "end" ? destName : streetOfStep(nextStep.text)}
+        <div className="text-[15px] font-bold text-foreground leading-tight truncate mt-0.5">
+          {llego ? destName : streetOfStep(nextStep.text)}
         </div>
-        {offRoute && <div className="text-[11px] text-amber-700 dark:text-amber-300 font-semibold mt-0.5">{t("mini.desviado")}</div>}
+        {later && <div className="text-[11px] text-muted-foreground leading-tight truncate mt-0.5">{t("mini.luego", later)}</div>}
       </div>
-      {laterStep && laterStep.icon !== "end" && <TurnArrow icon={laterStep.icon} className="h-7 w-7 shrink-0 mt-1 text-muted-foreground" />}
     </div>
+  );
+}
+
+/**
+ * Brújula Track Up / Norte arriba (v1.13.3): la aguja apunta hacia
+ * donde queda el NORTE real en pantalla y el badge nombra el modo
+ * activo. Compartida por el lienzo web y el nativo (LeafletNav trae
+ * la suya desde v1.12.9, ahora con los mismos textos i18n).
+ */
+function CompassButton({ className, bearing, mode, onToggle }: { className: string; bearing: number; mode: "rumbo" | "norte"; onToggle: () => void }) {
+  useLang();
+  const rumbo = mode === "rumbo";
+  return (
+    <button
+      onClick={onToggle}
+      aria-label={rumbo ? t("mini.brujulaRumboAria") : t("mini.brujulaNorteAria")}
+      title={rumbo ? t("mini.brujulaRumboTitle") : t("mini.brujulaNorteTitle")}
+      className={className}
+    >
+      <svg
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        style={{ transform: `rotate(${-Math.round(bearing)}deg)`, transition: "transform 0.45s ease-out" }}
+        aria-hidden
+      >
+        <path d="M12 2.5 L15.5 12 L12 10.2 L8.5 12 Z" fill="#ef4444" />
+        <path d="M12 21.5 L8.5 12 L12 13.8 L15.5 12 Z" fill="#71717a" />
+        <circle cx="12" cy="12" r="1.4" fill="#09090b" />
+      </svg>
+      <span className="absolute -bottom-1 rounded bg-emerald-600 px-1 text-[8px] font-bold leading-[1.3] text-white">{rumbo ? "RUMBO" : "NORTE"}</span>
+    </button>
   );
 }
 
@@ -736,6 +811,8 @@ type BottomBarProps = {
   etaMin: number;
   arrivalClock: string;
   remainingM: number;
+  /** Subida acumulada del ride en metros (celda «Subida»). */
+  gainM: number;
   dest: NavEngine["dest"];
   onSetDest: NavEngine["setDestination"];
   onReport: () => void;
@@ -747,16 +824,27 @@ type BottomBarProps = {
 // el resto de destinos vive en el listado completo del mapa general.
 const TODOS_DESTINOS = MINIMAP_ACCESOS;
 
-function BottomBar({ className, onRoute, etaMin, arrivalClock, remainingM, dest, onSetDest, onReport, onOpenMap }: BottomBarProps) {
+/**
+ * Franja de datos tipo ciclocomputador (v1.13.3, mockup aprobado):
+ * tres celdas con números tabulares grandes y etiquetas pequeñas —
+ * RESTANTE · LLEGADA · SUBIDA. SIN velocímetro: la velocidad vive en
+ * el velocímetro principal (Speedometer), aparte del minimapa.
+ */
+function BottomBar({ className, onRoute, etaMin, arrivalClock, remainingM, gainM, dest, onSetDest, onReport, onOpenMap }: BottomBarProps) {
   useLang();
+  const celda = (lbl: string, val: string) => (
+    <div className="min-w-0 px-1">
+      <div className="text-[8.5px] font-bold uppercase tracking-[0.14em] text-muted-foreground leading-none">{lbl}</div>
+      <div className="font-mono text-[17px] font-bold text-foreground leading-none tabular-nums mt-1 truncate">{val}</div>
+    </div>
+  );
   return (
     <div className={className}>
       {onRoute ? (
-        <div className="min-w-0 flex-1 text-center">
-          <div className="font-mono text-xl font-bold text-foreground leading-none tabular-nums">{etaMin > 0 ? arrivalClock : "-"}</div>
-          <div className="text-[11px] text-muted-foreground leading-tight mt-0.5 truncate">
-            {etaMin > 0 ? t("mini.eta", etaMin, fmtKmM(remainingM)) : t("mini.rutaLista")}
-          </div>
+        <div className="grid min-w-0 flex-1 grid-cols-3 divide-x divide-border/70 text-center">
+          {celda(t("mini.restante"), fmtKmM(remainingM))}
+          {celda(t("mini.llegada"), etaMin > 0 ? arrivalClock : "-")}
+          {celda(t("mini.subida"), `${Math.round(gainM)} m`)}
         </div>
       ) : (
         <div className="min-w-0 flex-1 flex items-center gap-1.5 rounded-lg border border-border bg-card px-2 py-1.5">
@@ -864,12 +952,22 @@ function StatusNote({ className, text }: { className: string; text: string }) {
 // ============================================================
 // Componente principal: lienzo + capa Waze (banner, barra, etc.)
 // ============================================================
-export default function MiniMap({ position, heading, track, accuracyM, userPin, nav, speedKmh = 0, heightClass = "h-52 sm:h-56", styleClass, heightRouteClass = "h-80", onOpenMap }: Props) {
+export default function MiniMap({ position, heading, track, accuracyM, userPin, nav, speedKmh = 0, gainM = 0, heightClass = "h-52 sm:h-56", styleClass, heightRouteClass = "h-80", onOpenMap }: Props) {
   useLang();
   const incidents = useIncidentFeed();
   const [locateTarget, setLocateTarget] = useState<LatLng | null>(null);
   const [reportOpen, setReportOpen] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
+  // v1.13.3 (mockup ciclocomputador): Track Up («rumbo», el mapa gira a
+  // la marcha) o Norte arriba («norte», mapa fijo y el pin gira).
+  // Compartido por el lienzo web y el nativo; `needle` es el rumbo de
+  // cámara que reporta el lienzo activo (para la aguja de la brújula).
+  const [camMode, setCamMode] = useState<"rumbo" | "norte">("rumbo");
+  const [needle, setNeedle] = useState(0);
+  const onBearing = useCallback((b: number) => setNeedle(b), []);
+  const toggleCam = useCallback(() => setCamMode((m) => (m === "rumbo" ? "norte" : "rumbo")), []);
+  const compassCls =
+    "relative flex h-9 w-9 items-center justify-center rounded-full border border-border bg-background/90 shadow-md backdrop-blur";
   const route = nav.route;
   const dest = nav.dest;
   // Mapa nativo (MapLibre Native vía plugin) o lienzo web (MapLibre GL JS)
@@ -1013,6 +1111,8 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
             userPin={userPin}
             incidents={incidents}
             locateTarget={locateTarget}
+            camMode={camMode}
+            onBearing={onBearing}
             onUnavailable={() => setNativeFail(true)}
           />
           {/* Atribución ODbL (v1.13.2): el MapView nativo es fullscreen bajo
@@ -1048,6 +1148,9 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
             hasDest={!!dest}
             onClear={() => nav.setDestination(null)}
           />
+          {/* Brújula Track Up / Norte arriba (v1.13.3): junto a los
+              controles — el lienzo nativo no admite HTML encima. */}
+          <CompassButton className={compassCls} bearing={needle} mode={camMode} onToggle={toggleCam} />
         </div>
 
         {reportOpen && <ReportSheet className="rounded-xl bg-background/95 border border-border shadow-2xl p-3" hasPosition={!!position} onType={reportIncident} onClose={() => setReportOpen(false)} />}
@@ -1059,6 +1162,7 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
           etaMin={etaMin}
           arrivalClock={arrivalClock}
           remainingM={remainingM}
+          gainM={gainM}
           dest={dest}
           onSetDest={nav.setDestination}
           onReport={() => setReportOpen((v) => !v)}
@@ -1088,6 +1192,8 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
           userPin={userPin}
           incidents={incidents}
           locateTarget={locateTarget}
+          camMode={camMode}
+          onBearing={onBearing}
         />
       ) : (
         /* WebView del APK (o navegador sin WebGL): Leaflet ráster, sin WebGL */
@@ -1150,6 +1256,15 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
         onClear={() => nav.setDestination(null)}
       />
 
+      {/* Brújula Track Up / Norte arriba (v1.13.3, mockup ciclocomputador):
+          bajo los controles, a la altura de la leyenda del lado opuesto. */}
+      <CompassButton
+        className={cn(compassCls, "absolute top-[92px] right-2 z-[500]")}
+        bearing={needle}
+        mode={camMode}
+        onToggle={toggleCam}
+      />
+
       {/* Hoja de reporte rápido (flota sobre el mapa; el botón que la
           abre vive en la barra de abajo, fuera del minimapa) */}
       {reportOpen && (
@@ -1173,6 +1288,7 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
         etaMin={etaMin}
         arrivalClock={arrivalClock}
         remainingM={remainingM}
+        gainM={gainM}
         dest={dest}
         onSetDest={nav.setDestination}
         onReport={() => setReportOpen((v) => !v)}

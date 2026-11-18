@@ -526,8 +526,9 @@ export function RideView(p: Props) {
         </div>
       )}
 
-      {/* Minimapa tipo Waze (arriba del velocímetro): banner de maniobra,
-          ruta ciclovía/vía compartida, ETA y reporte */}
+      {/* Minimapa ciclocomputador (arriba del velocímetro): banner de
+          maniobra gigante, ruta ciclovía/vía compartida, franja
+          restante/llegada/subida (v1.13.3) y reporte */}
       <MiniMap
         position={p.posDisplay ?? p.position}
         heading={p.heading}
@@ -536,6 +537,7 @@ export function RideView(p: Props) {
         userPin={p.userPin}
         nav={p.nav}
         speedKmh={p.speedKmh}
+        gainM={p.gainM}
         heightClass={mm.base}
         styleClass={minimapStyleCls(theme.minimapStyle)}
         heightRouteClass={mm.route}

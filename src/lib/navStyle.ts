@@ -1,6 +1,6 @@
 // ============================================================
-// Estilo del minimapa de navegación 3D (look Waze, cámara con
-// pitch 50° y rotación al rumbo) y base de los mapas de la app
+// Estilo del minimapa de navegación (v1.13.3: 2D CENITAL tipo
+// ciclocomputador, alto contraste) y base de los mapas de la app
 // (el JSON íntegro viaja al plugin nativo del APK).
 //
 // ⚠️ v1.3.2 - causa raíz del "3d no carga": la cámara arrancaba en
@@ -15,6 +15,11 @@
 // nativo. Fuente: OSM France (mismo render que tile.openstreetmap.org
 // y límites más generosos: OSM estándar responde 429 con usuarios
 // concurrentes).
+//
+// v1.13.3 - alto contraste del ráster (mockup ciclocomputador):
+// contraste +0.12 y saturación -0.08 sobre los tiles para que la
+// ruta violeta y el casing oscuro dominen la lectura; el fondo
+// claro se mantiene. El pitch se quitó de la cámara (2D cenital).
 // ============================================================
 
 import type { StyleSpecification } from "maplibre-gl";
@@ -75,10 +80,19 @@ export function navStyle(): StyleSpecification {
     layers: [
       // Fondo mientras cargan los tiles (claro, coherente con la base).
       { id: "bg", type: "background", paint: { "background-color": "#eef0f3" } },
-      // Base ráster OSM estándar; la inclinación 3D la aplica la cámara
-      // (pitch/bearing) sobre estos tiles, como un mapa de papel
-      // inclinado.
-      { id: "base", type: "raster", source: "base", paint: { "raster-fade-duration": 300 } },
+      // Base ráster OSM estándar con realce de contraste (v1.13.3,
+      // mockup ciclocomputador): la cámara ya NO inclina (2D cenital),
+      // el realce hace el trabajo de legibilidad sobre los tiles.
+      {
+        id: "base",
+        type: "raster",
+        source: "base",
+        paint: {
+          "raster-fade-duration": 300,
+          "raster-contrast": 0.12,
+          "raster-saturation": -0.08,
+        },
+      },
     ],
   };
 }

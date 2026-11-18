@@ -143,7 +143,10 @@ export type NavCameraParams = {
 export const ARRIVAL_M_NAV = 150;
 export const NAV_ZOOM = 16.5;
 export const ARRIVAL_ZOOM = 17.4;
-export const NAV_PITCH = 50;
+// v1.13.3 - minimapa tipo CICLOCOMPUTADOR: vista 2D CENITAL (pitch 0),
+// según mockup aprobado. El pitch 50 estilo Waze queda en el historial:
+// la lectura rápida bajo el sol pide un plano recto, sin perspectiva.
+export const NAV_PITCH = 0;
 
 export function navCamera(opts: {
   position: LatLng;

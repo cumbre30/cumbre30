@@ -583,6 +583,17 @@ const D: Record<string, E> = {
   "mini.urgencia": ["¿Urgencia o peligro grande? Llama a la línea oficial de emergencias del parque y avisa al personal más cercano.", "Major emergency or danger? Call the park's official emergency line and alert the nearest staff.", "Urgência ou perigo grande? Ligue para a linha oficial de emergências do parque e avise a equipe mais próxima."],
   "mini.destino": ["Destino", "Destination", "Destino"],
   "mini.calculando": ["Calculando ruta…", "Calculating route…", "Calculando rota…"],
+  // v1.13.3 - banner + franja de datos tipo ciclocomputador (2D cenital).
+  // SIN velocímetro: la velocidad vive en el velocímetro principal.
+  "mini.fuera": ["Fuera de ruta", "Off route", "Fora da rota"],
+  "mini.restante": ["Restante", "Remaining", "Restante"],
+  "mini.llegada": ["Llegada", "Arrival", "Chegada"],
+  "mini.subida": ["Subida", "Ascent", "Subida"],
+  "mini.luego": ["Luego: {0}", "Then: {0}", "Depois: {0}"],
+  "mini.brujulaRumboAria": ["Orientar el mapa al norte", "Point the map north", "Orientar o mapa para o norte"],
+  "mini.brujulaNorteAria": ["Orientar el mapa al rumbo de la ruta", "Point the map along the route", "Orientar o mapa ao rumbo da rota"],
+  "mini.brujulaRumboTitle": ["Vista girada al rumbo · tocar para norte arriba", "Route-up view · tap for north up", "Vista ao rumbo · tocar para o norte"],
+  "mini.brujulaNorteTitle": ["Norte arriba · tocar para girar al rumbo", "North up · tap to follow the route", "Norte para cima · tocar para o rumbo"],
 
   // ---------- Mis viajes / historial (fase 2) ----------
   "his.subAria": ["Subsecciones de Mis viajes", "My rides subsections", "Subseções de Meus passeios"],
