@@ -85,6 +85,16 @@ export function edgePasses(
   return true;
 }
 
+// Factor de descuento para aristas que SON ciclovía (flag del grafo):
+// su peso cuesta la mitad — el A* toma una ciclovía hasta ~2x más larga
+// antes de elegir la calzada. Motivo (cliente 2026-11-18): transitar por
+// la calzada habiendo ciclovía es infracción (Ley de Convivencia Vial),
+// así que la ruta debe priorizar ciclovía y usar la calle sólo cuando no
+// hay trazado protegido. Aplica a TODAS las clases: una ciclovía
+// mapeada sobre avenida (class primary) quedaba penalizada 2.4 y el A*
+// la evitaba aunque fuera el trazado correcto.
+const CICLO_FACTOR = 0.5;
+
 const PENALTY: Record<string, number> = {
   cycleway: 0.65,
   path: 0.9,
@@ -154,7 +164,7 @@ export function loadNetwork(): Promise<Network | null> {
         for (const [a, b, clsIdx, nameIdx, ciclo] of raw.edges) {
           const cls = raw.classes[clsIdx] ?? "residential";
           const name = raw.names[nameIdx] ?? "";
-          const p = PENALTY[cls] ?? 1;
+          const p = (PENALTY[cls] ?? 1) * (ciclo === 1 ? CICLO_FACTOR : 1);
           const pa = { lat: raw.nodes[a][0], lon: raw.nodes[a][1] };
           const pb = { lat: raw.nodes[b][0], lon: raw.nodes[b][1] };
           const dist = haversineM(pa, pb);
@@ -372,7 +382,7 @@ export function findRoute(net: Network, from: LatLng, to: LatLng, opts?: FindRou
     const pv = { lat: net.nodes[edge.v][0], lon: net.nodes[edge.v][1] };
     const dU = Math.max(0.1, haversineM(edge.point, pu));
     const dV = Math.max(0.1, haversineM(edge.point, pv));
-    const pen = PENALTY[edge.cls] ?? 1;
+    const pen = (PENALTY[edge.cls] ?? 1) * (edge.ciclovia ? CICLO_FACTOR : 1);
     const brU = bearing(edge.point, pu);
     const brV = bearing(edge.point, pv);
     const adj2 = net.adj.slice();
@@ -414,7 +424,7 @@ export function findRoute(net: Network, from: LatLng, to: LatLng, opts?: FindRou
         const pv2 = { lat: runNet.nodes[edgeT.v][0], lon: runNet.nodes[edgeT.v][1] };
         const dU2 = Math.max(0.1, haversineM(edgeT.point, pu2));
         const dV2 = Math.max(0.1, haversineM(edgeT.point, pv2));
-        const pen2 = PENALTY[edgeT.cls] ?? 1;
+        const pen2 = (PENALTY[edgeT.cls] ?? 1) * (edgeT.ciclovia ? CICLO_FACTOR : 1);
         const brU2 = bearing(edgeT.point, pu2);
         const brV2 = bearing(edgeT.point, pv2);
         const adj3 = runNet.adj.slice();
@@ -438,7 +448,7 @@ export function findRoute(net: Network, from: LatLng, to: LatLng, opts?: FindRou
   const target = { lat: runNet.nodes[tEff][0], lon: runNet.nodes[tEff][1] };
   const heap = new MinHeap();
   g[s] = 0;
-  heap.push({ f: haversineM({ lat: runNet.nodes[s][0], lon: runNet.nodes[s][1] }, target) * 0.65, i: s });
+  heap.push({ f: haversineM({ lat: runNet.nodes[s][0], lon: runNet.nodes[s][1] }, target) * 0.325, i: s });
 
   // Nodo asentado más cercano al destino pedido: si el destino cae en
   // una componente aislada del grafo (ej. senderos de la Piscina

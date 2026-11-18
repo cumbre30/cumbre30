@@ -1177,13 +1177,29 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
   return (
     // La barra «Ir a...» sale del mapa (pedido del cliente 2026-11-17:
     // "cubre parte del mapa"): fila separada justo debajo del minimapa.
+    // El banner turn-by-turn también (pedido del cliente 2026-11-18:
+    // "fuera del minimapa"): cajón independiente encima, como la franja
+    // restante/llegada/subida — NO cubre tiles.
     <>
+      {/* ===== Banner de maniobra: CAJÓN INDEPENDIENTE sobre el minimapa
+          (v1.13.9). Antes era overlay sobre los tiles (top-0); el cliente
+          lo quiere fuera, igual que la franja de métricas. Altura fija
+          h-20: el contenido cambia sin saltos. ===== */}
+      {onRoute && nextStep && (
+        <ManeuverBanner
+          className="rounded-xl border border-border bg-background/95 px-3 flex items-center gap-3 h-20 shrink-0"
+          nextStep={nextStep}
+          distM={progress?.distToNextStepM ?? nextStep.distM}
+          destName={dest?.name ?? t("mini.destino")}
+          offRoute={offRoute}
+          laterStep={laterStep}
+        />
+      )}
       {/* Minimapa — ALTURA FIJA (v1.13.8): el contenedor ya NO cambia a
           heightRouteClass al activar la ruta. Ese salto de tamaño dejaba
           a Leaflet con el tamaño interno viejo (sin invalidateSize): el
           centro matemático se desplazaba del visible y el pin «se
-          perdía» o se veía descentrado. El banner ahora es overlay de
-          altura fija y el marco no cambia de tamaño nunca. */}
+          perdía» o se veía descentrado. Altura fija siempre. */}
       <div className={`relative overflow-hidden z-0 c30-minimap ${heightClass} ${styleClass ?? ""}`}>
       {webglOk && !isNativeApp() ? (
         <NavCanvas
@@ -1223,20 +1239,6 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
         />
       )}
 
-      {/* ===== Banner de maniobra (modo ruta), estilo Waze — overlay de
-          ALTURA FIJA (h-20): el texto cambia de contenido pero el
-          «ventana» visible del mapa debajo no salta de tamaño ===== */}
-      {onRoute && nextStep && (
-        <ManeuverBanner
-          className="absolute top-0 inset-x-0 z-[500] h-20 bg-background/95 border-b border-border px-3 flex items-center gap-3 pointer-events-none"
-          nextStep={nextStep}
-          distM={progress?.distToNextStepM ?? nextStep.distM}
-          destName={dest?.name ?? t("mini.destino")}
-          offRoute={offRoute}
-          laterStep={laterStep}
-        />
-      )}
-
       {/* Estado de cálculo de ruta */}
       {nav.loading && (
         <div className="absolute top-2 left-2 z-[520] rounded-full bg-background/90 border border-sky-700 px-2.5 py-1 text-[10px] font-semibold text-sky-700 dark:text-sky-300 flex items-center gap-1.5 pointer-events-none">
@@ -1245,10 +1247,11 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
         </div>
       )}
 
-      {/* Leyenda compacta de la ruta (solo modo ruta) */}
+      {/* Leyenda compacta de la ruta (solo modo ruta) — v1.13.9: arriba a
+          la izquierda, el banner turn-by-turn ya no vive dentro del mapa */}
       {onRoute && !nav.loading && (
         <LegendChip
-          className="absolute left-2 top-[92px] z-[500] rounded-md bg-background/90 border border-border px-2 py-1 flex items-center gap-2 pointer-events-none"
+          className="absolute left-2 top-2 z-[500] rounded-md bg-background/90 border border-border px-2 py-1 flex items-center gap-2 pointer-events-none"
           route={route}
         />
       )}
@@ -1272,9 +1275,10 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
       />
 
       {/* Brújula Track Up / Norte arriba (v1.13.3, mockup ciclocomputador):
-          bajo los controles, a la altura de la leyenda del lado opuesto. */}
+          arriba a la derecha, a la altura de la leyenda del lado opuesto
+          (v1.13.9: el banner turn-by-turn salió del mapa). */}
       <CompassButton
-        className={cn(compassCls, "absolute top-[92px] right-2 z-[500]")}
+        className={cn(compassCls, "absolute top-2 right-2 z-[500]")}
         bearing={needle}
         mode={camMode}
         onToggle={toggleCam}
