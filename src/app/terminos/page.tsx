@@ -127,11 +127,35 @@ export default function TerminosPage() {
         </p>
       </Section>
 
+      <Section title="Contenido de la comunidad (incidencias)">
+        <p>
+          Las incidencias que aparecen en el mapa (pozos, vidrios, perros sueltos, cierres, árboles caídos,
+          peatones y otros reportes) son <span className="font-medium text-foreground">contenido generado por
+          usuarios</span>: cada quien es responsable de lo que publica. La función existe para advertir peligros
+          reales del camino, no como foro ni como canal de denuncias entre personas.
+        </p>
+        <ul className="list-disc space-y-1.5 pl-5">
+          <li>Está prohibido publicar contenido falso, ofensivo, discriminatorio o ilegal, datos personales de terceros, spam o publicidad.</li>
+          <li>Podemos ocultar, corregir o eliminar cualquier incidencia que vulnere estas reglas, y bloquear a quien las incumpla de forma reiterada.</li>
+          <li>Si una incidencia te parece inapropiada o falsa, usa el botón <span className="font-medium text-foreground">“Reportar”</span> en su ficha: desaparece de tu mapa al instante y, al acumular dos denuncias, se cierra para todos.</li>
+          <li>Para apelar una moderación o denunciar un uso abusivo de la función, escribe a <a href="mailto:contacto.cumbre30@gmail.com" className="font-medium text-emerald-600 underline-offset-2 hover:underline dark:text-emerald-400">contacto.cumbre30@gmail.com</a>.</li>
+        </ul>
+      </Section>
+
       <Section title="Plan Pro, pagos y aportes">
         <p>
           El plan Pro y los aportes voluntarios se pagan a través de enlaces de Mercado Pago; los datos de tarjetas los
           procesa Mercado Pago y Cumbre30 no los recibe. Al comprar Pro recibes un código de activación por correo.
           Los precios están en pesos chilenos e incluyen lo que la página de planes describe para cada opción.
+        </p>
+        <p>
+          En la app Android el plan Pro también puede comprarse desde la propia aplicación a través de{" "}
+          <span className="font-medium text-foreground">Google Play Billing</span>: en ese caso el cobro lo procesa
+          Google con tu cuenta Google, la compra es <span className="font-medium text-foreground">pago único</span>{" "}
+          (no es una suscripción ni tiene renovación automática) y queda asociada a tu cuenta de Google Play para
+          restaurarla cuando cambies de teléfono. Las devoluciones de compras hechas por esta vía se rigen por la
+          política de reembolsos de Google Play; para cualquier problema escríbenos a nuestro correo y te ayudamos a
+          gestionarla.
         </p>
         <p>
           Puedes pedir la revisión de una compra dentro de 10 días desde el pago escribiendo a nuestro correo. Las

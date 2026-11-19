@@ -10,6 +10,7 @@ import { isIncidentType } from "@/lib/incidents";
 
 const EDAD_EXPIRA_MS = 30 * 86_400_000; // 30 días sin confirmaciones
 const RESUELTOS_CIERRAN = 3; // 3 votos "ya resuelto" cierran el reporte
+const REPORTES_CIERRAN = 2; // 2 reportes de abuso ocultan la incidencia (UGC Play)
 
 /** ¿Falta una columna (db push pendiente en la base en línea)? */
 function esColumnaAusente(e: unknown): boolean {
@@ -20,7 +21,8 @@ function esColumnaAusente(e: unknown): boolean {
 /** Columnas de moderación comunitaria (Ola 1): creación idempotente
  *  espejando schema.prisma. La base en línea puede quedarse atrás del
  *  código; con esto el primer intento tras el deploy se autorrepara.
- *  Prisma crea INTEGER NOT NULL DEFAULT 0 y TIMESTAMP(3) NULL. */
+ *  Prisma crea INTEGER NOT NULL DEFAULT 0 y TIMESTAMP(3) NULL.
+ *  v1.13.14: reportCount — denuncias de abuso (política UGC de Play). */
 async function asegurarColumnas(): Promise<void> {
   await db.$executeRawUnsafe(
     `ALTER TABLE "Incident" ADD COLUMN IF NOT EXISTS "confirmCount" INTEGER NOT NULL DEFAULT 0`
@@ -31,10 +33,15 @@ async function asegurarColumnas(): Promise<void> {
   await db.$executeRawUnsafe(
     `ALTER TABLE "Incident" ADD COLUMN IF NOT EXISTS "lastConfirmAt" TIMESTAMP(3)`
   );
+  await db.$executeRawUnsafe(
+    `ALTER TABLE "Incident" ADD COLUMN IF NOT EXISTS "reportCount" INTEGER NOT NULL DEFAULT 0`
+  );
 }
 
 /** Expiración automática: 30 días sin ninguna confirmación → inactivo.
- *  La comunidad confirma frescura; el decaimiento hace el resto. */
+ *  La comunidad confirma frescura; el decaimiento hace el resto.
+ *  v1.13.14: también cierra incidencias con 2+ denuncias (autorreparo
+ *  por si el PUT que cerró no alcanzó a completarse). */
 async function expirarViejas(): Promise<void> {
   await db.incident.updateMany({
     where: {
@@ -43,6 +50,10 @@ async function expirarViejas(): Promise<void> {
       resolvedCount: 0,
       createdAt: { lt: new Date(Date.now() - EDAD_EXPIRA_MS) },
     },
+    data: { active: false },
+  });
+  await db.incident.updateMany({
+    where: { active: true, reportCount: { gte: REPORTES_CIERRAN } },
     data: { active: false },
   });
 }
@@ -145,10 +156,12 @@ export async function POST(req: Request) {
   }
 }
 
-/** Voto de moderación: { id, vote: "confirm" | "resolved" }.
+/** Voto de moderación: { id, vote: "confirm" | "resolved" | "report" }.
  *  "confirm" sube la frescura; "resolved" acumula y con 3 cierra el
- *  reporte (soft-delete). Requiere sesión (anti-spam básico); en el
- *  APK sin sesión el voto vive local y se refleja en el feed. */
+ *  reporte (soft-delete); "report" (v1.13.14, política UGC de Play)
+ *  denuncia contenido inapropiado y con 2 cierra la incidencia.
+ *  Requiere sesión (anti-spam básico); en el APK sin sesión el voto
+ *  vive local y se refleja en el feed. */
 export async function PUT(req: Request) {
   const me = await getSessionUser();
   if (!me) return NextResponse.json({ error: "Inicia sesión para moderar." }, { status: 401 });
@@ -156,25 +169,32 @@ export async function PUT(req: Request) {
     const b = (await req.json()) as { id?: string; vote?: string };
     const id = b.id ?? "";
     if (!id) return NextResponse.json({ error: "Falta id." }, { status: 400 });
-    const vote = b.vote === "confirm" || b.vote === "resolved" ? b.vote : "";
+    const vote = b.vote === "confirm" || b.vote === "resolved" || b.vote === "report" ? b.vote : "";
     if (!vote) return NextResponse.json({ error: "Voto no válido." }, { status: 400 });
 
     const inc = await db.incident.findUnique({ where: { id } });
     if (!inc || !inc.active) return NextResponse.json({ error: "No encontrada." }, { status: 404 });
+    // El autor no denuncia su propia incidencia: la elimina directamente.
+    if (vote === "report" && inc.userId === me.id) {
+      return NextResponse.json({ error: "Es tu propia incidencia; puedes eliminarla." }, { status: 400 });
+    }
 
     const data =
       vote === "confirm"
         ? { confirmCount: { increment: 1 }, lastConfirmAt: new Date() }
-        : { resolvedCount: { increment: 1 } };
+        : vote === "resolved"
+          ? { resolvedCount: { increment: 1 } }
+          : { reportCount: { increment: 1 } };
     const upd = await db.incident.update({ where: { id }, data });
-    if (upd.resolvedCount >= RESUELTOS_CIERRAN) {
+    const cierra = vote === "resolved" ? upd.resolvedCount >= RESUELTOS_CIERRAN : vote === "report" ? upd.reportCount >= REPORTES_CIERRAN : false;
+    if (cierra) {
       await db.incident.update({ where: { id }, data: { active: false } });
     }
     return NextResponse.json({
       ok: true,
       confirmCount: upd.confirmCount,
       resolvedCount: upd.resolvedCount,
-      cerrada: upd.resolvedCount >= RESUELTOS_CIERRAN,
+      cerrada: cierra,
     });
   } catch (e) {
     if (esColumnaAusente(e)) {

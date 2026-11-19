@@ -569,6 +569,11 @@ const D: Record<string, E> = {
   "mapa.sigueAhi": ["Sigue ahí", "Still there", "Continua lá"],
   "mapa.resuelta": ["Resuelta", "Resolved", "Resolvido"],
   "mapa.yaResuelto": ["Ya resuelto", "Mark resolved", "Já resolvido"],
+  // v1.13.14: denuncia de contenido (política UGC de Google Play)
+  "mapa.reportar": ["Reportar", "Report", "Denunciar"],
+  "mapa.reportarTitulo": ["Contenido inapropiado o falso: desaparece de tu mapa y se revisa con 2 denuncias", "Inappropriate or fake content: it leaves your map and is reviewed after 2 reports", "Conteúdo inapropriado ou falso: sai do seu mapa e é revisado após 2 denúncias"],
+  "mapa.reportadaOk": ["Denuncia enviada. Gracias, la revisaremos.", "Report sent. Thanks, we'll review it.", "Denúncia enviada. Obrigado, vamos revisar."],
+  "mapa.reportadaLocal": ["Denuncia guardada en el teléfono; se enviará al revisar el mapa.", "Report saved on the phone; it will be sent when the map syncs.", "Denúncia salva no telefone; será enviada ao sincronizar o mapa."],
   "mapa.rutaAqui": ["Ruta aquí", "Route here", "Rota aqui"],
   "mapa.sinConexionLocal": ["Sin conexión: incidencia guardada solo en este dispositivo.", "Offline: incident saved on this device only.", "Sem conexão: incidente salvo só neste dispositivo."],
   "mapa.registradaOk": ["Incidencia registrada y visible para todos ✓", "Incident reported and visible to everyone ✓", "Incidente registrado e visível para todos ✓"],

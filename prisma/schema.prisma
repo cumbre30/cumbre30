@@ -124,6 +124,8 @@ model Incident {
   confirmCount  Int       @default(0)
   resolvedCount Int       @default(0)
   lastConfirmAt DateTime?
+  // v1.13.14: denuncias de abuso (política UGC de Play); 2 cierran el reporte.
+  reportCount   Int       @default(0)
 
   @@index([lat, lon])
 }

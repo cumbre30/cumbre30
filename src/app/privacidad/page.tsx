@@ -226,6 +226,16 @@ export default function PrivacidadPage() {
           línea con la legislación chilena de protección de datos personales (Ley 19.628 y su actualización Ley
           21.719).
         </p>
+        <p>
+          Las solicitudes de acceso, rectificación, cancelación, oposición y portabilidad de tus datos —incluida la
+          revocación de cualquier consentimiento— pueden enviarse a{" "}
+          <a href="mailto:contacto.cumbre30@gmail.com" className="font-medium text-emerald-600 underline-offset-2 hover:underline dark:text-emerald-400">
+            contacto.cumbre30@gmail.com
+          </a>
+          , nuestro canal oficial como responsables del tratamiento. También puedes ejercerlas escribiendo por
+          WhatsApp al +56 9 4296 1619. Si crees que no respondimos como corresponde, puedes reclamar ante la
+          Agencia de Protección de Datos Personales que establece la Ley 21.719.
+        </p>
       </Section>
 
       <Section title="Cambios">

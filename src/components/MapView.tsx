@@ -1010,6 +1010,15 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
     }
   };
 
+  /** v1.13.14: denuncia de contenido inapropiado (política UGC de Google
+   *  Play). Desaparece del teléfono del denunciante al instante; con 2
+   *  denuncias el servidor la cierra para todos. */
+  const reportarIncidente = async (inc: IncidentItem) => {
+    const r = await voteIncident(inc.id, "report");
+    setStatus(r.ok ? t("mapa.reportadaOk") : t("mapa.reportadaLocal"));
+    setTimeout(() => setStatus(null), 5000);
+  };
+
   const locate = () => {
     if (position) {
       setLocateTarget(position);
@@ -1200,6 +1209,17 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
                         className="inline-flex items-center gap-1 text-zinc-600 font-medium hover:underline dark:text-zinc-400"
                       >
                         <Check className="h-3.5 w-3.5" /> {t("mapa.yaResuelto")}
+                      </button>
+                    )}
+                    {/* v1.13.14: denuncia UGC — el popup ya no vuelve a
+                        ofrecerse (la incidencia sale del feed local). */}
+                    {voto !== "resolved" && (
+                      <button
+                        onClick={() => void reportarIncidente(inc)}
+                        className="inline-flex items-center gap-1 text-zinc-500 font-medium hover:underline dark:text-zinc-400"
+                        title={t("mapa.reportarTitulo")}
+                      >
+                        <Flag className="h-3.5 w-3.5" /> {t("mapa.reportar")}
                       </button>
                     )}
                   </div>

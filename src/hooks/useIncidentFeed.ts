@@ -31,7 +31,7 @@ export type IncidentItem = {
   lastConfirmAt: string | null;
 };
 
-export type IncidentVote = "confirm" | "resolved";
+export type IncidentVote = "confirm" | "resolved" | "report";
 
 // v2: descarta reportes locales del test (el bache de prueba queda fuera)
 const LOCAL_KEY = "cumbre30-incidents-local-v2";
@@ -140,7 +140,10 @@ export function incidentVoteOf(id: string): IncidentVote | null {
 
 /** Voto de moderación: sube al servidor (si hay sesión) y queda
  *  guardado en el teléfono para no repetir ni perder el APK offline.
- *  Devuelve { ok, cerrada } (cerrada: 3 votos "resuelto" la dieron de baja). */
+ *  Devuelve { ok, cerrada } (cerrada: 3 votos "resuelto" la dieron de baja).
+ *  v1.13.14: "report" denuncia contenido inapropiado (política UGC de
+ *  Google Play) — desaparece del teléfono del denunciante al instante y
+ *  el servidor la cierra para todos con 2 denuncias. */
 export async function voteIncident(
   id: string,
   vote: IncidentVote
@@ -148,8 +151,12 @@ export async function voteIncident(
   const votes = loadLocalVotes();
   votes[id] = vote;
   saveLocalVotes(votes);
-  // Actualización optimista del caché (y del almacenamiento local).
-  if (cache) {
+  // Reporte: fuera de la vista de este dispositivo (el feed ya no lo
+  // muestra aunque el servidor no responda); los votos normales aplican
+  // la actualización optimista de contadores.
+  if (vote === "report") {
+    removeIncident(id);
+  } else if (cache) {
     cache = cache.map((i) =>
       i.id === id
         ? vote === "confirm"
@@ -171,7 +178,7 @@ export async function voteIncident(
     if (!r.ok) return { ok: false, cerrada: false };
     const d = (await r.json()) as { ok?: boolean; cerrada?: boolean };
     const cerrada = !!d.cerrada;
-    if (cerrada) removeIncident(id); // la comunidad la cerró: fuera del mapa
+    if (cerrada && vote !== "report") removeIncident(id); // la comunidad la cerró: fuera del mapa
     return { ok: true, cerrada };
   } catch {
     // Sin sesión o sin conexión: el voto queda local (se re-intenta
