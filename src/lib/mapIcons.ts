@@ -9,17 +9,29 @@ import { INCIDENT_BY_ID } from "@/lib/incidents";
 
 /**
  * Pin del usuario: flecha orientada al rumbo (pin clásico) o burbuja del pin elegido.
- * `mapBearing` = rotación actual del mapa (grados, 0 = norte arriba): la burbuja del
- * pin elegido se contra-rota para verse SIEMPRE derecha en pantalla; la flecha clásica
- * ya rota con el rumbo, así que en modo navegación (mapa girado al rumbo) apunta
- * exactamente hacia arriba, como en Waze/Google Maps.
+ * `mapBearing` = rotación de cámara actual (grados, semántica MapLibre: la cámara
+ * mira hacia mapBearing, 0 = norte arriba).
+ *
+ * v1.13.12 — los DOS lienzos Leaflet giran distinto y los markers viven distinto:
+ *  · LeafletNav (minimapa APK): rotación por PLUGIN leaflet-rotate → los markers
+ *    quedan en el `leaflet-norotate-pane` (billboard: NO giran con el mapa). La
+ *    flecha debe apuntar al rumbo RELATIVO a la rotación de pantalla:
+ *    svg = rumboPin - mapBearing (en rumbo ⇒ 0° = ARRIBA, como Waze; en norte ⇒
+ *    el rumbo sobre el mapa recto). Antes svg = rumboPin: con la ruta vertical la
+ *    flecha apuntaba a cualquier lado (video del cliente v1.13.11).
+ *  · MapView (mapa grande): rotación por WRAPPER CSS (v1.12.10) → los markers SÍ
+ *    giran con el wrapper (-mapBearing), así que pasa mapBearing=0 y el svg lleva
+ *    el rumbo crudo; el wrapper hace la rotación de pantalla.
+ * La burbuja del pin elegido y el resto de marcadores (bandera, incidencias, POI)
+ * son billboard: en LeafletNav quedan derechos SIN contra-rotar (LeafletNav pasa 0);
+ * en MapView el wrapper los gira -B y la contra-rotación +B los endereza.
  * Todo va dentro de un wrapper `c30-billboard`: en el minimapa 3D (clase c30-tilt)
  * ese wrapper contra-rota la inclinación de la cámara para que el pin se vea de pie.
  */
 export function userPinIcon(pinId: string | undefined, heading: number | null = null, mapBearing = 0): L.DivIcon {
   const p = PINS[(pinId ?? DEFAULT_PIN) as PinId] ?? PINS[DEFAULT_PIN];
   if (p.id === DEFAULT_PIN) {
-    const deg = Math.round(heading ?? 0);
+    const deg = Math.round((heading ?? 0) - mapBearing);
     return L.divIcon({
       className: "",
       html: `<div class="c30-billboard"><div style="width:34px;height:34px;filter:drop-shadow(0 2px 5px rgba(0,0,0,.65));">

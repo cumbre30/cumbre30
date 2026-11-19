@@ -26,8 +26,13 @@
 // El wrapper CSS de v1.12.9 (transform + will-change + filter sobre
 // un div al 150%) se eliminó: en el WebView del dispositivo giraba
 // el rectángulo pero NO el mapa. El plugin rota los paneles internos
-// de Leaflet: tiles, ruta, pin y gestos quedan coherentes. Los
-// iconos siguen contra-rotando (userPinIcon/flagIcon con mapBearing).
+// de Leaflet: tiles, ruta y gestos quedan coherentes.
+// v1.13.11: setBearing(-mapBearing) — convención MapLibre (cámara mira
+// hacia B ⇒ mundo rota -B); leaflet-rotate rota +b: sin negar quedaba
+// espejado (ruta horizontal, no vertical).
+// v1.13.12: los markers viven en el leaflet-norotate-pane (billboard,
+// NO giran con el mapa): la flecha del puck lleva rumboPin-mapBearing
+// (en rumbo ⇒ ARRIBA) y la burbuja del destino va sin contra-rotación.
 // ============================================================
 
 import { useEffect, useMemo, useRef } from "react";
@@ -316,8 +321,11 @@ export default function LeafletNav({
             </>
           )}
 
-          {/* Destino */}
-          {dest && <Marker position={[dest.position.lat, dest.position.lon]} icon={flagIcon(mapBearing)} interactive={false} />}
+          {/* Destino — v1.13.12: flagIcon(0): el marker vive en el
+              leaflet-norotate-pane (billboard, no gira con el mapa), así
+              que la burbuja NO necesita contra-rotación para verse derecha
+              (la +mapBearing legacy la inclinaba cuando la cámara giraba). */}
+          {dest && <Marker position={[dest.position.lat, dest.position.lon]} icon={flagIcon(0)} interactive={false} />}
 
           {/* Recorrido del ride */}
           {track.length > 1 && (

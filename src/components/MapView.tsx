@@ -1653,7 +1653,9 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
                   pathOptions={{ color: "#ffffff", weight: 1, fillColor: "#ffffff", fillOpacity: 0.08 }}
                 />
               )}
-              <Marker position={[position.lat, position.lon]} icon={userPinIcon(userPin ?? DEFAULT_PIN, rumboPin, mapBearing)} zIndexOffset={500} />
+              {/* v1.13.12: mapBearing=0 — el wrapper CSS (v1.12.10) ya gira los
+                  markers -B; el svg del puck lleva el rumbo crudo (rumboPin - 0). */}
+              <Marker position={[position.lat, position.lon]} icon={userPinIcon(userPin ?? DEFAULT_PIN, rumboPin, 0)} zIndexOffset={500} />
             </>
           )}
 
