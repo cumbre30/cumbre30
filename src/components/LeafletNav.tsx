@@ -164,13 +164,25 @@ function AutoResize() {
 /** Rotación del mapa (v1.13.7): aplica mapBearing con setBearing del
  *  plugin — rotación NATIVA de Leaflet (paneles internos), no CSS de
  *  un wrapper. El hook ya cuantiza el estado a pasos grandes; el
- *  guard de delta evita setBearing redundantes entre renders. */
+ *  guard de delta evita setBearing redundantes entre renders.
+ *  v1.13.11 CONVENCIÓN: el hook entrega el bearing con semántica
+ *  MapLibre (la cámara MIRA hacia mapBearing: el mundo rota -B y la
+ *  dirección B queda ARRIBA, como en NavCanvas web — por eso en la web
+ *  el rumbo quedó bien). leaflet-rotate setBearing(b) rota el contenido
+ *  del mapa +b horario: aplicar B directo ESPEJABA la cámara del APK —
+ *  la ruta quedaba horizontal (no vertical) y el pin a cualquier lado
+ *  (verificado in-vivo: una línea al este con setBearing(90) pintaba el
+ *  este hacia ABAJO). Negando el bearing, Leaflet replica exactamente
+ *  la cámara de la web; aguja (rotate -B), burbuja (rotate +B) y puck
+ *  (svg rotate(rumboPin)) ya asumían esta convención y quedan
+ *  coherentes. */
 function Bearing({ mapBearing }: { mapBearing: number }) {
   const map = useMap();
   useEffect(() => {
-    const d = ((mapBearing - map.getBearing() + 540) % 360) - 180;
+    const target = -mapBearing;
+    const d = ((target - map.getBearing() + 540) % 360) - 180;
     if (Math.abs(d) < 0.5) return;
-    map.setBearing(mapBearing);
+    map.setBearing(target);
   }, [map, mapBearing]);
   return null;
 }
