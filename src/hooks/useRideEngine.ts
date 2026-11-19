@@ -21,6 +21,8 @@ import { RideNative, isNativeApp, type PluginListenerHandleLike } from "@/lib/ri
 import { RideSimulator } from "@/lib/simulation";
 import { saveRide, type RideSummary, type TrackPt } from "@/lib/history";
 import { computeRideMetrics } from "@/lib/rideMetrics";
+import { getRideWeights } from "@/lib/rideWeights";
+import { augmentRideOffRoad } from "@/lib/rideOffroad";
 import { isMotorizedRide, VEH_LIMIT_KMH, VEH_STREAK_SEC, VEH_TOTAL_SEC } from "@/lib/vehicleDetect";
 import { syncRideAfterSave, markRideAsBike } from "@/lib/sync";
 
@@ -823,8 +825,10 @@ export function useRideEngine() {
       // Perfil Ciclista (v1.13.16): métricas derivadas del track, calculadas
       // aquí en el dispositivo (el track crudo nunca sale del teléfono).
       // Los rides demo no generan métricas: no cuentan para el perfil.
+      // v1.13.17: los pesos del conjunto (rideWeights) alimentan los
+      // watts estimados en subida >4%.
       const metrics =
-        source === "gps" && e.trackPts.length > 2 ? computeRideMetrics(e.trackPts) : null;
+        source === "gps" && e.trackPts.length > 2 ? computeRideMetrics(e.trackPts, getRideWeights()) : null;
       const summary: RideSummary = {
         id: crypto.randomUUID(),
         dateISO: new Date().toISOString(),
@@ -845,6 +849,11 @@ export function useRideEngine() {
       saveRide(summary);
       logEvent("info", t("log.guardado"));
       void syncRideAfterSave(summary); // sube al servidor + logros si hay sesión
+      // Exploración (v1.13.17): km off-road contra la red de navegación.
+      // Corre en segundo plano y re-sube el resumen (POST idempotente por
+      // clientId): las métricas quedan completadas en servidor sin que el
+      // track crudo salga del teléfono.
+      if (metrics) void augmentRideOffRoad(summary, (s) => void syncRideAfterSave(s));
       if (vehicleSuspect) setPendingConfirm(summary);
     }
     e.paused = false;

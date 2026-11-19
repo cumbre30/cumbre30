@@ -32,6 +32,12 @@ model User {
   bikeModel         String?
   bikeSize          String?
   bikeColor         String?
+  // Pesos del conjunto (v1.13.17): alimentan la estimación de watts en
+  // subidas >4% que hace el dispositivo al cerrar el ride. La copia en
+  // la cuenta es respaldo por si se cambia de teléfono; el dispositivo
+  // (localStorage) es la fuente de verdad una vez que el usuario guardó.
+  riderWeightKg     Float?
+  bikeWeightKg      Float?
   createdAt         DateTime  @default(now())
 
   sessions       Session[]
@@ -141,16 +147,23 @@ model RideMetric {
   secOver55       Float?
   over55StreakSec Float?
   climb6AvgKmh    Float?
+  // v1.13.17: watts estimados en subida >4% (modelo gravedad+rodamiento
+  // +aire con los pesos del conjunto, calculado en el dispositivo) y km
+  // off-road/neto del eje Exploración (superficie según la red de
+  // navegación: path/track = off-road; null = sin medición).
+  estWattsClimb   Float?
+  offRoadKm       Float?
+  netKm           Float?
   // Marcado false por el motor de perfil si la física no calza con una bici.
   isValid         Boolean  @default(true)
   createdAt       DateTime @default(now())
 }
 
-// Perfil materializado del ciclista (lectura rápida para la UI): 5 ejes
+// Perfil materializado del ciclista (lectura rápida para la UI): 6 ejes
 // 0–100 + arquetipo. Se recalcula al guardar cada ride (y al corregir el
 // flag motorizado) con ventana móvil de 90 días y decaimiento exponencial
 // (vida media ~45 días). Archetypes: CALIBRATING, URBAN, CLIMBER,
-// ENDURANCE, TIME_TRIALIST, SPRINTER, ALL_ROUNDER.
+// ENDURANCE, TIME_TRIALIST, SPRINTER, EXPLORER, ALL_ROUNDER.
 model CyclistProfile {
   userId      String   @id
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -161,8 +174,20 @@ model CyclistProfile {
   speed       Float?
   power       Float?
   consistency Float?
+  // v1.13.17: km off-road (Exploración, superficie path/track de la red).
+  explorer    Float?
   validRides  Int      @default(0)
   updatedAt   DateTime @updatedAt
+}
+
+// Remote Config de los techos del perfil (v1.13.17): una fila por clave
+// (techoMkm, techoVam, techoEndu, techoLlano, techoPico, techoOffroad).
+// Editable sin release vía PUT /api/profile-config con x-admin-key; el
+// motor mezcla con los defaults de lib/profileConfig al recalcular.
+model ProfileConfig {
+  key       String   @id
+  value     Float
+  updatedAt DateTime @updatedAt
 }
 
 model Incident {

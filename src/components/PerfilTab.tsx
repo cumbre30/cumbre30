@@ -36,6 +36,7 @@ const EMOJI: Record<string, string> = {
   ENDURANCE: "🚴",
   TIME_TRIALIST: "⏱️",
   SPRINTER: "⚡",
+  EXPLORER: "🗺️",
   ALL_ROUNDER: "🎯",
   URBAN: "🏙️",
 };
@@ -46,6 +47,7 @@ const COLOR_EJE: Record<string, string> = {
   speed: "var(--c30-eje-vel, #f59e0b)",
   power: "var(--c30-eje-pot, #a78bfa)",
   consistency: "var(--c30-eje-con, #fb7185)",
+  explorer: "var(--c30-eje-exp, #2dd4bf)",
 };
 
 const NOMBRE_EJE: Record<string, string> = {
@@ -54,21 +56,25 @@ const NOMBRE_EJE: Record<string, string> = {
   speed: "pc.eSpeed",
   power: "pc.ePower",
   consistency: "pc.eConsistency",
+  explorer: "pc.eExplorer",
 };
+
+const CLAVES_EJE = ["climbing", "endurance", "speed", "power", "consistency", "explorer"] as const;
+type ClaveEje = (typeof CLAVES_EJE)[number];
 
 function fecha(dISO: string): string {
   const d = new Date(dISO);
   return `${d.getDate()} ${["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"][d.getMonth()]}`;
 }
 
-/** Radar pentagonal de los 5 ejes (SVG, sin dependencias). */
+/** Radar hexagonal de los 6 ejes (SVG, sin dependencias). */
 function Radar({ scores }: { scores: PerfilSummary["scores"] }) {
-  const claves = ["climbing", "endurance", "speed", "power", "consistency"] as const;
+  const claves = CLAVES_EJE;
   const vals = claves.map((k) => scores[k] ?? 0);
   const cx = 75;
   const cy = 78;
   const R = 54;
-  const N = 5;
+  const N = claves.length;
   const ang = (i: number) => -Math.PI / 2 + (i * 2 * Math.PI) / N;
   const pt = (i: number, r: number): [number, number] => [cx + Math.cos(ang(i)) * r, cy + Math.sin(ang(i)) * r];
   const rings = [1, 2, 3, 4]
@@ -163,6 +169,7 @@ export function PerfilTab({ onGoCuenta }: { onGoCuenta?: () => void }) {
           { label: ejeLabel("speed"), value: valor(p.scores.speed) },
           { label: ejeLabel("power"), value: valor(p.scores.power) },
           { label: ejeLabel("consistency"), value: valor(p.scores.consistency) },
+          { label: ejeLabel("explorer"), value: valor(p.scores.explorer) },
         ],
         footer: `${pin.emoji} ${t("pc.shareTexto")}`,
       });
@@ -223,12 +230,13 @@ export function PerfilTab({ onGoCuenta }: { onGoCuenta?: () => void }) {
 
   const p = data.perfil;
   const emoji = EMOJI[p.archetype] ?? "";
-  const axes: Array<["climbing" | "endurance" | "speed" | "power" | "consistency", number | null]> = [
+  const axes: Array<[ClaveEje, number | null]> = [
     ["climbing", p.scores.climbing],
     ["endurance", p.scores.endurance],
     ["speed", p.scores.speed],
     ["power", p.scores.power],
     ["consistency", p.scores.consistency],
+    ["explorer", p.scores.explorer],
   ];
 
   // "Por qué" del arquetipo: eje dominante y su margen sobre el segundo.
@@ -247,6 +255,9 @@ export function PerfilTab({ onGoCuenta }: { onGoCuenta?: () => void }) {
     { ic: "💥", v: ex.peak95 === null ? "—" : ex.peak95.toFixed(1), u: "km/h", l: t("pc.kPeak") },
     { ic: "🗓️", v: `${ex.activeWeeks}`, u: `/12`, l: t("pc.kWeeks") },
     { ic: "🛑", v: ex.stopsPerKm === null ? "—" : ex.stopsPerKm.toFixed(1), u: "/km", l: t("pc.kStops") },
+    // fase 2: watts estimados en subida >4% y km off-road del eje Exploración
+    { ic: "🔋", v: ex.estWatts === null ? "—" : String(ex.estWatts), u: "W", l: t("pc.kWatts") },
+    { ic: "🥾", v: ex.offRoadTop3 === null ? "—" : ex.offRoadTop3.toFixed(1), u: "km", l: t("pc.kOffroad") },
   ];
 
   const progreso = Math.min(100, Math.round((p.validRides / data.minRides) * 100));

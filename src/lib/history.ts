@@ -29,6 +29,10 @@ export type RideSummary = {
    *  en el dispositivo al cerrar el ride y suben con el resumen. Los
    *  rides anteriores no la tienen y el perfil las compensa. */
   metrics?: RideMetrics;
+  /** Backfill (v1.13.17): el track ya se intentó convertir en métricas
+   *  (incluye el caso null: ride demo o muy corto). Evita reintentar en
+   *  cada arranque rides que nunca van a producir métricas. */
+  metricsTried?: boolean;
   /** Correo de la cuenta dueña del viaje. Sin correo = viaje local del dispositivo. */
   account?: string;
   /** True si el viaje se registró en vehículo motorizado (confirmado
@@ -209,6 +213,28 @@ export function saveRide(s: RideSummary): void {
  * (el usuario confirmó "fui en bici" o lo marca como vehículo).
  * Idempotente: si el flag ya está en ese valor, no toca nada.
  */
+/**
+ * Backfill / augment del Perfil Ciclista (v1.13.17): guarda las métricas
+ * derivadas de un ride existente (recalculadas desde su pista local) y
+ * marca el intento. Sin recorte: actualizar métricas no debe costar
+ * datos viejos. Idempotente por id.
+ */
+export function patchRideMetrics(id: string, metrics: RideMetrics | null): void {
+  if (typeof window === "undefined") return;
+  const list = readFromStorage();
+  let changed = false;
+  for (const r of list) {
+    if (r.id !== id) continue;
+    if (metrics) r.metrics = metrics;
+    r.metricsTried = true;
+    changed = true;
+  }
+  if (changed) {
+    localStorage.setItem(KEY, JSON.stringify(list));
+    historyStore.refresh();
+  }
+}
+
 export function setRideMotorized(id: string, motorized: boolean): void {
   if (typeof window === "undefined") return;
   const list = readFromStorage();

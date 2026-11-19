@@ -1,12 +1,15 @@
 /**
- * Test sintético del motor del Perfil Ciclista (fase 1).
- * Ejecutar: DATABASE_URL=postgresql://postgres@127.0.0.1:5433/cumbre30 bun run scripts/test-perfil.ts
+ * Test sintético del motor del Perfil Ciclista (fase 1 + fase 2).
+ * Ejecutar: DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5433/cumbre30 bun run scripts/test-perfil.ts
  * Crea un usuario de prueba, le inyecta rides con métricas controladas
  * y verifica: CALIBRATING (<5), CLIMBER (eje dominante ≥15), exclusión
- * de motorizados y de rides imposibles (antitrampa), y el materializado.
+ * de motorizados y de rides imposibles (antitrampa), el materializado,
+ * y en fase 2 el eje EXPLORER (off-road top-3) con la Remote Config de
+ * techos (guardarTechos recalibra sin release).
  */
 import { db } from "@/lib/db";
 import { asegurarTablasPerfil, recalcularPerfil } from "@/lib/profileServer";
+import { guardarTechos } from "@/lib/profileConfig";
 
 const EMAIL = "test-perfil@cumbre30.test";
 let fallos = 0;
@@ -55,6 +58,9 @@ async function crearRide(
         secOver55: metric.secOver55 ?? 0,
         over55StreakSec: metric.over55StreakSec ?? 0,
         climb6AvgKmh: metric.climb6AvgKmh ?? null,
+        offRoadKm: metric.offRoadKm ?? null,
+        netKm: metric.netKm ?? null,
+        estWattsClimb: metric.estWattsClimb ?? null,
       },
     });
   }
@@ -116,8 +122,46 @@ async function main() {
   // --- 5. Materializado guardado ---
   const mat = await db.cyclistProfile.findUnique({ where: { userId: user.id } });
   check("5. CyclistProfile materializado", mat?.archetype === "CLIMBER" && mat!.validRides === p.validRides, mat?.archetype);
+  check("5b. sin off-road medido → explorer null (sin datos, no cero)", p.scores.explorer === null, `explorer=${p.scores.explorer}`);
 
   await db.user.delete({ where: { id: user.id } }); // cascade borra rides+metrics+profile
+
+  // --- 6. Eje EXPLORER (fase 2): off-road top-3 define el arquetipo ---
+  // 5 rutas de 18 km con 18 km off-road medidos (netKm 17.5 ≥ 0.3):
+  // explorer = min(100, 18/20·100) = 90 → domina a velocidad (22/36 ≈ 61).
+  const EMAIL2 = "test-perfil-exp@cumbre30.test";
+  await db.user.deleteMany({ where: { email: EMAIL2 } });
+  const u2 = await db.user.create({
+    data: { email: EMAIL2, username: "testperfilexp", passwordHash: "x" },
+  });
+  for (let i = 0; i < 5; i++) {
+    await crearRide(u2.id, dAtras(i + 1), 18, 50, {
+      flatAvgKmh: 22, flatKm: 10, peak15sKmh: 28, climbGainM: 30, climbSec: 300, vamMh: 360, stopCount: 1,
+      offRoadKm: 18, netKm: 17.5, estWattsClimb: 200,
+    });
+  }
+  p = await recalcularPerfil(u2.id);
+  check("6a. arquetipo EXPLORER", p.archetype === "EXPLORER", p.archetype);
+  check("6b. explorer = 18/20 techo → 90", p.scores.explorer !== null && Math.abs(p.scores.explorer! - 90) < 0.5, `explorer=${p.scores.explorer?.toFixed(1)}`);
+  check("6c. extras offRoadTop3 = 18", p.extras.offRoadTop3 === 18, `offRoadTop3=${p.extras.offRoadTop3}`);
+  check("6d. extras estWatts = 200", p.extras.estWatts === 200, `estWatts=${p.extras.estWatts}`);
+  const mat2 = await db.cyclistProfile.findUnique({ where: { userId: u2.id } });
+  check("6e. materializado con columna explorer", mat2?.archetype === "EXPLORER" && Math.abs((mat2?.explorer ?? -1) - 90) < 0.5, `explorer=${mat2?.explorer}`);
+
+  // --- 7. Remote Config (fase 2): el techo se recalibra sin release ---
+  const res7 = await guardarTechos({ techoOffroad: 30 });
+  check("7a. guardarTechos aplica techoOffroad=30", res7?.guardado.techoOffroad === 30, JSON.stringify(res7?.guardado));
+  p = await recalcularPerfil(u2.id);
+  check("7b. explorer = 18/30 → 60 y ya domina el eje de velocidad → ALL_ROUNDER",
+    p.archetype === "ALL_ROUNDER" && p.scores.explorer !== null && Math.abs(p.scores.explorer! - 60) < 0.5,
+    `arch=${p.archetype} explorer=${p.scores.explorer?.toFixed(1)}`);
+  const res7b = await guardarTechos({ techoOffroad: 9999, techoLlano: "x" } as never);
+  check("7c. claves fuera de rango/tipo rechazadas → null", res7b === null, JSON.stringify(res7b));
+  await guardarTechos({ techoOffroad: 20 }); // restaura el default del spec
+  p = await recalcularPerfil(u2.id);
+  check("7d. techo restaurado → EXPLORER de nuevo", p.archetype === "EXPLORER", p.archetype);
+
+  await db.user.delete({ where: { id: u2.id } });
   console.log(fallos === 0 ? "\nTODO OK" : `\nFALLOS: ${fallos}`);
   process.exit(fallos === 0 ? 0 : 1);
 }

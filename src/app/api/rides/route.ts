@@ -96,6 +96,9 @@ async function guardarMetricas(rideId: string, m: unknown): Promise<void> {
         secOver55: opt(q.secOver55, 0, 24 * 3600),
         over55StreakSec: opt(q.over55StreakSec, 0, 24 * 3600),
         climb6AvgKmh: opt(q.climb6AvgKmh, 0, 150),
+        estWattsClimb: opt(q.estWattsClimb, 0, 2000),
+        offRoadKm: opt(q.offRoadKm, 0, 500),
+        netKm: opt(q.netKm, 0, 500),
       },
       update: {
         movingSec: num(q.movingSec, 0, 24 * 3600),
@@ -109,6 +112,9 @@ async function guardarMetricas(rideId: string, m: unknown): Promise<void> {
         secOver55: opt(q.secOver55, 0, 24 * 3600),
         over55StreakSec: opt(q.over55StreakSec, 0, 24 * 3600),
         climb6AvgKmh: opt(q.climb6AvgKmh, 0, 150),
+        estWattsClimb: opt(q.estWattsClimb, 0, 2000),
+        offRoadKm: opt(q.offRoadKm, 0, 500),
+        netKm: opt(q.netKm, 0, 500),
         // Re-valida: el reintento puede corregir una métrica previa.
         isValid: true,
       },

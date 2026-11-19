@@ -36,6 +36,9 @@ type OfflineUser = {
   bikeModel: string | null;
   bikeSize: string | null;
   bikeColor: string | null;
+  // Pesos del conjunto (v1.13.17): respaldo local de rideWeights.
+  riderWeightKg?: number | null;
+  bikeWeightKg?: number | null;
   createdAt: string;
   /** Última vez que el usuario cambió su nombre de usuario (regla 30 días). */
   usernameChangedAt?: string;
@@ -527,6 +530,21 @@ export function offlineUpdateProfile(patch: Record<string, unknown>): { ok: bool
       user[k] = s.length ? s : null;
     }
   }
+  // Pesos del conjunto (v1.13.17): mismos rangos que PUT /api/me.
+  for (const [k, min, max] of [
+    ["riderWeightKg", 30, 200],
+    ["bikeWeightKg", 5, 50],
+  ] as const) {
+    if (k in patch) {
+      const v = patch[k];
+      if (v === null || v === "") {
+        user[k] = null;
+      } else {
+        const n = typeof v === "number" ? v : Number(v);
+        user[k] = isFinite(n) && n >= min && n <= max ? Math.round(n * 10) / 10 : null;
+      }
+    }
+  }
   if (typeof patch.selectedPin === "string" && isPinId(patch.selectedPin)) {
     user.selectedPin = patch.selectedPin;
   }
@@ -571,6 +589,8 @@ function toMeUser(u: OfflineUser): MeUser {
     bikeModel: u.bikeModel,
     bikeSize: u.bikeSize,
     bikeColor: u.bikeColor,
+    riderWeightKg: u.riderWeightKg ?? null,
+    bikeWeightKg: u.bikeWeightKg ?? null,
     recoveryCode: u.recoveryCode ?? null,
   };
 }

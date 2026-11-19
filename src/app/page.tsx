@@ -36,6 +36,7 @@ import { useNavEngine } from "@/hooks/useNavEngine";
 import { useProLicense } from "@/lib/proLicense";
 import { applyThemeColor, useRideTheme } from "@/lib/rideTheme";
 import { linkRidesToAccount, setRideOwner } from "@/lib/history";
+import { runMetricBackfill } from "@/lib/rideBackfill";
 import { courseHeading } from "@/lib/geo";
 import { createSmoother, snapToNet, snapToRoute } from "@/lib/navSnap";
 import { loadNetwork, routeProgress, type LatLng, type Network } from "@/lib/routing";
@@ -206,6 +207,19 @@ export default function Home() {
   useEffect(() => {
     setRideOwner(userEmail);
     if (userEmail) linkRidesToAccount(userEmail);
+  }, [userEmail]);
+  // Backfill del Perfil Ciclista (v1.13.17): rides sin métricas derivadas
+  // se recalculan desde su pista local (IndexedDB) y suben. Una vez por
+  // apertura, en segundo plano a los 12 s para no competir con el arranque
+  // ni con el GPS; web y APK comparten este punto de entrada.
+  const backfillRef = useRef(false);
+  useEffect(() => {
+    if (!userEmail || backfillRef.current) return;
+    backfillRef.current = true;
+    const id = setTimeout(() => {
+      void runMetricBackfill(userEmail).catch(() => undefined);
+    }, 12_000);
+    return () => clearTimeout(id);
   }, [userEmail]);
   // Navegación compartida: velocímetro (minimapa) + mapa grande.
   // Sigue viva también en pausa: revisar la ruta no requiere ride activo.

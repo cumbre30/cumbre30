@@ -20,6 +20,10 @@ export type MeUser = {
   bikeModel: string | null;
   bikeSize: string | null;
   bikeColor: string | null;
+  /** Pesos del conjunto (v1.13.17): respaldo en cuenta de los que usa
+   *  el dispositivo (localStorage) para estimar watts en subida. */
+  riderWeightKg?: number | null;
+  bikeWeightKg?: number | null;
   /** Solo APK (cuenta local): código para restablecer la contraseña sin perder datos. */
   recoveryCode?: string | null;
 };

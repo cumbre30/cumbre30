@@ -47,6 +47,9 @@ export type SessionUser = {
   bikeModel: string | null;
   bikeSize: string | null;
   bikeColor: string | null;
+  // Pesos del conjunto (v1.13.17): respaldo para los watts en subida.
+  riderWeightKg: number | null;
+  bikeWeightKg: number | null;
 };
 
 /** Lee la sesión desde la cabecera Authorization: Bearer o la cookie. */
@@ -65,6 +68,7 @@ function toSessionUser(u: {
   id: string; email: string; username: string; usernameChangedAt: Date | null;
   selectedPin: string; bikeBrand: string | null; bikeType: string | null;
   bikeModel: string | null; bikeSize: string | null; bikeColor: string | null;
+  riderWeightKg: number | null; bikeWeightKg: number | null;
 }): SessionUser {
   return {
     id: u.id,
@@ -77,6 +81,8 @@ function toSessionUser(u: {
     bikeModel: u.bikeModel,
     bikeSize: u.bikeSize,
     bikeColor: u.bikeColor,
+    riderWeightKg: u.riderWeightKg,
+    bikeWeightKg: u.bikeWeightKg,
   };
 }
 

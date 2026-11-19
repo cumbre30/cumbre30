@@ -1,37 +1,39 @@
 /**
- * profileServer — motor del Perfil Ciclista (fase 1, v1.13.16).
+ * profileServer — motor del Perfil Ciclista (fase 1 v1.13.16, fase 2
+ * v1.13.17: 6º eje EXPLORER + techos remotos + watts off-road).
  *
  * Adaptación pragmática del spec "perfil ciclista v1": en lugar de un
  * pipeline event-driven con workers (S3/Lambda/BullMQ — sobredimensionado
  * para esta escala), el recálculo corre inline al consultar el perfil y
- * al guardar un ride. Los denominadores (25 m/km, 90 km, 36 / 52 km/h)
- * son del spec; quedan como constantes locales para futura Remote Config.
+ * al guardar un ride. Los denominadores (25 m/km, 90 km, 36 / 52 km/h,
+ * 20 km off-road) vienen del spec; desde v1.13.17 se leen de la tabla
+ * ProfileConfig (Remote Config: lib/profileConfig) para poder
+ * recalibrarlos con telemetría real sin publicar release.
  *
  * Reglas:
  *  · Ventana móvil de 90 días, peso w = e^(−0.015·días) (vida media ~45 d).
  *  · Solo rides GPS no motorizados. Los rides previos a v1.13.16 (sin
  *    métricas derivadas) cuentan para Resistencia, Constancia y la parte
- *    de densidad de Escalada (vía Ride.gainM); VAM/Velocidad/Explosividad
- *    solo con métricas — el perfil se afina solo con rides nuevos.
+ *    de densidad de Escalada (vía Ride.gainM); VAM/Velocidad/Explosividad/
+ *    Exploración solo con métricas — el perfil se afina solo con rides
+ *    nuevos (el backfill del dispositivo acelera eso al reconectar).
  *  · Antitrampa: >55 km/h sostenido ≥2 min o >28 km/h en pendiente >6%
  *    marca la métrica inválida (spec §6) y el ride sale del perfil.
  *  · Calibración: con <5 rutas válidas el arquetipo es CALIBRATING.
  *  · Arquetipo (en orden): URBAN (≥70% de rutas urbanas con métricas)
  *    → especialista si el eje máximo le saca ≥15 al segundo
- *    (CLIMBER/ENDURANCE/TIME_TRIALIST/SPRINTER) → ALL_ROUNDER.
+ *    (CLIMBER/ENDURANCE/TIME_TRIALIST/SPRINTER/EXPLORER) → ALL_ROUNDER.
  */
 import { db } from "@/lib/db";
+import { asegurarTablaConfig, cargarTechos, type Techos } from "@/lib/profileConfig";
 
 const VENTANA_DIAS = 90;
 const LAMBDA = 0.015;
 const MIN_RUTAS = 5;
 const SEMANAS = 12;
-// Techos amateur avanzados del spec (score 100).
-const TECHO_MKM = 25; // m de desnivel por km
-const TECHO_VAM = 1100; // m/h
-const TECHO_ENDU = 90; // km (promedio top-3)
-const TECHO_LLANO = 36; // km/h
-const TECHO_PICO = 52; // km/h (P95 de picos)
+// Denominador mínimo para evaluar Exploración en un ride: menos km
+// medidos sobre la red significa "fuera de cobertura", no "cero off-road".
+const NET_KM_MIN = 0.3;
 
 // ---------- autorreparo de tablas (espejo de Prisma) ----------
 // Como las columnas de Incident (Ola 1) y PushSub: CREATE TABLE IF NOT
@@ -76,6 +78,15 @@ export function asegurarTablasPerfil(): Promise<void> {
           REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE
       )`
     );
+    // --- fase 2 (v1.13.17): columnas nuevas en tablas que ya existen ---
+    await db.$executeRawUnsafe(`ALTER TABLE "RideMetric" ADD COLUMN IF NOT EXISTS "offRoadKm" DOUBLE PRECISION`);
+    await db.$executeRawUnsafe(`ALTER TABLE "RideMetric" ADD COLUMN IF NOT EXISTS "netKm" DOUBLE PRECISION`);
+    await db.$executeRawUnsafe(`ALTER TABLE "RideMetric" ADD COLUMN IF NOT EXISTS "estWattsClimb" DOUBLE PRECISION`);
+    await db.$executeRawUnsafe(`ALTER TABLE "CyclistProfile" ADD COLUMN IF NOT EXISTS "explorer" DOUBLE PRECISION`);
+    await db.$executeRawUnsafe(`ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "riderWeightKg" DOUBLE PRECISION`);
+    await db.$executeRawUnsafe(`ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "bikeWeightKg" DOUBLE PRECISION`);
+    // Remote Config de los techos (GET/PUT /api/profile-config).
+    await asegurarTablaConfig();
   })().catch((e) => {
     tablasListas = null; // permite reintento en la siguiente petición
     throw e;
@@ -94,6 +105,7 @@ export type PerfilSummary = {
     speed: number | null;
     power: number | null;
     consistency: number | null;
+    explorer: number | null;
   };
   validRides: number;
   extras: {
@@ -103,6 +115,10 @@ export type PerfilSummary = {
     peak95: number | null;
     activeWeeks: number;
     stopsPerKm: number | null;
+    // fase 2: off-road del eje Exploración (km promedio del top-3) y
+    // watts estimados en subida (media ponderada por frescura).
+    offRoadTop3: number | null;
+    estWatts: number | null;
   };
   /** Rides que alimentan el perfil (12 últimos) + excluidos (5 últimos). */
   rides: Array<{
@@ -168,6 +184,7 @@ function clasificar(
   if (scores.endurance !== null) ejes.push(["endurance", scores.endurance]);
   if (scores.speed !== null) ejes.push(["speed", scores.speed]);
   if (scores.power !== null) ejes.push(["power", scores.power]);
+  if (scores.explorer !== null) ejes.push(["explorer", scores.explorer]);
   ejes.sort((a, b) => b[1] - a[1]);
   if (ejes.length >= 2 && ejes[0][1] - ejes[1][1] >= 15) {
     const mapa: Record<string, string> = {
@@ -175,6 +192,7 @@ function clasificar(
       endurance: "ENDURANCE",
       speed: "TIME_TRIALIST",
       power: "SPRINTER",
+      explorer: "EXPLORER",
     };
     return mapa[ejes[0][0]];
   }
@@ -187,6 +205,7 @@ function clasificar(
  */
 export async function recalcularPerfil(userId: string): Promise<PerfilSummary> {
   await asegurarTablasPerfil();
+  const T: Techos = await cargarTechos(); // Remote Config (defaults si BD vacía)
   const desde = new Date(Date.now() - VENTANA_DIAS * 86400e3);
   const rides = await db.ride.findMany({
     where: { userId, dateISO: { gte: desde }, source: "gps", motorized: false },
@@ -208,11 +227,11 @@ export async function recalcularPerfil(userId: string): Promise<PerfilSummary> {
   }
   const valid = rides.filter((r) => !r.metric || r.metric.isValid);
 
-  // --- 5 ejes ---
+  // --- 6 ejes ---
   // Resistencia: promedio de las 3 rutas más largas de la ventana.
   const top3 = [...valid].sort((a, b) => b.distanceKm - a.distanceKm).slice(0, 3);
   const endurance = top3.length
-    ? Math.min(100, ((top3.reduce((s, r) => s + r.distanceKm, 0) / top3.length) / TECHO_ENDU) * 100)
+    ? Math.min(100, ((top3.reduce((s, r) => s + r.distanceKm, 0) / top3.length) / T.techoEndu) * 100)
     : null;
 
   // Constancia: semanas con ≥2 rides en las últimas 12 semanas.
@@ -228,6 +247,9 @@ export async function recalcularPerfil(userId: string): Promise<PerfilSummary> {
   let vamSum = 0;
   let stopsWSum = 0;
   let stopsKmSum = 0;
+  // Watts en subida: media ponderada por frescura entre rides con dato.
+  let wattsWSum = 0;
+  let wattsSum = 0;
   for (const r of valid) {
     const wi = peso(r.dateISO, ahora);
     if (r.distanceKm >= 1) {
@@ -244,15 +266,21 @@ export async function recalcularPerfil(userId: string): Promise<PerfilSummary> {
       vamWSum += wi;
       vamSum += wi * vam;
     }
+    const w = r.metric?.estWattsClimb;
+    if (w && w > 0) {
+      wattsWSum += wi;
+      wattsSum += wi * w;
+    }
   }
   const mkmAvg = wSum > 0 ? mkmSum / wSum : null;
   const vamAvg = vamWSum > 0 ? vamSum / vamWSum : null;
+  const estWatts = wattsWSum > 0 ? Math.round(wattsSum / wattsWSum) : null;
   const climbing =
     mkmAvg === null
       ? null
       : vamAvg !== null
-        ? Math.min(100, ((0.6 * mkmAvg) / TECHO_MKM + (0.4 * vamAvg) / TECHO_VAM) * 100)
-        : Math.min(100, (mkmAvg / TECHO_MKM) * 100);
+        ? Math.min(100, ((0.6 * mkmAvg) / T.techoMkm + (0.4 * vamAvg) / T.techoVam) * 100)
+        : Math.min(100, (mkmAvg / T.techoMkm) * 100);
 
   // Velocidad: media ponderada en tramos llanos (|pendiente| ≤ 1.5%).
   let spWSum = 0;
@@ -266,7 +294,7 @@ export async function recalcularPerfil(userId: string): Promise<PerfilSummary> {
     }
   }
   const flatAvg = spWSum > 0 ? spSum / spWSum : null;
-  const speed = flatAvg !== null ? Math.min(100, (flatAvg / TECHO_LLANO) * 100) : null;
+  const speed = flatAvg !== null ? Math.min(100, (flatAvg / T.techoLlano) * 100) : null;
 
   // Explosividad: P95 ponderado de los picos por ride (spec: evita el
   // máximo absoluto por si quedó un error de GPS).
@@ -281,10 +309,25 @@ export async function recalcularPerfil(userId: string): Promise<PerfilSummary> {
     }
   }
   const peak95 = pctil(peaks, pesos, 0.95);
-  const power = peak95 !== null ? Math.min(100, (peak95 / TECHO_PICO) * 100) : null;
+  const power = peak95 !== null ? Math.min(100, (peak95 / T.techoPico) * 100) : null;
+
+  // Exploración (fase 2): km off-road medidos contra la red de navegación
+  // (clases path/track, rideOffroad.ts). Promedio del top-3 de rides con
+  // medición válida; null si ningún ride cayó sobre la red (fuera de
+  // cobertura no es "cero off-road": es sin datos).
+  const conOff = valid.filter((r) => r.metric?.offRoadKm != null && (r.metric?.netKm ?? 0) >= NET_KM_MIN);
+  let offRoadTop3: number | null = null;
+  let explorer: number | null = null;
+  if (conOff.length) {
+    const topOff = [...conOff]
+      .sort((a, b) => (b.metric!.offRoadKm ?? 0) - (a.metric!.offRoadKm ?? 0))
+      .slice(0, 3);
+    offRoadTop3 = topOff.reduce((s, r) => s + (r.metric!.offRoadKm ?? 0), 0) / topOff.length;
+    explorer = Math.min(100, (offRoadTop3 / T.techoOffroad) * 100);
+  }
 
   const calibrating = valid.length < MIN_RUTAS;
-  const scores = { climbing, endurance, speed, power, consistency };
+  const scores = { climbing, endurance, speed, power, consistency, explorer };
   const archetype = clasificar(calibrating, scores, valid);
 
   // Feed para la UI: 12 válidos más recientes + 5 excluidos.
@@ -336,6 +379,8 @@ export async function recalcularPerfil(userId: string): Promise<PerfilSummary> {
       peak95: peak95 !== null ? Math.round(peak95 * 10) / 10 : null,
       activeWeeks,
       stopsPerKm: stopsWSum > 0 ? Math.round((stopsKmSum / stopsWSum) * 10) / 10 : null,
+      offRoadTop3: offRoadTop3 !== null ? Math.round(offRoadTop3 * 10) / 10 : null,
+      estWatts,
     },
     rides: ridesOut,
   };
@@ -349,6 +394,7 @@ export async function recalcularPerfil(userId: string): Promise<PerfilSummary> {
     speed,
     power,
     consistency,
+    explorer,
     validRides: valid.length,
     updatedAt: new Date(),
   };

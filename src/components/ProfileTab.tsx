@@ -12,6 +12,7 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import {
   AtSign,
+  Bike,
   LogOut,
   LogIn,
   UserPlus,
@@ -30,7 +31,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { authAction, deleteAccount, forgotPassword, googleAuthAction, changeUsername, logout, resetPassword, revokeOtherSessions, useMe } from "@/hooks/useMe";
 import { Checkbox } from "@/components/ui/checkbox";
-import { isOfflineMode } from "@/lib/offlineAuth";
+import { isOfflineMode, offlineUpdateProfile } from "@/lib/offlineAuth";
+import { DEFAULT_BIKE_KG, DEFAULT_RIDER_KG, getRideWeights, hydrateWeightsFromAccount, setRideWeights } from "@/lib/rideWeights";
 import { manualSync, syncStore } from "@/lib/cloudSync";
 import { CONTACT_WHATSAPP } from "@/lib/proConfig";
 import { nativeGoogleSignIn, nativeGoogleSignOut } from "@/lib/googleAuth";
@@ -103,6 +105,46 @@ export default function ProfileTab() {
   const [userBusy, setUserBusy] = useState(false);
   const [userMsg, setUserMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [delStage, setDelStage] = useState<"idle" | "confirm" | "busy">("idle");
+
+  // --- Mi bici · pesos (v1.13.17): watts estimados en subida >4% ---
+  const [pesoR, setPesoR] = useState(String(DEFAULT_RIDER_KG));
+  const [pesoB, setPesoB] = useState(String(DEFAULT_BIKE_KG));
+  const [pesoMsg, setPesoMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  // Hidratación: los pesos guardados en el teléfono mandan; si aún no
+  // hay ninguno y la cuenta trae respaldo, se adopta (rideWeights).
+  useEffect(() => {
+    if (!me) return;
+    const w = getRideWeights();
+    setPesoR(String(w.riderKg));
+    setPesoB(String(w.bikeKg));
+    hydrateWeightsFromAccount(me.user);
+  }, [me?.user.email]); // eslint-disable-line react-hooks/exhaustive-deps
+  const guardarPesos = () => {
+    const w = setRideWeights(Number(pesoR.replace(",", ".")), Number(pesoB.replace(",", ".")));
+    if (!w) {
+      setPesoMsg({ ok: false, text: t("pf.pesoError") });
+      return;
+    }
+    setPesoR(String(w.riderKg));
+    setPesoB(String(w.bikeKg));
+    const patch = { riderWeightKg: w.riderKg, bikeWeightKg: w.bikeKg };
+    try {
+      if (isOfflineMode()) {
+        // APK: cuenta local + op en el outbox (PUT /api/me al sincronizar).
+        offlineUpdateProfile(patch);
+      } else {
+        void fetch("/api/me", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(patch),
+        });
+      }
+    } catch {
+      // sin conexión: los pesos ya quedaron en el teléfono
+    }
+    setPesoMsg({ ok: true, text: t("pf.pesoOk") });
+    setTimeout(() => setPesoMsg(null), 6000);
+  };
 
   // --- Olvidé mi contraseña ---
   // Server: paso 1 pide el código (lo entrega soporte por WhatsApp tras
@@ -728,6 +770,54 @@ export default function ProfileTab() {
             role="status"
           >
             {userMsg.text}
+          </p>
+        )}
+      </Card>
+
+      {/* Mi bici · pesos (v1.13.17): alimentan los watts estimados en
+          subida >4% del Perfil Ciclista. El valor vive en el teléfono
+          (rideWeights); la cuenta lo respalda por si cambia de teléfono. */}
+      <Card className="bg-card/80 border-border p-4">
+        <div className="flex items-start gap-3 mb-3">
+          <Bike className="h-5 w-5 text-emerald-600 dark:text-emerald-400 mt-0.5 shrink-0" />
+          <div className="text-sm text-muted-foreground">
+            <p className="font-medium text-foreground">{t("pf.pesoTitulo")}</p>
+            <p className="mt-1 leading-relaxed">{t("pf.pesoIntro")}</p>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <Label htmlFor="peso-ciclista" className="text-[11px] text-muted-foreground">{t("pf.pesoCiclista")}</Label>
+            <Input
+              id="peso-ciclista"
+              inputMode="decimal"
+              value={pesoR}
+              onChange={(e) => setPesoR(e.target.value)}
+              className="bg-card border-border mt-1"
+              aria-label={t("pf.pesoCiclista")}
+            />
+          </div>
+          <div>
+            <Label htmlFor="peso-bici" className="text-[11px] text-muted-foreground">{t("pf.pesoBici")}</Label>
+            <Input
+              id="peso-bici"
+              inputMode="decimal"
+              value={pesoB}
+              onChange={(e) => setPesoB(e.target.value)}
+              className="bg-card border-border mt-1"
+              aria-label={t("pf.pesoBici")}
+            />
+          </div>
+        </div>
+        <Button variant="outline" size="sm" className="mt-3 h-8 border-border px-3 text-[12px]" onClick={guardarPesos}>
+          {t("pf.pesoGuardar")}
+        </Button>
+        {pesoMsg && (
+          <p
+            className={`mt-2 text-xs ${pesoMsg.ok ? "text-emerald-700 dark:text-emerald-300" : "text-red-600 dark:text-red-400"}`}
+            role="status"
+          >
+            {pesoMsg.text}
           </p>
         )}
       </Card>

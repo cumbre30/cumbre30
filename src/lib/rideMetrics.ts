@@ -14,7 +14,14 @@
  *   · llano:           |pendiente| ≤ 1.5 %
  *   · subida (VAM):    pendiente > 4 %   (grupos con ≥ 3 m de ascenso)
  *   · antitrampa:      > 55 km/h sostenido / > 28 km/h en pendiente > 6 %
+ *
+ * Fase 2 (v1.13.17): con los pesos del conjunto (ciclista + bici) estima
+ * los watts SOLO en tramos de subida > 4 % — ahí la gravedad domina
+ * (P ≈ m·g·v·pendiente) y la estimación sin sensor de potencia es
+ * honesta; en llano la resistencias del aire/rodadura dominan y el
+ * error sería grande, así que no se reporta.
  */
+import { DEFAULT_BIKE_KG, DEFAULT_RIDER_KG, type RideWeights } from "@/lib/rideWeights";
 
 /** Punto del track (misma forma que TrackPt de history.ts, sin acoplar). */
 type TrackSample = [number, number, number, number];
@@ -41,11 +48,30 @@ export type RideMetrics = {
   over55StreakSec: number;
   /** Media en pendiente > 6 % en movimiento (antitrampa). null sin datos. */
   climb6AvgKmh: number | null;
+  /** Watts estimados en subida >4% (media ponderada por tiempo; modelo
+   *  gravedad + rodamiento + aire con los pesos del conjunto). null si
+   *  hubo < 30 s subiendo (ruido). Los km off-road/netKm llegan aparte
+   *  (rideOffroad augment): se agregan como campos opcionales. */
+  estWattsClimb: number | null;
+  /** Km sobre red clasificada off-road (path/track). Solo si la red de
+   *  navegación estaba disponible al cerrar el ride. */
+  offRoadKm?: number | null;
+  /** Km del track que cayeron sobre la red (denominador del eje
+   *  Exploración: sin cobertura de red no se evalúa el eje). */
+  netKm?: number | null;
   /** Puntos de track usados (telemetría del muestreo). */
   samples: number;
 };
 
 const EARTH_R = 6371000; // metros
+
+// Modelo de potencia en subida (fase 2): gravedad + rodamiento + aire.
+const G = 9.80665; // m/s²
+const CRR = 0.005; // coef. de rodadura (asfalto)
+const RHO = 1.225; // densidad del aire kg/m³
+const CDA = 0.45; // área efectiva m² (manos en manillar)
+const WATTS_SEG_MAX = 2000; // techo por segmento (glitch de GPS)
+const WATTS_MIN_SEC = 30; // menos de esto subiendo: ruido → null
 
 /** Distancia haversine entre dos puntos (m). */
 function distM(lat1: number, lon1: number, lat2: number, lon2: number): number {
@@ -76,13 +102,20 @@ const r1 = (v: number | null): number | null => (v === null ? null : Math.round(
 
 /**
  * Deriva las métricas del perfil desde el track del ride.
+ * `weights`: pesos del conjunto (ciclista + bici); si no llegan se usan
+ * los defaults 75/12 kg (estándar del sector).
  * Devuelve null si no hay track aprovechable (rides demo o muy cortos):
  * esos rides siguen contando para Resistencia/Constancia con los
  * totales del resumen, pero no aportan ejes de velocidad/explosividad.
  */
-export function computeRideMetrics(track: TrackSample[]): RideMetrics | null {
+export function computeRideMetrics(
+  track: TrackSample[],
+  weights: RideWeights = { riderKg: DEFAULT_RIDER_KG, bikeKg: DEFAULT_BIKE_KG },
+): RideMetrics | null {
   const n = track.length;
   if (n < 3) return null;
+
+  const masaKg = weights.riderKg + weights.bikeKg;
 
   let movingSec = 0;
   let flatKmM = 0; // metros en llano
@@ -94,6 +127,9 @@ export function computeRideMetrics(track: TrackSample[]): RideMetrics | null {
   let climbSec = 0;
   let climb6Sec = 0;
   let climb6VM = 0;
+  // Watts en subida: acumuladores por segmento (p·dt / dt).
+  let wattsVMSum = 0;
+  let wattsSec = 0;
   let stopCount = 0;
   let secOver55 = 0;
   let over55Streak = 0;
@@ -149,6 +185,16 @@ export function computeRideMetrics(track: TrackSample[]): RideMetrics | null {
       if (slope !== null && slope > 4 && dAlt > 0) {
         grupoSubM += dAlt;
         grupoSubSec += dt;
+        // Watts estimados del segmento (subida >4%): gravedad domina,
+        // pero rodamiento y aire van incluidos para no sobreestimar.
+        const vms = d / dt;
+        const grade = dAlt / d;
+        const p =
+          masaKg * G * vms * grade + CRR * masaKg * G * vms + 0.5 * RHO * CDA * vms * vms * vms;
+        if (p > 0 && p < WATTS_SEG_MAX) {
+          wattsVMSum += p * dt;
+          wattsSec += dt;
+        }
       } else {
         // fin del grupo de subida: histéresis de 3 m
         if (grupoSubM >= 3) {
@@ -202,6 +248,7 @@ export function computeRideMetrics(track: TrackSample[]): RideMetrics | null {
     secOver55: Math.round(secOver55),
     over55StreakSec: Math.round(over55Best),
     climb6AvgKmh: climb6Sec >= 30 ? r1(climb6VM / climb6Sec) : null,
+    estWattsClimb: wattsSec >= WATTS_MIN_SEC ? Math.round(wattsVMSum / wattsSec) : null,
     samples: n,
   };
 }

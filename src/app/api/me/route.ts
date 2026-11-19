@@ -12,6 +12,7 @@ import { validateUsername, usernameLocked } from "@/lib/username";
 import { isPinId, type PinId } from "@/lib/pins";
 import { ACHIEVEMENT_BY_CODE, normalizeCodes, statsFromRides } from "@/lib/pins";
 import { corsHeaders, corsPreflight } from "@/lib/apiCors";
+import { asegurarTablasPerfil } from "@/lib/profileServer";
 
 /** Pines desbloqueados: el clásico + las recompensas de logros obtenidos. */
 export async function unlockedPins(userId: string): Promise<PinId[]> {
@@ -113,13 +114,40 @@ export async function PUT(req: Request) {
   if (!me) return NextResponse.json({ error: "Sin sesión" }, { status: 401, headers: cors });
 
   const body = (await req.json()) as Record<string, unknown>;
-  const data: Record<string, string | Date | null> = {};
+  const data: Record<string, string | Date | number | null> = {};
 
   // Datos de la bicicleta (campo presente → actualizar; "" → limpiar)
   for (const k of ["bikeBrand", "bikeType", "bikeModel", "bikeSize", "bikeColor"] as const) {
     if (k in body) {
       const s = typeof body[k] === "string" ? (body[k] as string).trim().slice(0, 40) : "";
       data[k] = s.length ? s : null;
+    }
+  }
+
+  // Pesos del conjunto (v1.13.17): respaldo en cuenta de los pesos que
+  // el dispositivo usa para estimar watts en subidas >4%. null = sin
+  // dato (el dispositivo queda con sus defaults). Rangos: ciclista
+  // 30–200 kg, bici 5–50 kg. Los pesos reales viven en el teléfono
+  // (lib/rideWeights): aquí solo se respaldan por si cambia de teléfono.
+  const conPesos = "riderWeightKg" in body || "bikeWeightKg" in body;
+  if (conPesos) {
+    // Autorreparo: crea las columnas si la BD aún no las tiene (v1.13.16
+    // no las creaba; el primer perfil las habría creado pero no hay orden
+    // garantizado entre Cuenta y Perfil).
+    await asegurarTablasPerfil();
+  }
+  for (const [k, min, max] of [
+    ["riderWeightKg", 30, 200],
+    ["bikeWeightKg", 5, 50],
+  ] as const) {
+    if (k in body) {
+      const v = body[k];
+      if (v === null || v === "") {
+        data[k] = null;
+      } else {
+        const n = typeof v === "number" ? v : Number(v);
+        data[k] = isFinite(n) && n >= min && n <= max ? Math.round(n * 10) / 10 : null;
+      }
     }
   }
 

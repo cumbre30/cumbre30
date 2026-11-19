@@ -57,6 +57,9 @@ async function main() {
       secOver55: 0,
       over55StreakSec: 0,
       climb6AvgKmh: null,
+      estWattsClimb: 210,
+      offRoadKm: 5,
+      netKm: 10,
     },
   }));
   let okPost = 0;
@@ -95,6 +98,38 @@ async function main() {
   check("3d. climbing > endurance + 15", (data.perfil?.scores.climbing ?? 0) - (data.perfil?.scores.endurance ?? 0) >= 15, `c=${data.perfil?.scores.climbing?.toFixed(1)} e=${data.perfil?.scores.endurance?.toFixed(1)}`);
   check("3e. feed con 8 rides", data.perfil?.rides.length === 8, `${data.perfil?.rides.length}`);
   check("3f. minRides=5 expuesto", data.minRides === 5, `${data.minRides}`);
+  // fase 2: el eje EXPLORER llega por la API con los nuevos campos
+  check("3g. extras offRoadTop3 = 5 (API guarda offRoadKm/netKm)", (data.perfil?.extras.offRoadTop3 as number | null) === 5, `offRoadTop3=${data.perfil?.extras.offRoadTop3}`);
+  check("3h. extras estWatts = 210 (API guarda estWattsClimb)", (data.perfil?.extras.estWatts as number | null) === 210, `estWatts=${data.perfil?.extras.estWatts}`);
+  check("3i. explorer = 5/20 techo → 25", Math.abs((data.perfil?.scores.explorer ?? -1) - 25) < 0.5, `explorer=${data.perfil?.scores.explorer}`);
+
+  // 5. Remote Config de techos (fase 2)
+  const ADMIN = process.env.ADMIN_KEY ?? "test-admin-key";
+  const gc = await fetch(`${BASE}/api/profile-config`);
+  const cfg = (await gc.json()) as { techos?: Record<string, number> };
+  check("5a. GET config 200 con defaults", gc.ok && cfg.techos?.techoOffroad === 20, `techoOffroad=${cfg.techos?.techoOffroad}`);
+  const put1 = await fetch(`${BASE}/api/profile-config`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ techoOffroad: 25 }),
+  });
+  check("5b. PUT sin admin key → 401", put1.status === 401, `status=${put1.status}`);
+  const put2 = await fetch(`${BASE}/api/profile-config`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json", "x-admin-key": ADMIN },
+    body: JSON.stringify({ techoOffroad: 25, techoMkm: 9999 }),
+  });
+  const cfg2 = (await put2.json()) as { guardado?: Record<string, number>; rechazado?: Record<string, string>; techos?: Record<string, number> };
+  check("5c. PUT con admin key guarda y rechaza fuera de rango", put2.ok && cfg2.guardado?.techoOffroad === 25 && cfg2.rechazado?.techoMkm !== undefined, `g=${JSON.stringify(cfg2.guardado)} r=${JSON.stringify(cfg2.rechazado)}`);
+  // el motor ya recalcula con el techo nuevo: 5/25 → 20
+  const gp2 = await fetch(`${BASE}/api/profile`, { headers: { Cookie: cookie } });
+  const data2 = (await gp2.json()) as { perfil?: { scores: Record<string, number | null> } };
+  check("5d. el perfil usa el techo remoto (5/25 → 20)", Math.abs((data2.perfil?.scores.explorer ?? -1) - 20) < 0.5, `explorer=${data2.perfil?.scores.explorer}`);
+  await fetch(`${BASE}/api/profile-config`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json", "x-admin-key": ADMIN },
+    body: JSON.stringify({ techoOffroad: 20 }),
+  });
 
   // 4. sin sesión → 401
   const anon = await fetch(`${BASE}/api/profile`);

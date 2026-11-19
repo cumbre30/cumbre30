@@ -29,6 +29,9 @@ type LocalUser = {
   bikeModel: string | null;
   bikeSize: string | null;
   bikeColor: string | null;
+  // Pesos del conjunto (v1.13.17): respaldo local de rideWeights.
+  riderWeightKg: number | null;
+  bikeWeightKg: number | null;
   achievements: { code: string; unlockedAt: string }[];
   createdAt: string;
 };
@@ -108,6 +111,8 @@ export async function localRegister(payload: { email?: string; username?: string
     bikeModel: null,
     bikeSize: null,
     bikeColor: null,
+    riderWeightKg: null,
+    bikeWeightKg: null,
     achievements: [],
     createdAt: new Date().toISOString(),
   };
@@ -167,6 +172,21 @@ export function localUpdateMe(body: Record<string, unknown>): { ok: true; select
     if (k in body) {
       const s = typeof body[k] === "string" ? (body[k] as string).trim().slice(0, 40) : "";
       user[k] = s.length ? s : null;
+    }
+  }
+  // Pesos del conjunto (v1.13.17): mismos rangos que PUT /api/me.
+  for (const [k, min, max] of [
+    ["riderWeightKg", 30, 200],
+    ["bikeWeightKg", 5, 50],
+  ] as const) {
+    if (k in body) {
+      const v = body[k];
+      if (v === null || v === "") {
+        user[k] = null;
+      } else {
+        const n = typeof v === "number" ? v : Number(v);
+        user[k] = isFinite(n) && n >= min && n <= max ? Math.round(n * 10) / 10 : null;
+      }
     }
   }
   if (typeof body.selectedPin === "string" && isPinId(body.selectedPin)) {
@@ -245,6 +265,8 @@ export function localMe(): MeData | null {
       bikeModel: user.bikeModel,
       bikeSize: user.bikeSize,
       bikeColor: user.bikeColor,
+      riderWeightKg: user.riderWeightKg ?? null,
+      bikeWeightKg: user.bikeWeightKg ?? null,
     },
     stats: {
       totalKm: Number(stats.totalKm.toFixed(1)),
