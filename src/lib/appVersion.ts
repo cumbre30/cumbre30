@@ -6,7 +6,7 @@
 // archivo + android/app/build.gradle (versionCode/versionName).
 // ============================================================
 
-export const APP_VERSION = "1.13.9";
-export const APP_VERSION_CODE = 63;
-export const APK_FILE_NAME = "cumbre30-v1.13.9-code63.apk";
+export const APP_VERSION = "1.13.10";
+export const APP_VERSION_CODE = 64;
+export const APK_FILE_NAME = "cumbre30-v1.13.10-code64.apk";
 export const APK_SIZE_MB = 53;

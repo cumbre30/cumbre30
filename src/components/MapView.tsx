@@ -899,11 +899,12 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
   // (destino + ruta + ride grabándose) el mapa gira al rumbo y sigue
   // el pin (la ruta se ve recta, como en Waze). Sin ride: vista libre.
   const navOn = !!(dest && route && route.coords.length > 1 && track.length > 1);
-  const { modo: modoCamara, mapBearing, setModo: setModoCamara } = useCamaraRumbo({ activa: navOn, heading, route, position });
+  const { modo: modoCamara, mapBearing, routeBearing, setModo: setModoCamara } = useCamaraRumbo({ activa: navOn, heading, route, position });
   const rotado = mapBearing !== 0;
-  // v1.12.10: la flecha del pin mira SIEMPRE hacia donde mira la cámara
-  // (sin course GPS apunta como el rumbo de la cámara, no al norte fijo).
-  const rumboPin = heading ?? (modoCamara === "rumbo" ? mapBearing : null);
+  // v1.13.10: la flecha del pin apunta al rumbo de la RUTA si la hay —
+  // el mismo rumbo que lleva la cámara (route-first, unificado con el
+  // minimapa): en rumbo se ve hacia ARRIBA; course GPS sólo sin ruta.
+  const rumboPin = routeBearing ?? heading ?? (modoCamara === "rumbo" ? mapBearing : null);
   // Capas del mapa (arquitectura GPX): visibilidad por capa/ruta
   const [capasVis, setCapasVis] = useState<Record<string, boolean>>({ accesos: true, senderos: true, "paseo-met": true, sectores: true });
   const [focus, setFocus] = useState<Focus>(null);

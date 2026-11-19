@@ -85,8 +85,14 @@ export function useCamaraRumbo({
   useEffect(() => {
     let target: number | null = null;
     if (modo === "rumbo") {
-      if (heading !== null) target = heading;
-      else if (segBearing !== null) target = segBearing;
+      // v1.13.10: LA RUTA manda (pedido del cliente: «rumbo = el trazado
+      // de la ruta queda hacia arriba»). El course GPS pasa a respaldo:
+      // el WebView del APK entrega heading viejo/basura con el ciclista
+      // parado y la cámara giraba a cualquier lado; el rumbo del tramo
+      // más cercano es estable y siempre correcto. Sin ruta queda
+      // course-up (ride libre), como antes.
+      if (segBearing !== null) target = segBearing;
+      else if (heading !== null) target = heading;
     } else {
       target = 0;
     }
@@ -105,5 +111,5 @@ export function useCamaraRumbo({
     }
   }, [modo, heading, segBearing, pasoEstado]);
 
-  return { modo, mapBearing, setModo };
+  return { modo, mapBearing, routeBearing: segBearing, setModo };
 }

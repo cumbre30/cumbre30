@@ -193,9 +193,10 @@ export default function LeafletNav({
   // navegación O rumbo GPS conocido — la ruta se ve recta y el pin queda
   // fijo al centro; norte arriba cuando todo está en reposo (exploración).
   // v1.13.6: el MODO lo fija la brújula única del minimapa (modoForzado);
-  // el hook sigue calculando el bearing según heading/ruta dentro de cada
-  // modo (rumbo = gira con la marcha, norte = 0 fijo).
-  const { modo, mapBearing } = useCamaraRumbo({
+  // el hook calcula el bearing dentro de cada modo: v1.13.10 en RUMBO
+  // manda el rumbo de la RUTA (el trazado queda hacia arriba, pedido del
+  // cliente) y el course GPS es respaldo; norte = 0 fijo.
+  const { modo, mapBearing, routeBearing } = useCamaraRumbo({
     activa: onRoute || heading !== null,
     heading,
     route: onRoute ? route : null,
@@ -208,11 +209,13 @@ export default function LeafletNav({
   useEffect(() => {
     onBearing?.(mapBearing);
   }, [mapBearing, onBearing]);
-  // v1.12.10: la flecha del puck mira SIEMPRE hacia donde mira la cámara.
-  // Sin course GPS (parado/interior) el mapa gira al rumbo de la ruta; si
-  // la flecha siguiera en 0° (norte del mapa) quedaría viendo hacia un
-  // lado (el cliente la vio a la izquierda con la ruta hacia el este).
-  const rumboPin = heading ?? (modo === "rumbo" ? mapBearing : null);
+  // v1.13.10: la flecha del puck apunta al rumbo de la RUTA si la hay —
+  // el mismo rumbo que lleva la cámara: en modo rumbo se ve hacia ARRIBA
+  // y en norte apunta hacia donde corre la ruta sobre el mapa norte-
+  // arriba. Course GPS sólo sin ruta (ride libre). Antes heading ganaba
+  // siempre y en el APK la flecha «apuntaba a cualquier lado» (course
+  // viejo/basura con el ciclista parado).
+  const rumboPin = routeBearing ?? heading ?? (modo === "rumbo" ? mapBearing : null);
 
   // Segmentos de la ruta (v1.13.1): memoizados fuera del render para que
   // los ticks de brújula no recalculen groupSegments sobre cientos de

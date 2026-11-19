@@ -560,11 +560,16 @@ function NavCanvas(props: NavCanvasProps) {
         const lons = props.route.coords.map((c) => c.lon);
         const lats = props.route.coords.map((c) => c.lat);
         const b0 = props.route.coords.length > 1 ? bearingOf(props.route.coords[0], props.route.coords[1]) : 0;
+        // v1.13.10: en modo NORTE la cámara va norte-arriba SIEMPRE.
+        // Este encuadre sin fix ignoraba camMode y quedaba girado al
+        // rumbo inicial del trazado: en la web sin GPS, «norte apunta
+        // hacia un lado» (reporte del cliente).
+        const bF = props.camMode === "norte" ? 0 : b0;
         map.easeTo({
           center: [(Math.min(...lons) + Math.max(...lons)) / 2, (Math.min(...lats) + Math.max(...lats)) / 2],
           zoom: 12.9,
           pitch: 0,
-          bearing: b0,
+          bearing: bF,
           duration: 700,
         });
       }
@@ -578,16 +583,19 @@ function NavCanvas(props: NavCanvasProps) {
     const anchorBottom = Math.round(h * (props.onRoute ? 0.3 : 0.34));
     const padding = { top: Math.max(0, Math.round(h) - anchorBottom * 2), bottom: 0, left: 0, right: 0 };
 
-    // rumbo: curso del GPS → RUMBO DE LA RUTA (routeBearing, calculado
-    // arriba con el vértice más cercano) → mantener actual.
-    // v1.13.3: en modo «norte» (Norte arriba) el mapa NO gira: rumbo 0.
+    // rumbo: RUMBO DE LA RUTA (routeBearing) → curso del GPS → mantener
+    // actual. v1.13.10: LA RUTA manda (pedido del cliente: «rumbo = el
+    // trazado de la ruta queda hacia arriba») — el course del WebView del
+    // APK entrega valores viejos/basura con el ciclista parado y la
+    // cámara giraba a cualquier lado. Sin ruta queda course-up (ride
+    // libre). En modo «norte» el mapa NO gira: rumbo 0.
     let b: number;
     if (props.camMode === "norte") {
       b = 0;
-    } else if (props.heading !== null) {
-      b = props.heading;
     } else if (routeBearing !== null) {
       b = routeBearing;
+    } else if (props.heading !== null) {
+      b = props.heading;
     } else {
       b = map.getBearing();
     }
@@ -638,12 +646,16 @@ function NavCanvas(props: NavCanvasProps) {
   //    ahora cae al RUMBO DE LA RUTA (routeBearing). Con la cámara
   //    girada al mismo rumbo, la flecha se ve hacia ARRIBA, estilo
   //    Waze (misma idea que rumboPin en LeafletNav v1.12.10).
+  // v1.13.10: LA RUTA manda sobre el course GPS también aquí — el mismo
+  // orden que la cámara y LeafletNav: en rumbo la flecha va hacia arriba
+  // y en norte apunta hacia donde corre la ruta sobre el mapa norte-
+  // arriba. En el APK el course viejo/basura la dejaba «a cualquier lado».
   useEffect(() => {
     if (!ready) return;
-    const hdg = props.heading ?? routeBearing ?? 0;
+    const hdg = routeBearing ?? props.heading ?? 0;
     const arrow = arrowRef.current;
     if (arrow) arrow.style.transform = `rotate(${hdg}deg)`;
-  }, [ready, props.heading, routeBearing, props.position, props.userPin]);
+  }, [ready, routeBearing, props.heading, props.position, props.userPin]);
 
   // sin posición viva el puck se retira (no dejar un pin congelado en
   // la última esquina: con la ruta activa la vista general muestra la
@@ -1266,23 +1278,26 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
         </div>
       )}
 
-      {/* Controles flotantes */}
-      <Controls
-        className="absolute top-2 right-2 z-[500] flex flex-col gap-1.5"
-        onLocate={locate}
-        hasDest={!!dest}
-        onClear={() => nav.setDestination(null)}
-      />
+      {/* Controles flotantes + brújula: UNA columna a la derecha
+          (v1.13.10 — antes ambos anclaban a top-2 right-2 y la brújula
+          se solapaba con el botón localizarme, reporte del cliente). */}
+      <div className="absolute top-2 right-2 z-[500] flex flex-col items-end gap-1.5">
+        <Controls
+          className="flex flex-col items-end gap-1.5"
+          onLocate={locate}
+          hasDest={!!dest}
+          onClear={() => nav.setDestination(null)}
+        />
 
-      {/* Brújula Track Up / Norte arriba (v1.13.3, mockup ciclocomputador):
-          arriba a la derecha, a la altura de la leyenda del lado opuesto
-          (v1.13.9: el banner turn-by-turn salió del mapa). */}
-      <CompassButton
-        className={cn(compassCls, "absolute top-2 right-2 z-[500]")}
-        bearing={needle}
-        mode={camMode}
-        onToggle={toggleCam}
-      />
+        {/* Brújula Track Up / Norte arriba (v1.13.3, mockup ciclocomputador):
+            bajo los botones, misma columna (v1.13.10). */}
+        <CompassButton
+          className={compassCls}
+          bearing={needle}
+          mode={camMode}
+          onToggle={toggleCam}
+        />
+      </div>
 
       {/* Hoja de reporte rápido (flota sobre el mapa; el botón que la
           abre vive en la barra de abajo, fuera del minimapa) */}
