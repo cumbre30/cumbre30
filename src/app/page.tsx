@@ -2,19 +2,21 @@
 
 // ============================================================
 // Cumbre30 - arquitectura de navegación del rediseño (brief §1):
-//   · Bottom nav con 3 destinos: Ride · Explorar · Acceso
-//     (el QR se usa en la portada: siempre a un toque).
+//   · Bottom nav con 4 destinos: Ride · Explorar · Acceso · Perfil
+//     (el QR se usa en la portada: siempre a un toque; «Perfil» es
+//     el Perfil Ciclista desde v1.13.16 — la pantalla de datos y
+//     pagos se llama «Cuenta» y vive en el menú lateral).
 //   · Menú lateral con 4 zonas: CUMBRE30 PRO · Mi actividad ·
 //     Cuenta · Plan actual.
 //   · Header compacto: marca + estado GPS + plan + menú.
 //   · El control Demo/GPS, pitidos y voz viven en Configuración.
 // Todo lo que ya funcionaba se conserva: motor de ride, navegación
-// (computeRoute), historial, QR, premios, perfil, licencia Pro.
+// (computeRoute), historial, QR, premios, licencia Pro.
 // ============================================================
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
-import { Bike, Map as MapIcon, QrCode } from "lucide-react";
+import { Activity, Bike, Map as MapIcon, QrCode } from "lucide-react";
 import { RideView } from "@/components/RideView";
 import { HistoryTab } from "@/components/HistoryTab";
 import { VehicleConfirmModal } from "@/components/VehicleConfirmModal";
@@ -93,8 +95,18 @@ const ChallengesTab = dynamic(() => import("@/components/ChallengesTab"), {
   ),
 });
 
-/** Destinos de la barra inferior (los 3 del brief). */
-type TabScreen = "ride" | "explorar" | "acceso";
+const PerfilTab = dynamic(() => import("@/components/PerfilTab").then((m) => ({ default: m.PerfilTab })), {
+  ssr: false,
+  loading: () => (
+    <Loading
+      k="pg.cargandoCiclista"
+      className="h-40 rounded-xl border border-border bg-card flex items-center justify-center"
+    />
+  ),
+});
+
+/** Destinos de la barra inferior (los 4 del brief + Perfil Ciclista). */
+type TabScreen = "ride" | "explorar" | "acceso" | "ciclista";
 /** Sub-pantallas accesibles desde el menú lateral. */
 type SubScreen = MenuScreen; // historial | stats | premios | amigos | perfil | config | ayuda | planes
 type Screen = TabScreen | SubScreen;
@@ -363,7 +375,11 @@ export default function Home() {
 
         {screen === "acceso" && <Wallet />}
 
-        {screen !== "ride" && screen !== "explorar" && screen !== "acceso" && (
+        {/* Perfil Ciclista (v1.13.16): 4ª pestaña. Sin sesión muestra la
+            invitación a Cuenta — el perfil no se inventa datos. */}
+        {screen === "ciclista" && <PerfilTab onGoCuenta={() => go("perfil")} />}
+
+        {screen !== "ride" && screen !== "explorar" && screen !== "acceso" && screen !== "ciclista" && (
           <section aria-label={t(SUB_KEYS[screen])}>
             <h2 className="mb-3 text-xl font-bold tracking-tight text-foreground">{t(SUB_KEYS[screen])}</h2>
             {screen === "planes" && <PlanesTab />}
@@ -406,16 +422,18 @@ export default function Home() {
         <PopupReglaRuta decision={nav.decision} onElegir={nav.resolverDecision} onCancelar={nav.cancelarDecision} />
       </main>
 
-      {/* Barra inferior: 3 destinos (Ride · Explorar · Acceso) */}
+      {/* Barra inferior: 4 destinos (Ride · Explorar · Acceso · Perfil) */}
       <nav
         aria-label={t("pg.navegacionAria")}
         className="fixed bottom-0 inset-x-0 z-40 border-t border-border bg-background/95 backdrop-blur pb-[env(safe-area-inset-bottom)]"
       >
-        <div className="mx-auto grid max-w-md grid-cols-3 px-3 py-1.5">
+        <div className="mx-auto grid max-w-md grid-cols-4 px-3 py-1.5">
           <BottomTab icon={<Bike className="h-[22px] w-[22px]" />} label={t("nav.ride")} on={screen === "ride"} onClick={() => go("ride")} />
           <BottomTab icon={<MapIcon className="h-[22px] w-[22px]" />} label={t("nav.explorar")} on={screen === "explorar"} onClick={() => go("explorar")} />
           {/* "acceso" es el id interno histórico; visible: credencial Pedalea Seguro */}
           <BottomTab icon={<QrCode className="h-[22px] w-[22px]" />} label={t("nav.credencial")} on={screen === "acceso"} onClick={() => go("acceso")} />
+          {/* Perfil Ciclista: id interno "ciclista" (el "perfil" del menú es Cuenta) */}
+          <BottomTab icon={<Activity className="h-[22px] w-[22px]" />} label={t("nav.perfil")} on={screen === "ciclista"} onClick={() => go("ciclista")} />
         </div>
       </nav>
 

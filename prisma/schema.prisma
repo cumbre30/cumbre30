@@ -34,12 +34,13 @@ model User {
   bikeColor         String?
   createdAt         DateTime  @default(now())
 
-  sessions     Session[]
-  rides        Ride[]
-  incidents    Incident[]
-  achievements Achievement[]
-  initiated    Friendship[]  @relation("friendInitiator")
-  received     Friendship[]  @relation("friendReceiver")
+  sessions       Session[]
+  rides          Ride[]
+  incidents      Incident[]
+  achievements   Achievement[]
+  cyclistProfile CyclistProfile?
+  initiated      Friendship[]  @relation("friendInitiator")
+  received       Friendship[]  @relation("friendReceiver")
 }
 
 model Session {
@@ -106,7 +107,62 @@ model Ride {
   overLimitSec Float
   createdAt    DateTime @default(now())
 
+  // Métricas derivadas del track (Perfil Ciclista, v1.13.16): las
+  // calcula el DISPOSITIVO al cerrar el ride (el track crudo nunca
+  // sale del teléfono) y el servidor las guarda 1:1 con el ride.
+  metric RideMetric?
+
   @@index([userId, dateISO])
+}
+
+// ---------- Perfil Ciclista (fase 1, v1.13.16) ----------
+// Métricas derivadas por ride. Idempotente por rideId (1:1). Un ride
+// sin metric (anteriores a v1.13.16) sigue contando para los ejes que
+// no la necesitan (Resistencia, Constancia y la densidad de desnivel
+// de Escalada, vía Ride.gainM).
+model RideMetric {
+  rideId          String   @id
+  ride            Ride     @relation(fields: [rideId], references: [id], onDelete: Cascade)
+  movingSec       Float
+  // Velocidad: P95 de tramos en llano (|pendiente| ≤ 1.5%) y media
+  // ponderada por km en llano. Denominadores del perfil: 52 / 36 km/h.
+  peak15sKmh      Float?
+  flatAvgKmh      Float?
+  flatKm          Float?
+  // Escalada: metros ganados y segundos en movimiento con pendiente >4%
+  // (grupos ≥3 m con histéresis) → VAM = m·3600/s si hubo ≥60 s subiendo.
+  climbGainM      Float?
+  climbSec        Float?
+  vamMh           Float?
+  // Paradas: grupos a <2.5 km/h por más de 15 s (base del arquetipo URBAN).
+  stopCount       Int?
+  // Antitrampa: tiempo sobre 55 km/h, tramo continuo más largo sobre ese
+  // umbral y media en pendientes >6% (>28 km/h = vehículo → ride inválido).
+  secOver55       Float?
+  over55StreakSec Float?
+  climb6AvgKmh    Float?
+  // Marcado false por el motor de perfil si la física no calza con una bici.
+  isValid         Boolean  @default(true)
+  createdAt       DateTime @default(now())
+}
+
+// Perfil materializado del ciclista (lectura rápida para la UI): 5 ejes
+// 0–100 + arquetipo. Se recalcula al guardar cada ride (y al corregir el
+// flag motorizado) con ventana móvil de 90 días y decaimiento exponencial
+// (vida media ~45 días). Archetypes: CALIBRATING, URBAN, CLIMBER,
+// ENDURANCE, TIME_TRIALIST, SPRINTER, ALL_ROUNDER.
+model CyclistProfile {
+  userId      String   @id
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  archetype   String
+  calibrating Boolean  @default(true)
+  climbing    Float?
+  endurance   Float?
+  speed       Float?
+  power       Float?
+  consistency Float?
+  validRides  Int      @default(0)
+  updatedAt   DateTime @updatedAt
 }
 
 model Incident {

@@ -18,7 +18,8 @@ import { enqueueOp } from "@/lib/cloudSync";
 
 const AUTH_JSON = { "Content-Type": "application/json" };
 
-/** Payload del ride para el servidor (sin pista GPS ni correo local). */
+/** Payload del ride para el servidor (sin pista GPS ni correo local);
+ *  sí incluye las métricas derivadas del Perfil Ciclista. */
 function rideToPayload(s: RideSummary): Record<string, unknown> {
   return {
     id: s.id,
@@ -33,6 +34,7 @@ function rideToPayload(s: RideSummary): Record<string, unknown> {
     gainM: s.gainM,
     overLimitSec: s.overLimitSec,
     motorized: s.motorized === true,
+    metrics: s.metrics ?? null,
   };
 }
 

@@ -20,6 +20,7 @@ import { t, vozHoraCierre, vozHoras } from "@/lib/i18n";
 import { RideNative, isNativeApp, type PluginListenerHandleLike } from "@/lib/rideNative";
 import { RideSimulator } from "@/lib/simulation";
 import { saveRide, type RideSummary, type TrackPt } from "@/lib/history";
+import { computeRideMetrics } from "@/lib/rideMetrics";
 import { isMotorizedRide, VEH_LIMIT_KMH, VEH_STREAK_SEC, VEH_TOTAL_SEC } from "@/lib/vehicleDetect";
 import { syncRideAfterSave, markRideAsBike } from "@/lib/sync";
 
@@ -819,6 +820,11 @@ export function useRideEngine() {
           movingSec: e.movingSec,
           maxKmh: maxRef.current,
         });
+      // Perfil Ciclista (v1.13.16): métricas derivadas del track, calculadas
+      // aquí en el dispositivo (el track crudo nunca sale del teléfono).
+      // Los rides demo no generan métricas: no cuentan para el perfil.
+      const metrics =
+        source === "gps" && e.trackPts.length > 2 ? computeRideMetrics(e.trackPts) : null;
       const summary: RideSummary = {
         id: crypto.randomUUID(),
         dateISO: new Date().toISOString(),
@@ -832,6 +838,7 @@ export function useRideEngine() {
         gainM: e.gain,
         overLimitSec: e.overSec,
         motorized: vehicleSuspect || undefined,
+        metrics: metrics ?? undefined,
         // Solo los viajes GPS guardan pista (los demo no exportan GPX).
         track: source === "gps" && e.trackPts.length > 1 ? e.trackPts : undefined,
       };

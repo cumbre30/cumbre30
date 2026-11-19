@@ -9,10 +9,9 @@
 //     la licencia va atada al correo de la cuenta.
 // ============================================================
 
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import {
   AtSign,
-  Share2,
   LogOut,
   LogIn,
   UserPlus,
@@ -42,7 +41,6 @@ import { usernameLocked } from "@/lib/username";
 import { exportarMisDatos } from "@/lib/exportDatos";
 import { FileDown } from "lucide-react";
 import { PINS, DEFAULT_PIN, RIDER_LEVELS, riderLevelForKm, type PinId } from "@/lib/pins";
-import { buildShareImage, sharePngBlob } from "@/lib/shareImage";
 import { PagosTab } from "@/components/PagosTab";
 import { SubTabs, type SubTabDef } from "@/components/SubTabs";
 import { t, useLang } from "@/lib/i18n";
@@ -252,33 +250,8 @@ export default function ProfileTab() {
     };
   }, [offline, mode]);
 
-  const share = useCallback(async () => {
-    if (!me) return;
-    setShareMsg(null);
-    try {
-      const pin = PINS[(me.user.selectedPin as PinId) ?? DEFAULT_PIN] ?? PINS[DEFAULT_PIN];
-      const blob = await buildShareImage({
-        headline: `${pin.emoji} @${me.user.username}`,
-        sub: t("pf.resumenSub"),
-        rows: [
-          { label: t("pf.kmRecorridos"), value: me.stats.totalKm.toFixed(1) },
-          { label: t("pf.ridesCompletados"), value: String(me.stats.rideCount) },
-          { label: t("pf.velMaxFila"), value: `${me.stats.maxKmh.toFixed(1)} km/h` },
-          { label: t("pf.desnivelFila"), value: `+${Math.round(me.stats.totalGainM)} m` },
-        ],
-      });
-      const res = await sharePngBlob(blob, "cumbre30-resumen.png", t("pf.shareResumen"));
-      setShareMsg(
-        res === "shared"
-          ? t("his.shareOk")
-          : t("his.shareDescargada")
-      );
-    } catch (e) {
-      if ((e as Error)?.name === "AbortError") return;
-      setShareMsg(t("his.errImagen"));
-    }
-    setTimeout(() => setShareMsg(null), 8000);
-  }, [me]);
+  // «Compartir perfil» se trasladó al Perfil Ciclista (4ª pestaña,
+  // v1.13.16): desde allí comparte la tarjeta de arquetipo + ejes.
 
   const submitUsername = async () => {
     setUserBusy(true);
@@ -593,15 +566,6 @@ export default function ProfileTab() {
             </div>
           </div>
           <div className="flex shrink-0 flex-col gap-1.5">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => void share()}
-              title={t("pf.compartirPerfilTitle")}
-              className="h-8 border-border px-2.5 text-[11px] text-muted-foreground hover:border-pink-600/50 hover:text-pink-600 dark:hover:text-pink-400"
-            >
-              <Share2 className="mr-1 h-3.5 w-3.5" /> {t("pf.compartirPerfil")}
-            </Button>
             <Button
               variant="outline"
               size="sm"

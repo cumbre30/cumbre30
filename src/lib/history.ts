@@ -7,6 +7,7 @@ export type TrackPt = [lat: number, lon: number, eleM: number, tsSec: number];
 
 import { isProActive } from "@/lib/proLicense";
 import { getTrack, putTrack } from "@/lib/idb";
+import type { RideMetrics } from "@/lib/rideMetrics";
 
 export type RideSummary = {
   id: string;
@@ -24,6 +25,10 @@ export type RideSummary = {
   overLimitSec: number;
   /** Pista GPS para export GPX - solo viajes grabados desde v1.5.0. */
   track?: TrackPt[];
+  /** Métricas derivadas para el Perfil Ciclista (v1.13.16): se calculan
+   *  en el dispositivo al cerrar el ride y suben con el resumen. Los
+   *  rides anteriores no la tienen y el perfil las compensa. */
+  metrics?: RideMetrics;
   /** Correo de la cuenta dueña del viaje. Sin correo = viaje local del dispositivo. */
   account?: string;
   /** True si el viaje se registró en vehículo motorizado (confirmado
