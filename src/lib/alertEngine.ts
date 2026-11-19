@@ -21,7 +21,7 @@ import { RideNative, isNativeApp } from "./rideNative";
 type TtsModule = typeof import("@capacitor-community/text-to-speech");
 type KeepAwakeModule = typeof import("@capacitor-community/keep-awake");
 
-type VoicePrefs = { enabled: boolean; soundEnabled: boolean; vibrationEnabled: boolean };
+type VoicePrefs = { enabled: boolean; soundEnabled: boolean; vibrationEnabled: boolean; voiceName: string | null; rate: number };
 
 /** true cuando la app corre dentro del WebView nativo (APK). */
 function isNative(): boolean {
@@ -58,7 +58,9 @@ class AlertEngine {
   private lastSpeakAt: Record<string, number> = {};
   private wakeLock: WakeLockSentinel | null = null;
   private nativeKeepAwake = false;
-  prefs: VoicePrefs = { enabled: true, soundEnabled: true, vibrationEnabled: true };
+  // v1.13.13: voiceName = voz elegida en Personalización (nombre del motor;
+  // null = automática por idioma) · rate = velocidad del habla.
+  prefs: VoicePrefs = { enabled: true, soundEnabled: true, vibrationEnabled: true, voiceName: null, rate: 1.05 };
 
   private ensureCtx(): AudioContext | null {
     if (typeof window === "undefined") return null;
@@ -230,21 +232,33 @@ class AlertEngine {
     this.lastSpeakAt[key] = now;
     // Idioma activo (selector de idioma para turistas): es-CL / en-US / pt-BR.
     const locale = ttsLocale();
+    const rate = this.prefs.rate || 1.05;
     // APK nativo: motor TTS de Android (el WebView no implementa speechSynthesis).
     if (isNative()) {
-      void loadTts().then((tts) => {
+      void loadTts().then(async (tts) => {
         if (!tts) return;
-        tts.TextToSpeech.speak({
-          text,
-          lang: locale,
-          rate: 1.05,
-          pitch: 1,
-          volume: 1,
-        }).catch(async () => {
+        // v1.13.13: voz elegida por el usuario (Personalización). El plugin
+        // nativo pide el ÍNDICE en getSupportedVoices: resolver nombre → índice.
+        let voiceIdx: number | undefined;
+        let lang = locale;
+        if (this.prefs.voiceName) {
+          try {
+            const { voices } = await tts.TextToSpeech.getSupportedVoices();
+            const idx = voices.findIndex((v) => v.name === this.prefs.voiceName);
+            if (idx >= 0) {
+              voiceIdx = idx;
+              lang = voices[idx].lang || locale;
+            }
+          } catch { /* sin listado: voz automática */ }
+        }
+        const opts = { text, lang, rate, pitch: 1 as const, volume: 1 as const, ...(voiceIdx !== undefined ? { voice: voiceIdx } : {}) };
+        try {
+          await tts.TextToSpeech.speak(opts);
+        } catch {
           // Fallback por familia de idioma: es-CL→es-ES · en-US→en-GB · pt-BR→pt-PT.
           const alt = locale.startsWith("es") ? "es-ES" : locale.startsWith("en") ? "en-GB" : "pt-PT";
-          try { await tts.TextToSpeech.speak({ text, lang: alt, rate: 1.05, pitch: 1, volume: 1 }); } catch { /* sin TTS */ }
-        });
+          try { await tts.TextToSpeech.speak({ text, lang: alt, rate, pitch: 1, volume: 1 }); } catch { /* sin TTS */ }
+        }
       });
       return;
     }
@@ -252,13 +266,20 @@ class AlertEngine {
     try {
       const u = new SpeechSynthesisUtterance(text);
       u.lang = locale;
-      u.rate = 1.05;
+      u.rate = rate;
       u.pitch = 1;
       u.volume = 1;
       const voices = window.speechSynthesis.getVoices();
-      const pref = voices.find((v) => v.lang?.toLowerCase().startsWith(locale.slice(0, 2)))
+      // v1.13.13: la voz elegida manda; si no existe en este dispositivo,
+      // misma preferencia automática por idioma de siempre.
+      const pref = (this.prefs.voiceName && voices.find((v) => v.name === this.prefs.voiceName))
+        ?? voices.find((v) => v.lang?.toLowerCase().startsWith(locale.slice(0, 2)))
         ?? voices.find((v) => v.lang?.toLowerCase().startsWith("es"));
-      if (pref) u.voice = pref;
+      if (pref) {
+        // Asignación tolerante: si el motor rechaza la voz (dictado raro del
+        // motor), habla con el idioma en vez de perder el aviso completo.
+        try { u.voice = pref; } catch { /* voz inválida: solo lang */ }
+      }
       window.speechSynthesis.cancel();
       window.speechSynthesis.speak(u);
     } catch {

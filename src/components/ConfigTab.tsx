@@ -41,6 +41,8 @@ import {
 import { getFcConfig, saveFcConfig, type FcConfig } from "@/lib/zonasFc";
 import { t, useLang, setLang, type Lang } from "@/lib/i18n";
 import { isNativeApp } from "@/lib/rideNative";
+import { listVoices, vozActual, setVoz, rateActual, setRate, type VozInfo } from "@/lib/ttsVoices";
+import { alerts } from "@/lib/alertEngine";
 import { revisarActualizacion, nuevaConocida, abrirDescarga, type EstadoActualizacion } from "@/lib/actualizacion";
 import { recolectarDiagMapa } from "@/lib/mapaDiag";
 import { serverToken } from "@/lib/cloudSync";
@@ -176,6 +178,33 @@ export function ConfigTab({
     const v = Number(id) as FallConfirmSegs;
     setFallConfirmSegs(v);
     setConfirmSegs(v);
+  };
+  // v1.13.13: voces del TTS (Personalización → Voz). La lista viene del
+  // motor del sistema (APK) o del navegador (demo web); la selección y la
+  // velocidad viven en localStorage y se aplican en alerts.prefs.
+  const [voces, setVoces] = useState<VozInfo[] | null>(null);
+  const [vozSel, setVozSel] = useState<string>(() => vozActual() ?? "");
+  const [velVoz, setVelVoz] = useState<number>(() => rateActual());
+  useEffect(() => {
+    let alive = true;
+    listVoices()
+      .then((v) => { if (alive) setVoces(v); })
+      .catch(() => { if (alive) setVoces([]); });
+    return () => { alive = false; };
+    // [sub]: el motor puede cambiar (instalación de Google TTS a media sesión);
+    // re-listar al entrar a cada subpantalla es barato y mantiene la lista fresca.
+  }, [sub]);
+  const pickVoz = (name: string) => {
+    setVozSel(name);
+    setVoz(name || null);
+  };
+  const pickVelVoz = (r: number) => {
+    setVelVoz(r);
+    setRate(r);
+  };
+  const probarVoz = () => {
+    alerts.unlock();
+    alerts.speak("cfg-probar", t("voz.prueba"), 0);
   };
   // Contactos ICE (Ola 1): persistidos en iceContacts (auto on por defecto).
   const [ice, setIce] = useState<IceConfig>(() => getIceConfig());
@@ -602,6 +631,7 @@ export function ConfigTab({
     { id: "apariencia", icon: <Palette className="h-5 w-5" />, titulo: t("cfg.grTemas"), sub: t("cfg.subApariencia") },
     { id: "velocimetro", icon: <Gauge className="h-5 w-5" />, titulo: t("cfg.velocimetro"), sub: t("cfg.subVelocimetro") },
     { id: "minimapa", icon: <Map className="h-5 w-5" />, titulo: t("cfg.minimapa"), sub: t("cfg.subMinimapa") },
+    { id: "voz", icon: <Volume2 className="h-5 w-5" />, titulo: t("cfg.voz"), sub: t("cfg.vozSub") },
     { id: "accesibilidad", icon: <Moon className="h-5 w-5" />, titulo: t("cfg.grAccesibilidad"), sub: t("cfg.temaSub") },
     { id: "idioma", icon: <Languages className="h-5 w-5" />, titulo: t("cfg.grIdioma"), sub: t("cfg.idiomaSub") },
   ];
@@ -702,6 +732,60 @@ export function ConfigTab({
                 <MinimapPreview style={theme.minimapStyle} size={theme.minimapSize} />
                 <p className="mt-1.5 text-center text-[10px] text-muted-foreground">{t("cfg.vistaPreviaMini")}</p>
               </div>
+            </div>
+          </Card>
+        );
+      case "voz":
+        return (
+          <Card className="p-0">
+            <Row icon={voiceOn ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />} title={t("cfg.avisosVoz")} sub={t("cfg.avisosVozSub")}>
+              <Toggle on={voiceOn} onChange={onToggleVoice} label={t("cfg.avisosVoz")} />
+            </Row>
+            {/* Voz del sistema: las voces las expone el motor TTS del
+                dispositivo (APK) o del navegador (demo web); el idioma lo
+                fija el selector de idioma (cfg → idioma). */}
+            <div className="border-b border-border/60 px-4 pb-3.5 pt-2">
+              <p className="text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground">{t("cfg.vozSel")}</p>
+              {voces === null ? (
+                <p className="mt-2 text-sm text-muted-foreground">{t("cfg.vozCargando")}</p>
+              ) : voces.length === 0 ? (
+                <p className="mt-2 leading-snug text-sm text-muted-foreground">{t("cfg.vozSinVoces")}</p>
+              ) : (
+                <select
+                  value={vozSel}
+                  onChange={(e) => pickVoz(e.target.value)}
+                  className="mt-2 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm font-semibold"
+                  aria-label={t("cfg.vozSel")}
+                >
+                  <option value="">{t("cfg.vozAuto")}</option>
+                  {voces.map((v) => (
+                    <option key={v.name} value={v.name}>{v.name} · {v.lang}</option>
+                  ))}
+                </select>
+              )}
+              <p className="mt-1.5 text-[11px] leading-snug text-muted-foreground">{t("cfg.vozSelSub")}</p>
+            </div>
+            <div className="border-b border-border/60 px-4 pb-3.5 pt-2">
+              <p className="text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground">{t("cfg.vozVel")}</p>
+              <div className="mt-2.5">
+                <Seg
+                  options={[
+                    { id: "0.9", label: t("cfg.vozLenta"), proOnly: false },
+                    { id: "1.05", label: t("cfg.vozNormal"), proOnly: false },
+                    { id: "1.2", label: t("cfg.vozRapida"), proOnly: false },
+                  ]}
+                  value={String(velVoz)}
+                  pro={true}
+                  onPick={(v) => pickVelVoz(parseFloat(v))}
+                  onLocked={() => undefined}
+                />
+              </div>
+            </div>
+            <div className="px-4 py-3.5">
+              <button onClick={probarVoz} className="flex w-full items-center justify-center gap-2 rounded-xl border border-border bg-background px-3 py-2.5 text-sm font-bold active:bg-muted">
+                <Volume2 className="h-4 w-4" />
+                {t("cfg.vozProbar")}
+              </button>
             </div>
           </Card>
         );
