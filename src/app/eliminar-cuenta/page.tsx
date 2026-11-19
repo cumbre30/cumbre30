@@ -46,7 +46,7 @@ export default function EliminarCuentaPage() {
       <div className="mt-8 rounded-lg border border-border bg-card/60 p-5">
         <h2 className="text-sm font-bold text-foreground">Eliminar desde la app (recomendado)</h2>
         <p className="mt-2 text-[13.5px] leading-relaxed text-justify text-muted-foreground">
-          En la app Android o web: abre <span className="font-medium text-foreground">Perfil</span> ›{" "}
+          En la app Android o web: abre <span className="font-medium text-foreground">Cuenta</span> ›{" "}
           <span className="font-medium text-foreground">Mis datos</span> › al final encontrarás la zona{" "}
           <span className="font-medium text-foreground">“Eliminar cuenta”</span> con confirmación en dos pasos.
         </p>

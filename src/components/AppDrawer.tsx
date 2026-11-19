@@ -161,7 +161,7 @@ export function AppDrawer({
           <MenuItem icon={<Users className="h-5 w-5" />} label={t("menu.amigos")} hint={t("drawer.amigosHint")} onClick={() => go("amigos")} />
         </div>
 
-        {/* Zona 3: Cuenta - Perfil abre subsecciones (datos/pagos) */}
+        {/* Zona 3: Cuenta - abre subsecciones (datos/pagos) */}
         <div className="mt-3 px-3">
           <p className="px-1 pb-1 pt-2 text-[10.5px] font-extrabold uppercase tracking-widest text-muted-foreground/70">{t("drawer.zonaCuenta")}</p>
           <MenuItem icon={<UserRound className="h-5 w-5" />} label={t("menu.perfil")} hint={t("drawer.perfilHint")} onClick={() => go("perfil")} />

@@ -1,7 +1,7 @@
 "use client";
 
 // ============================================================
-// Pestaña Perfil - con subsecciones (solo se ve la activa):
+// Pestaña Cuenta (antes «Perfil»; el nombre pasa al Perfil Ciclista) - con subsecciones (solo se ve la activa):
 //   · "Mis datos": sesión (correo + usuario), resumen de cuenta,
 //     bici, pin y compartir resumen para Instagram. La versión de
 //     la app vive en Configuración → Acerca de.

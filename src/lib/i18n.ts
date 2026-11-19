@@ -8,7 +8,7 @@
 // Ride, banner de avisos, SOS, avisos de voz (TTS), bitácora,
 // configuración y los textos nuevos (caída, avisos operativos,
 // verificación de constancias, reporte ciudadano).
-// Las pantallas de gestión (Historial/Stats/Perfil/Ayuda) siguen
+// Las pantallas de gestión (Historial/Stats/Cuenta/Ayuda) siguen
 // en español hasta la fase 2, igual que los nombres propios de
 // lugares del parque y del PDF formal (documento chileno).
 // ------------------------------------------------------------
@@ -91,7 +91,7 @@ const D: Record<string, E> = {
   "menu.stats": ["Estadísticas generales", "Overall statistics", "Estatísticas gerais"],
   "menu.premios": ["Desafíos y recompensas", "Challenges and rewards", "Desafios e recompensas"],
   "menu.amigos": ["Amigos", "Friends", "Amigos"],
-  "menu.perfil": ["Perfil", "Profile", "Perfil"],
+  "menu.perfil": ["Cuenta", "Account", "Conta"],
   "menu.config": ["Configuración", "Settings", "Configurações"],
   "menu.ayuda": ["Ayuda y contacto", "Help and contact", "Ajuda e contato"],
   "menu.planes": ["Planes", "Plans", "Planos"],
@@ -419,7 +419,7 @@ const D: Record<string, E> = {
   "cfg.pushDenegado": ["Permiso denegado: actívalo en la configuración del navegador para este sitio.", "Permission denied: enable it in the browser site settings.", "Permissão negada: ative nas configurações do navegador para este site."],
   "cfg.pushErr": ["No pudimos activar los avisos. Intenta de nuevo.", "We couldn't enable alerts. Try again.", "Não conseguimos ativar os avisos. Tente de novo."],
   "cfg.pushNoCfg": ["El servidor todavía no tiene avisos push configurados.", "The server doesn't have push alerts configured yet.", "O servidor ainda não tem avisos push configurados."],
-  "cfg.pushSesion": ["Inicia sesión en Perfil para recibir la prueba.", "Sign in under Profile to receive the test.", "Entre no Perfil para receber o teste."],
+  "cfg.pushSesion": ["Inicia sesión en Cuenta para recibir la prueba.", "Sign in under Account to receive the test.", "Entre em Conta para receber o teste."],
   "cfg.pushEnviada": ["Aviso enviado ✓ revisa tus notificaciones.", "Alert sent ✓ check your notifications.", "Aviso enviado ✓ veja suas notificações."],
   // ---------- modo ahorro de batería (Ola 1) ----------
   "bat.aria": ["Modo ahorro de batería: procesa menos GPS y deja apagable la pantalla", "Battery saver: processes GPS less often and lets the screen sleep", "Modo economia de bateria: processa menos GPS e deixa a tela apagar"],
@@ -634,19 +634,19 @@ const D: Record<string, E> = {
   "his.shareOk": ["¡Listo! Elige Instagram (Historia o Feed) en el panel.", "Done! Choose Instagram (Story or Feed) in the panel.", "Pronto! Escolha o Instagram (Story ou Feed) no painel."],
   "his.shareDescargada": ["Imagen descargada. Compártela en Instagram como historia o post.", "Image downloaded. Share it on Instagram as a story or post.", "Imagem baixada. Compartilhe no Instagram como story ou post."],
   "his.errImagen": ["No pudimos generar la imagen en este dispositivo.", "Could not generate the image on this device.", "Não foi possível gerar a imagem neste dispositivo."],
-  "his.linkNecesitaServer": ["El enlace público necesita el servidor de cuenta: configúralo en Perfil → Cuenta.", "The public link needs the account server: set it up in Profile → Account.", "O link público precisa do servidor de conta: configure em Perfil → Conta."],
-  "his.linkPideSesion": ["Inicia sesión en Perfil → Cuenta para crear el enlace público.", "Sign in in Profile → Account to create the public link.", "Entre em Perfil → Conta para criar o link público."],
+  "his.linkNecesitaServer": ["El enlace público necesita el servidor de cuenta: configúralo en Cuenta › Mis datos.", "The public link needs the account server: set it up in Account › My data.", "O link público precisa do servidor de conta: configure em Conta › Meus dados."],
+  "his.linkPideSesion": ["Inicia sesión en Cuenta › Mis datos para crear el enlace público.", "Sign in in Account › My data to create the public link.", "Entre em Conta › Meus dados para criar o link público."],
   "his.errEnlace": ["No pudimos crear el enlace. Revisa tu conexión e intenta de nuevo.", "Could not create the link. Check your connection and try again.", "Não foi possível criar o link. Verifique sua conexão e tente de novo."],
   "his.shareTexto": ["Mi pedaleo en el cerro con Cumbre30 🚴 {0}", "My ride on the hill with Cumbre30 🚴 {0}", "Meu pedal no morro com Cumbre30 🚴 {0}"],
   "his.enlaceCompartido": ["Enlace compartido ✓", "Link shared ✓", "Link compartilhado ✓"],
   "his.enlaceCopiado": ["Enlace copiado ✓ {0}", "Link copied ✓ {0}", "Link copiado ✓ {0}"],
-  "his.cuotaConstancias": ["Este mes ya usaste tus {0} constancias gratis. Con Cumbre30 Pro (Perfil → Pagos y suscripciones) son ilimitadas.", "You already used your {0} free certificates this month. With Cumbre30 Pro (Profile → Payments and subscriptions) they are unlimited.", "Você já usou suas {0} constâncias grátis neste mês. Com Cumbre30 Pro (Perfil → Pagamentos e assinaturas) são ilimitadas."],
+  "his.cuotaConstancias": ["Este mes ya usaste tus {0} constancias gratis. Con Cumbre30 Pro (Cuenta → Pagos y suscripciones) son ilimitadas.", "You already used your {0} free certificates this month. With Cumbre30 Pro (Account → Payments and subscriptions) they are unlimited.", "Você já usou suas {0} constâncias grátis neste mês. Com Cumbre30 Pro (Conta → Pagamentos e assinaturas) são ilimitadas."],
   "his.constanciaTituloShare": ["Constancia de trayecto - Cumbre30", "Ride certificate - Cumbre30", "Constância de trajeto - Cumbre30"],
   "his.constanciaTextoShare": ["Constancia de registro de trayecto en bicicleta, generada por la aplicación Cumbre30.", "Bicycle ride record certificate, generated by the Cumbre30 app.", "Constância de registro de trajeto de bicicleta, gerada pelo aplicativo Cumbre30."],
   "his.constanciaLista": ["Constancia lista: envíala por correo o guárdala en tu teléfono desde el panel de Android.", "Certificate ready: send it by email or save it to your phone from the Android panel.", "Constância pronta: envie por e-mail ou salve no telefone pelo painel do Android."],
   "his.constanciaDescargada": ["Constancia PDF descargada. Revísala en tu carpeta de descargas.", "PDF certificate downloaded. Check your downloads folder.", "Constância PDF baixada. Confira sua pasta de downloads."],
   "his.errConstancia": ["No pudimos generar la constancia en este dispositivo.", "Could not generate the certificate on this device.", "Não foi possível gerar a constância neste dispositivo."],
-  "his.gpxPro": ["El export GPX es parte de Cumbre30 Pro - actívalo en Perfil → Pagos y suscripciones.", "GPX export is part of Cumbre30 Pro - enable it in Profile → Payments and subscriptions.", "A exportação GPX é parte do Cumbre30 Pro - ative em Perfil → Pagamentos e assinaturas."],
+  "his.gpxPro": ["El export GPX es parte de Cumbre30 Pro - actívalo en Cuenta → Pagos y suscripciones.", "GPX export is part of Cumbre30 Pro - enable it in Account → Payments and subscriptions.", "A exportação GPX é parte do Cumbre30 Pro - ative em Conta → Pagamentos e assinaturas."],
   "his.gpxProShort": ["El export GPX es parte de Cumbre30 Pro", "GPX export is part of Cumbre30 Pro", "A exportação GPX é parte do Cumbre30 Pro"],
   "his.sinPistaGps": ["Este viaje no guarda pista GPS (se grabó antes de la v1.5.0).", "This ride has no GPS track (it was recorded before v1.5.0).", "Este passeio não salva trilha GPS (foi gravado antes da v1.5.0)."],
   "his.gpxTituloShare": ["Viaje GPX - Cumbre30", "GPX ride - Cumbre30", "Passeio GPX - Cumbre30"],
@@ -704,7 +704,7 @@ const D: Record<string, E> = {
   "his.vehiculoNota": [" · Viaje en vehículo: no cuenta para desafíos ni estadísticas", " · Vehicle ride: does not count for challenges or statistics", " · Passeio em veículo: não conta para desafios nem estatísticas"],
   "his.descensoLimpioChip": ["Descenso limpio en el parque", "Clean descent in the park", "Descida limpa no parque"],
   "his.borrarHistorial": ["Borrar historial", "Clear history", "Apagar histórico"],
-  "his.localesNota": ["Estos viajes son locales del dispositivo. Inicia sesión en Perfil y quedarán enlazados a tu correo automáticamente.", "These rides are local to the device. Sign in under Profile and they will be linked to your email automatically.", "Esses passeios são locais do dispositivo. Entre em Perfil e ficarão vinculados ao seu e-mail automaticamente."],
+  "his.localesNota": ["Estos viajes son locales del dispositivo. Inicia sesión en Cuenta y quedarán enlazados a tu correo automáticamente.", "These rides are local to the device. Sign in under Account and they will be linked to your email automatically.", "Esses passeios são locais do dispositivo. Entre em Conta e ficarão vinculados ao seu e-mail automaticamente."],
   "his.segmentosCerro": ["Segmentos del cerro", "Hill segments", "Segmentos do morro"],
   "his.soloGps": ["solo viajes GPS", "GPS rides only", "só passeios GPS"],
   "his.aunSinIntentos": ["aún sin intentos", "no attempts yet", "ainda sem tentativas"],
@@ -717,16 +717,16 @@ const D: Record<string, E> = {
   "his.proTeaser": ["Cronometraje oficial de tus subidas (Pío Nono, Pedro de Valdivia Norte, Antilén y La Pirámide, todas → Plaza México) y de las 3 bajadas del control 30 km/h (Plaza México → Pío Nono, Antilén → Pedro de Valdivia y Chacarillas → La Pirámide) - con récord personal, contador de intentos e historial de tiempos. Aplican solo a viajes grabados con GPS.", "Official timing of your climbs (Pío Nono, Pedro de Valdivia Norte, Antilén and La Pirámide, all → Plaza México) and of the 3 descents under the 30 km/h control (Plaza México → Pío Nono, Antilén → Pedro de Valdivia and Chacarillas → La Pirámide) - with personal record, attempt counter and time history. Only applies to rides recorded with GPS.", "Cronometragem oficial das suas subidas (Pío Nono, Pedro de Valdivia Norte, Antilén e La Pirâmide, todas → Plaza México) e das 3 descidas do controle de 30 km/h (Plaza México → Pío Nono, Antilén → Pedro de Valdivia e Chacarillas → La Pirâmide) - com recorde pessoal, contador de tentativas e histórico de tempos. Vale só para passeios gravados com GPS."],
   "his.esPro": ["Es parte de Cumbre30 Pro", "Part of Cumbre30 Pro", "Faz parte do Cumbre30 Pro"],
 
-  // ---------- Perfil / cuenta (fase 2) ----------
+  // ---------- Cuenta (antes «Perfil»; el nombre queda reservado para el Perfil Ciclista, fase 1) ----------
   "pf.subDatos": ["Mis datos", "My data", "Meus dados"],
   "pf.subPagos": ["Pagos y suscripciones", "Payments and subscriptions", "Pagamentos e assinaturas"],
-  "pf.subAria": ["Subsecciones de Perfil", "Profile subsections", "Subseções de Perfil"],
+  "pf.subAria": ["Subsecciones de Cuenta", "Account subsections", "Subseções de Conta"],
   "pf.tuCuenta": ["Tu cuenta Cumbre30", "Your Cumbre30 account", "Sua conta Cumbre30"],
   "pf.cuentaIntro": ["Crea tu sesión con correo y nombre de usuario para acumular kilómetros, desbloquear pines y reportar incidencias visibles para todos.", "Create your account with email and username to accumulate kilometers, unlock pins and report incidents visible to everyone.", "Crie sua sessão com e-mail e nome de usuário para acumular quilômetros, desbloquear pins e reportar incidentes visíveis para todos."],
   "pf.resetTitulo": ["Restablecer contraseña", "Reset password", "Redefinir senha"],
   "pf.resetListo": ["¡Listo! Tu contraseña se actualizó. Ingresa con la nueva.", "Done! Your password was updated. Sign in with the new one.", "Pronto! Sua senha foi atualizada. Entre com a nova."],
   "pf.iniciarSesion": ["Iniciar sesión", "Sign in", "Entrar"],
-  "pf.resetOffline": ["Tu cuenta vive en este dispositivo: ingresa el código de recuperación que te mostramos en Perfil → Mis datos (con la sesión iniciada).", "Your account lives on this device: enter the recovery code we showed you in Profile → My data (while signed in).", "Sua conta vive neste dispositivo: digite o código de recuperação que mostramos em Perfil → Meus dados (com a sessão iniciada)."],
+  "pf.resetOffline": ["Tu cuenta vive en este dispositivo: ingresa el código de recuperación que te mostramos en Cuenta → Mis datos (con la sesión iniciada).", "Your account lives on this device: enter the recovery code we showed you in Account → My data (while signed in).", "Sua conta vive neste dispositivo: digite o código de recuperação que mostramos em Conta → Meus dados (com a sessão iniciada)."],
   "pf.resetServer": ["Te entregaremos un código de 6 dígitos por WhatsApp o correo tras verificar tu identidad. El código vence en 30 minutos.", "We will give you a 6-digit code via WhatsApp or email after verifying your identity. The code expires in 30 minutes.", "Enviaremos um código de 6 dígitos por WhatsApp ou e-mail após verificar sua identidade. O código expira em 30 minutos."],
   "pf.solicitudOk": ["Solicitud registrada. Escríbenos por WhatsApp para recibir el código.", "Request received. Message us on WhatsApp to receive the code.", "Solicitação registrada. Escreva para nós no WhatsApp para receber o código."],
   "pf.correoCuenta": ["Correo de tu cuenta", "Account email", "E-mail da sua conta"],
@@ -768,7 +768,7 @@ const D: Record<string, E> = {
   "pf.googleApkNota": ["En la app Android puedes entrar con tu cuenta de Google. Si ya tienes una cuenta con el mismo correo, se enlaza y conservas tus km, logros y pines.", "In the Android app you can sign in with your Google account. If you already have an account with the same email, they get linked and you keep your km, achievements and pins.", "No app Android você pode entrar com sua conta Google. Se você já tem uma conta com o mesmo e-mail, elas são vinculadas e você mantém seus km, conquistas e pins."],
   "pf.googleWebErr": ["No pudimos cargar el acceso con Google (¿extensión o red lo bloquea?). Entra con tu correo y contraseña.", "Could not load Google sign-in (blocked by an extension or the network?). Sign in with your email and password.", "Não foi possível carregar o login com Google (alguma extensão ou a rede bloqueia?). Entre com seu e-mail e senha."],
   "pf.googleNota": ["Entra con Google o con tu cuenta Cumbre30. Si ya tienes una cuenta con el mismo correo, se enlaza y conservas tus km, logros y pines.", "Sign in with Google or your Cumbre30 account. If you already have an account with the same email, they get linked and you keep your km, achievements and pins.", "Entre com Google ou com sua conta Cumbre30. Se você já tem uma conta com o mesmo e-mail, elas são vinculadas e você mantém seus km, conquistas e pins."],
-  "pf.cargandoPerfil": ["Cargando perfil…", "Loading profile…", "Carregando perfil…"],
+  "pf.cargandoPerfil": ["Cargando cuenta…", "Loading account…", "Carregando conta…"],
   "pf.resumenSub": ["Mi resumen de pedaleo", "My riding summary", "Meu resumo de pedaladas"],
   "pf.ridesCompletados": ["Rides completados", "Rides completed", "Pedais concluídos"],
   "pf.velMaxFila": ["Velocidad máxima", "Top speed", "Velocidade máxima"],
@@ -919,7 +919,7 @@ const D: Record<string, E> = {
 
   // ---------- Amigos (fase 2) ----------
   "am.titulo": ["Amigos", "Friends", "Amigos"],
-  "am.noBackend": ["Los amigos necesitan el servidor de cuenta. Configúralo en Perfil → Cuenta → Servidor de cuenta y vuelve a esta pantalla.", "Friends need the account server. Set it up in Profile → Account → Account server and come back to this screen.", "Os amigos precisam do servidor de conta. Configure em Perfil → Conta → Servidor de conta e volte a esta tela."],
+  "am.noBackend": ["Los amigos necesitan el servidor de cuenta. Configúralo en Cuenta › Mis datos › Servidor de cuenta y vuelve a esta pantalla.", "Friends need the account server. Set it up in Account › My data › Account server and come back to this screen.", "Os amigos precisam do servidor de conta. Configure em Conta › Meus dados › Servidor de conta e volte a esta tela."],
   "am.loginCta": ["Inicia sesión para agregar amigos por su nombre de usuario y ver sus km y logros.", "Sign in to add friends by their username and see their km and achievements.", "Entre para adicionar amigos pelo nome de usuário e ver seus km e conquistas."],
   "am.irLogin": ["Ir a iniciar sesión", "Go to sign in", "Ir para o login"],
   "am.tusAmigos": ["Tus amigos {0}", "Your friends {0}", "Seus amigos {0}"],
@@ -940,7 +940,7 @@ const D: Record<string, E> = {
   "am.rides": ["{0} rides", "{0} rides", "{0} pedais"],
   "am.max": ["máx {0} km/h", "max {0} km/h", "máx {0} km/h"],
   "am.ultimo": ["último: {0}", "last: {0}", "último: {0}"],
-  "am.nota": ["Al agregar a alguien la conexión es mutua e inmediata: verás sus km y logros, y aparecerás en su lista. Las medallas 🥇🥈🥉 ordenan por km totales. El nombre de usuario se cambia en Perfil (1 vez cada 30 días).", "When you add someone the connection is mutual and instant: you will see their km and achievements, and you will appear on their list. The 🥇🥈🥉 medals sort by total km. The username is changed in Profile (once every 30 days).", "Ao adicionar alguém a conexão é mútua e imediata: você verá os km e conquistas da pessoa, e aparecerá na lista dela. As medalhas 🥇🥈🥉 ordenam por km totais. O nome de usuário é alterado em Perfil (1 vez a cada 30 dias)."],
+  "am.nota": ["Al agregar a alguien la conexión es mutua e inmediata: verás sus km y logros, y aparecerás en su lista. Las medallas 🥇🥈🥉 ordenan por km totales. El nombre de usuario se cambia en Cuenta (1 vez cada 30 días).", "When you add someone the connection is mutual and instant: you will see their km and achievements, and you will appear on their list. The 🥇🥈🥉 medals sort by total km. The username is changed in Account (once every 30 days).", "Ao adicionar alguém a conexão é mútua e imediata: você verá os km e conquistas da pessoa, e aparecerá na lista dela. As medalhas 🥇🥈🥉 ordenam por km totais. O nome de usuário é alterado em Conta (1 vez a cada 30 dias)."],
 
   // ---------- Desafíos y recompensas (fase 2) ----------
   "ch.cargando": ["Cargando desafíos…", "Loading challenges…", "Carregando desafios…"],
@@ -1010,7 +1010,7 @@ const D: Record<string, E> = {
   "pg.navegacionAria": ["Navegación principal", "Main navigation", "Navegação principal"],
   "pg.cargandoBilletera": ["Cargando billetera…", "Loading wallet…", "Carregando carteira…"],
   "pg.cargandoMapa": ["Cargando mapa…", "Loading map…", "Carregando mapa…"],
-  "pg.cargandoPerfil": ["Cargando perfil…", "Loading profile…", "Carregando perfil…"],
+  "pg.cargandoPerfil": ["Cargando cuenta…", "Loading account…", "Carregando conta…"],
   "pg.cargandoDesafios": ["Cargando desafíos…", "Loading challenges…", "Carregando desafios…"],
 
   // ---------- motor de navegación (useNavEngine) ----------
@@ -1116,13 +1116,13 @@ const D: Record<string, E> = {
   "plan.play3": [", o activa un ", ", or activate a ", ", ou ative um "],
   "plan.playCodWeb": ["código de la web oficial", "code from the official website", "código do site oficial"],
   "plan.play4": [" si pagaste allí.", " if you paid there.", " se você pagou por lá."],
-  "plan.perfilPagos": ["Perfil → Pagos y suscripciones", "Profile → Payments and subscriptions", "Perfil → Pagamentos e assinaturas"],
+  "plan.perfilPagos": ["Cuenta → Pagos y suscripciones", "Account → Payments and subscriptions", "Conta → Pagamentos e assinaturas"],
   "plan.paso1": ["Paga tu licencia en la web oficial de CumbreGeo ", "Pay for your license on the official CumbreGeo website ", "Pague sua licença no site oficial da CumbreGeo "],
   "plan.paso2": ["Recibes por correo tu código ", "You get your code by email ", "Você recebe seu código por e-mail "],
   "plan.paso3": ["Actívalo en ", "Activate it in ", "Ative-o em "],
   "plan.paso3b": [" - funciona 100% sin internet.", " - works 100% offline.", " - funciona 100% sem internet."],
   "plan.yaPagaste1": ["¿Ya pagaste? Activa tu código en ", "Already paid? Activate your code in ", "Já pagou? Ative seu código em "],
-  "plan.yaPagaste2": [" (Perfil).", " (Profile).", " (Perfil)."],
+  "plan.yaPagaste2": [" (Cuenta).", " (Account).", " (Conta)."],
 
   // ---------- Wallet: QR Pedalea Seguro ----------
   "qr.errNoImagen": ["Ese archivo no es una imagen. Elige una foto o captura del QR.", "That file is not an image. Choose a photo or screenshot of the QR.", "Esse arquivo não é uma imagem. Escolha uma foto ou captura do QR."],
@@ -1290,11 +1290,7 @@ const D: Record<string, E> = {
     "Duration: rides are first stored on your phone (the free plan keeps the last 20). If you sign in, your statistics and up to 100 rides with their GPS track sync with your account for certificates, GPX and recovery, until you delete them or your account.",
     "Duração: os passeios são guardados primeiro no seu telefone (no plano grátis ficam os últimos 20). Se você entrar, suas estatísticas e até 100 passeios com a trilha GPS sincronizam com sua conta para constâncias, GPX e recuperação, até que você os apague ou elimine sua conta.",
   ],
-  "ay.privacidadEliminacion": [
-    "Eliminación: puedes borrar cada viaje desde Mis viajes, desuscribirte de los avisos push en Configuración y eliminar tu cuenta completa con todos sus datos del servidor desde Perfil → Eliminar cuenta.",
-    "Deletion: you can delete each ride from My rides, unsubscribe from push alerts in Settings, and delete your whole account with all its server data from Profile → Delete account.",
-    "Eliminação: você pode apagar cada passeio em Meus passeios, cancelar os alertas push em Configurações e eliminar sua conta completa com todos os dados do servidor em Perfil → Eliminar conta.",
-  ],
+  "ay.privacidadEliminacion": ["Eliminación: puedes borrar cada viaje desde Mis viajes, desuscribirte de los avisos push en Configuración y eliminar tu cuenta completa con todos sus datos del servidor desde Cuenta → Mis datos → Eliminar cuenta.", "Deletion: you can delete each ride from My rides, unsubscribe from push alerts in Settings, and delete your whole account with all its server data from Account › My data › Delete account.", "Eliminação: você pode apagar cada passeio em Meus passeios, cancelar os alertas push em Configurações e eliminar sua conta completa com todos os dados do servidor em Conta › Meus dados › Eliminar conta."],
   "ay.privacidadSeguridad": [
     "Seguridad y acceso: los datos de tu cuenta viajan cifrados (HTTPS) y se protegen con un token de sesión privado; solo tu cuenta puede leerlos. La app no usa tu ubicación en segundo plano fuera de un ride.",
     "Security and access: your account data travels encrypted (HTTPS) and is protected with a private session token; only your account can read it. The app does not use your location in the background outside a ride.",

@@ -185,7 +185,7 @@ export default function TerminosPage() {
 
       <Section title="Fin del servicio y eliminación de cuenta">
         <p>
-          Puedes dejar de usar la app y eliminar tu cuenta cuando quieras desde Perfil › Mis datos › Eliminar cuenta, o
+          Puedes dejar de usar la app y eliminar tu cuenta cuando quieras desde Cuenta › Mis datos › Eliminar cuenta, o
           desde la página{" "}
           <Link href="/eliminar-cuenta" className="font-medium text-emerald-600 underline-offset-2 hover:underline dark:text-emerald-400">
             Eliminar cuenta

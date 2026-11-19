@@ -210,7 +210,7 @@ export default function PrivacidadPage() {
 
       <Section title="Eliminación de cuenta y datos">
         <p>
-          Puedes eliminar tu cuenta y todos sus datos en cualquier momento desde la app (Perfil › Mis datos ›
+          Puedes eliminar tu cuenta y todos sus datos en cualquier momento desde la app (Cuenta › Mis datos ›
           Eliminar cuenta) o desde la página{" "}
           <Link href="/eliminar-cuenta" className="font-medium text-emerald-600 underline-offset-2 hover:underline dark:text-emerald-400">
             Eliminar cuenta
