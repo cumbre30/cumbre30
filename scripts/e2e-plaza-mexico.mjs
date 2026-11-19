@@ -14,7 +14,10 @@ function chk(label, ok, extra = "") {
   if (!ok) fails++;
 }
 
-const CONSOLE_IGNORE = [/401 \(Unauthorized\)/, /status of 401/];
+// v1.13.14: también 429 — el widget de clima consulta Open-Meteo (servicio
+// externo gratuito) y su tier libre acelera por IP; ese throttle no es salud
+// de la app (la API propia responde 200), así que no debe marcar FAIL.
+const CONSOLE_IGNORE = [/401 \(Unauthorized\)/, /status of 401/, /status of 429/];
 
 async function main() {
   const browser = await chromium.launch();
