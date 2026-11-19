@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { createSession, SESSION_COOKIE, verifyPassword } from "@/lib/auth";
+import { asegurarColumnasUsuario, createSession, SESSION_COOKIE, verifyPassword } from "@/lib/auth";
 import { normalizeCodes } from "@/lib/pins";
 import { corsHeaders, isAppOrigin } from "@/lib/apiCors";
 import { guard } from "@/lib/rateLimit";
@@ -29,6 +29,9 @@ export async function POST(req: Request) {
     // con mensaje genérico para no revelar información de la cuenta.
     const limited = guard(req, "login", email, 5, 60_000, cors);
     if (limited) return limited;
+
+    // Autorreparo v1.13.17: el SELECT de User incluye las columnas nuevas.
+    await asegurarColumnasUsuario();
 
     const user = await db.user.findUnique({ where: { email } });
     if (!user || !verifyPassword(password, user.passwordHash)) {

@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { createSession, verifyPassword } from "@/lib/auth";
+import { asegurarColumnasUsuario, createSession, verifyPassword } from "@/lib/auth";
 import { corsHeaders, corsPreflight } from "@/lib/apiCors";
 
 export async function OPTIONS(req: Request) {
@@ -25,6 +25,9 @@ export async function POST(req: Request) {
     const body = (await req.json()) as { email?: string; password?: string };
     const email = (body.email ?? "").trim().toLowerCase();
     const password = body.password ?? "";
+
+    // Autorreparo v1.13.17 (el SELECT de User incluye las columnas nuevas).
+    await asegurarColumnasUsuario();
 
     const user = await db.user.findUnique({ where: { email } });
     if (!user || !verifyPassword(password, user.passwordHash)) {

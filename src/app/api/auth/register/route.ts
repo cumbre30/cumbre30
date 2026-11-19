@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { createSession, hashPassword, SESSION_COOKIE } from "@/lib/auth";
+import { asegurarColumnasUsuario, createSession, hashPassword, SESSION_COOKIE } from "@/lib/auth";
 import { corsHeaders, corsPreflight, isAppOrigin } from "@/lib/apiCors";
 import { guard } from "@/lib/rateLimit";
 
@@ -50,6 +50,9 @@ export async function POST(req: Request) {
     if (password.length < 8) {
       return NextResponse.json({ error: "La contraseña debe tener al menos 8 caracteres." }, { status: 400, headers: cors });
     }
+
+    // Autorreparo v1.13.17: el INSERT/SELECT de User incluye las columnas nuevas.
+    await asegurarColumnasUsuario();
 
     const exists = await db.user.findFirst({
       where: { OR: [{ email }, { username }] },

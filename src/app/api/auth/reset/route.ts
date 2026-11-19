@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import crypto from "crypto";
 import { db } from "@/lib/db";
-import { hashPassword, RESET_MAX_ATTEMPTS } from "@/lib/auth";
+import { asegurarColumnasUsuario, hashPassword, RESET_MAX_ATTEMPTS } from "@/lib/auth";
 
 // ============================================================
 // POST /api/auth/reset - cambia la contraseña con el código
@@ -31,6 +31,9 @@ export async function POST(req: Request) {
     if (newPassword.length < 8) {
       return NextResponse.json({ error: "La contraseña debe tener al menos 8 caracteres." }, { status: 400 });
     }
+
+    // Autorreparo v1.13.17 (el SELECT/UPDATE de User incluye las columnas nuevas).
+    await asegurarColumnasUsuario();
 
     const user = await db.user.findUnique({ where: { email } });
     if (!user) {

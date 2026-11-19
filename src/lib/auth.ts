@@ -55,6 +55,7 @@ export type SessionUser = {
 /** Lee la sesión desde la cabecera Authorization: Bearer o la cookie. */
 async function sessionFromToken(token: string | undefined): Promise<SessionUser | null> {
   if (!token) return null;
+  await asegurarColumnasUsuario();
   const session = await db.session.findUnique({ where: { token }, include: { user: true } });
   if (!session) return null;
   if (session.expiresAt.getTime() < Date.now()) {
@@ -62,6 +63,26 @@ async function sessionFromToken(token: string | undefined): Promise<SessionUser 
     return null;
   }
   return toSessionUser(session.user);
+}
+
+// Autorreparo de las columnas de pesos (v1.13.17) — espejo de las de
+// RideMetric en profileServer: ALTER TABLE IF NOT EXISTS una vez por
+// proceso. CRÍTICO en auth: el Prisma Client nuevo las incluye en su
+// SELECT de User, así que sin este ensure el LOGIN mismo fallaría con
+// P2022 en la BD de producción antes de que ninguna ruta con sesión
+// alcanzara a crearlas. Solo corre con token/credencial presente: las
+// visitas anónimas no ejecutan DDL.
+let columnasUsuarioListas: Promise<void> | null = null;
+
+export function asegurarColumnasUsuario(): Promise<void> {
+  columnasUsuarioListas ??= (async () => {
+    await db.$executeRawUnsafe(`ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "riderWeightKg" DOUBLE PRECISION`);
+    await db.$executeRawUnsafe(`ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "bikeWeightKg" DOUBLE PRECISION`);
+  })().catch((e) => {
+    columnasUsuarioListas = null; // permite reintento en la siguiente petición
+    throw e;
+  });
+  return columnasUsuarioListas;
 }
 
 function toSessionUser(u: {

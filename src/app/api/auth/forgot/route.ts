@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import crypto from "crypto";
 import { db } from "@/lib/db";
-import { RESET_TTL_MIN } from "@/lib/auth";
+import { asegurarColumnasUsuario, RESET_TTL_MIN } from "@/lib/auth";
 import { guard } from "@/lib/rateLimit";
 
 // ============================================================
@@ -24,6 +24,9 @@ export async function POST(req: Request) {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return NextResponse.json({ error: "Ingresa un correo válido." }, { status: 400 });
     }
+
+    // Autorreparo v1.13.17 (el SELECT de User incluye las columnas nuevas).
+    await asegurarColumnasUsuario();
 
     const user = await db.user.findUnique({ where: { email } });
     if (user) {

@@ -65,18 +65,15 @@ export function asegurarTablaConfig(): Promise<void> {
   return tablaLista;
 }
 
-// ---------- caché en memoria (60 s) ----------
-let cache: { techos: Techos; expira: number } | null = null;
-const CACHE_MS = 60_000;
-
-/** Invalida la caché (tras un PUT). */
-export function invalidarCacheConfig(): void {
-  cache = null;
-}
+// ---------- lectura ----------
+// Sin caché en memoria a propósito: un SELECT de 6 filas por petición es
+// despreciable junto a la query de rides del recálculo, y así un PUT de
+// Remote Config es efectivo AL INSTANTE (en serverless cada ruta tiene
+// su propio módulo: una caché por proceso desincronizaría los techos
+// hasta 60 s después de cada recalibración).
 
 /** Techos vigentes: fila de BD por clave + defaults para el resto. */
 export async function cargarTechos(): Promise<Techos> {
-  if (cache && cache.expira > Date.now()) return cache.techos;
   const techos: Techos = { ...TECHO_DEFAULTS };
   try {
     await asegurarTablaConfig();
@@ -91,7 +88,6 @@ export async function cargarTechos(): Promise<Techos> {
   } catch {
     // BD sin la tabla o caída: los defaults del spec siguen vigentes
   }
-  cache = { techos, expira: Date.now() + CACHE_MS };
   return techos;
 }
 
@@ -130,6 +126,5 @@ export async function guardarTechos(
       v
     );
   }
-  invalidarCacheConfig();
   return { guardado, rechazado };
 }

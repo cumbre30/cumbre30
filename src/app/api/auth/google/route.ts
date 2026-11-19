@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { createSession, hashPassword, SESSION_COOKIE } from "@/lib/auth";
+import { asegurarColumnasUsuario, createSession, hashPassword, SESSION_COOKIE } from "@/lib/auth";
 import { corsHeaders, corsPreflight } from "@/lib/apiCors";
 import { GOOGLE_WEB_CLIENT_ID } from "@/lib/googleClientId";
 import { USERNAME_RE } from "@/lib/username";
@@ -77,6 +77,9 @@ export async function POST(req: Request) {
       );
     }
     const email = info.email.trim().toLowerCase();
+
+    // Autorreparo v1.13.17 (el SELECT/CREATE de User incluye las columnas nuevas).
+    await asegurarColumnasUsuario();
 
     let user = await db.user.findUnique({ where: { email } });
     if (!user) {
