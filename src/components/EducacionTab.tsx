@@ -2,11 +2,12 @@
 
 // ============================================================
 // Centro de Educación Ciclista (CEC) - pantalla del menú lateral
-// (zona «Aprende»). 14 módulos del mockup aprobado (datos en
-// lib/educacionData.ts): chips de categoría + búsqueda, ficha
-// con cuerpo/recomendaciones/fuentes/quiz y progreso persistente
-// en el teléfono (localStorage c30.educacion). El contenido de
-// los módulos es en español (normativa chilena citada verbatim);
+// (zona «Aprende»). 15 módulos (datos en lib/educacionData.ts):
+// chips de categoría + búsqueda, ficha con cuerpo/ilustraciones/
+// recomendaciones/fuentes/quiz, botón al recurso oficial citado
+// y progreso persistente en el teléfono (localStorage
+// c30.educacion). Iniciativa educativa de Cumbre30. El contenido
+// de los módulos es en español (normativa chilena citada verbatim);
 // los textos de interfaz vía i18n (claves edu.* y cat.*).
 // ============================================================
 
@@ -15,6 +16,7 @@ import {
   BadgeCheck,
   BookOpen,
   Compass,
+  ExternalLink,
   GraduationCap,
   Mountain,
   Search,
@@ -24,6 +26,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { CEC_CATS, CEC_MODULOS, type ModuloCEC } from "@/lib/educacionData";
+import { openExternal } from "@/lib/proConfig";
 import { t, useLang } from "@/lib/i18n";
 
 /** Progreso del centro en el teléfono (c30.educacion). */
@@ -31,9 +34,10 @@ type EduState = { done: string[]; quiz: string[] };
 const LS_EDU = "c30.educacion";
 /** Snapshot del servidor / sin datos (referencia estable). */
 const EDU_VACIO: EduState = { done: [], quiz: [] };
-/** Módulos que activan cada insignia temática. */
-const INS_NORMATIVA = ["CEC-003", "CEC-004", "CEC-013", "CEC-014"];
-const INS_MONTANA = ["CEC-009", "CEC-010"];
+/** Módulos que activan cada insignia temática (ids v2: la evaluación
+    pasó al final como CEC-015 y el resto se renumeró por posición). */
+const INS_NORMATIVA = ["CEC-001", "CEC-004", "CEC-005", "CEC-013", "CEC-014"];
+const INS_MONTANA = ["CEC-010", "CEC-011"];
 
 // ---- store externo del progreso (mismo patrón que historyStore):
 // lectura desde localStorage con caché y notificación a suscriptores ----
@@ -129,6 +133,9 @@ function FichaModulo({
     return () => document.removeEventListener("keydown", onKey);
   }, [onClose]);
 
+  // Enlace al recurso oficial citado (cerrado para el narrowing en el pie)
+  const enlace = mod.enlace;
+
   return (
     <div
       className="fixed inset-0 z-[80] flex items-end justify-center bg-black/60 p-4 pb-8"
@@ -169,6 +176,18 @@ function FichaModulo({
               </li>
             ))}
           </ul>
+
+          {/* Ilustraciones (señales de mano de CEC-001) */}
+          {mod.imagenes && mod.imagenes.length > 0 && (
+            <div className="mt-3 grid gap-2 sm:grid-cols-3">
+              {mod.imagenes.map((im) => (
+                <figure key={im.src} className="rounded-xl border border-border bg-muted/30 p-2">
+                  <img src={im.src} alt={im.alt} loading="lazy" className="w-full h-auto rounded-lg" />
+                  <figcaption className="mt-1.5 text-[11px] leading-snug text-muted-foreground">{im.cap}</figcaption>
+                </figure>
+              ))}
+            </div>
+          )}
 
           {mod.recos.length > 0 && (
             <div className="mt-3 flex gap-2.5 rounded-xl border border-amber-600/40 bg-amber-500/10 p-3 text-[12.5px] leading-relaxed text-foreground/90">
@@ -248,19 +267,30 @@ function FichaModulo({
           )}
         </div>
 
-        {/* Pie: marcar completado */}
+        {/* Pie: acceso al recurso oficial citado + marcar completado */}
         <div className="border-t border-border px-4 py-3">
-          <Button
-            onClick={onToggleDone}
-            variant={done ? "outline" : "default"}
-            className={`h-11 w-full rounded-xl text-[14px] font-bold ${
-              done
-                ? "border-emerald-600/60 bg-card text-emerald-700 dark:text-emerald-300 hover:bg-emerald-600/10"
-                : "bg-emerald-600 text-(--c30-on-accent) hover:bg-emerald-500"
-            }`}
-          >
-            <BadgeCheck className="h-5 w-5" aria-hidden /> {done ? t("edu.marcado") : t("edu.marcar")}
-          </Button>
+          <div className="flex flex-col gap-2">
+            {enlace && (
+              <Button
+                onClick={() => void openExternal(enlace.url)}
+                variant="outline"
+                className="h-11 w-full rounded-xl border-border bg-card text-[13.5px] font-bold text-foreground hover:bg-accent"
+              >
+                <ExternalLink className="h-5 w-5" aria-hidden /> {enlace.etiqueta}
+              </Button>
+            )}
+            <Button
+              onClick={onToggleDone}
+              variant={done ? "outline" : "default"}
+              className={`h-11 w-full rounded-xl text-[14px] font-bold ${
+                done
+                  ? "border-emerald-600/60 bg-card text-emerald-700 dark:text-emerald-300 hover:bg-emerald-600/10"
+                  : "bg-emerald-600 text-(--c30-on-accent) hover:bg-emerald-500"
+              }`}
+            >
+              <BadgeCheck className="h-5 w-5" aria-hidden /> {done ? t("edu.marcado") : t("edu.marcar")}
+            </Button>
+          </div>
         </div>
       </div>
     </div>

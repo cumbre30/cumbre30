@@ -1,5 +1,8 @@
 // Extrae el array MODULOS del mockup aprobado y genera src/lib/educacionData.ts
 // con el mismo contenido literal (fidelidad a lo revisado por el cliente).
+// ATENCION (v2): este script corresponde a la v1 (mockup). El archivo generado
+// se edita a mano desde el 2026-11-20 (feedback del cliente) - NO regenerar:
+// sobreescribiría enlaces, imágenes, renumeración y textos v2.
 
 import fs from "node:fs";
 

@@ -2,20 +2,30 @@
 
 // ============================================================
 // Centro de Educación Ciclista (CEC) - datos de los módulos.
-// Generado desde el mockup aprobado (download/mockup-centro-
-// educacion-ciclista.html, v.2026-11-20) por scripts/gen-educacion-data.mjs
-// para garantizar fidelidad al contenido revisado por el cliente.
+// v1 generada desde el mockup aprobado (download/mockup-centro-
+// educacion-ciclista.html) por scripts/gen-educacion-data.mjs.
+// v2 (feedback del cliente, 2026-11-20): es una iniciativa
+// educativa de Cumbre30, sin vínculo con Parquemet ni con planes
+// externos - se eliminaron sus menciones y se mantienen solo las
+// citas a textos oficiales (LeyChile - BCN, CONASET, SII), cada
+// módulo con un botón de acceso al recurso citado (enlace); nuevo
+// CEC-001 de señales de mano con ilustraciones en
+// public/educacion/*.svg, y el módulo de evaluación cierra la
+// lista (CEC-015). Los ids se renumeraron por posición; progreso
+// previo en c30.educacion puede resetearse sin problema (función
+// educativa, sin certificación).
 // El contenido de los módulos (reglas, citas legales, fuentes)
-// permanece en español: la normativa citada (Ley 18.290, CONASET,
-// UTM/SII) es chilena y su texto oficial es en español; traducir
-// citas legales implicaría parafrasearlas. Los textos de interfaz
-// (chips, búsqueda, quiz, insignias) sí están en i18n (i18n.ts).
-// ------------------------------------------------------------
-// Tipos: ModuloCEC = ficha completa; quiz en CEC-012/013/014.
+// permanece en español: la normativa citada es chilena y su texto
+// oficial es en español; traducir citas implicaría parafrasearlas.
+// Los textos de interfaz (chips, búsqueda, quiz, insignias) están
+// en i18n (i18n.ts). Datos mantenidos a mano: NO regenerar con el
+// script v1 (sobreescribiría estos cambios).
 // ============================================================
 
 export type QuizCEC = { q: string; alt: string[]; ok: number; exp: string };
 export type RefCEC = { t: string; f: string; r: string; v: string };
+export type ImagenCEC = { src: string; alt: string; cap: string };
+export type EnlaceCEC = { etiqueta: string; url: string };
 export type ModuloCEC = {
   id: string;
   cat: string;
@@ -28,15 +38,78 @@ export type ModuloCEC = {
   recos: string[];
   refs: RefCEC[];
   act: string;
+  imagenes?: ImagenCEC[];
+  enlace?: EnlaceCEC;
   quiz?: QuizCEC;
 };
 
 /** Categorías (clave = cat del módulo; etiquetas vía i18n cat.*). */
 export const CEC_CATS: string[] = ["pedalear","senalizacion","seguridad","emergencias","montana","evaluaciones","legal"];
 
+/** URLs oficiales verificadas (BCN/LeyChile, CONASET, SII). */
+export const URL_LEYTRANSITO = "https://www.bcn.cl/leychile/navegar?idNorma=1007469";
+export const URL_LEYCONVIVENCIA = "https://www.bcn.cl/leychile/navegar?idNorma=1118358";
+export const URL_REGLACICLOVIAS = "https://www.bcn.cl/leychile/navegar?idNorma=1162453";
+export const URL_UTM = "https://www.sii.cl/valores_y_fechas/utm/utm2026.htm";
+export const URL_MANUALES_CONASET = "https://www.conaset.cl/manuales";
+export const URL_GUIA_CICLISTAS = "https://www.conaset.cl/wp-content/uploads/2024/09/Guia-para-ciclistas-en-Chile_CONASET_13-09-2024-1-1.pdf";
+
 export const CEC_MODULOS: ModuloCEC[] = [
   {
     id: "CEC-001",
+    cat: "senalizacion",
+    nivel: "basico",
+    modo: [
+      "urbano",
+      "paseo"
+    ],
+    icono: "🖐️",
+    titulo: "Señales de mano: gira y detente avisando",
+    desc: "Las tres señales que debes hacer con el brazo antes de virar o detenerte, con una ilustración para cada una.",
+    cuerpo: [
+      "La Ley de Tránsito obliga a señalizar los cambios de rumbo con el brazo o con un señalizador eléctrico adosado al cuerpo (art. 138); no hacer las señales debidas antes de virar es infracción menos grave (art. 201 N°5).",
+      "Giro a la izquierda: brazo izquierdo extendido horizontalmente, paralelo al suelo, con la palma abierta.",
+      "Giro a la derecha: brazo derecho extendido horizontalmente, paralelo al suelo (también es válida la variante con el brazo izquierdo flexionado hacia arriba).",
+      "Detención o freno: brazo extendido hacia abajo, inclinado unos 45 grados respecto del cuerpo.",
+      "Haz la señal unos 20 a 30 metros antes de la maniobra y vuelve a poner la mano en el manubrio antes de virar o de frenar con firmeza."
+    ],
+    recos: [
+      "Practica las señales en línea recta y en un espacio abierto antes de usarlas dentro del flujo.",
+      "De noche, refuerza la señal con las luces intermitentes: el brazo no refleja por sí solo."
+    ],
+    refs: [
+      {
+        t: "Ley 18.290 - Ley de Tránsito, art. 138 (señalización de virajes) y art. 201 N°5",
+        f: "Biblioteca del Congreso Nacional - LeyChile (texto refundido vigente)",
+        r: "2026-11-20",
+        v: "Vigente"
+      }
+    ],
+    act: "2026-11-20",
+    imagenes: [
+      {
+        src: "/educacion/senal-giro-izquierda.svg",
+        alt: "Ciclista visto desde atrás con el brazo izquierdo extendido horizontalmente",
+        cap: "Giro a la izquierda: brazo izquierdo extendido horizontal."
+      },
+      {
+        src: "/educacion/senal-giro-derecha.svg",
+        alt: "Ciclista visto desde atrás con el brazo derecho extendido horizontalmente",
+        cap: "Giro a la derecha: brazo derecho extendido horizontal."
+      },
+      {
+        src: "/educacion/senal-detencion.svg",
+        alt: "Ciclista visto desde atrás con el brazo extendido hacia abajo",
+        cap: "Detención: brazo extendido hacia abajo."
+      }
+    ],
+    enlace: {
+      etiqueta: "Ver art. 138 en LeyChile",
+      url: URL_LEYTRANSITO
+    }
+  },
+  {
+    id: "CEC-002",
     cat: "pedalear",
     nivel: "basico",
     modo: [
@@ -61,12 +134,22 @@ export const CEC_MODULOS: ModuloCEC[] = [
         f: "Contenido propio",
         r: "2026-11-20",
         v: "Vigente"
+      },
+      {
+        t: "Guía para ciclistas en Chile",
+        f: "CONASET, septiembre 2024",
+        r: "2026-11-20",
+        v: "Vigente"
       }
     ],
-    act: "2026-11-20"
+    act: "2026-11-20",
+    enlace: {
+      etiqueta: "Guía para ciclistas (CONASET)",
+      url: URL_GUIA_CICLISTAS
+    }
   },
   {
-    id: "CEC-002",
+    id: "CEC-003",
     cat: "pedalear",
     nivel: "basico",
     modo: [
@@ -91,12 +174,22 @@ export const CEC_MODULOS: ModuloCEC[] = [
         f: "Contenido propio",
         r: "2026-11-20",
         v: "Vigente"
+      },
+      {
+        t: "Guía para ciclistas en Chile",
+        f: "CONASET, septiembre 2024",
+        r: "2026-11-20",
+        v: "Vigente"
       }
     ],
-    act: "2026-11-20"
+    act: "2026-11-20",
+    enlace: {
+      etiqueta: "Guía para ciclistas (CONASET)",
+      url: URL_GUIA_CICLISTAS
+    }
   },
   {
-    id: "CEC-003",
+    id: "CEC-004",
     cat: "senalizacion",
     nivel: "basico",
     modo: [
@@ -116,22 +209,26 @@ export const CEC_MODULOS: ModuloCEC[] = [
     ],
     refs: [
       {
-        t: "Ley 18.290, Ley de Tránsito",
-        f: "Ministerio de Transportes - Biblioteca del Congreso Nacional",
+        t: "Ley 18.290 - Ley de Tránsito (texto refundido vigente)",
+        f: "Biblioteca del Congreso Nacional - LeyChile",
         r: "2026-11-20",
         v: "Vigente"
       },
       {
-        t: "Manual de Señalización de Tránsito",
-        f: "CONASET / Ministerio de Transportes",
+        t: "Reglamento de ciclovías (DS 102/2019 MTT): diseño y señalización",
+        f: "Biblioteca del Congreso Nacional - LeyChile",
         r: "2026-11-20",
         v: "Vigente"
       }
     ],
-    act: "2026-11-20"
+    act: "2026-11-20",
+    enlace: {
+      etiqueta: "Ver reglamento de ciclovías en LeyChile",
+      url: URL_REGLACICLOVIAS
+    }
   },
   {
-    id: "CEC-004",
+    id: "CEC-005",
     cat: "senalizacion",
     nivel: "intermedio",
     modo: [
@@ -163,10 +260,14 @@ export const CEC_MODULOS: ModuloCEC[] = [
         v: "Vigente"
       }
     ],
-    act: "2026-11-20"
+    act: "2026-11-20",
+    enlace: {
+      etiqueta: "Ver art. 120 en LeyChile",
+      url: URL_LEYTRANSITO
+    }
   },
   {
-    id: "CEC-005",
+    id: "CEC-006",
     cat: "seguridad",
     nivel: "basico",
     modo: [
@@ -187,16 +288,20 @@ export const CEC_MODULOS: ModuloCEC[] = [
     ],
     refs: [
       {
-        t: "Ley 18.290, Ley de Tránsito (uso obligatorio)",
-        f: "Biblioteca del Congreso Nacional",
+        t: "Ley 18.290 - Ley de Tránsito (uso obligatorio, art. 80)",
+        f: "Biblioteca del Congreso Nacional - LeyChile",
         r: "2026-11-20",
         v: "Vigente"
       }
     ],
-    act: "2026-11-20"
+    act: "2026-11-20",
+    enlace: {
+      etiqueta: "Ver art. 80 en LeyChile",
+      url: URL_LEYTRANSITO
+    }
   },
   {
-    id: "CEC-006",
+    id: "CEC-007",
     cat: "seguridad",
     nivel: "intermedio",
     modo: [
@@ -204,11 +309,11 @@ export const CEC_MODULOS: ModuloCEC[] = [
     ],
     icono: "🚶",
     titulo: "Convivencia con peatones",
-    desc: "Prioridades, velocidad y comunicación en ciclovías y zonas compartidas del parque.",
+    desc: "Prioridades, velocidad y comunicación en ciclovías y tramos compartidos.",
     cuerpo: [
       "En zonas compartidas y pasos peatonales, el peatón tiene la prioridad: reduce y pasa a distancia lateral segura.",
       "Anuncia tu presencia con timbre a unos 30 metros; un 'gracias' mantiene la convivencia.",
-      "La velocidad de convivencia en tramos compartidos del Parque Metropolitano es la del límite del parque: 30 km/h como máximo y menos en tramos peatonales."
+      "En tramos compartidos la velocidad de convivencia es baja: ajusta tu marcha a la de los peatones al superarlos y reduce en zonas de conflicto."
     ],
     recos: [
       "Baja del bici en los pasos peatonales si hay mucha gente.",
@@ -216,22 +321,26 @@ export const CEC_MODULOS: ModuloCEC[] = [
     ],
     refs: [
       {
-        t: "Normas de uso del Parque Metropolitano de Santiago",
-        f: "Parquemet",
+        t: "Ley 18.290 - Ley de Tránsito (texto refundido vigente)",
+        f: "Biblioteca del Congreso Nacional - LeyChile",
         r: "2026-11-20",
         v: "Vigente"
       },
       {
-        t: "DS 102/2019 y modificaciones",
-        f: "Ministerio de Transportes",
+        t: "Reglamento de ciclovías (DS 102/2019 MTT)",
+        f: "Biblioteca del Congreso Nacional - LeyChile",
         r: "2026-11-20",
         v: "Vigente"
       }
     ],
-    act: "2026-11-20"
+    act: "2026-11-20",
+    enlace: {
+      etiqueta: "Ver Ley de Convivencia Vial en LeyChile",
+      url: URL_LEYCONVIVENCIA
+    }
   },
   {
-    id: "CEC-007",
+    id: "CEC-008",
     cat: "seguridad",
     nivel: "intermedio",
     modo: [
@@ -256,12 +365,22 @@ export const CEC_MODULOS: ModuloCEC[] = [
         f: "Contenido propio",
         r: "2026-11-20",
         v: "Vigente"
+      },
+      {
+        t: "Guía para ciclistas en Chile",
+        f: "CONASET, septiembre 2024",
+        r: "2026-11-20",
+        v: "Vigente"
       }
     ],
-    act: "2026-11-20"
+    act: "2026-11-20",
+    enlace: {
+      etiqueta: "Guía para ciclistas (CONASET)",
+      url: URL_GUIA_CICLISTAS
+    }
   },
   {
-    id: "CEC-008",
+    id: "CEC-009",
     cat: "emergencias",
     nivel: "basico",
     modo: [
@@ -274,7 +393,7 @@ export const CEC_MODULOS: ModuloCEC[] = [
     desc: "Qué hacer ante una caída: evaluar, avisar y proteger el lugar.",
     cuerpo: [
       "Evalúa primero tu seguridad y luego la de la persona caída; no muevas a quien no responde salvo peligro inminente.",
-      "Números útiles: 133 (emergencias), 131 (SAMU), 132 (bomberos) y 1466 (emergencias Parquemet).",
+      "Números útiles: 131 (SAMU), 132 (bomberos) y 133 (Carabineros).",
       "Protege el lugar de la caída para evitar más incidentes y avisa a los demás ciclistas."
     ],
     recos: [
@@ -283,22 +402,26 @@ export const CEC_MODULOS: ModuloCEC[] = [
     ],
     refs: [
       {
-        t: "Teléfono de emergencias Parquemet 1466",
-        f: "Parquemet",
+        t: "Ley 18.290 - Ley de Tránsito, art. 103 (deber de auxilio tras un accidente)",
+        f: "Biblioteca del Congreso Nacional - LeyChile",
         r: "2026-11-20",
         v: "Vigente"
       },
       {
-        t: "Protocolo de emergencias - Plan Pedalea Seguro 2026",
-        f: "CONASET",
+        t: "Guía para ciclistas en Chile",
+        f: "CONASET, septiembre 2024",
         r: "2026-11-20",
         v: "Vigente"
       }
     ],
-    act: "2026-11-20"
+    act: "2026-11-20",
+    enlace: {
+      etiqueta: "Guía para ciclistas (CONASET)",
+      url: URL_GUIA_CICLISTAS
+    }
   },
   {
-    id: "CEC-009",
+    id: "CEC-010",
     cat: "montana",
     nivel: "avanzado",
     modo: [
@@ -313,21 +436,25 @@ export const CEC_MODULOS: ModuloCEC[] = [
       "Baja el cuerpo hacia atrás en descensos pronunciados para no sobrecargar la rueda delantera."
     ],
     recos: [
-      "En el parque, los descensos fiscalizados tienen límite de 30 km/h: respétalo, hay fiscalización.",
+      "En descensos compartidos, regula la velocidad y cede ante quien sube.",
       "Revisa pastillas y aros/disyos antes de bajar montaña."
     ],
     refs: [
       {
-        t: "Normas de ciclismo en el Parque Metropolitano",
-        f: "Parquemet",
+        t: "Manual Integral de Educación y Seguridad Ciclista Cumbre30",
+        f: "Contenido propio",
         r: "2026-11-20",
         v: "Vigente"
       }
     ],
-    act: "2026-11-20"
+    act: "2026-11-20",
+    enlace: {
+      etiqueta: "Manuales de conducción (CONASET)",
+      url: URL_MANUALES_CONASET
+    }
   },
   {
-    id: "CEC-010",
+    id: "CEC-011",
     cat: "montana",
     nivel: "intermedio",
     modo: [
@@ -339,7 +466,7 @@ export const CEC_MODULOS: ModuloCEC[] = [
     cuerpo: [
       "Circula solo por senderos habilitados y en la dirección señalizada: invertir el sentido genera choques de frente.",
       "No abras atajos nuevos: erosionan el cerro y suelen cruzar zonas de restauración.",
-      "Los senderos MTB del parque tienen niveles (verde, azul, negro): elige según tu técnica."
+      "Los senderos MTB suelen clasificarse por niveles (verde, azul, negro): elige según tu técnica."
     ],
     recos: [
       "Consulta la capa de senderos de Cumbre30 antes de salir; se actualiza con información oficial.",
@@ -347,16 +474,20 @@ export const CEC_MODULOS: ModuloCEC[] = [
     ],
     refs: [
       {
-        t: "Reglamento de senderos y MTB del Parque Metropolitano",
-        f: "Parquemet",
+        t: "Manual Integral de Educación y Seguridad Ciclista Cumbre30",
+        f: "Contenido propio",
         r: "2026-11-20",
         v: "Vigente"
       }
     ],
-    act: "2026-11-20"
+    act: "2026-11-20",
+    enlace: {
+      etiqueta: "Manuales de conducción (CONASET)",
+      url: URL_MANUALES_CONASET
+    }
   },
   {
-    id: "CEC-011",
+    id: "CEC-012",
     cat: "pedalear",
     nivel: "intermedio",
     modo: [
@@ -377,54 +508,16 @@ export const CEC_MODULOS: ModuloCEC[] = [
     ],
     refs: [
       {
-        t: "Manual Integral de Educación y Seguridad Ciclista Cumbre30",
-        f: "Contenido propio",
-        r: "2026-11-20",
-        v: "Vigente"
-      }
-    ],
-    act: "2026-11-20"
-  },
-  {
-    id: "CEC-012",
-    cat: "evaluaciones",
-    nivel: "basico",
-    modo: [
-      "urbano",
-      "mtb",
-      "paseo"
-    ],
-    icono: "🎓",
-    titulo: "Evaluación: listo para pedalear",
-    desc: "Cuestionario inicial del Centro de Educación: 6 preguntas para medir tu base.",
-    cuerpo: [
-      "Repasa los módulos básicos y responde el cuestionario. Puedes repetirlo las veces que quieras.",
-      "Al aprobar desbloqueas la insignia 'Primer módulo' y se suma a tu progreso educativo del perfil ciclista.",
-      "Las evaluaciones son educativas: no otorgan certificaciones oficiales."
-    ],
-    recos: [
-      "Vuelve al cuestionario cada temporada: las normas cambian y el repaso mantiene hábitos.",
-      "Los resultados viven en tu teléfono y se sincronizan con tu cuenta."
-    ],
-    refs: [
-      {
-        t: "Programa educativo Cumbre30 - Plan Pedalea Seguro 2026",
-        f: "CONASET / Cumbre30",
+        t: "Ley 21.088 - Ley de Convivencia Vial (transporte de menores, art. 223)",
+        f: "Biblioteca del Congreso Nacional - LeyChile",
         r: "2026-11-20",
         v: "Vigente"
       }
     ],
     act: "2026-11-20",
-    quiz: {
-      q: "Al adelantarte, ¿qué distancia aproximada debe mantener un vehículo motorizado durante toda la maniobra?",
-      alt: [
-        "0,5 metros",
-        "1 metro",
-        "1,5 metros",
-        "3 metros"
-      ],
-      ok: 2,
-      exp: "Art. 120 de la Ley de Tránsito (inciso introducido por la Ley 20.068): al adelantar a bicicletas u otros ciclos, el vehículo motorizado debe mantener una distancia prudente de aproximadamente 1,50 metros durante toda la maniobra."
+    enlace: {
+      etiqueta: "Ver Ley de Convivencia Vial en LeyChile",
+      url: URL_LEYCONVIVENCIA
     }
   },
   {
@@ -447,7 +540,7 @@ export const CEC_MODULOS: ModuloCEC[] = [
       "Familia y estacionamiento: transportar menores de 7 años exige conductor mayor de edad (art. 223 c); las bicicletas se estacionan en lugares habilitados y no deben aferrarse a paraderos de transporte público, pasos de peatones ni zonas prohibidas (art. 224)."
     ],
     recos: [
-      "Las zonas de tránsito calmado fijan máximos de 40, 30 o 20 km/h (art. 2, Ley 21.088): el límite de 30 km/h del Parque Metropolitano nace de esa familia normativa más las normas del parque.",
+      "Las zonas de tránsito calmado fijan máximos de 40, 30 o 20 km/h (art. 2, Ley 21.088): en ellas el límite es menor que el general de la vía.",
       "Las ciclovías se rigen por el reglamento DS 102/2019 del MTT: diseño, señalización y elementos de seguridad homologados.",
       "Consulta el texto exacto en LeyChile (BCN): cada regla de esta ficha cita su artículo para que puedas verificarlo."
     ],
@@ -472,6 +565,10 @@ export const CEC_MODULOS: ModuloCEC[] = [
       }
     ],
     act: "2026-11-20",
+    enlace: {
+      etiqueta: "Ver el texto vigente en LeyChile",
+      url: URL_LEYTRANSITO
+    },
     quiz: {
       q: "Sin ciclovía disponible, ¿por dónde deben circular los ciclos en zonas urbanas?",
       alt: [
@@ -501,7 +598,7 @@ export const CEC_MODULOS: ModuloCEC[] = [
       "Graves, 1 a 1,5 UTM (aprox. $72.440 a $108.660): no respetar señales de tránsito (art. 200 N°7), conducir contra el sentido del tránsito (N°9), no respetar la preferencia de paso de peatones u otros conductores (N°11), infringir las normas de virajes (N°13), circular sin luces cuando la ley las exige (N°15) y no cumplir la prohibición de tomarse de otros vehículos en movimiento (N°8, art. 131).",
       "Menos graves, 0,5 a 1 UTM (aprox. $36.220 a $72.440): conducir una bicicleta contraviniendo el uso obligatorio del casco protector y demás elementos de seguridad (art. 201; así lo publica CONASET) y no hacer las señales debidas antes de virar (art. 201 N°5).",
       "Leves, 0,2 a 0,5 UTM (aprox. $14.488 a $36.220): todas las demás transgresiones (art. 202), por ejemplo infringir los deberes del art. 223 (freno eficaz, atención plena) o las reglas de ciclovías y estacionamiento del Título XX (arts. 221-224).",
-      "Lo que no aplica al ciclista: licencia de conductor, permiso de circulación, revisión técnica y patente son exigibles solo a vehículos motorizados. En el Parque Metropolitano se suman las normas internas del parque, con fiscalización de Carabineros (por ejemplo, el límite de 30 km/h)."
+      "Lo que no aplica al ciclista: licencia de conductor, permiso de circulación, revisión técnica y patente son exigibles solo a vehículos motorizados. En zonas de tránsito calmado o recintos con normas propias se suman sus máximos específicos, también fiscalizados por Carabineros."
     ],
     recos: [
       "Los montos en pesos son referencia con la UTM de noviembre 2026 ($72.440, SII): se recalculan cada mes.",
@@ -517,7 +614,7 @@ export const CEC_MODULOS: ModuloCEC[] = [
       },
       {
         t: "Multas asociadas: casco y elementos de seguridad para ciclistas",
-        f: "CONASET - conaset.cl/multas-asociadas",
+        f: "CONASET",
         r: "2026-11-20",
         v: "Vigente"
       },
@@ -535,6 +632,10 @@ export const CEC_MODULOS: ModuloCEC[] = [
       }
     ],
     act: "2026-11-20",
+    enlace: {
+      etiqueta: "Ver arts. 199-205 en LeyChile",
+      url: URL_LEYTRANSITO
+    },
     quiz: {
       q: "Andar en bicicleta sin casco en zona urbana, ¿qué infracción es?",
       alt: [
@@ -545,6 +646,52 @@ export const CEC_MODULOS: ModuloCEC[] = [
       ],
       ok: 2,
       exp: "El casco es obligatorio en zonas urbanas (art. 80) y su infracción es menos grave, con multa de 0,5 a 1 UTM (art. 201; verificado en CONASET)."
+    }
+  },
+  {
+    id: "CEC-015",
+    cat: "evaluaciones",
+    nivel: "basico",
+    modo: [
+      "urbano",
+      "mtb",
+      "paseo"
+    ],
+    icono: "🎓",
+    titulo: "Evaluación: listo para pedalear",
+    desc: "Cuestionario de repaso del Centro de Educación: mide tu base antes de pedalear.",
+    cuerpo: [
+      "Repasa los módulos básicos y responde el cuestionario. Puedes repetirlo las veces que quieras.",
+      "Al aprobar desbloqueas la insignia 'Primer módulo' y se suma a tu progreso educativo del perfil ciclista.",
+      "Las evaluaciones son educativas: no otorgan certificaciones oficiales."
+    ],
+    recos: [
+      "Vuelve al cuestionario cada temporada: las normas cambian y el repaso mantiene hábitos.",
+      "Los resultados viven en tu teléfono y se sincronizan con tu cuenta."
+    ],
+    refs: [
+      {
+        t: "Programa educativo Cumbre30",
+        f: "Cumbre30",
+        r: "2026-11-20",
+        v: "Vigente"
+      }
+    ],
+    act: "2026-11-20",
+    enlace: {
+      etiqueta: "Guía para ciclistas (CONASET)",
+      url: URL_GUIA_CICLISTAS
+    },
+    quiz: {
+      q: "Al adelantarte, ¿qué distancia aproximada debe mantener un vehículo motorizado durante toda la maniobra?",
+      alt: [
+        "0,5 metros",
+        "1 metro",
+        "1,5 metros",
+        "3 metros"
+      ],
+      ok: 2,
+      exp: "Art. 120 de la Ley de Tránsito (inciso introducido por la Ley 20.068): al adelantar a bicicletas u otros ciclos, el vehículo motorizado debe mantener una distancia prudente de aproximadamente 1,50 metros durante toda la maniobra."
     }
   }
 ];
