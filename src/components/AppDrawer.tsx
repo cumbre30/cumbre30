@@ -17,6 +17,7 @@ import {
   ChartLine,
   ChevronRight,
   Crown,
+  GraduationCap,
   HelpCircle,
   History,
   Settings,
@@ -32,6 +33,7 @@ import { t, useLang } from "@/lib/i18n";
 export type MenuScreen =
   | "historial"
   | "stats"
+  | "educacion"
   | "perfil"
   | "config"
   | "ayuda"
@@ -160,7 +162,13 @@ export function AppDrawer({
           {/* Desafíos y recompensas + Amigos: secciones del Perfil Ciclista desde v1.14.0 */}
         </div>
 
-        {/* Zona 3: Cuenta - abre subsecciones (datos/pagos) */}
+        {/* Zona 3: Aprende - Centro de Educación Ciclista */}
+        <div className="mt-3 px-3">
+          <p className="px-1 pb-1 pt-2 text-[10.5px] font-extrabold uppercase tracking-widest text-muted-foreground/70">{t("drawer.zonaAprende")}</p>
+          <MenuItem icon={<GraduationCap className="h-5 w-5" />} label={t("menu.educacion")} hint={t("drawer.eduHint")} onClick={() => go("educacion")} />
+        </div>
+
+        {/* Zona 4: Cuenta - abre subsecciones (datos/pagos) */}
         <div className="mt-3 px-3">
           <p className="px-1 pb-1 pt-2 text-[10.5px] font-extrabold uppercase tracking-widest text-muted-foreground/70">{t("drawer.zonaCuenta")}</p>
           <MenuItem icon={<UserRound className="h-5 w-5" />} label={t("menu.perfil")} hint={t("drawer.perfilHint")} onClick={() => go("perfil")} />
@@ -168,7 +176,7 @@ export function AppDrawer({
           <MenuItem icon={<HelpCircle className="h-5 w-5" />} label={t("menu.ayuda")} hint={t("drawer.ayudaHint")} onClick={() => go("ayuda")} />
         </div>
 
-        {/* Zona 4: Plan actual */}
+        {/* Zona 5: Plan actual */}
         <div className="mt-3 px-3">
           <p className="px-1 pb-1 pt-2 text-[10.5px] font-extrabold uppercase tracking-widest text-muted-foreground/70">{t("drawer.zonaPlan")}</p>
           <button

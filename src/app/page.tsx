@@ -95,6 +95,16 @@ const PerfilTab = dynamic(() => import("@/components/PerfilTab").then((m) => ({ 
   ),
 });
 
+const EducacionTab = dynamic(() => import("@/components/EducacionTab").then((m) => ({ default: m.EducacionTab })), {
+  ssr: false,
+  loading: () => (
+    <Loading
+      k="pg.cargandoEducacion"
+      className="h-40 rounded-xl border border-border bg-card flex items-center justify-center"
+    />
+  ),
+});
+
 /** Destinos de la barra inferior (los 4 del brief + Perfil Ciclista). */
 type TabScreen = "ride" | "explorar" | "acceso" | "ciclista";
 /** Sub-pantallas accesibles desde el menú lateral. */
@@ -105,6 +115,7 @@ type Screen = TabScreen | SubScreen;
 const SUB_KEYS: Record<SubScreen, string> = {
   historial: "menu.historial",
   stats: "menu.stats",
+  educacion: "menu.educacion",
   perfil: "menu.perfil",
   config: "menu.config",
   ayuda: "menu.ayuda",
@@ -417,6 +428,7 @@ export default function Home() {
               />
             )}
             {screen === "ayuda" && <HelpTab />}
+            {screen === "educacion" && <EducacionTab />}
           </section>
         )}
 
