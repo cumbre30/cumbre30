@@ -65,7 +65,7 @@ async function sessionFromToken(token: string | undefined): Promise<SessionUser 
   return toSessionUser(session.user);
 }
 
-// Autorreparo de las columnas de pesos (v1.13.17) — espejo de las de
+// Autorreparo de las columnas de pesos (v1.13.17) - espejo de las de
 // RideMetric en profileServer: ALTER TABLE IF NOT EXISTS una vez por
 // proceso. CRÍTICO en auth: el Prisma Client nuevo las incluye en su
 // SELECT de User, así que sin este ensure el LOGIN mismo fallaría con
@@ -110,7 +110,7 @@ function toSessionUser(u: {
 /**
  * Usuario de la sesión actual. Dos vías:
  *  · Web: cookie httpOnly (mismo origen).
- *  · APK: cabecera Authorization: Bearer <token> de /api/auth/token —
+ *  · APK: cabecera Authorization: Bearer <token> de /api/auth/token -
  *    el WebView de Capacitor es cross-origin y las cookies third-party
  *    no son confiables, así que el sync viaja con token opaco.
  */

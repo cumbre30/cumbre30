@@ -88,7 +88,7 @@ type Props = {
 };
 
 // SIN ubicación automática (cliente, 2026-11-12): el mapa NO se envía
-// solo a la posición del ciclista — perseguía el dedo y no dejaba
+// solo a la posición del ciclista - perseguía el dedo y no dejaba
 // navegar/explorar. La ubicación se centra SOLO con el botón
 // «Centrar en mi ubicación» (LocateHandler abajo).
 function LocateHandler({ target }: { target: LatLng | null }) {
@@ -132,8 +132,8 @@ function RouteFitter({
 
 /** v1.12.10: cámara Waze del mapa grande. Mientras hay navegación activa
  *  sigue el pin con paneo continuo (≈ intervalo entre fixes); mientras el
- *  mapa está ROTADO (≠0°) el arrastre queda deshabilitado — Leaflet no
- *  entiende toques sobre un mapa girado — y se reactiva al volver a norte.
+ *  mapa está ROTADO (≠0°) el arrastre queda deshabilitado - Leaflet no
+ *  entiende toques sobre un mapa girado - y se reactiva al volver a norte.
  *  El contenedor crece a 150% al rotar → invalidateSize. */
 function NavCamara({
   position,
@@ -680,7 +680,7 @@ function SearchCard({
   );
 
   if (!pro) {
-    // FREE: la barra es el mensaje Pro (badge PRO) — al tocarla abre el
+    // FREE: la barra es el mensaje Pro (badge PRO) - al tocarla abre el
     // modal contextual con el beneficio real, sin sacar del mapa.
     return (
       <div className="relative">
@@ -895,13 +895,13 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
   const marks = useMarks();
   // Encuadre único de la ruta recién trazada desde el buscador
   const pendingFitRef = useRef(false);
-  // v1.12.10: cámara Waze del mapa grande — con navegación activa
+  // v1.12.10: cámara Waze del mapa grande - con navegación activa
   // (destino + ruta + ride grabándose) el mapa gira al rumbo y sigue
   // el pin (la ruta se ve recta, como en Waze). Sin ride: vista libre.
   const navOn = !!(dest && route && route.coords.length > 1 && track.length > 1);
   const { modo: modoCamara, mapBearing, routeBearing, setModo: setModoCamara } = useCamaraRumbo({ activa: navOn, heading, route, position });
   const rotado = mapBearing !== 0;
-  // v1.13.10: la flecha del pin apunta al rumbo de la RUTA si la hay —
+  // v1.13.10: la flecha del pin apunta al rumbo de la RUTA si la hay -
   // el mismo rumbo que lleva la cámara (route-first, unificado con el
   // minimapa): en rumbo se ve hacia ARRIBA; course GPS sólo sin ruta.
   const rumboPin = routeBearing ?? heading ?? (modoCamara === "rumbo" ? mapBearing : null);
@@ -914,7 +914,7 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
   // centras tú con el botón «Centrar en mi ubicación».
   const center = last ?? position ?? { lat: -33.408, lon: -70.636 };
   // Mapa nativo (MapLibre Native) o Leaflet en la web
-  // v1.13.5 — NATIVE_MAPS_ENABLED=false: vuelva al modo compatibilidad
+  // v1.13.5 - NATIVE_MAPS_ENABLED=false: vuelva al modo compatibilidad
   // (Leaflet ráster), el único con uso comprobado en el WebView del
   // dispositivo desde v1.3.1. Los intentos de reactivar el nativo en
   // v1.13.2 (MapLibre 13.7.1/Vulkan) y v1.13.4 (13.7.1-opengl/GL ES)
@@ -1088,7 +1088,7 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
 
   const enfocar = (f: Focus) => {
     // Control 30 km/h: no tiene punto en el mapa (cliente 2026-11-13,
-    // «dejar sólo en la capa») — al elegirlo se activa la capa Normativa
+    // «dejar sólo en la capa») - al elegirlo se activa la capa Normativa
     // y se enmarcan los 3 corredores rojos de las bajadas.
     if (f && f.kind === "control30") {
       setCapasVis((prev) => ({ ...prev, normativa: true }));
@@ -1211,7 +1211,7 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
                         <Check className="h-3.5 w-3.5" /> {t("mapa.yaResuelto")}
                       </button>
                     )}
-                    {/* v1.13.14: denuncia UGC — el popup ya no vuelve a
+                    {/* v1.13.14: denuncia UGC - el popup ya no vuelve a
                         ofrecerse (la incidencia sale del feed local). */}
                     {voto !== "resolved" && (
                       <button
@@ -1369,7 +1369,7 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
       {/* Mapa a pantalla completa (bajo header y barra inferior): 72 px
           cubre la altura real del nav inferior (~69 px) + 3 px de aire. */}
       <div className="absolute inset-x-0 top-0 bottom-[calc(72px+env(safe-area-inset-bottom))] z-0">
-        {/* v1.12.10: wrapper de rotación estilo Waze — en navegación el
+        {/* v1.12.10: wrapper de rotación estilo Waze - en navegación el
             mapa gira al rumbo (al 150% para no mostrar esquinas vacías);
             los controles flotantes, fuera del wrapper, quedan fijos. */}
         <div
@@ -1471,7 +1471,7 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
           ))}
 
           {/* Capa Accesos: los 4 autorizados para ingreso en bicicleta
-              (normativa Parquemet) — el resto de accesos no se dibuja. */}
+              (normativa Parquemet) - el resto de accesos no se dibuja. */}
           {capasVis["accesos"] &&
             CAPA_ACCESOS.map((a) => (
               <CircleMarker
@@ -1553,7 +1553,7 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
             })}
 
           {/* Senderos peatonales (cliente 2026-11-13: «para tenerlos verlos
-              pero no para ruta»): línea café punteada, informativa — NINGÚN
+              pero no para ruta»): línea café punteada, informativa - NINGÚN
               ruteo los usa (SEND_PEATONALES_BLOCK en senderos.ts). */}
           {capasVis["senderos"] &&
             CAPA_SENDEROS_PEATONALES.map((s) => {
@@ -1574,7 +1574,7 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
           {/* Paseo Metropolitano (cliente 2026-11-13: nueva categoría
               para los tramos mixtos peatón+bici del anillo): línea teal
               de guion-punto, datos en su propia variable
-              (paseoMetropolitano.ts) — informativa, el ruteo no cambia. */}
+              (paseoMetropolitano.ts) - informativa, el ruteo no cambia. */}
           {capasVis["paseo-met"] &&
             CAPA_PASEO_METROPOLITANO.map((pm) => {
               if (pm.coords.length < 2) return null;
@@ -1673,7 +1673,7 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
                   pathOptions={{ color: "#ffffff", weight: 1, fillColor: "#ffffff", fillOpacity: 0.08 }}
                 />
               )}
-              {/* v1.13.12: mapBearing=0 — el wrapper CSS (v1.12.10) ya gira los
+              {/* v1.13.12: mapBearing=0 - el wrapper CSS (v1.12.10) ya gira los
                   markers -B; el svg del puck lleva el rumbo crudo (rumboPin - 0). */}
               <Marker position={[position.lat, position.lon]} icon={userPinIcon(userPin ?? DEFAULT_PIN, rumboPin, 0)} zIndexOffset={500} />
             </>
@@ -1687,7 +1687,7 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
         </MapContainer>
         </div>
 
-        {/* Atribución OSM (v1.13.1): FIJA fuera del wrapper rotado — la
+        {/* Atribución OSM (v1.13.1): FIJA fuera del wrapper rotado - la
             licencia ODbL exige verla siempre, con la cámara girada o no
             («se pierde la etiqueta de OSM», queja del cliente). */}
         <div

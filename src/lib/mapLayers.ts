@@ -28,7 +28,7 @@ import { PASEO_METROPOLITANO_TRAMOS } from "./paseoMetropolitano";
 
 // ------------------------------------------------------------
 // Destinos del MINIMAPA (limpieza pedida por el cliente, 2026-11-12):
-// SOLO los accesos habilitados para ciclistas — sin opciones de ruta ni
+// SOLO los accesos habilitados para ciclistas - sin opciones de ruta ni
 // otros destinos (el listado completo vive en el mapa general, pestaña
 // Explorar). Las alternativas de voz del corte horario (Av. Gabriela
 // Mistral / Av. Carlos Martner) siguen vivas en routingService.
@@ -385,7 +385,7 @@ export const CAPA_NORMATIVA: CapaPuntoBase[] = [
     emoji: "🚫",
     // Coordenada exacta del cliente (2026-11-13) para el MARCADOR de la
     // capa. El CORTE de ruteo sigue anclado en el nodo real del puente
-    // Mackenna ↔ Bannen (PUENTE_TUPAHUE_CUMBRE en reglasParque) — mover
+    // Mackenna ↔ Bannen (PUENTE_TUPAHUE_CUMBRE en reglasParque) - mover
     // este marcador no cambia las reglas de navegación.
     position: { lat: -33.416203, lon: -70.622936 },
   },
@@ -440,7 +440,7 @@ export const CAPA_NORMATIVA: CapaPuntoBase[] = [
   },
   // --- Círculos amarillos de advertencia (zonas de riesgo RISK_ZONES,
   //     cliente: «agrégalos a la capa del mapa en categoría Normativa y
-  //     Seguridad») — posiciones y textos sincronizados con park.ts ---
+  //     Seguridad») - posiciones y textos sincronizados con park.ts ---
   ...RISK_ZONES.map((z) => ({
     id: `riesgo-${z.id}`,
     nombre: `Advertencia: ${z.name}`,
@@ -543,7 +543,7 @@ export const CAPA_SENDEROS_PEATONALES: SenderoPeatonalCapa[] = senderosPeatonale
 // nombre de paseo metropolitano, crea una nueva categoría en la
 // capa de mapas… son mixtos: peatonal y ciclista, algunos
 // conectan con rutas pavimentadas y MTB»).
-// Datos en SU PROPIA variable (paseoMetropolitano.ts) — no toca
+// Datos en SU PROPIA variable (paseoMetropolitano.ts) - no toca
 // SENDEROS ni la capa «Senderos peatonales». Categoría INFORMATIVA
 // como la anterior: los tramos ya viven en el grafo OSM propio y
 // ninguna regla de ruteo cambia. Se dibuja como línea verde-azul

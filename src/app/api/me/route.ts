@@ -127,7 +127,7 @@ export async function PUT(req: Request) {
   // Pesos del conjunto (v1.13.17): respaldo en cuenta de los pesos que
   // el dispositivo usa para estimar watts en subidas >4%. null = sin
   // dato (el dispositivo queda con sus defaults). Rangos: ciclista
-  // 30–200 kg, bici 5–50 kg. Los pesos reales viven en el teléfono
+  // 30-200 kg, bici 5-50 kg. Los pesos reales viven en el teléfono
   // (lib/rideWeights): aquí solo se respaldan por si cambia de teléfono.
   const conPesos = "riderWeightKg" in body || "bikeWeightKg" in body;
   if (conPesos) {

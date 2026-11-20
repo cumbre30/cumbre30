@@ -67,7 +67,7 @@ async function resolveApk(): Promise<{ file: string; p: string } | null> {
  * En producción (Vercel) el APK de ~54 MB no viaja dentro de la función
  * serverless: se hospeda en GitHub Releases y esta ruta redirige ahí
  * (APK_DOWNLOAD_URL). Sin la variable, redirige por defecto al asset
- * cumbre30-latest.apk del Release "latest" del repo cumbre30/cumbre30 —
+ * cumbre30-latest.apk del Release "latest" del repo cumbre30/cumbre30 -
  * el workflow build-apk.yml lo regenera en cada tag v*, así que la
  * descarga siempre sirve la versión vigente sin tocar código ni envs.
  */

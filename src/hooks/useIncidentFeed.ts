@@ -35,7 +35,7 @@ export type IncidentVote = "confirm" | "resolved" | "report";
 
 // v2: descarta reportes locales del test (el bache de prueba queda fuera)
 const LOCAL_KEY = "cumbre30-incidents-local-v2";
-// Votos locales: { [id]: "confirm" | "resolved" } — dedup por dispositivo.
+// Votos locales: { [id]: "confirm" | "resolved" } - dedup por dispositivo.
 const VOTES_KEY = "cumbre30-incident-votes-v1";
 const EMPTY: IncidentItem[] = [];
 
@@ -142,7 +142,7 @@ export function incidentVoteOf(id: string): IncidentVote | null {
  *  guardado en el teléfono para no repetir ni perder el APK offline.
  *  Devuelve { ok, cerrada } (cerrada: 3 votos "resuelto" la dieron de baja).
  *  v1.13.14: "report" denuncia contenido inapropiado (política UGC de
- *  Google Play) — desaparece del teléfono del denunciante al instante y
+ *  Google Play) - desaparece del teléfono del denunciante al instante y
  *  el servidor la cierra para todos con 2 denuncias. */
 export async function voteIncident(
   id: string,
@@ -182,7 +182,7 @@ export async function voteIncident(
     return { ok: true, cerrada };
   } catch {
     // Sin sesión o sin conexión: el voto queda local (se re-intenta
-    // implícitamente si el usuario lo pulsa tras loguearse — dedup lo
+    // implícitamente si el usuario lo pulsa tras loguearse - dedup lo
     // evita; el servidor acepta votos repetidos como "confirmaciones").
     return { ok: false, cerrada: false };
   }

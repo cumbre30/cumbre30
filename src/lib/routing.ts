@@ -86,7 +86,7 @@ export function edgePasses(
 }
 
 // Factor de descuento para aristas que SON ciclovía (flag del grafo):
-// su peso cuesta la mitad — el A* toma una ciclovía hasta ~2x más larga
+// su peso cuesta la mitad - el A* toma una ciclovía hasta ~2x más larga
 // antes de elegir la calzada. Motivo (cliente 2026-11-18): transitar por
 // la calzada habiendo ciclovía es infracción (Ley de Convivencia Vial),
 // así que la ruta debe priorizar ciclovía y usar la calle sólo cuando no
@@ -264,7 +264,7 @@ function nearestEdge(
   let bestD = Infinity;
   // Mejor arista que pasa por CLASE/NOMBRE puros (sin rescate corredorOk):
   // si existe a distancia comparable, se prefiere sobre una arista rescatada
-  // por el corredor geométrico — el rescate puede caer en una vereda sin
+  // por el corredor geométrico - el rescate puede caer en una vereda sin
   // nombre que deja al A* aislado (Anáhuac 2026-11-13: con los senderos
   // peatonales bloqueados, el anclaje rescatado a 28 m moría en el ramal
   // mientras Av. Pedro Bannen quedaba a 29 m).
@@ -316,7 +316,7 @@ function nearestEdge(
  *  cualquier arista, el A* local terminaría en el nodo más cercano (ruta
  *  dibujada corta) y corresponde caer a OSRM, que sí cubre toda la
  *  ciudad (cliente 2026-11-16: Fray Camilo Henríquez 255, Barrio
- *  Franklin — nodo y arista más cercanos a 368 m). */
+ *  Franklin - nodo y arista más cercanos a 368 m). */
 export function nearestEdgeDistM(net: Network, p: LatLng): number {
   const kx = Math.cos((p.lat * Math.PI) / 180);
   let bestD = Infinity;

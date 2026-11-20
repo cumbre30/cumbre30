@@ -4,7 +4,7 @@
 // Cumbre30 - arquitectura de navegación del rediseño (brief §1):
 //   · Bottom nav con 4 destinos: Ride · Explorar · Acceso · Perfil
 //     (el QR se usa en la portada: siempre a un toque; «Perfil» es
-//     el Perfil Ciclista desde v1.13.16 — la pantalla de datos y
+//     el Perfil Ciclista desde v1.13.16 - la pantalla de datos y
 //     pagos se llama «Cuenta» y vive en el menú lateral).
 //   · Menú lateral con 4 zonas: CUMBRE30 PRO · Mi actividad ·
 //     Cuenta · Plan actual.
@@ -148,7 +148,7 @@ export default function Home() {
   const [soundOn, setSoundOn] = useState(true);
   const [voiceOn, setVoiceOn] = useState(true);
   const [historyKey, setHistoryKey] = useState(0);
-  // Separación web/APK (v1.11.0): el APK es el producto GPS — el demo se
+  // Separación web/APK (v1.11.0): el APK es el producto GPS - el demo se
   // prueba en vivo en la web (botón "Probar demo" del modal en /geo) y la
   // web corre el demo por defecto. Escape hatch de desarrollo: ?gps=1.
   const [source] = useState<Source>(() => {
@@ -379,7 +379,7 @@ export default function Home() {
         {screen === "acceso" && <Wallet />}
 
         {/* Perfil Ciclista (v1.13.16): 4ª pestaña. Sin sesión muestra la
-            invitación a Cuenta — el perfil no se inventa datos. */}
+            invitación a Cuenta - el perfil no se inventa datos. */}
         {screen === "ciclista" && (
           <PerfilTab
             onGoCuenta={() => go("perfil")}
@@ -420,7 +420,7 @@ export default function Home() {
           </section>
         )}
 
-        {/* v1.12.11: popup de reglas de accesos (F3/D3) — compartido por
+        {/* v1.12.11: popup de reglas de accesos (F3/D3) - compartido por
             minimapa y mapa grande a través del motor de navegación. */}
         <PopupReglaRuta decision={nav.decision} onElegir={nav.resolverDecision} onCancelar={nav.cancelarDecision} />
       </main>

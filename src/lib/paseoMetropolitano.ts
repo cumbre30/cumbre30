@@ -1,5 +1,5 @@
 // ============================================================
-// PASEO METROPOLITANO — categoría propia del anillo del cerro
+// PASEO METROPOLITANO - categoría propia del anillo del cerro
 // (cliente 2026-11-13: «hay varios tramos en el cerro con el
 // nombre de paseo metropolitano, crea una nueva categoría en la
 // capa de mapas… son mixtos: peatonal y ciclista, algunos
@@ -11,7 +11,7 @@
 //    1,2 km · Tramo Pedro de Valdivia 1,5 km · Sendero de los
 //    Sentidos 540 m.
 //  · parquemet.cl (lugares/paseo-metropolitano-tramo-i): tramos
-//    I–V construidos entre 2012 y 2020, recorrido de casi 20 km
+//    I-V construidos entre 2012 y 2020, recorrido de casi 20 km
 //    por 4 comunas, uso de PEATONES Y BICICLETAS (ruta exclusiva).
 //  · Geometría: grafo OSM propio (public/red-ciclista.json) por
 //    nombre exacto de cada way; largos medidos contra los oficiales
@@ -19,12 +19,12 @@
 //
 // IMPORTANTE (cliente: «no modifiques lo que ya tenemos, guardar
 // en otra variable»): estos tramos viven SOLO aquí, en su propia
-// variable — no toca SENDEROS (senderos.ts), ni la capa «Senderos
+// variable - no toca SENDEROS (senderos.ts), ni la capa «Senderos
 // peatonales», ni rutas ni ruteo. Los tramos ya existen como vías
 // del grafo, así que ninguna regla de navegación cambia.
 // Investigación 2026-11-13: 4 tramos NO registrados antes en el
 // proyecto (Bicentenario de la Infancia, Sendero y Tramo Pedro de
-// Valdivia Norte, conector El Ermitaño – La Cascada). El anillo
+// Valdivia Norte, conector El Ermitaño - La Cascada). El anillo
 // medido suma 10.861 m en 8 tramos; el Paseo Metropolitano
 // proyectado por Parquemet sigue en construcción hacia Aurora de
 // Chile (4 km pendientes), por eso la capa no cubre los 20 km.

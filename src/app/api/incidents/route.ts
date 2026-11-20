@@ -22,7 +22,7 @@ function esColumnaAusente(e: unknown): boolean {
  *  espejando schema.prisma. La base en línea puede quedarse atrás del
  *  código; con esto el primer intento tras el deploy se autorrepara.
  *  Prisma crea INTEGER NOT NULL DEFAULT 0 y TIMESTAMP(3) NULL.
- *  v1.13.14: reportCount — denuncias de abuso (política UGC de Play). */
+ *  v1.13.14: reportCount - denuncias de abuso (política UGC de Play). */
 async function asegurarColumnas(): Promise<void> {
   await db.$executeRawUnsafe(
     `ALTER TABLE "Incident" ADD COLUMN IF NOT EXISTS "confirmCount" INTEGER NOT NULL DEFAULT 0`

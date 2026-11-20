@@ -6,11 +6,11 @@
 // La promesa al usuario: tu progreso queda guardado en tu cuenta.
 // Este módulo la cumple en el APK (export estático):
 //
-//  · PUSH  — cada ride/logro/cambio de perfil se encola en IndexedDB
+//  · PUSH  - cada ride/logro/cambio de perfil se encola en IndexedDB
 //    (outbox duradero) y se sube al servidor con Authorization: Bearer
 //    (token de /api/auth/token o /api/auth/google). Si no hay red,
 //    queda en la cola y reintenta solo al volver la conexión.
-//  · PULL  — al vincular la cuenta y en cada arranque con sesión,
+//  · PULL  - al vincular la cuenta y en cada arranque con sesión,
 //    baja los rides y logros del servidor y los fusiona en el
 //    historial local (deduplicado por clientId): cambiar de teléfono
 //    o reinstalar recupera km, logros y pines.
@@ -197,7 +197,7 @@ export async function registerAndLink(email: string, username: string, password:
   if (base === null) return;
   try {
     // 409 (ya existe en el servidor) NO es error: puede ser la misma
-    // cuenta creada antes desde la web — lo resuelve linkPassword.
+    // cuenta creada antes desde la web - lo resuelve linkPassword.
     await fetch(`${base}/api/auth/register`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },

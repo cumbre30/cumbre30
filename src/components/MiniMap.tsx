@@ -56,7 +56,7 @@ import { t, useLang } from "@/lib/i18n";
 const PARK_CENTER: [number, number] = [-70.636, -33.408];
 
 /** Anticipación de la cámara: con el pin abajo (v1.13.3: 2D cenital,
- *  NAV_PITCH = 0 vive en navCanvasLogic — fuente única web/nativo). */
+ *  NAV_PITCH = 0 vive en navCanvasLogic - fuente única web/nativo). */
 const ARRIVAL_M = 150;
 const NAV_ZOOM = 16.5;
 const ARRIVAL_ZOOM = 17.4;
@@ -77,9 +77,9 @@ type Props = {
    *  celda «Subida» de la franja. Sin velocímetro en esta franja. */
   gainM?: number;
   /** Altura del contenedor sin ruta activa (tema Pro: minimapa compacto/grande).
-   *  v1.13.8: FIJA también con ruta activa — el marco ya no cambia de tamaño. */
+   *  v1.13.8: FIJA también con ruta activa - el marco ya no cambia de tamaño. */
   heightClass?: string;
-  /** Clases del marco (minimapStyleCls) — estética del minimapa. */
+  /** Clases del marco (minimapStyleCls) - estética del minimapa. */
   styleClass?: string;
   /** Abrir el mapa general (listado completo de destinos y capas). */
   onOpenMap?: () => void;
@@ -266,7 +266,7 @@ function NavCanvas(props: NavCanvasProps) {
   }, [props.onBearing]);
 
   // Rumbo del tramo de ruta más cercano a la posición (v1.12.11):
-  // paridad con useCamaraRumbo del mapa grande — se calcula AQUÍ con el
+  // paridad con useCamaraRumbo del mapa grande - se calcula AQUÍ con el
   // vértice más cercano, sin depender de nearestIdx del progreso (puede
   // venir null fuera de ruta y antes dejaba la cámara y el pin sin
   // orientarse: la ruta se veía acostada y el pin apuntaba a cualquier
@@ -551,7 +551,7 @@ function NavCanvas(props: NavCanvasProps) {
     // Sin posición: encuadra la ruta completa. GIRADA al rumbo inicial
     // del trazado (v1.12.11): la vista de navegación se ve SIEMPRE
     // vertical (la ruta corre hacia arriba), no un norte arriba con la
-    // ruta acostada — era la vista que quedó clavada en el reporte del
+    // ruta acostada - era la vista que quedó clavada en el reporte del
     // cliente al navegar a Pío Nono sin fix fresco. Zoom con margen
     // extra porque al girar el encuadre norte-arriba puede quedarse
     // corto (el bbox no rota con la cámara).
@@ -585,7 +585,7 @@ function NavCanvas(props: NavCanvasProps) {
 
     // rumbo: RUMBO DE LA RUTA (routeBearing) → curso del GPS → mantener
     // actual. v1.13.10: LA RUTA manda (pedido del cliente: «rumbo = el
-    // trazado de la ruta queda hacia arriba») — el course del WebView del
+    // trazado de la ruta queda hacia arriba») - el course del WebView del
     // APK entrega valores viejos/basura con el ciclista parado y la
     // cámara giraba a cualquier lado. Sin ruta queda course-up (ride
     // libre). En modo «norte» el mapa NO gira: rumbo 0.
@@ -637,7 +637,7 @@ function NavCanvas(props: NavCanvasProps) {
   // lado»). Dos causas, ambas corregidas:
   // 1) El marker de MapLibre con rotationAlignment "map" YA contra-rota
   //    la RAÍZ del elemento rotateZ(-bearing) (verificado en el DOM:
-  //    translate(...) rotateX(50deg) rotateZ(-bearing)) — el eje del
+  //    translate(...) rotateX(50deg) rotateZ(-bearing)) - el eje del
   //    puck queda alineado al norte del mapa. Restar map.getBearing()
   //    ADEMÁS en la flecha interna contaba el giro DOS veces y con el
   //    mapa rotado el pin caía a cualquier lado. El ángulo del rumbo va
@@ -646,7 +646,7 @@ function NavCanvas(props: NavCanvasProps) {
   //    ahora cae al RUMBO DE LA RUTA (routeBearing). Con la cámara
   //    girada al mismo rumbo, la flecha se ve hacia ARRIBA, estilo
   //    Waze (misma idea que rumboPin en LeafletNav v1.12.10).
-  // v1.13.10: LA RUTA manda sobre el course GPS también aquí — el mismo
+  // v1.13.10: LA RUTA manda sobre el course GPS también aquí - el mismo
   // orden que la cámara y LeafletNav: en rumbo la flecha va hacia arriba
   // y en norte apunta hacia donde corre la ruta sobre el mapa norte-
   // arriba. En el APK el course viejo/basura la dejaba «a cualquier lado».
@@ -659,7 +659,7 @@ function NavCanvas(props: NavCanvasProps) {
 
   // sin posición viva el puck se retira (no dejar un pin congelado en
   // la última esquina: con la ruta activa la vista general muestra la
-  // ruta completa y un pin viejo confunde — era otra pieza del reporte)
+  // ruta completa y un pin viejo confunde - era otra pieza del reporte)
   useEffect(() => {
     if (props.position || !puckRef.current) return;
     puckRef.current.remove();
@@ -831,13 +831,13 @@ type BottomBarProps = {
   onOpenMap?: () => void;
 };
 
-// Limpieza del cliente (2026-11-12): en el minimapa SOLO los accesos —
+// Limpieza del cliente (2026-11-12): en el minimapa SOLO los accesos -
 // el resto de destinos vive en el listado completo del mapa general.
 const TODOS_DESTINOS = MINIMAP_ACCESOS;
 
 /**
  * Franja de datos tipo ciclocomputador (v1.13.3, mockup aprobado):
- * tres celdas con números tabulares grandes y etiquetas pequeñas —
+ * tres celdas con números tabulares grandes y etiquetas pequeñas -
  * RESTANTE · LLEGADA · SUBIDA. SIN velocímetro: la velocidad vive en
  * el velocímetro principal (Speedometer), aparte del minimapa.
  */
@@ -982,7 +982,7 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
   const route = nav.route;
   const dest = nav.dest;
   // Mapa nativo (MapLibre Native vía plugin) o lienzo web (MapLibre GL JS)
-  // v1.13.5 — NATIVE_MAPS_ENABLED=false: vuelta al modo compatibilidad.
+  // v1.13.5 - NATIVE_MAPS_ENABLED=false: vuelta al modo compatibilidad.
   // Los intentos de reactivar el nativo (v1.13.2 con MapLibre 13.7.1/
   // Vulkan y v1.13.4 con 13.7.1-opengl/GL ES) quedaron negros en el
   // dispositivo, el mismo síntoma del GL JS web documentado en v1.3.1:
@@ -1106,7 +1106,7 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
         )}
 
         {/* SOLO el lienzo nativo dentro de la ventana: sin HTML encima.
-            ALTURA FIJA (v1.13.8): el marco ya no cambia entre base/ruta —
+            ALTURA FIJA (v1.13.8): el marco ya no cambia entre base/ruta -
             la tarjeta saltaba de tamaño al activar la ruta. */}
         <div className={`relative overflow-hidden shrink-0 ${heightClass} ${styleClass ?? ""}`}>
           <NativeMapCanvas
@@ -1163,7 +1163,7 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
             onClear={() => nav.setDestination(null)}
           />
           {/* Brújula Track Up / Norte arriba (v1.13.3): junto a los
-              controles — el lienzo nativo no admite HTML encima. */}
+              controles - el lienzo nativo no admite HTML encima. */}
           <CompassButton className={compassCls} bearing={needle} mode={camMode} onToggle={toggleCam} />
         </div>
 
@@ -1191,7 +1191,7 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
     // "cubre parte del mapa"): fila separada justo debajo del minimapa.
     // El banner turn-by-turn también (pedido del cliente 2026-11-18:
     // "fuera del minimapa"): cajón independiente encima, como la franja
-    // restante/llegada/subida — NO cubre tiles.
+    // restante/llegada/subida - NO cubre tiles.
     <>
       {/* ===== Banner de maniobra: CAJÓN INDEPENDIENTE sobre el minimapa
           (v1.13.9). Antes era overlay sobre los tiles (top-0); el cliente
@@ -1207,7 +1207,7 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
           laterStep={laterStep}
         />
       )}
-      {/* Minimapa — ALTURA FIJA (v1.13.8): el contenedor ya NO cambia a
+      {/* Minimapa - ALTURA FIJA (v1.13.8): el contenedor ya NO cambia a
           heightRouteClass al activar la ruta. Ese salto de tamaño dejaba
           a Leaflet con el tamaño interno viejo (sin invalidateSize): el
           centro matemático se desplazaba del visible y el pin «se
@@ -1233,7 +1233,7 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
         />
       ) : (
         /* WebView del APK (o navegador sin WebGL): Leaflet ráster, sin WebGL.
-           v1.13.6: recibe el MISMO camMode y onBearing que NavCanvas — una
+           v1.13.6: recibe el MISMO camMode y onBearing que NavCanvas - una
            sola brújula que de verdad gira el mapa (antes LeafletNav tenía
            su propio rombo interno y el externo no afectaba al lienzo). */
         <LeafletNav
@@ -1259,7 +1259,7 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
         </div>
       )}
 
-      {/* Leyenda compacta de la ruta (solo modo ruta) — v1.13.9: arriba a
+      {/* Leyenda compacta de la ruta (solo modo ruta) - v1.13.9: arriba a
           la izquierda, el banner turn-by-turn ya no vive dentro del mapa */}
       {onRoute && !nav.loading && (
         <LegendChip
@@ -1279,7 +1279,7 @@ export default function MiniMap({ position, heading, track, accuracyM, userPin, 
       )}
 
       {/* Controles flotantes + brújula: UNA columna a la derecha
-          (v1.13.10 — antes ambos anclaban a top-2 right-2 y la brújula
+          (v1.13.10 - antes ambos anclaban a top-2 right-2 y la brújula
           se solapaba con el botón localizarme, reporte del cliente). */}
       <div className="absolute top-2 right-2 z-[500] flex flex-col items-end gap-1.5">
         <Controls

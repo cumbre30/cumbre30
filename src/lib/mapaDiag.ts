@@ -1,6 +1,6 @@
 // ============================================================
 // Diagnóstico de mapas (v1.13.5): el render nativo quedó dormido
-// tras dos intentos fallidos en dispositivo (v1.13.2–v1.13.4: mapa
+// tras dos intentos fallidos en dispositivo (v1.13.2-v1.13.4: mapa
 // negro con backend Vulkan y también con OpenGL ES del artefacto
 // -opengl). En v1.3.1 ya se había documentado que el WebView de ese
 // teléfono no renderiza NI el mapa nativo NI el GL JS web.

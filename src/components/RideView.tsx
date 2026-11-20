@@ -441,7 +441,7 @@ export function RideView(p: Props) {
           <BatteryCharging className="h-4 w-4" />
         </button>
         {/* Música (v1.12.3): sesiones de media del teléfono al lado
-            derecho del ahorro de batería — solo APK, sin abandonar
+            derecho del ahorro de batería - solo APK, sin abandonar
             las métricas del ride. */}
         {esNativo && <MusicaBoton abierto={musicaOpen} onToggle={() => setMusicaOpen((v) => !v)} activo={false} />}
         {/* Sensores Bluetooth (v1.12.14c): el apartado sale de la caja de
@@ -469,7 +469,7 @@ export function RideView(p: Props) {
       {esNativo && <MusicaPanel abierto={musicaOpen} onCerrar={() => setMusicaOpen(false)} />}
 
       {/* Panel de sensores (v1.12.14c): SIEMPRE montado, se oculta con CSS
-          al cerrar — desmontarlo mataría las conexiones BLE ya establecidas
+          al cerrar - desmontarlo mataría las conexiones BLE ya establecidas
           (pulso/rueda se tendrían que re-emparejar en cada apertura). */}
       <div className={sensorOpen ? "" : "hidden"}>
         <SensorPanel onBpm={onBpm} />

@@ -7,7 +7,7 @@
 // así que priorizamos funcionamiento: Leaflet clásico con
 // <img> de OpenStreetMap - funciona en cualquier equipo.
 //
-// v1.12.9 — cámara estilo Waze:
+// v1.12.9 - cámara estilo Waze:
 //  · En navegación el mapa queda BLOQUEADO AL RUMBO de la ruta:
 //    la dirección de avance apunta siempre hacia arriba (el
 //    «norte» de la vista es el rumbo). En los giros ROTAN el
@@ -18,7 +18,7 @@
 //    el modo por prop (camMode). El botón interno propio se eliminó:
 //    rendía dos rombos superpuestos y el externo no movía el mapa.
 //  · Pin: puck plano centrado sobre la posición (snapped a la
-//    calzada por navSnap) con flecha al rumbo — la burbuja del
+//    calzada por navSnap) con flecha al rumbo - la burbuja del
 //    pin personal queda para el mapa grande; el puck no tapa
 //    edificios ni veredas al norte de la posición.
 //
@@ -27,7 +27,7 @@
 // un div al 150%) se eliminó: en el WebView del dispositivo giraba
 // el rectángulo pero NO el mapa. El plugin rota los paneles internos
 // de Leaflet: tiles, ruta y gestos quedan coherentes.
-// v1.13.11: setBearing(-mapBearing) — convención MapLibre (cámara mira
+// v1.13.11: setBearing(-mapBearing) - convención MapLibre (cámara mira
 // hacia B ⇒ mundo rota -B); leaflet-rotate rota +b: sin negar quedaba
 // espejado (ruta horizontal, no vertical).
 // v1.13.12: los markers viven en el leaflet-norotate-pane (billboard,
@@ -127,7 +127,7 @@ function Follow({
     // v1.13.8: en RUMBO el recentrado es SECO (sin paneo animado): el
     // pin queda CLAVADO al centro fix a fix y el mapa se mueve bajo él
     // (Waze real). La animación de 0.9 s dejaba al pin «flotando» lejos
-    // del centro entre fixes — se veía moverse o salir del cuadro.
+    // del centro entre fixes - se veía moverse o salir del cuadro.
     if (modo === "rumbo") {
       map.setView([position.lat, position.lon], zoom, { animate: false });
     } else {
@@ -167,14 +167,14 @@ function AutoResize() {
 }
 
 /** Rotación del mapa (v1.13.7): aplica mapBearing con setBearing del
- *  plugin — rotación NATIVA de Leaflet (paneles internos), no CSS de
+ *  plugin - rotación NATIVA de Leaflet (paneles internos), no CSS de
  *  un wrapper. El hook ya cuantiza el estado a pasos grandes; el
  *  guard de delta evita setBearing redundantes entre renders.
  *  v1.13.11 CONVENCIÓN: el hook entrega el bearing con semántica
  *  MapLibre (la cámara MIRA hacia mapBearing: el mundo rota -B y la
- *  dirección B queda ARRIBA, como en NavCanvas web — por eso en la web
+ *  dirección B queda ARRIBA, como en NavCanvas web - por eso en la web
  *  el rumbo quedó bien). leaflet-rotate setBearing(b) rota el contenido
- *  del mapa +b horario: aplicar B directo ESPEJABA la cámara del APK —
+ *  del mapa +b horario: aplicar B directo ESPEJABA la cámara del APK -
  *  la ruta quedaba horizontal (no vertical) y el pin a cualquier lado
  *  (verificado in-vivo: una línea al este con setBearing(90) pintaba el
  *  este hacia ABAJO). Negando el bearing, Leaflet replica exactamente
@@ -207,7 +207,7 @@ export default function LeafletNav({
 }: Props) {
   const center = position ?? { lat: -33.408, lon: -70.636 };
   // Cámara Waze compartida (hook v1.12.10): rumbo bloqueado mientras hay
-  // navegación O rumbo GPS conocido — la ruta se ve recta y el pin queda
+  // navegación O rumbo GPS conocido - la ruta se ve recta y el pin queda
   // fijo al centro; norte arriba cuando todo está en reposo (exploración).
   // v1.13.6: el MODO lo fija la brújula única del minimapa (modoForzado);
   // el hook calcula el bearing dentro de cada modo: v1.13.10 en RUMBO
@@ -226,7 +226,7 @@ export default function LeafletNav({
   useEffect(() => {
     onBearing?.(mapBearing);
   }, [mapBearing, onBearing]);
-  // v1.13.10: la flecha del puck apunta al rumbo de la RUTA si la hay —
+  // v1.13.10: la flecha del puck apunta al rumbo de la RUTA si la hay -
   // el mismo rumbo que lleva la cámara: en modo rumbo se ve hacia ARRIBA
   // y en norte apunta hacia donde corre la ruta sobre el mapa norte-
   // arriba. Course GPS sólo sin ruta (ride libre). Antes heading ganaba
@@ -246,7 +246,7 @@ export default function LeafletNav({
     <div className="relative h-full w-full overflow-hidden" style={{ background: "#09090b" }}>
       {/* Contenedor SOBREDIMENSIONADO (150%): margen de tiles para que
           las esquinas no queden vacías cuando el mapa rota vía plugin
-          (<Bearing/>). SIN transform CSS — la rotación del wrapper de
+          (<Bearing/>). SIN transform CSS - la rotación del wrapper de
           v1.12.9/v1.13.1 giraba el rectángulo pero no el mapa en el
           WebView del dispositivo, y el filter de v1.13.3 era el otro
           sospechoso de romper la composición. */}
@@ -270,7 +270,7 @@ export default function LeafletNav({
           bearing={0}
           rotateControl={false}
           touchRotate={false}
-          // v1.13.1: SIN control de atribución de Leaflet — vivía dentro
+          // v1.13.1: SIN control de atribución de Leaflet - vivía dentro
           // del wrapper rotado y al girar la cámara salía del viewport
           // («se pierde la etiqueta de OSM», queja del cliente). La
           // atribución exigida por la ODbL ahora es una capa FIJA fuera
@@ -321,7 +321,7 @@ export default function LeafletNav({
             </>
           )}
 
-          {/* Destino — v1.13.12: flagIcon(0): el marker vive en el
+          {/* Destino - v1.13.12: flagIcon(0): el marker vive en el
               leaflet-norotate-pane (billboard, no gira con el mapa), así
               que la burbuja NO necesita contra-rotación para verse derecha
               (la +mapBearing legacy la inclinaba cuando la cámara giraba). */}
@@ -334,7 +334,7 @@ export default function LeafletNav({
 
           {/* Posición actual: círculo de precisión + puck centrado.
               En navegación: puck PLANO (flecha al rumbo, anclado al
-              centro de la posición — no flota sobre edificios como la
+              centro de la posición - no flota sobre edificios como la
               burbuja, cuya punta dejaba el cuerpo ~25 m al norte).
               Fuera de navegación: pin personal elegido. */}
           {position && (
@@ -361,7 +361,7 @@ export default function LeafletNav({
         </MapContainer>
       </div>
 
-      {/* Atribución OSM (v1.13.1): FIJA fuera del wrapper rotado — la
+      {/* Atribución OSM (v1.13.1): FIJA fuera del wrapper rotado - la
           licencia ODbL exige visible siempre, girada o no. Misma
           posición que la web (esquina inferior derecha del mapa). */}
       <div

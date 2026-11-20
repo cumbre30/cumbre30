@@ -319,7 +319,7 @@ export function useRideEngine() {
       //       advertencia al acercarse al puente con la restricción
       //       activa y alternativas según la posición.
       if (inside && vKmh > 1.5) {
-        // — bajada Pío Nono: acercándose al acceso DENTRO del corredor —
+        // - bajada Pío Nono: acercándose al acceso DENTRO del corredor -
         const dPio = haversineM(fix, GATE_PIO_NONO);
         const dPioPrev = e.pioPrevD;
         if (enCorredorPioNono(fix.lat, fix.lon) && dPio < 2100) {
@@ -350,7 +350,7 @@ export function useRideEngine() {
           e.pioStreak = 0;
           e.pioStreakD = null;
         }
-        // — corte horario cumbre (Tupahue → Cumbre) —
+        // - corte horario cumbre (Tupahue → Cumbre) -
         if (estadoParque(new Date(fix.t)).nivel === "tupa") {
           const dPuen = haversineM(fix, PUENTE_TUPAHUE_CUMBRE);
           const dPuenPrev = e.puentePrevD;
@@ -566,7 +566,7 @@ export function useRideEngine() {
           const dM = e.lastFix ? haversineM(e.lastFix, { lat: c.latitude, lon: c.longitude }) : 0;
           kmh = e.lastFix ? (dM / Math.max(0.2, (pos.timestamp - e.lastFix.t) / 1000)) * 3.6 : 0;
           // Course derivado por delta (v1.12.14c): la web no entrega
-          // bearing — mismo criterio que el nativo, solo con avance real
+          // bearing - mismo criterio que el nativo, solo con avance real
           // (≥4 km/h y desplazamiento ≥3 m para no rotar con ruido).
           if (e.lastFix && kmh >= 4 && dM >= 3) course = bearingDeg(e.lastFix, { lat: c.latitude, lon: c.longitude });
         }
@@ -740,7 +740,7 @@ export function useRideEngine() {
           4
         );
       }
-      // Modo ahorro de batería (Ola 1): pantalla apagable — no se
+      // Modo ahorro de batería (Ola 1): pantalla apagable - no se
       // solicita wake lock; la guía sigue por voz.
       if (!wakeLockSuspendido()) void alerts.requestWakeLock();
       if (src === "gps") startGps();

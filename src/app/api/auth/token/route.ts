@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 
 // ============================================================
-// POST /api/auth/token — sesión por TOKEN para el APK.
+// POST /api/auth/token - sesión por TOKEN para el APK.
 // El WebView de Capacitor es cross-origin y las cookies third-party
 // no son confiables (SameSite/ITP), así que el sync de progreso del
 // APK autentica con Authorization: Bearer <token>. Mismo mecanismo de

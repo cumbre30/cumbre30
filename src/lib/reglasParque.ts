@@ -4,7 +4,7 @@
 //  1. PÍO NONO SÓLO SUBIDA: el acceso Pío Nono y su camino de
 //     ascenso (Av. Alberto Mackenna hasta el puente de Tupahue)
 //     NO se puede bajar. «si se sube de los otros 3 accesos no es
-//     accesible para bajar» — la ruta en reversa queda bloqueada
+//     accesible para bajar» - la ruta en reversa queda bloqueada
 //     SIEMPRE (24/7), en navegación y en los trazados precomputados.
 //
 //  2. CORTE HORARIO CUMBRE (Tupahue → Cumbre): los sábados,
@@ -12,7 +12,7 @@
 //     la cumbre por Av. Pedro Bannen. El corte está EN EL PUENTE
 //     que une Av. Alberto Mackenna con Av. Pedro Bannen en el
 //     sector Tupahue (-33.416121, -70.623005, nodo compartido del
-//     grafo — «dónde tenemos el puente»). Fuera de horario la
+//     grafo - «dónde tenemos el puente»). Fuera de horario la
 //     navegación a destinos de la cumbre traza una VUELTA EN U en
 //     ese puente (ver conVueltaEnU).
 //
@@ -81,7 +81,7 @@ export function dentroDelParqueM(lat: number, lon: number): boolean {
 // ----------------------------------------------------------------
 // Árbol DFS del corredor: se recorre el corredor CAMINANDO el camino
 // (profundidad, no BFS radial) desde el ancla del componente. El
-// recorrido sigue la secuencia real de la vía — incluidas las
+// recorrido sigue la secuencia real de la vía - incluidas las
 // horquillas de Mackenna, donde micro-aristas de 3-8 m retroceden
 // hasta -95 % respecto al ancla (medido 2026-11-12): un test de
 // gradiente local no puede separar subida de bajada ahí, pero el
@@ -179,7 +179,7 @@ const UMBRAL_CADENA_M = 3;
 const GRADIENTE_ATAJO = 0.6;
 /** Banda del corte horario alrededor del puente (m). */
 const BANDA_CORTE_M = 160;
-/** Zona LOCAL del puente (m): el puente es el punto de vuelta — el tramo
+/** Zona LOCAL del puente (m): el puente es el punto de vuelta - el tramo
  *  puente ↔ Anáhuac (~130 m) queda SIEMPRE abierto en ambos sentidos
  *  (acercarse al corte y regresar con la vuelta en U); la prohibición
  *  de subida rige MÁS ALLÁ, en el tramo Anáhuac → Plaza México. */
@@ -297,11 +297,11 @@ export function crearDirOk(
     // OJO: junto al puente de Tupahue el tramo final de Mackenna y las
     // bajadas de Bannen y Gabriela Mistral corren paralelos (~200 m): una
     // arista de Bannen o de Gabriela Mistral NO se puede orientar con las
-    // cadenas de Pío Nono (y viceversa) — la orientación se decide por el
+    // cadenas de Pío Nono (y viceversa) - la orientación se decide por el
     // NOMBRE de la vía.
     // --- 1. Pío Nono sólo subida (24/7): bloquear el descenso ---
     // Excepciones: la tablilla del puente (cruzar hacia Bannen NO es bajar
-    // por Pío Nono — sin ella el acercamiento al corte desde el lado
+    // por Pío Nono - sin ella el acercamiento al corte desde el lado
     // Tupahue quedaba bloqueado) y Av. Gabriela Mistral (corredor de
     // bajada propio hacia PdV Norte, ver NOMBRES_GABRIELA_MISTRAL).
     if (pioActivo && !esBannenNombre && !esGabrielaNombre && !enTablilla(uLat, uLon, vLat, vLon)) {
@@ -318,7 +318,7 @@ export function crearDirOk(
         // ancla = Plaza México: avanzar hacia ella = subir a la cumbre.
         // EXCEPCIÓN (tramo local del puente): las aristas cuyo destino
         // cae dentro del margen del extremo puente de la cadena quedan
-        // abiertas — acercarse al corte y la vuelta en U de regreso.
+        // abiertas - acercarse al corte y la vuelta en U de regreso.
         const bloqueaSubida = (tu: number | null, tv: number | null): boolean => {
           if (tu === null || tv === null) {
             // sin cadena: gradiente por distancia al ancla

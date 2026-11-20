@@ -118,7 +118,7 @@ export function rachasDe(rides: { dateISO: string }[], now: Date = new Date()): 
   };
 }
 
-/** "1 día", "3 días" — plural simple por idioma. */
+/** "1 día", "3 días" - plural simple por idioma. */
 export function textoDias(n: number): string {
   return t("racha.dias", n);
 }

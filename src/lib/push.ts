@@ -1,5 +1,5 @@
 // ============================================================
-// Web Push (Ola 2) — avisos del parque en la web (luces, cierres,
+// Web Push (Ola 2) - avisos del parque en la web (luces, cierres,
 // incidentes). Solo servidor. La tabla PushSub se crea de forma
 // idempotente (mismo patrón que Constancia): si el deploy llega
 // antes que `prisma db push`, el primer envío se autorrepara.

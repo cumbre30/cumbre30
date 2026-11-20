@@ -227,8 +227,8 @@ export default function PrivacidadPage() {
           21.719).
         </p>
         <p>
-          Las solicitudes de acceso, rectificación, cancelación, oposición y portabilidad de tus datos —incluida la
-          revocación de cualquier consentimiento— pueden enviarse a{" "}
+          Las solicitudes de acceso, rectificación, cancelación, oposición y portabilidad de tus datos -incluida la
+          revocación de cualquier consentimiento- pueden enviarse a{" "}
           <a href="mailto:contacto.cumbre30@gmail.com" className="font-medium text-emerald-600 underline-offset-2 hover:underline dark:text-emerald-400">
             contacto.cumbre30@gmail.com
           </a>

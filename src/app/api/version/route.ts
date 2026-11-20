@@ -1,5 +1,5 @@
 // Ruta dinámica: solo el deploy web la sirve (el export del APK
-// excluye /api por completo — scripts/build-apk.mjs).
+// excluye /api por completo - scripts/build-apk.mjs).
 export const dynamic = "force-dynamic";
 
 import { NextResponse } from "next/server";

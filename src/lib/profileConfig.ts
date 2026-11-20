@@ -1,5 +1,5 @@
 /**
- * profileConfig — techos del Perfil Ciclista como Remote Config
+ * profileConfig - techos del Perfil Ciclista como Remote Config
  * (fase 2, v1.13.17). Los denominadores del spec (25 m/km, 90 km,
  * 36 / 52 km/h) dejaron de ser constantes de código: viven en la
  * tabla ProfileConfig (una fila por clave) y se pueden recalibrar con
@@ -46,7 +46,7 @@ export type Techos = Record<TechoKey, number>;
 
 // ---------- autorreparo (espejo de Prisma) ----------
 // Igual que RideMetric/CyclistProfile: CREATE TABLE IF NOT EXISTS al
-// primer uso — despliegue sin migración manual.
+// primer uso - despliegue sin migración manual.
 let tablaLista: Promise<void> | null = null;
 
 export function asegurarTablaConfig(): Promise<void> {
@@ -110,7 +110,7 @@ export async function guardarTechos(
     }
     const [min, max] = TECHO_RANGOS[k];
     if (v < min || v > max) {
-      rechazado[k] = `fuera de rango (${min}–${max})`;
+      rechazado[k] = `fuera de rango (${min}-${max})`;
       continue;
     }
     guardado[k] = Math.round(v * 100) / 100;

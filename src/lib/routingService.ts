@@ -357,7 +357,7 @@ async function osrmRoute(from: LatLng, to: LatLng, vias: LatLng[] = []): Promise
     if (coords.length < 2) return null;
 
     // pasos → instrucciones; índice del vértice más cercano a cada maniobra.
-    // v1.12.10: con waypoints intermedios hay varias legs — concatenar.
+    // v1.12.10: con waypoints intermedios hay varias legs - concatenar.
     const rawSteps = osrm.legs.flatMap((l) => l.steps ?? []);
     const stepsSrc = meaningfulSteps(rawSteps);
     const steps: RouteStep[] = [];
@@ -418,7 +418,7 @@ const CLASES_PAVIMENTO = new Set([
 ]);
 const NOMBRES_PERMITIDOS_PAV = [
   // todos los tramos del Paseo Metropolitano (incl. "Sendero de los
-  // Sentidos", "Sendero Bellavista", "Sendero La Cascada") — es la espina
+  // Sentidos", "Sendero Bellavista", "Sendero La Cascada") - es la espina
   // pavimentada oficial del parque
   /^Paseo Metropolitano/,
   // explanadas y miradores del ascenso Pío Nono → Plaza México (el grafo
@@ -443,7 +443,7 @@ const NOMBRES_RED_PAV_PARQUE = /^Paseo Metropolitano|^Terraza Bellavista|^Explan
 
 /** Filtro pavimento para NAVEGACIÓN a destinos del parque (misma regla
  *  de las rutas pavimento predefinidas): Paseo Metropolitano, avenidas
- *  y caminos del cerro — NUNCA senderos peatonales ni senderos MTB.
+ *  y caminos del cerro - NUNCA senderos peatonales ni senderos MTB.
  *  Sin esto el A* cortaba por senderos (path/footway 0.9-1.35 pesan
  *  menos que el pavimento pedestrian 1.1) y la ruta a Plaza México
  *  entraba por Sendero Zorro Vidal / El Hundimiento / Mapuche. */
@@ -451,10 +451,10 @@ export const PAV_DEST_OPTS = {
   allowedCls: CLASES_PAVIMENTO,
   nameAllow: NOMBRES_PERMITIDOS_PAV,
   // senderos nombrados fuera, EXCEPTO el tramo pavimentado del ascenso
-  // ("Sendero El Excursionista", footway dentro del corredor — lo decide
+  // ("Sendero El Excursionista", footway dentro del corredor - lo decide
   // corredorOk). nameBlock gana sobre edgeOk en edgePasses.
   // Carlos Reed: la calle del zoo tiene tramo pavimentado y tramo de
-  // maicillo/tierra (Carlos Reed → PdV, 1,3 km) — para pavimento la
+  // maicillo/tierra (Carlos Reed → PdV, 1,3 km) - para pavimento la
   // subida desde Pío Nono va SIEMPRE por Av. Alberto Mackenna (cliente,
   // 2026-11-12).
   nameBlock: [
@@ -490,7 +490,7 @@ export const PAV_DEST_RELAX = {
 // dando la vuelta por Carlos Reed/Tupahue (4,7 km) o metiéndose por
 // senderos (1,8 km). Rescate: se permite footway/pedestrian/service
 // dentro de un corredor de 55 m sobre los trazados pavimento
-// precomputados (GPX del cliente, RUTAS_TRAZADOS r1-r5) — la red
+// precomputados (GPX del cliente, RUTAS_TRAZADOS r1-r5) - la red
 // pavimentada REAL del parque. Los senderos (path/track) y los
 // "Sendero …" nombrados siguen bloqueados.
 
@@ -526,7 +526,7 @@ export function corredorPav(net?: Network | null): Map<string, number[][]> {
   }
   // Proyección contra LA MISMA rejilla en construcción (antes cada chequeo
   // re-entraba en corredorPav() y reconstruía la rejilla base desde cero:
-  // cientos de miles de reconstrucciones ≈ 45 s congelando el hilo — el
+  // cientos de miles de reconstrucciones ≈ 45 s congelando el hilo - el
   // «se queda pegado» al generar la primera ruta del cliente, 2026-11-12).
   const celdaEn = (lat: number, lon: number, radioM: number): boolean => {
     const ci = Math.round(lat / cell);
@@ -594,7 +594,7 @@ export function enCorredorPav(midLat: number, midLon: number, radioM = CORREDOR_
 
 /** Clases que puede rescate el corredor: caminos pavimentados y sus
  *  tramos sin nombre. path/track solo con radio más justo (la cadena del
- *  ascenso intercala tramos etiquetados path — sin ellos la cadena se
+ *  ascenso intercala tramos etiquetados path - sin ellos la cadena se
  *  corta y el A* da la vuelta por el norte del parque). */
 const CLASES_CORREDOR = new Set(["footway", "pedestrian", "service"]);
 const CLASES_CORREDOR_AJUSTADO = new Set(["footway", "pedestrian", "service", "path", "track"]);
@@ -724,7 +724,7 @@ function mergeLegs(leg1: NavRoute, leg2: NavRoute, ingreso: string | null): NavR
  *
  * EXCEPCIÓN accesoDirecto (v1.12.8, minimapa «Ir a»): cuando el
  * destino ES uno de los 4 accesos, la portería se trata como punto
- * de calle y la ruta va DIRECTA por la vía pública — la normativa
+ * de calle y la ruta va DIRECTA por la vía pública - la normativa
  * de ingreso aplica a destinos dentro del parque, no a la puerta
  * misma. Antes el destino-acceso caía «dentro» por la tolerancia de
  * 80 m del borde y se entraba por Pío Nono para llegar a Valdivia.
@@ -746,7 +746,7 @@ export async function computeRoute(from: LatLng, to: LatLng, opts?: OptsRoute): 
   const net = await loadNetwork();
   if (net) {
     // calienta la rejilla del corredor con la red real (vías pavimentadas
-    // nombradas del parque — ascenso Pío Nono → Plaza México)
+    // nombradas del parque - ascenso Pío Nono → Plaza México)
     corredorPav(net);
     const inside = parkInsideTest();
     // «ingresar» (F3) reutiliza el camino del acceso directo: llega a la
@@ -784,7 +784,7 @@ export async function computeRoute(from: LatLng, to: LatLng, opts?: OptsRoute): 
       if (a.distM <= ORIGIN_COVER_M) leg1 = findRoute(net, from, acc.position);
       if (!leg1) leg1 = await osrmRoute(from, acc.position);
       // tramo 2: del acceso al destino, SOLO por dentro del parque y por
-      // pavimento (Paseo Metropolitano/avenidas) — sin senderos peatonales
+      // pavimento (Paseo Metropolitano/avenidas) - sin senderos peatonales
       let leg2: NavRoute | null = null;
       if (leg1) {
         leg2 = findRoute(net, acc.position, to, { nodeOk: inside, ...PAV_DEST_OPTS, edgeDirOk: dirOk });
@@ -822,7 +822,7 @@ export async function computeRoute(from: LatLng, to: LatLng, opts?: OptsRoute): 
         // v1.12.9: destino = acceso ciclista (minimapa/buscador) y estás
         // fuera: la ruta NO puede meterse al parque para salir por la
         // portería (nodos interiores excluidos, salvo los cercanos a la
-        // portería — su nodo queda al borde). Antes el A* tomaba el atajo
+        // portería - su nodo queda al borde). Antes el A* tomaba el atajo
         // por dentro (Zapadores → La Pirámide: 79% del trazado dentro).
         // v1.12.11 F3 «ingresar»: además se extiende ~130 m hacia adentro.
         const local = trazarAccesoLocal(net, from, to, dirOk);
@@ -832,7 +832,7 @@ export async function computeRoute(from: LatLng, to: LatLng, opts?: OptsRoute): 
       } else {
         // v1.12.12: trazar local SOLO si el destino cae SOBRE una calle
         // del grafo (≤250 m de una arista). Fray Camilo Henríquez 255
-        // (Barrio Franklin): nodo y arista más cercanos a 368 m — el A*
+        // (Barrio Franklin): nodo y arista más cercanos a 368 m - el A*
         // terminaba en ese nodo y la ruta se dibujaba corta (cliente:
         // «la ruta no llega hasta el destino»). OSRM sí cubre toda la
         // ciudad, así que los destinos fuera de la cobertura fina del
@@ -852,7 +852,7 @@ export async function computeRoute(from: LatLng, to: LatLng, opts?: OptsRoute): 
   if (r && accDirectoOsrm && !parkInsideTest()(from.lat, from.lon) && metrosInteriorParque(r, to) > 150) {
     // v1.12.10: destino = acceso ciclista, estás fuera del parque y el
     // grafo local no cubre el origen (ej. centro de Santiago → La
-    // Pirámide) — OSRM se metería al cerro como atajo entrando por Pío
+    // Pirámide) - OSRM se metería al cerro como atajo entrando por Pío
     // Nono. Ruta HÍBRIDA: OSRM lleva solo hasta un nodo ANCLA del grafo
     // (tramo corto de calle: no puede cruzar el parque) y desde ahí el
     // grafo local con el filtro de parque completa hasta la portería.
@@ -982,12 +982,12 @@ function viaExternaParque(route: NavRoute, dest: LatLng): LatLng | null {
 }
 
 /** v1.12.10: traza LOCAL la ruta a un acceso ciclista quedando FUERA del
- *  parque (nodos interiores excluidos, salvo los cercanos a la portería —
+ *  parque (nodos interiores excluidos, salvo los cercanos a la portería -
  *  su nodo queda al borde). `origen` puede ser el punto real del ciclista
  *  o un nodo ANCLA del grafo cuando el origen está lejos de la cobertura
  *  local (ruta híbrida OSRM→ancla→portería). */
 /** v1.12.11 F3 «ingresar»: extiende la ruta hasta la portería con un
- *  tramo interior de ~130 m por el camino pavimentado del acceso — el
+ *  tramo interior de ~130 m por el camino pavimentado del acceso - el
  *  ciclista llega ya dentro del cerro. Si el grafo no conecta hacia
  *  adentro, se queda en la portería (sin error: la ruta sigue siendo válida). */
 function extenderInteriorEn(
@@ -1182,7 +1182,7 @@ async function hibridaCiudadPorFuera(
 /**
  * Genera la ruta para una ruta predefinida del mapa (botón «Ruta» de la
  * capa Rutas). REGLA DEL CLIENTE (2026-11-12): «el botón ruta tenga el
- * mismo trazado del botón ver» — la navegación recorre SIEMPRE el trazado
+ * mismo trazado del botón ver» - la navegación recorre SIEMPRE el trazado
  * precomputado COMPLETO (el mismo que dibuja «Ver»), nunca un tramo A*
  * que lo reemplace o lo recorte:
  *   1. tramo de ciudad POR FUERA del parque (sin ingresar al cerro):
@@ -1234,7 +1234,7 @@ export async function computePresetRoute(
     nodeOk: inside,
     edgeDirOk: dirOk,
     // Senderos peatonales bloqueados en TODOS los reroutes (cliente
-    // 2026-11-13: «tenerlos bloqueados en las indicaciones») — incluido
+    // 2026-11-13: «tenerlos bloqueados en las indicaciones») - incluido
     // MTB, cuyo único límite son esos 8 senderos.
     nameBlock: SEND_PEATONALES_BLOCK,
     ...(ruta.tipo === "pavimento"
@@ -1243,7 +1243,7 @@ export async function computePresetRoute(
   };
 
   // 1. tramo de ciudad (si estoy fuera). REGLA DEL CLIENTE (2026-11-12):
-  //    «el botón ruta tenga el mismo trazado del botón ver» — cuando el
+  //    «el botón ruta tenga el mismo trazado del botón ver» - cuando el
   //    trazado nace en una portería ciclista (r1-r5), el tramo de ciudad
   //    llega POR CALLES DE LA CIUDAD hasta esa portería (sin cruzar el
   //    parque), así DENTRO del parque se recorre exactamente el trazado

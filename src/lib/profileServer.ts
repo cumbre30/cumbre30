@@ -1,9 +1,9 @@
 /**
- * profileServer — motor del Perfil Ciclista (fase 1 v1.13.16, fase 2
+ * profileServer - motor del Perfil Ciclista (fase 1 v1.13.16, fase 2
  * v1.13.17: 6º eje EXPLORER + techos remotos + watts off-road).
  *
  * Adaptación pragmática del spec "perfil ciclista v1": en lugar de un
- * pipeline event-driven con workers (S3/Lambda/BullMQ — sobredimensionado
+ * pipeline event-driven con workers (S3/Lambda/BullMQ - sobredimensionado
  * para esta escala), el recálculo corre inline al consultar el perfil y
  * al guardar un ride. Los denominadores (25 m/km, 90 km, 36 / 52 km/h,
  * 20 km off-road) vienen del spec; desde v1.13.17 se leen de la tabla
@@ -15,7 +15,7 @@
  *  · Solo rides GPS no motorizados. Los rides previos a v1.13.16 (sin
  *    métricas derivadas) cuentan para Resistencia, Constancia y la parte
  *    de densidad de Escalada (vía Ride.gainM); VAM/Velocidad/Explosividad/
- *    Exploración solo con métricas — el perfil se afina solo con rides
+ *    Exploración solo con métricas - el perfil se afina solo con rides
  *    nuevos (el backfill del dispositivo acelera eso al reconectar).
  *  · Antitrampa: >55 km/h sostenido ≥2 min o >28 km/h en pendiente >6%
  *    marca la métrica inválida (spec §6) y el ride sale del perfil.
@@ -39,7 +39,7 @@ const NET_KM_MIN = 0.3;
 
 // ---------- autorreparo de tablas (espejo de Prisma) ----------
 // Como las columnas de Incident (Ola 1) y PushSub: CREATE TABLE IF NOT
-// EXISTS al primer uso — despliegue sin migración manual.
+// EXISTS al primer uso - despliegue sin migración manual.
 let tablasListas: Promise<void> | null = null;
 
 export function asegurarTablasPerfil(): Promise<void> {
@@ -283,7 +283,7 @@ export async function recalcularPerfil(userId: string): Promise<PerfilSummary> {
 
   // Huella de carbono: CO₂ evitado asumiendo que cada km pedaleado
   // sustituyó un km en auto (los rides de la ventana ya son GPS y no
-  // motorizados). Factor: 110 g CO₂/km — media de autos nuevos en la
+  // motorizados). Factor: 110 g CO₂/km - media de autos nuevos en la
   // UE según EEA ≈ 107 g/km (2023-2024); el parque circulante, más
   // viejo, emite más, así que 110 es una referencia prudente y
   // redonda. Es comparación referencial, no medición.

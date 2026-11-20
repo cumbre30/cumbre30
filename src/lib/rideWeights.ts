@@ -1,5 +1,5 @@
 /**
- * rideWeights — pesos del conjunto ciclista + bici (fase 2 del Perfil
+ * rideWeights - pesos del conjunto ciclista + bici (fase 2 del Perfil
  * Ciclista, v1.13.17). Alimentan la estimación de watts en subidas >4%
  * que hace computeRideMetrics al cerrar cada ride.
  *

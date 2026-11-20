@@ -1,7 +1,7 @@
 "use client";
 
 // ============================================================
-// IndexedDB de Cumbre30 — almacenamiento local duradero para lo
+// IndexedDB de Cumbre30 - almacenamiento local duradero para lo
 // que no cabe o no debería vivir en localStorage:
 //   · outbox  → operaciones de sync pendientes (rides, logros,
 //     perfil) que sobreviven al cierre del app y reintentan solo.

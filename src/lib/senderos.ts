@@ -12,7 +12,7 @@
 // Gabriela Mistral 0,2 · Boy Scout 0,5 · Atacameño 1,6 · El
 // Carbón 8,0) pasan a tipo "peatonal": se muestran en la capa
 // «Senderos peatonales» del mapa (informativa) pero NUNCA se usan
-// para rutar — ver SEND_PEATONALES_BLOCK al final del archivo.
+// para rutar - ver SEND_PEATONALES_BLOCK al final del archivo.
 // ============================================================
 
 import type { LatLng } from "./park";
@@ -1337,11 +1337,11 @@ export function senderosConRuta(): Sendero[] {
  *  Zorro Vidal 1,2 km · Ermitaño 0,4 · Anáhuac 0,3 · Mapuche 1,3 ·
  *  Gabriela Mistral 0,2 · Boy Scout 0,5 · Atacameño 1,6 · El Carbón 8».
  *  Se muestran en la capa «Senderos peatonales» (informativa) pero
- *  NINGÚN ruteo debe usarlos — ni generación de rutas predefinidas,
+ *  NINGÚN ruteo debe usarlos - ni generación de rutas predefinidas,
  *  ni navegación a destinos, ni reroute de presets, ni MTB.
  *  nameBlock gana sobre cualquier otro filtro en routing.ts (edgePasses).
  *  OJO: «Avenida Gabriela Mistral» (corredor ciclista de r3) y el
- *  «Pasaje Gabriela Mistral» urbano NO están bloqueados — sólo el
+ *  «Pasaje Gabriela Mistral» urbano NO están bloqueados - sólo el
  *  sendero peatonal del sector Mapulemu. */
 export const SEND_PEATONALES_BLOCK: RegExp[] = [
   /^Sendero Zorro Vidal/,

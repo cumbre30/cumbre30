@@ -625,7 +625,7 @@ export default function GeoSite({
 
             <div className="modal-cuerpo">
               {/* Demo en vivo (v1.11.0): la web corre la app en modo demo
-                  en el navegador — probar sin instalar. Solo Cumbre30. */}
+                  en el navegador - probar sin instalar. Solo Cumbre30. */}
               {app.id === "cumbre30" && (
                 <>
                   <a

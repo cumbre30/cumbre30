@@ -6,6 +6,7 @@
 
 import { useSyncExternalStore } from "react";
 import { isOfflineMode, offlineChangeUsername, offlineDeleteAccount, offlineForgotReset, offlineGoogleSignIn, offlineImportWebAccount, offlineLogin, offlineLogout, offlineMe, offlineRegister } from "@/lib/offlineAuth";
+import { notificarBienvenida } from "@/lib/notificaciones";
 import { t } from "@/lib/i18n";
 
 export type MeUser = {
@@ -110,6 +111,41 @@ export function refreshMe(): Promise<MeData | null> {
   return inflight.then(() => cache);
 }
 
+// --- Bienvenida al crear cuenta (v1.14.1) ---
+// Se marca en ambos modos (web /api/auth/register y APK localRegister).
+// La tarjeta de bienvenida en Cuenta › Mis datos la lee y la borra al
+// cerrarla; la notificación local (APK) complementa fuera de la app.
+const WELCOME_KEY = "c30.bienvenida";
+
+/** Marca la bienvenida de la cuenta recién creada y dispara la
+ *  notificación local nativa (solo APK, silenciosa si no hay permiso). */
+function marcarBienvenida(nombre: string): void {
+  try {
+    localStorage.setItem(WELCOME_KEY, nombre || "");
+  } catch {
+    // sin localStorage: la tarjeta no se mostrará, no es crítico
+  }
+  void notificarBienvenida(nombre);
+}
+
+/** Nombre guardado por marcarBienvenida (null si no hay bienvenida pendiente). */
+export function leerBienvenida(): string | null {
+  try {
+    return localStorage.getItem(WELCOME_KEY);
+  } catch {
+    return null;
+  }
+}
+
+/** Cierra la bienvenida (al tocar el botón de la tarjeta). */
+export function limpiarBienvenida(): void {
+  try {
+    localStorage.removeItem(WELCOME_KEY);
+  } catch {
+    // nada que limpiar
+  }
+}
+
 export async function authAction(kind: "login" | "register", payload: Record<string, unknown>): Promise<string | null> {
   try {
     if (isOfflineMode()) {
@@ -131,6 +167,10 @@ export async function authAction(kind: "login" | "register", payload: Record<str
         }
         return err;
       }
+      // Bienvenida ANTES de refreshMe(): el cambio de sesión dispara el
+      // efecto que lee el flag en Cuenta › Mis datos; si se escribiera
+      // después, la tarjeta lo vería vacío (carrera de render).
+      if (kind === "register") marcarBienvenida(credenciales.username);
       await refreshMe();
       return null;
     }
@@ -141,6 +181,7 @@ export async function authAction(kind: "login" | "register", payload: Record<str
     });
     const data = (await r.json()) as { error?: string };
     if (!r.ok) return data.error ?? t("me.errInesperado");
+    if (kind === "register") marcarBienvenida(String(payload.username ?? ""));
     await refreshMe();
     return null;
   } catch {
@@ -150,7 +191,7 @@ export async function authAction(kind: "login" | "register", payload: Record<str
 
 /** Inicio de sesión con Google (solo APK): enlaza/crea la cuenta local y refresca el estado.
  *  El idToken del plugin nativo viaja junto: offlineGoogleSignIn lo canjea por un token
- *  de sesión del servidor (linkGoogle) — es lo que une la cuenta Google con la web. */
+ *  de sesión del servidor (linkGoogle) - es lo que une la cuenta Google con la web. */
 export async function googleAuthAction(acct: { sub: string; email: string; name?: string; idToken?: string }): Promise<string | null> {
   try {
     if (!isOfflineMode()) {

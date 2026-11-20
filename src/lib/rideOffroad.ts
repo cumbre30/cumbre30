@@ -1,9 +1,9 @@
 /**
- * rideOffroad — km off-road del ride (fase 2 del Perfil Ciclista,
+ * rideOffroad - km off-road del ride (fase 2 del Perfil Ciclista,
  * v1.13.17): base del 6º eje EXPLORER.
  *
  * La superficie sale de la clasificación de la red de navegación que
- * la app ya carga (public/red-ciclista.json — grafo OSM propio, sin
+ * la app ya carga (public/red-ciclista.json - grafo OSM propio, sin
  * llamadas externas nuevas y disponible offline en el APK). Las clases
  * path/track son off-road real (sendero/camino de tierra); ciclovía,
  * calles y avenidas son pavimento. Cada segmento del track se proyecta

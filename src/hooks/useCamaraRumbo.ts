@@ -3,7 +3,7 @@
 // ============================================================
 // Cámara de navegación compartida (LeafletNav del APK + MapView
 // del mapa grande), v1.12.10:
-//  · MODO RUMBO (Waze): el «norte» de la vista es el RUMBO — la
+//  · MODO RUMBO (Waze): el «norte» de la vista es el RUMBO - la
 //    dirección de avance apunta hacia arriba; en los giros rota
 //    el mapa y el pin queda fijo y centrado, así la ruta se ve
 //    recta (vertical), como en Waze.

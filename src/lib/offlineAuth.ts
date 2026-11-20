@@ -295,7 +295,7 @@ function cleanStr(v: unknown): string | null {
 /**
  * Intenta importar la cuenta web al teléfono. Devuelve true si la
  * cuenta quedó creada y con sesión iniciada; false si no corresponde
- * (ya hay cuenta local, sin red, credenciales inválidas) — en ese
+ * (ya hay cuenta local, sin red, credenciales inválidas) - en ese
  * caso la llamada mostró su propio mensaje.
  */
 export async function offlineImportWebAccount(payload: { email?: string; password?: string }): Promise<boolean> {
@@ -462,7 +462,7 @@ export function offlineDeleteAccount(): void {
  * así que el cambio no mueve ninguna estadística. Las amistades
  * tampoco: se guardan por id interno, no por nombre.
  * Fuente de verdad del nombre (v1.12.7): el servidor. Con sesión y
- * red, el cambio se aplica allá primero — mismas reglas (formato,
+ * red, el cambio se aplica allá primero - mismas reglas (formato,
  * 30 días, disponibilidad) y el error real llega al usuario, igual
  * que en la web. Sin red o sin sesión: cambio local + op en cola
  * para el próximo sync. Antes solo tocaba el almacenamiento local y

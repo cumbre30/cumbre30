@@ -4,10 +4,10 @@
 // Popup de reglas de trazado (v1.12.11, cliente 2026-11-15).
 // Se muestra desde el motor de navegación (useNavEngine) cuando
 // la decisión le corresponde al ciclista:
-// · F3 — destino = acceso ciclista (buscador/POI libre): ¿solo
+// · F3 - destino = acceso ciclista (buscador/POI libre): ¿solo
 //   hasta la portería o ingresar al cerro? Con opción «siempre
 //   en esta sesión».
-// · D3 — estás cerca de un acceso, pero según el destino deberías
+// · D3 - estás cerca de un acceso, pero según el destino deberías
 //   salir por otro: ¿salir por el del destino o por el más
 //   cercano a ti?
 // Las rutas predefinidas (botón «Ruta» de las capas del mapa) NO

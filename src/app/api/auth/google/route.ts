@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 
 // ============================================================
-// POST /api/auth/google — sesión por token para cuentas Google del APK.
+// POST /api/auth/google - sesión por token para cuentas Google del APK.
 // El plugin nativo devuelve el idToken de Google Play Services; el
 // servidor lo valida contra tokeninfo de Google (audiencia, correo
 // verificado y vigencia) y de ahí encuentra o crea la cuenta y emite
@@ -96,7 +96,7 @@ export async function POST(req: Request) {
     const { token, expiresAt } = await createSession(user.id);
     // La cookie de sesión habilita el flujo WEB (cumbregeo.cl): amigos,
     // /rides y /compartir con la misma sesión que el login por
-    // contraseña — antes solo la cuenta Cumbre30 podía entrar en la
+    // contraseña - antes solo la cuenta Cumbre30 podía entrar en la
     // web. El APK sigue usando el token Bearer del cuerpo.
     const res = NextResponse.json(
       { token, expiresAt: expiresAt.toISOString(), email: user.email, username: user.username },

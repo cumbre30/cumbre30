@@ -3,7 +3,7 @@
 // El WebView de Capacitor sirve la app desde https://localhost y sus
 // llamadas al servidor de la web cruzan origen. Solo emitimos cabeceras
 // para los orígenes conocidos del app; la web normal (same-origin) no
-// las necesita. El sync viaja con Authorization: Bearer — las cookies
+// las necesita. El sync viaja con Authorization: Bearer - las cookies
 // third-party del WebView no son confiables en iOS/Android modernos.
 // ============================================================
 

@@ -1,12 +1,12 @@
 "use client";
 
 // ============================================================
-// Rides en la web (Ola 3): cumbregeo.cl/rides — la lista de viajes
+// Rides en la web (Ola 3): cumbregeo.cl/rides - la lista de viajes
 // de la cuenta, consultable desde cualquier navegador (cookie de
 // sesión web). Solo lectura: el registro vive en la app. Español,
 // como el resto del sitio público.
 //
-// v1.12.5: la página trae su propio acceso — antes mostraba solo el
+// v1.12.5: la página trae su propio acceso - antes mostraba solo el
 // mensaje «entra desde la app», un callejón sin salida: en la web no
 // había forma de entrar (y menos con Google). Ahora: correo+
 // contraseña y botón oficial de Google (GSI), igual que en la app.

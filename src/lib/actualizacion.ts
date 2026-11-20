@@ -1,7 +1,7 @@
 "use client";
 
 // ============================================================
-// Revisión de actualizaciones (v1.12.4) — el «Windows Update» de
+// Revisión de actualizaciones (v1.12.4) - el «Windows Update» de
 // Cumbre30, adaptado a cómo se reparte la app.
 //
 //   · La web desplegada (cumbregeo.cl) siempre corre la última
@@ -13,8 +13,8 @@
 //   · La descarga abre el navegador en el APK más reciente de
 //     GitHub (releases/latest): al terminar, Android pide
 //     confirmar la instalación. Sin Play Store no existe la
-//     instalación en silencio — Android no la permite a apps de
-//     fuera de la tienda — pero el chequeo y el aviso sí son
+//     instalación en silencio - Android no la permite a apps de
+//     fuera de la tienda - pero el chequeo y el aviso sí son
 //     automáticos.
 //
 // Chequeo automático: al abrir la app, a lo más una vez cada 24 h

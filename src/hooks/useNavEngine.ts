@@ -142,7 +142,7 @@ export function useNavEngine(position: LatLng | null, running: boolean): NavEngi
    *  COMPLETO (el mismo de «Ver», cliente 2026-11-12); en recálculo por
    *  desvío (isReroute, ride en marcha) se empalma al trazado desde el
    *  punto más cercano hacia adelante.
-   *  Blindaje: cualquier excepción deja el estado limpio y avisa — la UI
+   *  Blindaje: cualquier excepción deja el estado limpio y avisa - la UI
    *  NUNCA queda pegada en «cargando» (queja del cliente 2026-11-12). */
   const compute = useCallback(async (origin: LatLng, d: NavDest, kind: "gps" | "fallback", isReroute = false, extra?: ExtraRuta) => {
     const seq = ++calcSeqRef.current;

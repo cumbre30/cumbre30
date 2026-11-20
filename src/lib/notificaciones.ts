@@ -1,7 +1,7 @@
 "use client";
 
 // ============================================================
-// Notificaciones locales (Ola 1) — solo APK nativo (Capacitor).
+// Notificaciones locales (Ola 1) - solo APK nativo (Capacitor).
 // ------------------------------------------------------------
 // Los avisos operativos (avisos.json) y la voz viven mientras la
 // app está abierta; con el teléfono guardado solo quedan las
@@ -36,6 +36,7 @@ function loadModule(): Promise<LocalNotificationsModule | null> {
 const ID_LUCES = 1001;
 const ID_CIERRE = 1002;
 const ID_ACTUALIZACION = 1003; // sincronizado con ID_NOTIF (actualizacion.ts)
+const ID_BIENVENIDA = 1004; // cuenta recién creada (localRegister o /api/auth/register)
 const VENTANA_MAX_H = 12; // no programar avisos de más de 12 h a futuro
 
 /** Programa (o re-programa) los avisos locales del día del parque. */
@@ -109,5 +110,30 @@ export async function notificarNuevaVersion(version: string): Promise<void> {
     });
   } catch {
     // silencio: el aviso dentro de la app siempre está
+  }
+}
+
+/** Bienvenida al crear cuenta (v1.14.1). Notificación local inmediata
+ *  (solo APK; en web el aviso es la tarjeta de bienvenida de Cuenta).
+ *  Sin permiso de notificaciones no hace nada: la tarjeta dentro de la
+ *  app cubre ese caso. */
+export async function notificarBienvenida(nombre: string): Promise<void> {
+  try {
+    const mod = await loadModule();
+    if (!mod) return;
+    const perm = await mod.LocalNotifications.checkPermissions();
+    if (perm.display !== "granted") return;
+    await mod.LocalNotifications.schedule({
+      notifications: [
+        {
+          id: ID_BIENVENIDA,
+          title: "Cumbre30",
+          body: t("notif.bienvenida", nombre),
+          schedule: { at: new Date(Date.now() + 1_500), allowWhileIdle: true },
+        },
+      ],
+    });
+  } catch {
+    // silencio: la bienvenida dentro de la app siempre está
   }
 }

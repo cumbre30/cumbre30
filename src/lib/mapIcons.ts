@@ -12,7 +12,7 @@ import { INCIDENT_BY_ID } from "@/lib/incidents";
  * `mapBearing` = rotación de cámara actual (grados, semántica MapLibre: la cámara
  * mira hacia mapBearing, 0 = norte arriba).
  *
- * v1.13.12 — los DOS lienzos Leaflet giran distinto y los markers viven distinto:
+ * v1.13.12 - los DOS lienzos Leaflet giran distinto y los markers viven distinto:
  *  · LeafletNav (minimapa APK): rotación por PLUGIN leaflet-rotate → los markers
  *    quedan en el `leaflet-norotate-pane` (billboard: NO giran con el mapa). La
  *    flecha debe apuntar al rumbo RELATIVO a la rotación de pantalla:

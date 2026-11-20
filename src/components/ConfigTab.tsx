@@ -888,7 +888,7 @@ export function ConfigTab({
         <p className="border-t border-border/60 px-4 py-2.5 text-[11px] text-muted-foreground">{t("act.error")}</p>
       )}
       {/* Diagnóstico de mapas (v1.13.5): el nativo quedó dormido tras
-          v1.13.2–v1.13.4 (negro en dispositivo con Vulkan y con GL ES).
+          v1.13.2-v1.13.4 (negro en dispositivo con Vulkan y con GL ES).
           Estos datos dicen qué GPU soporta de verdad este equipo. */}
       <Row icon={<Map className="h-5 w-5" />} title={t("cfg.diag")} sub={t("cfg.diagSub")}>
         <button

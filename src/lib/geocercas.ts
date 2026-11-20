@@ -13,7 +13,7 @@
 //     fuentes oficiales VERIFICADAS (administración del parque).
 //
 // REGLA DURA: una geocerca cuya única fuente sea OpenStreetMap
-// NO puede clasificarse OFFICIAL_RESTRICTION — la información
+// NO puede clasificarse OFFICIAL_RESTRICTION - la información
 // cartográfica de OSM es orientativa y su modelo comunitario no
 // es una fuente normativa. `clasificarGeocerca()` la aplica y
 // `validarTrazabilidad()` la audita en carga y en el test de
@@ -38,7 +38,7 @@ export type ClasificacionGeocerca =
 export type VerificacionGeocerca =
   | "verified_official" // respaldada por la administración del parque
   | "verified_client" // coordenadas exactas entregadas por el cliente
-  | "unverified"; // solo fuentes cartográficas (OSM) — nunca oficial
+  | "unverified"; // solo fuentes cartográficas (OSM) - nunca oficial
 
 /** Nivel de confianza de la precisión de la geocerca. */
 export type ConfianzaGeocerca = "high" | "medium" | "low";
@@ -91,7 +91,7 @@ export function clasificarGeocerca(
 // ------------------------------------------------------------
 export const TRAZABILIDAD_GEOCERCAS: Record<string, TrazabilidadGeocerca> = {
   // Zonas de riesgo (RISK_ZONES en park.ts las llevan inline): la
-  // procedencia ya la documentaba el código — coordenadas EXACTAS
+  // procedencia ya la documentaba el código - coordenadas EXACTAS
   // entregadas por el cliente (2026-11-12/13). Son SAFETY: advertencias
   // de precaución, no restricciones.
   anahuac: {
@@ -241,7 +241,7 @@ export const CLASIFICACION_GEOCERCAS: Record<string, ClasificacionGeocerca> = {
 };
 
 /** Trazabilidad de un id (null si es una geocerca sin registro:
- *  se trata como INFORMATIVE/unverified — nunca como oficial). */
+ *  se trata como INFORMATIVE/unverified - nunca como oficial). */
 export function trazabilidadDe(id: string): TrazabilidadGeocerca | null {
   return TRAZABILIDAD_GEOCERCAS[id] ?? null;
 }

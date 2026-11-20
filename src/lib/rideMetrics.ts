@@ -1,5 +1,5 @@
 /**
- * rideMetrics — métricas derivadas del ride (Perfil Ciclista, fase 1).
+ * rideMetrics - métricas derivadas del ride (Perfil Ciclista, fase 1).
  *
  * Se calculan en el DISPOSITIVO al cerrar el ride: el track crudo nunca
  * sale del teléfono (privacidad) y la batería ya se gastó grabando; el
@@ -16,7 +16,7 @@
  *   · antitrampa:      > 55 km/h sostenido / > 28 km/h en pendiente > 6 %
  *
  * Fase 2 (v1.13.17): con los pesos del conjunto (ciclista + bici) estima
- * los watts SOLO en tramos de subida > 4 % — ahí la gravedad domina
+ * los watts SOLO en tramos de subida > 4 % - ahí la gravedad domina
  * (P ≈ m·g·v·pendiente) y la estimación sin sensor de potencia es
  * honesta; en llano la resistencias del aire/rodadura dominan y el
  * error sería grande, así que no se reporta.
@@ -150,7 +150,7 @@ export function computeRideMetrics(
     if (dt <= 0 || dt > 120) continue; // hueco de GPS: segmento inválido
     const d = distM(lat1, lon1, lat2, lon2);
     if (d < 1) {
-      // Fijo sin avance: es exactamente una parada — acumula su tiempo
+      // Fijo sin avance: es exactamente una parada - acumula su tiempo
       // y cierra el grupo de subida en curso (no aporta velocidad).
       if (grupoSubM >= 3) {
         climbGainM += grupoSubM;

@@ -4,9 +4,9 @@
 // Desafíos y recompensas (v1.14.0: sección del Perfil Ciclista).
 // La pestaña propia del menú desaparece: su contenido se divide en
 // dos piezas exportadas que el Perfil renderiza como secciones:
-//   · ProgresoYNivel — "Tu progreso" + "Tus niveles": al PRINCIPIO
+//   · ProgresoYNivel - "Tu progreso" + "Tus niveles": al PRINCIPIO
 //     de la sección ADN del Perfil.
-//   · DesafiosYRecompensas — rachas (trasladada desde Estadísticas
+//   · DesafiosYRecompensas - rachas (trasladada desde Estadísticas
 //     generales, al principio) + Desafíos del cerro + Desafíos con
 //     fecha + Retos puntuales + Tus pines.
 // Estructura original (referencia: mockup de progreso gamificado):
@@ -270,7 +270,7 @@ function LevelRing({ pct, km, gold = false }: { pct: number; km: number; gold?: 
 // ------------------------------------------------------------
 // Rachas (trasladada desde Estadísticas generales, v1.14.0): abre
 // la sección Desafíos y recompensas. Recibe los rides de la cuenta
-// ya filtrados (en bici, GPS real) — los mismos del progreso con
+// ya filtrados (en bici, GPS real) - los mismos del progreso con
 // fecha, así que una sola fuente alimenta ambas tarjetas.
 // ------------------------------------------------------------
 export function RachasCard({ rides }: { rides: RideSummary[] }) {

@@ -6,7 +6,7 @@
 // teléfono sin abandonar las métricas del ciclista.
 //
 //   · Mecanismo: MediaSessions de Android (vía nuestro plugin
-//     nativo RideNative) — el MISMO camino que los botones de los
+//     nativo RideNative) - el MISMO camino que los botones de los
 //     audífonos. Funciona con Spotify (incluida la cuenta gratis),
 //     YouTube Music y cualquier reproductor. Sin cuentas, sin API
 //     remota y sin Premium.
@@ -17,7 +17,7 @@
 //     («Aplicación restringida»): el botón lleva entonces a Información
 //     de la aplicación para levantar la restricción (⋮ → Permitir
 //     ajustes restringidos); sin restricción abre la lista de acceso.
-//   · Solo APK: en la web no hay sesiones de media — el botón no
+//   · Solo APK: en la web no hay sesiones de media - el botón no
 //     se renderiza (RideView).
 // ============================================================
 

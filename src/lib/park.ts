@@ -21,7 +21,7 @@
 // 18 m para que la frontera pegada a caminos reales no alterne
 // «Ingresando/Saliendo» con el ruido del GPS.
 // 2026-11-13: segunda corrección puntual (cliente): la esquina del
-// ACCESO PÍO NONO también queda dentro — el acceso se traslada al
+// ACCESO PÍO NONO también queda dentro - el acceso se traslada al
 // punto de inicio del trazado de Av. Alberto Mackenna y la geocerca
 // se extiende hasta esa misma esquina (ver comentario en PARK_POLYGON).
 // ============================================================
@@ -67,8 +67,8 @@ export const PARK_POLYGON: LatLng[] = [
   // del cliente): el límite OSM cortaba 19 m antes de la esquina y el
   // acceso quedaba FUERA (en «modo libre»). Se envuelve la esquina
   // Pío Nono × Av. Alberto Mackenna y el ARRANQUE del trazado de ascenso
-  // (nodos del grafo 5334 → 2921 → 2922) con ~10-15 m de margen — mismo
-  // estándar que la portería La Pirámide — dejando la calle Pío Nono
+  // (nodos del grafo 5334 → 2921 → 2922) con ~10-15 m de margen - mismo
+  // estándar que la portería La Pirámide - dejando la calle Pío Nono
   // (ciudad) fuera al sur. La frontera llega así al PUNTO DE INICIO del
   // trazado de Av. Alberto Mackenna, donde está el acceso.
   { lat: -33.4306086, lon: -70.6360939 },

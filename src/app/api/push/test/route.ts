@@ -4,7 +4,7 @@ export const dynamic = "force-dynamic";
 // en el bundle estático esta ruta queda pre-renderizada como stub.
 
 // Envío de prueba (Ola 2): manda un aviso solo a las suscripciones del
-// usuario con sesión — el botón "Probar" de Configuración.
+// usuario con sesión - el botón "Probar" de Configuración.
 
 import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";

@@ -6,7 +6,7 @@
 //     bici y pin. La versión de la app vive en Configuración → Acerca de.
 //   · "Pagos y suscripciones": modo Pro (código / Play Billing) -
 //     la licencia va atada al correo de la cuenta.
-//   · "Gestionar" (v1.14.0): gestión de la cuenta — código de
+//   · "Gestionar" (v1.14.0): gestión de la cuenta - código de
 //     recuperación, sincronización en la nube, descarga de datos y
 //     eliminación de la cuenta.
 // ============================================================
@@ -30,7 +30,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { authAction, deleteAccount, forgotPassword, googleAuthAction, changeUsername, logout, resetPassword, revokeOtherSessions, useMe } from "@/hooks/useMe";
+import { authAction, deleteAccount, forgotPassword, googleAuthAction, changeUsername, leerBienvenida, limpiarBienvenida, logout, resetPassword, revokeOtherSessions, useMe } from "@/hooks/useMe";
 import { Checkbox } from "@/components/ui/checkbox";
 import { isOfflineMode, offlineUpdateProfile } from "@/lib/offlineAuth";
 import { DEFAULT_BIKE_KG, DEFAULT_RIDER_KG, getRideWeights, hydrateWeightsFromAccount, setRideWeights } from "@/lib/rideWeights";
@@ -93,6 +93,13 @@ export default function ProfileTab() {
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  // Bienvenida al crear cuenta (v1.14.1): la marca authAction al registrar
+  // (web o APK). El efecto la re-lee cuando hay sesión, porque el flag se
+  // escribe DESPUÉS del primer render de este componente.
+  const [bienvenida, setBienvenida] = useState<string | null>(null);
+  useEffect(() => {
+    setBienvenida(me ? leerBienvenida() : null);
+  }, [me?.user.email]);
   // A-01/B-05: aceptación de términos y confirmación de edad al crear cuenta.
   const [aceptaTerminos, setAceptaTerminos] = useState(false);
   const [confirmaEdad, setConfirmaEdad] = useState(false);
@@ -258,7 +265,7 @@ export default function ProfileTab() {
 
   // Google en la web (GSI oficial, v1.12.5): el botón renderizado por
   // Google abre el selector de cuentas del navegador; el idToken va a
-  // /api/auth/google, que valida y deja la sesión en cookie — igual
+  // /api/auth/google, que valida y deja la sesión en cookie - igual
   // que el login por contraseña. Antes la web solo aceptaba cuenta
   // Cumbre30 y el botón Google daba error fuera del APK. El APK
   // mantiene su flujo nativo (botón propio de abajo).
@@ -590,6 +597,30 @@ export default function ProfileTab() {
 
       {sub === "datos" && (
       <>
+      {/* Bienvenida al crear cuenta (se cierra y no vuelve a aparecer) */}
+      {bienvenida !== null && (
+        <Card className="border-emerald-600/40 bg-emerald-600/10 p-4">
+          <div className="flex items-start gap-3">
+            <span className="text-2xl" aria-hidden>🎉</span>
+            <div className="min-w-0 flex-1">
+              <p className="font-bold text-foreground">
+                {bienvenida ? t("pf.bienvenidoTitulo", bienvenida) : t("pf.bienvenidoTituloSinNombre")}
+              </p>
+              <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{t("pf.bienvenidoCuerpo")}</p>
+              <Button
+                size="sm"
+                className="mt-3 h-9 bg-emerald-600 hover:bg-emerald-500 text-(--c30-on-accent) font-bold"
+                onClick={() => {
+                  limpiarBienvenida();
+                  setBienvenida(null);
+                }}
+              >
+                {t("pf.bienvenidoOk")}
+              </Button>
+            </div>
+          </div>
+        </Card>
+      )}
       {/* Cabecera de cuenta */}
       <Card className="bg-card/80 border-border p-4">
         <div className="flex items-center gap-3">
@@ -746,7 +777,7 @@ export default function ProfileTab() {
       </>
       )}
 
-      {/* Gestionar (v1.14.0): gestión de la cuenta en un solo lugar —
+      {/* Gestionar (v1.14.0): gestión de la cuenta en un solo lugar -
           código de recuperación, sincronización en la nube, descarga de
           datos y baja definitiva. Sin sesión la subsección cae a "datos". */}
       {sub === "gestionar" && (

@@ -79,7 +79,7 @@ const D: Record<string, E> = {
   "nav.ride": ["Ride", "Ride", "Pedal"],
   "nav.explorar": ["Explorar", "Explore", "Explorar"],
   "nav.credencial": ["Credencial", "Pass", "Credencial"],
-  // Perfil Ciclista (4ª pestaña, v1.13.16) — el nombre «Perfil» quedó
+  // Perfil Ciclista (4ª pestaña, v1.13.16) - el nombre «Perfil» quedó
   // reservado aquí tras el rename de la pantalla de datos a «Cuenta».
   "nav.perfil": ["Perfil", "Profile", "Perfil"],
   "nav.subtitle": ["Sube tu límite", "Sube tu límite", "Sube tu límite"],
@@ -127,7 +127,6 @@ const D: Record<string, E> = {
   "ride.indicaciones": ["Indicaciones de la ruta ({0})", "Route directions ({0})", "Instruções da rota ({0})"],
   "ride.verTodas": ["ver todas", "see all", "ver todas"],
   "ride.ocultar": ["ocultar", "hide", "ocultar"],
-  "ride.cargandoMinimapa": ["Cargando minimapa…", "Loading mini-map…", "Carregando minimapa…"],
 
   // ---------- píldora de estado ----------
   "chip.pausa": ["EN PAUSA", "PAUSED", "EM PAUSA"],
@@ -137,7 +136,6 @@ const D: Record<string, E> = {
   "chip.libre": ["MODO LIBRE", "FREE MODE", "MODO LIVRE"],
 
   // ---------- clima ----------
-  "clima.aria": ["Clima en el parque: {0}, {1} grados", "Park weather: {0}, {1} degrees", "Clima no parque: {0}, {1} graus"],
   "clima.actualizado": ["Actualizado a las {0}", "Updated at {0}", "Atualizado às {0}"],
   "clima.despejado": ["Despejado", "Clear sky", "Céu limpo"],
   "clima.parcial": ["Parcialmente nublado", "Partly cloudy", "Parcialmente nublado"],
@@ -190,7 +188,6 @@ const D: Record<string, E> = {
   "act.btn": ["Revisar ahora", "Check now", "Verificar agora"],
   "act.revisando": ["Revisando…", "Checking…", "Verificando…"],
   "act.alDia": ["Estás en la última versión ({0})", "You are on the latest version ({0})", "Você está na versão mais recente ({0})"],
-  "act.nueva": ["Nueva versión disponible: {0}", "New version available: {0}", "Nova versão disponível: {0}"],
   "act.error": ["No se pudo revisar: sin conexión o servicio no disponible.", "Could not check: offline or service unavailable.", "Não foi possível verificar: sem conexão ou serviço indisponível."],
   "act.descargaTitulo": ["Descargar {0}", "Download {0}", "Baixar {0}"],
   "act.descargaSub": ["Se abre el navegador para bajar el APK; instálalo cuando termine (Android pedirá confirmar).", "Your browser opens to download the APK; install it when it finishes (Android will ask to confirm).", "O navegador abre para baixar o APK; instale quando terminar (o Android pedirá confirmar)."],
@@ -225,8 +222,6 @@ const D: Record<string, E> = {
   "sos.bomberos": ["Bomberos", "Fire brigade", "Bombeiros"],
   "sos.parqueYApoyo": ["Parque y apoyo", "Park and support", "Parque e apoio"],
   "sos.emergParquemet": ["Emergencias Parquemet", "Parquemet emergencies", "Emergências Parquemet"],
-  "sos.providencia": ["Mun. Providencia", "Providencia council", "Mun. Providencia"],
-  "sos.saludResponde": ["Salud Responde", "Health hotline", "Saúde Responde"],
   "sos.compartir": ["Compartir mi ubicación", "Share my location", "Compartilhar minha localização"],
   "sos.compartirTitulo": ["Mi ubicación - Cumbre30", "My location - Cumbre30", "Minha localização - Cumbre30"],
   "sos.compartirMsg": ["Estoy pedaleando. Mi ubicación: {0}", "I am cycling. My location: {0}", "Estou pedalando. Minha localização: {0}"],
@@ -296,8 +291,6 @@ const D: Record<string, E> = {
   "zona.zoologico": ["Zona de Zoológico. Niños y peatones en el camino.", "Zoo area. Children and pedestrians on the path.", "Área do Zoológico. Crianças e pedestres no caminho."],
 
   // ---------- configuración ----------
-  "cfg.fuenteDatos": ["Fuente de datos", "Data source", "Fonte de dados"],
-  "cfg.fuenteDatosSub": ["Demo simula la subida Pío Nono → Plaza México. GPS real usa tu ubicación. Herramienta de prueba: ya no compite con el botón Iniciar.", "Demo simulates the Pío Nono → Plaza México climb. Real GPS uses your location. Test tool: it no longer competes with the Start button.", "O Demo simula a subida Pío Nono → Plaza México. O GPS real usa sua localização. Ferramenta de teste: não compete mais com o botão Iniciar."],
   "cfg.pitidos": ["Pitidos de velocidad", "Speed beeps", "Bipes de velocidade"],
   "cfg.pitidosSub": ["Suena al acercarte al límite de 30 km/h", "Sounds as you approach the 30 km/h limit", "Soa quando você se aproxima do limite de 30 km/h"],
   "cfg.avisosVoz": ["Avisos de voz", "Voice alerts", "Avisos de voz"],
@@ -312,7 +305,6 @@ const D: Record<string, E> = {
   "cfg.grDeteccion": ["Detección de incidentes", "Incident detection", "Detecção de incidentes"],
   "cfg.grEmergencia": ["Asistencia de emergencia", "Emergency assistance", "Assistência de emergência"],
   "cfg.grSalud": ["Monitoreo y salud", "Monitoring and health", "Monitoramento e saúde"],
-  "cfg.grMonitoreo": ["Monitoreo", "Monitoring", "Monitoramento"],
   "cfg.grPersonalizacion": ["Personalización", "Personalization", "Personalização"],
   "cfg.grTemas": ["Temas", "Themes", "Temas"],
   "cfg.grAccesibilidad": ["Accesibilidad", "Accessibility", "Acessibilidade"],
@@ -320,7 +312,6 @@ const D: Record<string, E> = {
   "cfg.subSeguridad": ["Alertas, detección de incidentes y asistencia de emergencia", "Alerts, incident detection and emergency assistance", "Alertas, detecção de incidentes e assistência de emergência"],
   "cfg.subSalud": ["Zonas de esfuerzo del sensor de pulso", "Training zones for the heart-rate sensor", "Zonas de esforço do sensor de pulso"],
   "cfg.subPersonalizacion": ["Temas, idioma y accesibilidad", "Themes, language and accessibility", "Temas, idioma e acessibilidade"],
-  "cfg.volverGeneral": ["Volver a General", "Back to General", "Voltar ao Geral"],
   "cfg.grIdioma": ["Idioma", "Language", "Idioma"],
   // v1.13.13: voces seleccionables (Personalización → Voz)
   "cfg.voz": ["Voz", "Voice", "Voz"],
@@ -361,7 +352,6 @@ const D: Record<string, E> = {
   "cfg.contactoSub": ["contacto.cumbre30@gmail.com · WhatsApp +56 9 4296 1619", "contacto.cumbre30@gmail.com · WhatsApp +56 9 4296 1619", "contacto.cumbre30@gmail.com · WhatsApp +56 9 4296 1619"],
   "cfg.cgeo": ["Cumbre GEO", "Cumbre GEO", "Cumbre GEO"],
   "cfg.cgeoSub": ["Tecnología para descubrir. App independiente de apoyo al ciclista; no es oficial del Parque Metropolitano de Santiago.", "Technology to discover. Independent cyclist support app; not official from Santiago Metropolitan Park.", "Tecnologia para descobrir. App independente de apoio ao ciclista; não é oficial do Parque Metropolitano de Santiago."],
-  "cfg.demoNota": ["La fuente Demo existe para probar la app sin salir de casa. Los viajes demo se marcan como simulación en tu historial y no emiten constancia PDF.", "The Demo source exists to test the app without leaving home. Demo rides are marked as simulation in your history and do not issue PDF certificates.", "A fonte Demo existe para testar o app sem sair de casa. Os passeios demo são marcados como simulação no histórico e não emitem constância PDF."],
   "cfg.esp": ["Español", "Español", "Espanhol"],
   "cfg.eng": ["English", "English", "Inglês"],
   "cfg.port": ["Português", "Português", "Português"],
@@ -398,11 +388,6 @@ const D: Record<string, E> = {
   "ice.mensajeSinPos": ["ALERTA de Cumbre30: posible caída durante un ride. El ciclista no respondió a la alerta de la app. Sin ubicación GPS disponible (hora del aviso {0}).", "Cumbre30 ALERT: possible fall during a ride. The cyclist did not respond to the app alert. No GPS location available (alert time {0}).", "ALERTA do Cumbre30: possível queda durante um pedal. O ciclista não respondeu ao alerta do app. Sem localização GPS disponível (hora do aviso {0})."],
   "ice.mensajeAyuda": ["El ciclista pidió ayuda desde la app.", "The cyclist asked for help from the app.", "O ciclista pediu ajuda pelo app."],
   // ---------- zonas de esfuerzo (Ola 1: pulso Bluetooth) ----------
-  "zonaFc.z1": ["Z1 Recup.", "Z1 Recovery", "Z1 Recup."],
-  "zonaFc.z2": ["Z2 Base", "Z2 Base", "Z2 Base"],
-  "zonaFc.z3": ["Z3 Tempo", "Z3 Tempo", "Z3 Tempo"],
-  "zonaFc.z4": ["Z4 Umbral", "Z4 Threshold", "Z4 Limiar"],
-  "zonaFc.z5": ["Z5 Máx.", "Z5 Max", "Z5 Máx."],
   "voz.zonaFc": ["Zona {0}. Si te exige demasiado, modera.", "Zone {0}. If it's too hard, ease off.", "Zona {0}. Se estiver exigindo demais, modere."],
   "ride.fcAria": ["Pulso actual {0} pulsaciones por minuto, zona {1}", "Current heart rate {0} beats per minute, zone {1}", "Pulso atual {0} batimentos por minuto, zona {1}"],
   "cfg.fc": ["Zonas de esfuerzo", "Training zones", "Zonas de esforço"],
@@ -431,13 +416,13 @@ const D: Record<string, E> = {
   // ---------- notificaciones locales (Ola 1: APK, sin conexión) ----------
   "notif.luces": ["Anochece a las {0}: lleva luces y casco, se fiscaliza.", "Sunset at {0}: carry lights and a helmet, they are enforced.", "Anoitece às {0}: leve luzes e capacete, há fiscalização."],
   "notif.cierre": ["El ingreso de ciclistas cierra a las {0}: planifica tu retorno.", "Cyclist entry closes at {0}: plan your way back.", "A entrada de ciclistas fecha às {0}: planeie seu retorno."],
+  "notif.bienvenida": ["¡Bienvenido a Cumbre30, {0}! Tu cuenta está lista: tus rides, logros y desafíos quedan en tu teléfono, incluso sin señal.", "Welcome to Cumbre30, {0}! Your account is ready: your rides, achievements and challenges live on your phone, even without signal.", "Boas-vindas ao Cumbre30, {0}! Sua conta está pronta: seus rides, conquistas e desafios ficam no seu telefone, mesmo sem sinal."],
   // ---------- rachas de actividad (Ola 1) ----------
   "racha.dias": ["{0} día(s) seguidos", "{0} day(s) in a row", "{0} dia(s) seguidos"],
 
   // ---------- reporte ciudadano ----------
   "rep.enPosicion": ["en tu posición", "at your position", "na sua posição"],
   "rep.sinGps": ["(sin GPS aún)", "(no GPS yet)", "(sem GPS ainda)"],
-  "rep.titulo": ["Reportar incidencia", "Report an incident", "Reportar incidente"],
   "rep.cerrar": ["Cerrar reporte", "Close report", "Fechar relatório"],
   "rep.nota": ["Se registra con fecha y hora, y aparece en el mapa compartido.", "It is saved with date and time, and appears on the shared map.", "É registrado com data e hora e aparece no mapa compartilhado."],
   "rep.enviarParquemet": ["Enviar a Parquemet", "Send to Parquemet", "Enviar ao Parquemet"],
@@ -445,8 +430,6 @@ const D: Record<string, E> = {
   "rep.okServer": ["Incidencia reportada ✓ visible para toda la comunidad", "Incident reported ✓ visible to the whole community", "Incidente reportado ✓ visível para toda a comunidade"],
   "rep.okLocal": ["Sin conexión: reporte guardado en este dispositivo.", "Offline: report saved on this device.", "Sem conexão: relatório salvo neste dispositivo."],
   "rep.compartirMsg": ["Reporte de la comunidad ciclista (app Cumbre30): {0} en el Parque Metropolitano de Santiago, cerca de {1}. Registrado el {2}.", "Cycling community report (Cumbre30 app): {0} in Santiago Metropolitan Park, near {1}. Logged on {2}.", "Relatório da comunidade ciclista (app Cumbre30): {0} no Parque Metropolitano de Santiago, perto de {1}. Registrado em {2}."],
-  "rep.compartirHint": ["Elige el canal oficial del parque para enviarlo: línea 1466, web o redes de Parquemet.", "Choose the park's official channel to send it: 1466 line, website or Parquemet social media.", "Escolha o canal oficial do parque para enviá-lo: linha 1466, site ou redes do Parquemet."],
-  "rep.compartido": ["Reporte listo para enviar ✓", "Report ready to send ✓", "Relatório pronto para enviar ✓"],
 
   // ---------- verificación de constancias ----------
   "ver.titulo": ["Verificación de constancias", "Certificate verification", "Verificação de constâncias"],
@@ -456,7 +439,6 @@ const D: Record<string, E> = {
   "ver.checking": ["Verificando…", "Verifying…", "Verificando…"],
   "ver.valida": ["Constancia válida", "Certificate valid", "Constância válida"],
   "ver.integridadOk": ["Integridad confirmada: los datos coinciden con el código de integridad emitido por la app.", "Integrity confirmed: the data matches the integrity code issued by the app.", "Integridade confirmada: os dados correspondem ao código de integridade emitido pelo app."],
-  "ver.onlineOk": ["Verificada en línea: esta constancia fue registrada por la app del ciclista al momento de la emisión.", "Verified online: this certificate was registered by the cyclist's app when it was issued.", "Verificada on-line: esta constância foi registrada pelo app do ciclista no momento da emissão."],
   "ver.onlineNo": ["Sin registro en línea: el código es íntegro, pero este documento no fue registrado en el servidor (constancia emitida sin conexión o con una versión anterior de la app).", "No online record: the code is intact, but this document was not registered on the server (certificate issued offline or by an older app version).", "Sem registro on-line: o código está íntegro, mas este documento não foi registrado no servidor (constância emitida off-line ou por versão anterior do app)."],
   "ver.invalida": ["Código no válido", "Invalid code", "Código inválido"],
   "ver.invalidaSub": ["No pudimos leer el código. Pega el enlace completo del QR o el código C30 completo.", "We could not read the code. Paste the full QR link or the full C30 code.", "Não pudemos ler o código. Cole o link completo do QR ou o código C30 completo."],
@@ -474,10 +456,8 @@ const D: Record<string, E> = {
   "ver.registroId": ["ID del registro", "Record ID", "ID do registro"],
   "ver.privacidadNota": ["Por privacidad, el ciclista se muestra enmascarado en esta página pública. Estos datos son visibles para quien tenga el enlace o el QR de la constancia.", "For privacy, the cyclist is masked on this public page. This data is visible to anyone holding the certificate link or QR.", "Por privacidade, o ciclista aparece mascarado nesta página pública. Esses dados são visíveis para quem tiver o link ou o QR da certidão."],
   "ver.registradoEl": ["Registrado en línea el {0}", "Registered online on {0}", "Registrado on-line em {0}"],
-  "ver.sinRegistroTs": ["Sin registro en línea", "No online record", "Sem registro on-line"],
   "ver.comoFunciona": ["Cómo funciona", "How it works", "Como funciona"],
   "ver.explicacion": ["Cada constancia PDF lleva un QR con los datos del trayecto y un código de integridad SHA-256. Esta página recompone el código en tu dispositivo y, además, consulta el registro en línea de Cumbre30 para confirmar que la constancia fue emitida por la app. El documento es una bitácora personal autogenerada: no reemplaza registros oficiales.", "Each PDF certificate carries a QR with the ride data and a SHA-256 integrity code. This page rebuilds the code on your device and also checks the Cumbre30 online registry to confirm the certificate was issued by the app. The document is a self-generated personal logbook: it does not replace official records.", "Cada constância PDF traz um QR com os dados do trajeto e um código de integridade SHA-256. Esta página recompõe o código no seu dispositivo e também consulta o registro on-line do Cumbre30 para confirmar que a constância foi emitida pelo app. O documento é um diário pessoal autogerado: não substitui registros oficiais."],
-  "ver.codigoCorto": ["Código corto", "Short code", "Código curto"],
 
   // ============================================================
   // FASE 2 (2026-11-16): pantallas de gestión, mapa y rutas.
@@ -599,8 +579,6 @@ const D: Record<string, E> = {
   "mini.desviado": ["desviado, recalculando…", "off route, rerouting…", "fora da rota, recalculando…"],
   "mini.ciclovia": ["Ciclovía {0}", "Bike path {0}", "Ciclovia {0}"],
   "mini.compartida": ["Compartida", "Shared", "Compartilhada"],
-  "mini.eta": ["{0} min · {1}", "{0} min · {1}", "{0} min · {1}"],
-  "mini.rutaLista": ["Ruta lista", "Route ready", "Rota pronta"],
   "mini.irA": ["Ir a…", "Go to…", "Ir para…"],
   "mini.irAAria": ["Ir a", "Go to", "Ir para"],
   "mini.listadoCompleto": ["🗺 Revisa el listado completo", "🗺 See the full list", "🗺 Veja a lista completa"],
@@ -748,6 +726,12 @@ const D: Record<string, E> = {
   "pf.sesionesOk": ["Listo: se cerraron {n} sesiones en otros dispositivos.", "Done: closed {n} session(s) on other devices.", "Pronto: {n} sessão(ões) encerrada(s) em outros dispositivos."],
   "pf.sesionesCero": ["No había otras sesiones activas.", "There were no other active sessions.", "Não havia outras sessões ativas."],
   "pf.sesionesError": ["No se pudo completar. Intenta de nuevo.", "Could not complete. Try again.", "Não foi possível concluir. Tente novamente."],
+  // Bienvenida al crear cuenta (v1.14.1): tarjeta en Cuenta › Mis datos
+  // y notificación local del APK (notif.bienvenida).
+  "pf.bienvenidoTitulo": ["¡Bienvenido a Cumbre30, @{0}!", "Welcome to Cumbre30, @{0}!", "Boas-vindas ao Cumbre30, @{0}!"],
+  "pf.bienvenidoTituloSinNombre": ["¡Bienvenido a Cumbre30!", "Welcome to Cumbre30!", "Boas-vindas ao Cumbre30!"],
+  "pf.bienvenidoCuerpo": ["Tu cuenta ya está lista: tus rides, logros y desafíos quedan guardados en tu teléfono y viajan contigo en el cerro, incluso sin señal. Explora el mapa, sube tu primera ruta y revisa tu perfil ciclista cuando quieras.", "Your account is ready: your rides, achievements and challenges are stored on your phone and travel with you on the hill, even without signal. Explore the map, log your first ride and check your cyclist profile any time.", "Sua conta está pronta: seus rides, conquistas e desafios ficam guardados no seu telefone e acompanham você no cerro, mesmo sem sinal. Explore o mapa, registre seu primeiro ride e confira seu perfil ciclista quando quiser."],
+  "pf.bienvenidoOk": ["¡Vamos a pedalear!", "Let's ride!", "Vamos pedalar!"],
   "pf.exportarTitulo": ["Descargar mis datos", "Download my data", "Baixar meus dados"],
   "pf.exportarIntro": ["Portabilidad (Ley 21.719): descarga un JSON con tu perfil, tus rides del historial local (incluida la pista GPS, que vive solo en tu teléfono), tus contactos de emergencia y tu licencia Pro.", "Portability (Law 21.719): download a JSON with your profile, your local history rides (including the GPS track, which lives only on your phone), your emergency contacts and your Pro license.", "Portabilidade (Lei 21.719): baixe um JSON com seu perfil, seus rides do histórico local (incluindo a trilha GPS, que vive só no seu telefone), seus contatos de emergência e sua licença Pro."],
   "pf.exportarBoton": ["Generar y descargar", "Generate and download", "Gerar e baixar"],
@@ -773,11 +757,6 @@ const D: Record<string, E> = {
   "pf.googleWebErr": ["No pudimos cargar el acceso con Google (¿extensión o red lo bloquea?). Entra con tu correo y contraseña.", "Could not load Google sign-in (blocked by an extension or the network?). Sign in with your email and password.", "Não foi possível carregar o login com Google (alguma extensão ou a rede bloqueia?). Entre com seu e-mail e senha."],
   "pf.googleNota": ["Entra con Google o con tu cuenta Cumbre30. Si ya tienes una cuenta con el mismo correo, se enlaza y conservas tus km, logros y pines.", "Sign in with Google or your Cumbre30 account. If you already have an account with the same email, they get linked and you keep your km, achievements and pins.", "Entre com Google ou com sua conta Cumbre30. Se você já tem uma conta com o mesmo e-mail, elas são vinculadas e você mantém seus km, conquistas e pins."],
   "pf.cargandoPerfil": ["Cargando cuenta…", "Loading account…", "Carregando conta…"],
-  "pf.resumenSub": ["Mi resumen de pedaleo", "My riding summary", "Meu resumo de pedaladas"],
-  "pf.ridesCompletados": ["Rides completados", "Rides completed", "Pedais concluídos"],
-  "pf.velMaxFila": ["Velocidad máxima", "Top speed", "Velocidade máxima"],
-  "pf.desnivelFila": ["Desnivel acumulado", "Total elevation gain", "Desnível acumulado"],
-  "pf.shareResumen": ["Mi resumen de pedaleo con Cumbre30 🚴", "My riding summary with Cumbre30 🚴", "Meu resumo de pedaladas com Cumbre30 🚴"],
   "pf.compartirPerfilTitle": ["Genera una imagen con tu resumen para compartir en Instagram", "Generate an image with your summary to share on Instagram", "Gera uma imagem com seu resumo para compartilhar no Instagram"],
   "pf.compartirPerfil": ["Compartir perfil", "Share profile", "Compartilhar perfil"],
   "pf.salir": ["Salir", "Sign out", "Sair"],
@@ -794,7 +773,7 @@ const D: Record<string, E> = {
   "pf.pesoBici": ["Peso de la bici (kg)", "Bike weight (kg)", "Peso da bicicleta (kg)"],
   "pf.pesoGuardar": ["Guardar pesos", "Save weights", "Salvar pesos"],
   "pf.pesoOk": ["Pesos guardados: se usan al cerrar cada ruta.", "Weights saved: applied when each route is closed.", "Pesos salvos: usados ao salvar cada rota."],
-  "pf.pesoError": ["Revisa los valores: ciclista 30–200 kg, bici 5–50 kg.", "Check the values: rider 30–200 kg, bike 5–50 kg.", "Confira os valores: ciclista 30–200 kg, bicicleta 5–50 kg."],
+  "pf.pesoError": ["Revisa los valores: ciclista 30-200 kg, bici 5-50 kg.", "Check the values: rider 30-200 kg, bike 5-50 kg.", "Confira os valores: ciclista 30-200 kg, bicicleta 5-50 kg."],
   "pf.syncNube": ["Sincronización con la nube", "Cloud sync", "Sincronização com a nuvem"],
   "pf.syncSubiendo": ["Subiendo tu progreso…", "Uploading your progress…", "Enviando seu progresso…"],
   "pf.syncOk": ["Tu progreso queda guardado en tu cuenta{0}.", "Your progress is saved to your account{0}.", "Seu progresso fica salvo na sua conta{0}."],
@@ -813,11 +792,6 @@ const D: Record<string, E> = {
   "pf.cambiando": ["Cambiando…", "Changing…", "Alterando…"],
   "pf.cambiar": ["Cambiar", "Change", "Mudar"],
   "pf.cambioListo": ["¡Listo! Ahora eres @{0}.", "Done! You are now @{0}.", "Pronto! Agora você é @{0}."],
-  "pf.pinActivo": ["Pin activo en el mapa", "Active map pin", "Pin ativo no mapa"],
-  "pf.pinNota1": ["Tu pin ", "Your pin ", "Seu pin "],
-  "pf.pinNota2": [" es el que ven tus amigos y queda en tus reportes. Desbloquea más en la pestaña ", " is what your friends see and what shows on your reports. Unlock more in the ", " é o que seus amigos veem e fica nos seus relatórios. Desbloqueie mais na aba "],
-  "pf.desafios": ["Desafíos", "Challenges", "Desafios"],
-  "pf.pinSync": ["Tus rides del dispositivo se sincronizan automáticamente al tener sesión.", "Device rides sync automatically once you are signed in.", "Os pedais do dispositivo sincronizam automaticamente quando você tem sessão."],
   "pf.eliminarCuenta": ["Eliminar cuenta", "Delete account", "Excluir conta"],
   "pf.eliminarIntro": ["Borra definitivamente tu cuenta: correo, usuario, kilómetros, logros, pines y todo tu historial de viajes. Si este era el único usuario del teléfono, también se elimina tu licencia Pro local. La acción es irreversible.", "Delete your account permanently: email, username, kilometers, achievements, pins and your whole ride history. If this was the only user on the phone, your local Pro license is removed too. The action is irreversible.", "Exclua definitivamente sua conta: e-mail, usuário, quilômetros, conquistas, pins e todo o seu histórico de passeios. Se este era o único usuário do telefone, sua licença Pro local também é removida. A ação é irreversível."],
   "pf.eliminarMiCuenta": ["Eliminar mi cuenta", "Delete my account", "Excluir minha conta"],
@@ -917,7 +891,6 @@ const D: Record<string, E> = {
   "drawer.proActivo": ["CUMBRE30 PRO ACTIVO", "CUMBRE30 PRO ACTIVE", "CUMBRE30 PRO ATIVO"],
   "drawer.proGracias": ["Gracias por apoyar el proyecto. Todos los beneficios desbloqueados en este teléfono.", "Thanks for supporting the project. All benefits unlocked on this phone.", "Obrigado por apoiar o projeto. Todos os benefícios desbloqueados neste telefone."],
   "drawer.zonaActividad": ["Mi actividad", "My activity", "Minha atividade"],
-  "drawer.amigosHint": ["Km y logros de tus pares", "Km and achievements of your peers", "Km e conquistas dos seus pares"],
   "drawer.zonaCuenta": ["Cuenta", "Account", "Conta"],
   "drawer.perfilHint": ["Datos y pagos", "Data and payments", "Dados e pagamentos"],
   "drawer.configHint": ["Sonido, voz y temas", "Sound, voice and themes", "Som, voz e temas"],
@@ -1028,7 +1001,6 @@ const D: Record<string, E> = {
   "pc.titulo": ["Tu perfil de pedaleo", "Your riding profile", "Seu perfil de pedalada"],
   "pc.secAdn": ["ADN", "DNA", "ADN"],
   "pc.seccionesAria": ["Secciones del perfil", "Profile sections", "Seções do perfil"],
-  "pc.sub": ["Cómo pedala tu cuerpo según tus últimos 90 días de rides. Se recalcula al cerrar cada ruta.", "How your body rides, based on your last 90 days of rides. It recalculates when each route is saved.", "Como seu corpo pedala segundo seus últimos 90 dias de passeios. Recalcula ao salvar cada rota."],
   "pc.requiereSesion": ["Inicia sesión para construir tu perfil con tus rutas de los últimos 90 días.", "Sign in to build your profile from your last 90 days of routes.", "Entre para construir seu perfil com suas rotas dos últimos 90 dias."],
   "pc.irCuenta": ["Iniciar sesión en Cuenta", "Sign in via Account", "Entrar em Conta"],
   "pc.noBackend": ["El perfil necesita el servidor de cuenta: configúralo en Cuenta › Mis datos › Servidor de cuenta y vuelve a esta pestaña.", "The profile needs the account server: set it up in Account › My data › Account server and come back to this tab.", "O perfil precisa do servidor de conta: configure em Conta › Meus dados › Servidor de conta e volte a esta aba."],
@@ -1052,7 +1024,7 @@ const D: Record<string, E> = {
   "pc.archDescALL_ROUNDER": ["Ejes parejos: rendes en todo el terreno sin un punto fuerte dominante todavía.", "Even axes: you perform on all terrain without a dominant strength yet.", "Eixos equilibrados: você rende em todo terreno sem uma força dominante ainda."],
   "pc.archDescURBAN": ["Pedaleas en ciudad: viajes cortos de lunes a viernes, con paradas frecuentes.", "You ride in the city: short weekday trips with frequent stops.", "Você pedala na cidade: viagens curtas de segunda a sexta, com paradas frequentes."],
   "pc.porque": ["Asignado porque {0} ({1} pts) supera al segundo eje por {2} puntos (umbral 15).", "Assigned because {0} ({1} pts) beats the second axis by {2} points (threshold 15).", "Atribuído porque {0} ({1} pts) supera o segundo eixo por {2} pontos (limiar 15)."],
-  "pc.ejes": ["Los 6 ejes · 0–100", "The 6 axes · 0–100", "Os 6 eixos · 0–100"],
+  "pc.ejes": ["Los 6 ejes · 0-100", "The 6 axes · 0-100", "Os 6 eixos · 0-100"],
   "pc.eClimbing": ["Escalada", "Climbing", "Escalada"],
   "pc.eEndurance": ["Resistencia", "Endurance", "Resistência"],
   "pc.eSpeed": ["Velocidad", "Speed", "Velocidade"],
@@ -1080,7 +1052,6 @@ const D: Record<string, E> = {
   "pc.shareTexto": ["Mi perfil ciclista en Cumbre30", "My riding profile on Cumbre30", "Meu perfil de pedalada no Cumbre30"],
   "pc.errCargar": ["No pudimos cargar tu perfil.", "Could not load your profile.", "Não foi possível carregar seu perfil."],
   "pg.cargandoPerfil": ["Cargando cuenta…", "Loading account…", "Carregando conta…"],
-  "pg.cargandoDesafios": ["Cargando desafíos…", "Loading challenges…", "Carregando desafios…"],
 
   // ---------- motor de navegación (useNavEngine) ----------
   "nav.errSinRuta": ["No encontramos una ruta ciclable hasta ese destino.", "We could not find a bike route to that destination.", "Não encontramos uma rota ciclável até esse destino."],
@@ -1231,15 +1202,6 @@ const D: Record<string, E> = {
   "pop.cancelar": ["Cancelar ruta", "Cancel route", "Cancelar rota"],
 
   // ---------- bloque senderos y cumbres (buscador de Explorar) ----------
-  "senderos.bloqueTitulo": ["Senderos y cumbres del parque", "Park trails and summits", "Trilhas e cumes do parque"],
-  "senderos.rutaTitle": ["Generar ruta hasta aquí", "Generate the route to here", "Gerar rota até aqui"],
-  "senderos.soloPeatones": [" · solo peatones (sin ruta)", " · pedestrians only (no route)", " · só pedestres (sem rota)"],
-  "senderos.geoParcial": [" · geometría parcial", " · partial geometry", " · geometria parcial"],
-  "senderos.lugarParque": ["· lugar del parque", "· park place", "· lugar do parque"],
-  "senderos.msnm": [" m s.n.m.", " m above sea level", " m de altitude"],
-  "senderos.zonaPeatonal": [" · zona solo peatonal", " · pedestrians-only area", " · área só de pedestres"],
-  "senderos.bosqueSantiago": [" · Bosque Santiago (fuera del grafo de ruteo)", " · Bosque Santiago (outside the routing graph)", " · Bosque Santiago (fora do grafo de roteamento)"],
-  "senderos.fuente": ["Fuente: mapa oficial Parquemet y OpenStreetMap. Las 5 rutas de enduro oficiales se marcarán en la app cuando Parquemet las publique. Registro QR obligatorio en senderos de enduro desde el 15 de diciembre de 2026 (marcha blanca desde el 1 dic); ciclistas de ruta y recreativos sin QR, con casco y luces.", "Source: official Parquemet map and OpenStreetMap. The 5 official enduro routes will be marked in the app once Parquemet publishes them. QR registration mandatory on enduro trails from December 15, 2026 (soft launch from Dec 1); route and recreational cyclists without QR, with helmet and lights.", "Fonte: mapa oficial do Parquemet e OpenStreetMap. As 5 rotas de enduro oficiais serão marcadas no app quando o Parquemet as publicar. Registro QR obrigatório nas trilhas de enduro a partir de 15 de dezembro de 2026 (marcha branca a partir de 1º de dez); ciclistas de rota e recreativos sem QR, com capacete e luzes."],
 
   // ---------- modal anti-vehículo (vehicleDetect) ----------
   "veh.aria": ["Confirmar si el viaje fue en bicicleta", "Confirm whether the ride was by bike", "Confirmar se o passeio foi de bicicleta"],
@@ -1307,8 +1269,6 @@ const D: Record<string, E> = {
   // y trazabilidad visible en el popup de cada zona del mapa Explorar.
   "geo.categoria": ["Clasificación", "Classification", "Classificação"],
   "geo.cat.SAFETY": ["Zona de riesgo y precaución", "Risk and caution zone", "Zona de risco e precaução"],
-  "geo.cat.INFORMATIVE": ["Advertencia orientativa", "Orientation warning", "Aviso orientativo"],
-  "geo.cat.OFFICIAL_RESTRICTION": ["Restricción oficial", "Official restriction", "Restrição oficial"],
   "geo.fuente": ["Fuente", "Source", "Fonte"],
   "geo.verificado": ["Verificado", "Verified", "Verificado"],
   "geo.confianza": ["Confianza", "Confidence", "Confiança"],
@@ -1319,7 +1279,7 @@ const D: Record<string, E> = {
   "banner.pedaleaEnlace": ["Ir a pedaleaseguro.parquemet.cl", "Go to pedaleaseguro.parquemet.cl", "Ir a pedaleaseguro.parquemet.cl"],
   "banner.cerrar": ["Cerrar aviso", "Dismiss notice", "Fechar aviso"],
   "geo.orientativo": ["Información orientativa; no sustituye la señalización ni la normativa oficial.", "Orientation-only information; it does not replace official signage or rules.", "Informação orientativa; não substitui a sinalização nem as regras oficiais."],
-  // Mensaje de responsabilidad EXIGIDO por el requerimiento (§5) — el
+  // Mensaje de responsabilidad EXIGIDO por el requerimiento (§5) - el
   // texto en español es la versión oficial; en/pt son traducciones.
   "cfg.disclaimerTitulo": ["Alertas orientativas", "Orientation alerts", "Alertas orientativas"],
   "cfg.disclaimerTexto": [

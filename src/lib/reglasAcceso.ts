@@ -1,7 +1,7 @@
 // ============================================================
 // Reglas de trazado según dentro/fuera del cerro (v1.12.11,
 // definiciones del cliente 2026-11-15). Un solo evaluador para
-// buscador y destinos libres — el motor (useNavEngine) lo
+// buscador y destinos libres - el motor (useNavEngine) lo
 // consulta ANTES de llamar a computeRoute y, si la decisión le
 // corresponde al usuario, muestra el popup en lugar de trazar.
 //

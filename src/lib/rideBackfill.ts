@@ -1,5 +1,5 @@
 /**
- * rideBackfill — recálculo de métricas de rides antiguos (v1.13.17,
+ * rideBackfill - recálculo de métricas de rides antiguos (v1.13.17,
  * fase 2 del Perfil Ciclista).
  *
  * Los rides grabados antes de v1.13.16 no tienen métricas derivadas y
@@ -11,7 +11,7 @@
  * vía normal (POST /api/rides es idempotente por clientId: el servidor
  * las añade a un ride ya existente).
  *
- * Presupuesto: máx. BACKFILL_LOTE rides por arranque — el trabajo corre
+ * Presupuesto: máx. BACKFILL_LOTE rides por arranque - el trabajo corre
  * en segundo plano 12 s después de abrir la app y no compite con el
  * GPS ni con el primer render. Los rides sin métricas posibles (demo,
  * muy cortos, sin pista) quedan marcados metricsTried para no reintentar.

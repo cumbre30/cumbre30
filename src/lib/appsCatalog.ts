@@ -73,16 +73,22 @@ export const APPS: AppCatalogo[] = [
       {
         titulo: "Funciones principales",
         cuerpo:
-                    "• Ruta 4 y rutas del catálogo por el lado correcto: desde el oriente suben por Costanera Sur · Puente Centenario (~9 km) y no por Recoleta y Polanco (~15 km).\n" +
-          "• Búsqueda de direcciones: la ruta llega hasta el destino exacto (antes se cortaba hasta 400 m antes del pin).\n" +
-          "• Configuración rediseñada: secciones General y Acerca de; General con 3 tarjetas (Seguridad, Monitoreo y salud, Personalización).\n" +
-          "• Toda la app en inglés y portugués (antes solo Ride y avisos) y modo claro/oscuro revisado pantalla por pantalla.\n" +
-"• Ciclocomputador completo: velocidad actual y máxima, distancia, tiempo, desnivel acumulado y mapa en tiempo real.\n• Límite 30 km/h con alertas de voz, pitidos y vibración dentro del parque.\n• Rutas y navegación hacia Plaza México, Pío Nono, Pedro de Valdivia, La Pirámide, Piscina Antilén, Jardín Japonés y más.\n• Desafíos por nivel (diarios, semanales y mensuales) con pines exclusivos para tu perfil.\n• Credencial digital de enrolamiento Parquemet con código QR.\n• Historial de rides con trazado GPS, exportación en GPX y resumen para compartir.\n• Detección de viaje en vehículo motorizado para que tus estadísticas reflejen solo tus pedaleos.",
+          "• Ciclocomputador completo: velocidad actual y máxima, distancia, tiempo, desnivel acumulado y mapa en tiempo real.\n" +
+          "• Límite 30 km/h con alertas de voz, pitidos y vibración dentro del parque.\n" +
+          "• Rutas y navegación hacia Plaza México, Pío Nono, Pedro de Valdivia, La Pirámide, Piscina Antilén, Jardín Japonés y más.\n" +
+          "• Búsqueda de direcciones: la ruta llega hasta el destino exacto (pin).\n" +
+          "• Rutas del catálogo con el acceso recomendado: desde el oriente sube por Costanera Sur · Puente Centenario (~9 km), el camino más directo al cerro.\n" +
+          "• Desafíos por nivel (diarios, semanales y mensuales) con pines exclusivos para tu perfil.\n" +
+          "• Perfil ciclista con arquetipo, 6 ejes y medidas de tus últimos 90 días: VAM, watts estimados, off-road y CO₂ evitado.\n" +
+          "• Credencial digital de enrolamiento Parquemet con código QR.\n" +
+          "• Historial de rides con trazado GPS, exportación en GPX y resumen para compartir.\n" +
+          "• Detección de viaje en vehículo motorizado para que tus estadísticas reflejen solo tus pedaleos.\n" +
+          "• App completa en español, inglés y portugués, con modo claro y oscuro.",
       },
       {
         titulo: "Requisitos y compatibilidad",
         cuerpo:
-          "• Android 7.0 o superior.\n• No requiere datos móviles en el cerro: mapas, rutas, GPS y alertas funcionan 100% offline.\n• Tamaño de descarga aproximado: 57 MB.",
+          "• Android 7.0 o superior.\n• No requiere datos móviles en el cerro: mapas, rutas, GPS y alertas funcionan 100% offline.\n• Tamaño de descarga aproximado: 53 MB.",
       },
       {
         titulo: "Permisos que usa y para qué",
@@ -90,24 +96,23 @@ export const APPS: AppCatalogo[] = [
           "• Ubicación (precisa): se usa mientras pedaleas, con servicio en primer plano y notificación visible; no se usa en segundo plano.\n• Notificaciones: para la notificación del ride activo y avisos de la app.\n• Vibración: para las alertas cuando te acercas al límite de 30 km/h.\n• Evitar que el teléfono duerma: mantiene el registro del ride mientras lo usas.\n• Tus rides viven en tu teléfono; no se comparten con terceros.",
       },
       {
-        titulo: "Novedades de esta versión",
-        // Sólo la última versión + build (salen de appVersion.ts, quedan
-        // sincronizados solos) + lista de funcionalidades del release
-        // vigente (Ola 2 y 3 del roadmap 2026-11-14).
+        titulo: "Por qué Cumbre30",
+        // Propuesta de valor para el ciclista (sin historial de versiones:
+        // lo que cambió release a release no es lo que la app ofrece).
         cuerpo:
-          `v${APP_VERSION} (${APP_VERSION_CODE}):\n` +
-          "• Minimapa renovado: usa la misma base cartográfica estándar de OpenStreetMap del mapa grande y del APK, con cambio automático a la base de respaldo si el servicio cae.\n" +
-          "• Créditos del mapa legibles y compactos («© OpenStreetMap contributors · ODbL») en el minimapa y en el mapa grande.\n" +
-          "• La barra «Ir a...» ya no cubre el minimapa: ahora es una fila separada justo debajo y el mapa se ve completo hasta el borde.\n" +
-          "• Sensores Bluetooth en un botón del banner, al lado derecho del de música: el panel se abre desde ahí, deja de ocupar la caja de estadísticas y tus conexiones de pulso/rueda no se cortan al cerrarlo.\n" +
-          "• Precisión del GPS mejorada: rumbo derivado también en la web, velocidad más estable cuando la señal llega imprecisa y recorrido y GPX guardados solo con puntos de buena precisión.\n",
+          "• 100% offline en el cerro: mapas, rutas, GPS y alertas funcionan sin datos móviles.\n" +
+          "• Tus rides viven en tu teléfono: no se comparten con terceros y puedes descargarlos (GPX) o borrarlos cuando quieras.\n" +
+          "• Pensada junto al Parque Metropolitano: avisos de ingreso y cierre del parque, credencial Parquemet y teléfono de emergencias 1466 integrado.\n" +
+          "• Sin publicidad: nada que interrumpa tu pedaleo.\n" +
+          "• Gratis para todo lo esencial, con Plan Pro opcional (temas de color y pantalla de ride personalizable).\n" +
+          "• Actualizaciones constantes y soporte directo por correo.",
       },
     ],
     // APK directo: ACTIVO - descarga vía /api/apk, que redirige al APK de la
     // versión vigente en GitHub Releases (repo cumbre30/cumbre30). Cada tag
     // v* que se publica dispara el workflow build-apk.yml, que construye el
     // APK y crea el Release con dos assets: cumbre30-vX.Y.Z-codeN.apk y
-    // cumbre30-latest.apk — el botón siempre sirve la última versión sin
+    // cumbre30-latest.apk - el botón siempre sirve la última versión sin
     // tocar código. (Historia: antes apuntaba a Google Drive v1.8.7 code 33.)
     apk: {
       disponible: true,

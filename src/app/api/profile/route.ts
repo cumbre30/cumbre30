@@ -1,6 +1,6 @@
 export const dynamic = "force-dynamic";
 
-// Perfil Ciclista (v1.13.16): el perfil se recalcula al consultar —
+// Perfil Ciclista (v1.13.16): el perfil se recalcula al consultar -
 // es una sola pasada por los rides de los últimos 90 días (ms) y
 // garantiza frescura sin depender del worker que lo guardó. También
 // actualiza el documento materializado (CyclistProfile).

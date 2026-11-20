@@ -40,7 +40,7 @@ function clipLon(poly: LatLng[], min: boolean, lonF: number): LatLng[] {
   return sutherlandHodgman(poly, keep, inter);
 }
 
-/** Sutherland–Hodgman clásico contra una media-plana. */
+/** Sutherland-Hodgman clásico contra una media-plana. */
 function sutherlandHodgman(poly: LatLng[], keep: (p: LatLng) => boolean, inter: (a: LatLng, b: LatLng) => LatLng): LatLng[] {
   const out: LatLng[] = [];
   for (let i = 0; i < poly.length; i++) {

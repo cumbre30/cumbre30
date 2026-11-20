@@ -19,7 +19,7 @@ import { navStyle, OSM_ORG_FALLBACK_TILES } from "@/lib/navStyle";
 import { minimapHeight, minimapStyleCls, type MinimapSize, type MinimapStyle } from "@/lib/rideTheme";
 
 // Centro del parque San Cristóbal (misma referencia del minimapa
-// real; [lng, lat] — MapLibre espera longitud primero).
+// real; [lng, lat] - MapLibre espera longitud primero).
 const CENTER: [number, number] = [-70.636, -33.408];
 
 /** Tramo de ciclovía demo (curva corta alrededor del centro). */

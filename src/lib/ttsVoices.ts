@@ -1,9 +1,9 @@
 // ============================================================
-// v1.13.13 — Voces seleccionables del TTS (Personalización).
+// v1.13.13 - Voces seleccionables del TTS (Personalización).
 // Nativo (APK): voces del motor TextToSpeech de Android vía
 // @capacitor-community/text-to-speech (el WebView NO implementa
 // speechSynthesis). Web (demo/navegador): speechSynthesis del
-// navegador — Chrome llena la lista de forma asíncrona, así que
+// navegador - Chrome llena la lista de forma asíncrona, así que
 // se reintenta corto si viene vacía.
 // La selección y la velocidad se persisten en localStorage y se
 // hidratan en alerts.prefs al arrancar (cliente).

@@ -1,15 +1,15 @@
 "use client";
 
 /**
- * PerfilTab — Perfil Ciclista (v1.13.16, reorganizado en v1.14.0):
+ * PerfilTab - Perfil Ciclista (v1.13.16, reorganizado en v1.14.0):
  * 4ª pestaña de la barra inferior con TRES secciones (SubTabs):
- *   · ADN — todo lo del perfil de pedaleo: arquetipo con su "por qué",
+ *   · ADN - todo lo del perfil de pedaleo: arquetipo con su "por qué",
  *     radar de los 6 ejes, medidas de los últimos 90 días y los rides
  *     que lo alimentan. Al principio: las tarjetas "Tu progreso" y
  *     "Tus niveles" (trasladadas desde Desafíos y recompensas).
- *   · Desafíos y recompensas — rachas (trasladada desde Estadísticas
+ *   · Desafíos y recompensas - rachas (trasladada desde Estadísticas
  *     generales) + desafíos del cerro, con fecha, retos y pines.
- *   · Amigos — el listado y la invitación por enlace (trasladado del
+ *   · Amigos - el listado y la invitación por enlace (trasladado del
  *     menú lateral).
  *
  * El cálculo vive en el servidor (lib/profileServer): esta pantalla
@@ -182,7 +182,7 @@ export function PerfilTab({
     try {
       const p = data.perfil;
       const ejeLabel = (k: string) => t(NOMBRE_EJE[k]);
-      const valor = (v: number | null) => (v === null ? "—" : String(Math.round(v)));
+      const valor = (v: number | null) => (v === null ? "-" : String(Math.round(v)));
       const pin = PINS[(me.user.selectedPin as PinId) ?? DEFAULT_PIN] ?? PINS[DEFAULT_PIN];
       const blob = await buildShareImage({
         headline: `${EMOJI[p.archetype] ?? ""} ${t(`pc.arch${p.archetype}`)}`,
@@ -209,7 +209,7 @@ export function PerfilTab({
   // ---------- ADN: contenido según estado de sesión/datos ----------
   let adn: ReactNode;
   if (!hasSession) {
-    // Sin sesión utilizable: invitación a Cuenta — el perfil no se inventa datos.
+    // Sin sesión utilizable: invitación a Cuenta - el perfil no se inventa datos.
     adn = (
       <section aria-label={t("pc.titulo")} className="rounded-xl border border-border bg-card p-5">
         <h2 className="text-base font-bold text-foreground">{t("pc.titulo")}</h2>
@@ -305,19 +305,19 @@ function AdnContenido({
 
   const ex = p.extras;
   const kpis: Array<{ ic: string; v: string; u?: string; l: string }> = [
-    { ic: "⛰️", v: ex.vamAvg === null ? "—" : String(ex.vamAvg), u: "m/h", l: t("pc.kVam") },
-    { ic: "📈", v: ex.mkmAvg === null ? "—" : ex.mkmAvg.toFixed(1), u: "m/km", l: t("pc.kMkm") },
-    { ic: "⚡", v: ex.flatAvg === null ? "—" : ex.flatAvg.toFixed(1), u: "km/h", l: t("pc.kFlat") },
-    { ic: "💥", v: ex.peak95 === null ? "—" : ex.peak95.toFixed(1), u: "km/h", l: t("pc.kPeak") },
+    { ic: "⛰️", v: ex.vamAvg === null ? "-" : String(ex.vamAvg), u: "m/h", l: t("pc.kVam") },
+    { ic: "📈", v: ex.mkmAvg === null ? "-" : ex.mkmAvg.toFixed(1), u: "m/km", l: t("pc.kMkm") },
+    { ic: "⚡", v: ex.flatAvg === null ? "-" : ex.flatAvg.toFixed(1), u: "km/h", l: t("pc.kFlat") },
+    { ic: "💥", v: ex.peak95 === null ? "-" : ex.peak95.toFixed(1), u: "km/h", l: t("pc.kPeak") },
     { ic: "🗓️", v: `${ex.activeWeeks}`, u: `/12`, l: t("pc.kWeeks") },
-    { ic: "🛑", v: ex.stopsPerKm === null ? "—" : ex.stopsPerKm.toFixed(1), u: "/km", l: t("pc.kStops") },
+    { ic: "🛑", v: ex.stopsPerKm === null ? "-" : ex.stopsPerKm.toFixed(1), u: "/km", l: t("pc.kStops") },
     // fase 2: watts estimados en subida >4% y km off-road del eje Exploración
-    { ic: "🔋", v: ex.estWatts === null ? "—" : String(ex.estWatts), u: "W", l: t("pc.kWatts") },
-    { ic: "🥾", v: ex.offRoadTop3 === null ? "—" : ex.offRoadTop3.toFixed(1), u: "km", l: t("pc.kOffroad") },
+    { ic: "🔋", v: ex.estWatts === null ? "-" : String(ex.estWatts), u: "W", l: t("pc.kWatts") },
+    { ic: "🥾", v: ex.offRoadTop3 === null ? "-" : ex.offRoadTop3.toFixed(1), u: "km", l: t("pc.kOffroad") },
     // huella de carbono: CO₂ evitado vs auto en la misma ventana (110 g/km)
     {
       ic: "🌱",
-      v: ex.co2Kg === null ? "—" : ex.co2Kg < 100 ? ex.co2Kg.toFixed(1) : String(Math.round(ex.co2Kg)),
+      v: ex.co2Kg === null ? "-" : ex.co2Kg < 100 ? ex.co2Kg.toFixed(1) : String(Math.round(ex.co2Kg)),
       u: "kg",
       l: t("pc.kCo2"),
     },
@@ -407,7 +407,7 @@ function AdnContenido({
               </div>
               <div className="mt-1 text-[17px] font-bold tabular-nums leading-none tracking-tight text-foreground">
                 {k.v}
-                {k.v !== "—" && <small className="ml-0.5 text-[10px] font-semibold text-muted-foreground">{k.u}</small>}
+                {k.v !== "-" && <small className="ml-0.5 text-[10px] font-semibold text-muted-foreground">{k.u}</small>}
               </div>
               <div className="mt-1 text-[9.5px] leading-tight text-muted-foreground">{k.l}</div>
             </div>
