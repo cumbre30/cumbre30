@@ -6,8 +6,9 @@
 //
 // · RUTA: 1er tap → popup con 2 opciones: «Ruta hacia aquí»
 //   (motor traza desde tu ubicación actual) o «Ruta desde aquí»
-//   (2º tap = fin; el motor traza inicio→fin). Vista previa con
-//   minimapa, confirmación, nombre y guardado.
+//   (2º tap = fin; el motor traza inicio→fin). También acepta
+//   importar un GPX. Vista previa con minimapa, confirmación,
+//   nombre y guardado.
 // · SEGMENTO: 2 taps (inicio y fin) y el motor traza; también
 //   acepta importar un GPX (la línea se lee y se simplifica tal
 //   cual - es la información del archivo). Los segmentos se
@@ -147,12 +148,16 @@ export function useCreadorTrazas() {
     setDesdeAqui(true);
   }, []);
 
-  /** Importa un GPX (segmento): la línea del archivo se respeta. */
+  /** Importa un GPX (ruta o segmento): la línea del archivo se lee,
+   *  se simplifica y se respeta tal cual - es la información del
+   *  archivo. Reemplaza cualquier punto ya elegido en el mapa. */
   const subirGpx = useCallback(
     (file: File) => {
-      if (modo !== "segmento") return;
+      if (!modo) return;
       setErr(null);
       setAviso(null);
+      setPicks([]);
+      setDesdeAqui(false);
       const g = ++generaRef.current;
       setFase("calculando");
       file
@@ -166,7 +171,7 @@ export function useCreadorTrazas() {
             return;
           }
           setPreview({
-            kind: "segmento",
+            kind: modo,
             coords: linea.pts,
             distKm: linea.distKm,
             gainM: linea.gainM,

@@ -1,11 +1,12 @@
 "use client";
 
 // ============================================================
-// Overlay del creador de trazados (v1.13.15). Vive sobre el mapa
-// grande mientras el modo «Trazar ruta» / «Trazar segmento» está
-// activo:
+// Overlay del creador de trazados (v1.13.15; GPX también para
+// rutas desde v1.14.2). Vive sobre el mapa grande mientras el modo
+// «Trazar ruta» / «Trazar segmento» está activo:
 // · puntos: instrucción según el paso (1 tap → popup de opciones
-//   para la ruta; 2 taps para el segmento) + carga de GPX.
+//   para la ruta; 2 taps para el segmento) + importar GPX en ambos
+//   modos (la línea del archivo se lee y se respeta tal cual).
 // · calculando: espera del motor (grafo local u OSRM).
 // · preview: la línea trazada en un minimapa (MinimapPreview),
 //   distancia/desnivel, botón Guardar → pide el nombre y guarda.
@@ -98,25 +99,27 @@ export default function TrazadoOverlay({ ctrl, position }: { ctrl: CreadorTrazas
                     {t("tra.fin")} {picks.length > 1 ? "✔" : "…"}
                   </span>
                 </p>
-                <div className="mt-2">
-                  <button type="button" className={btnSecundario} onClick={() => fileRef.current?.click()} data-testid="tra-gpx">
-                    <Upload className="mr-1.5 inline h-3.5 w-3.5" />
-                    {t("tra.cargarGpx")}
-                  </button>
-                  <input
-                    ref={fileRef}
-                    type="file"
-                    accept=".gpx,application/gpx+xml,text/xml"
-                    className="hidden"
-                    onChange={(e) => {
-                      const f = e.target.files?.[0];
-                      if (f) ctrl.subirGpx(f);
-                      e.target.value = "";
-                    }}
-                  />
-                </div>
               </>
             )}
+            {/* Importar GPX: común a ruta y segmento (v1.14.2 también
+                para rutas). La línea del archivo se lee y se respeta. */}
+            <div className="mt-2">
+              <button type="button" className={btnSecundario} onClick={() => fileRef.current?.click()} data-testid="tra-gpx">
+                <Upload className="mr-1.5 inline h-3.5 w-3.5" />
+                {t("tra.cargarGpx")}
+              </button>
+              <input
+                ref={fileRef}
+                type="file"
+                accept=".gpx,application/gpx+xml,text/xml"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) ctrl.subirGpx(f);
+                  e.target.value = "";
+                }}
+              />
+            </div>
             <div className="mt-2 flex items-center gap-2">
               <button type="button" className={btnNeutro} onClick={ctrl.cancelar}>
                 {t("tra.cancelar")}
