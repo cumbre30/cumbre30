@@ -5,7 +5,8 @@
 // En el APK (export estático) todo va por offlineAuth (localStorage).
 
 import { useSyncExternalStore } from "react";
-import { isOfflineMode, offlineChangeUsername, offlineDeleteAccount, offlineForgotReset, offlineGoogleSignIn, offlineImportWebAccount, offlineLogin, offlineLogout, offlineMe, offlineRegister } from "@/lib/offlineAuth";
+import { isOfflineMode, offlineCambiarPassword, offlineChangeUsername, offlineDeleteAccount, offlineForgotReset, offlineGoogleSignIn, offlineImportWebAccount, offlineLogin, offlineLogout, offlineMe, offlineRegister, offlineSetPasswordNueva } from "@/lib/offlineAuth";
+import { cambiarPasswordServidor, passwordInicialServidor } from "@/lib/cloudSync";
 import { notificarBienvenida } from "@/lib/notificaciones";
 import { t } from "@/lib/i18n";
 
@@ -191,19 +192,68 @@ export async function authAction(kind: "login" | "register", payload: Record<str
 
 /** Inicio de sesión con Google (solo APK): enlaza/crea la cuenta local y refresca el estado.
  *  El idToken del plugin nativo viaja junto: offlineGoogleSignIn lo canjea por un token
- *  de sesión del servidor (linkGoogle) - es lo que une la cuenta Google con la web. */
-export async function googleAuthAction(acct: { sub: string; email: string; name?: string; idToken?: string }): Promise<string | null> {
+ *  de sesión del servidor (linkGoogle) - es lo que une la cuenta Google con la web.
+ *  Devuelve también `nueva`: la UI muestra de inmediato el paso «Crea tu contraseña». */
+export async function googleAuthAction(acct: { sub: string; email: string; name?: string; idToken?: string; aceptacion?: { terminos: boolean; edad14: boolean } }): Promise<{ err: string | null; nueva: boolean }> {
   try {
     if (!isOfflineMode()) {
-      return t("me.googleSoloApp");
+      return { err: t("me.googleSoloApp"), nueva: false };
     }
-    const err = await offlineGoogleSignIn(acct);
-    if (err) return err;
+    const r = await offlineGoogleSignIn(acct, acct.aceptacion);
+    if (r.err) return { err: r.err, nueva: false };
     await refreshMe();
-    return null;
+    return { err: null, nueva: r.nueva };
   } catch {
-    return t("me.googleErr");
+    return { err: t("me.googleErr"), nueva: false };
   }
+}
+
+/** Paso «Crea tu contraseña» tras el primer ingreso con Google:
+ *  la fija en el servidor (sesión recién canjeada) y, en el APK,
+ *  también en la cuenta local del teléfono. */
+export async function crearPasswordInicial(password: string): Promise<string | null> {
+  if (password.length < 8) return t("me.passCorta");
+  if (!isOfflineMode()) {
+    try {
+      const r = await fetch("/api/auth/password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password }),
+      });
+      const d = (await r.json().catch(() => ({}))) as { error?: string };
+      if (!r.ok) return d.error ?? t("me.errInesperado");
+      return null;
+    } catch {
+      return t("me.sinConexion");
+    }
+  }
+  const errLocal = await offlineSetPasswordNueva(password, true);
+  if (errLocal) return errLocal;
+  return await passwordInicialServidor(password);
+}
+
+/** Cambia la contraseña conociendo la actual (Cuenta → Gestionar).
+ *  En el APK va primero al servidor (con el token) y solo si quedó
+ *  aplicado toca la cuenta local, para no desincronizar ambas. */
+export async function cambiarPassword(passwordActual: string, passwordNueva: string): Promise<string | null> {
+  if (passwordNueva.length < 8) return t("me.passCorta");
+  if (!isOfflineMode()) {
+    try {
+      const r = await fetch("/api/me/password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ passwordActual, passwordNueva }),
+      });
+      const d = (await r.json().catch(() => ({}))) as { error?: string };
+      if (!r.ok) return d.error ?? t("me.errInesperado");
+      return null;
+    } catch {
+      return t("me.sinConexionReintenta");
+    }
+  }
+  const errSrv = await cambiarPasswordServidor(passwordActual, passwordNueva);
+  if (errSrv) return errSrv;
+  return await offlineCambiarPassword(passwordActual, passwordNueva);
 }
 
 /** Cambia el nombre de usuario (1 vez cada 30 días). Devuelve error o null. */

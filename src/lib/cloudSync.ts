@@ -211,15 +211,17 @@ export async function registerAndLink(email: string, username: string, password:
   await linkPassword(email, password);
 }
 
-/** Cuenta Google: intercambia el idToken nativo por un token de sesión. */
-export async function linkGoogle(idToken: string): Promise<void> {
+/** Cuenta Google: intercambia el idToken nativo por un token de sesión.
+ *  `aceptacion` viaja al servidor: una cuenta NUEVA exige los mismos
+ *  Términos/edad que el registro (uniformidad A-01/B-05). */
+export async function linkGoogle(idToken: string, aceptacion?: { terminos: boolean; edad14: boolean }): Promise<void> {
   const base = baseOrLog();
   if (base === null) return;
   try {
     const r = await fetch(`${base}/api/auth/google`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ idToken }),
+      body: JSON.stringify({ idToken, ...(aceptacion ?? {}) }),
       signal: AbortSignal.timeout(15_000),
     });
     if (!r.ok) {
@@ -232,6 +234,43 @@ export async function linkGoogle(idToken: string): Promise<void> {
   } catch {
     setStatus({ phase: "offline" });
   }
+}
+
+// ---------- contraseña del servidor (cuenta Google nueva / Gestionar) ----------
+
+/** POST autenticado con el token de sesión del dispositivo.
+ *  Devuelve el error del servidor o null si quedó aplicado (o si no
+ *  hay token/red: el llamador resuelve con su parte local). */
+async function postAutenticado(path: string, payload: Record<string, unknown>): Promise<string | null> {
+  const base = baseOrLog();
+  const t = readToken();
+  if (base === null || !t) return null;
+  try {
+    const r = await fetch(`${base}${path}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${t.token}` },
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(12_000),
+    });
+    if (!r.ok) {
+      const d = (await r.json().catch(() => ({}))) as { error?: string };
+      return d.error ?? "El servidor no aceptó el cambio de contraseña.";
+    }
+    return null;
+  } catch {
+    return null; // sin red: la parte local ya quedó; el server se ajusta con el flujo de recuperación
+  }
+}
+
+/** Crea la contraseña inicial en el servidor (cuenta Google nueva,
+ *  paso posterior al primer ingreso). */
+export async function passwordInicialServidor(password: string): Promise<string | null> {
+  return postAutenticado("/api/auth/password", { password });
+}
+
+/** Cambia la contraseña en el servidor (Cuenta → Gestionar). */
+export async function cambiarPasswordServidor(actual: string, nueva: string): Promise<string | null> {
+  return postAutenticado("/api/me/password", { passwordActual: actual, passwordNueva: nueva });
 }
 
 // ---------- outbox ----------

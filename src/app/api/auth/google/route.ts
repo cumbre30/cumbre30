@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { asegurarColumnasUsuario, createSession, hashPassword, SESSION_COOKIE } from "@/lib/auth";
+import { asegurarColumnasUsuario, createSession, SESSION_COOKIE } from "@/lib/auth";
 import { corsHeaders, corsPreflight } from "@/lib/apiCors";
 import { GOOGLE_WEB_CLIENT_ID } from "@/lib/googleClientId";
 import { USERNAME_RE } from "@/lib/username";
@@ -64,7 +64,7 @@ export async function OPTIONS(req: Request) {
 export async function POST(req: Request) {
   const cors = corsHeaders(req);
   try {
-    const body = (await req.json()) as { idToken?: string };
+    const body = (await req.json()) as { idToken?: string; terminos?: boolean; edad14?: boolean };
     const idToken = (body.idToken ?? "").trim();
     if (!idToken) {
       return NextResponse.json({ error: "Falta el idToken de Google." }, { status: 400, headers: cors });
@@ -82,15 +82,28 @@ export async function POST(req: Request) {
     await asegurarColumnasUsuario();
 
     let user = await db.user.findUnique({ where: { email } });
+    let nueva = false;
     if (!user) {
-      // Cuenta nueva: username derivado del correo, contraseña aleatoria
-      // no utilizable (igual que en la cuenta offline del APK).
+      // Uniformidad A-01/B-05: una cuenta nueva vía Google exige la misma
+      // aceptación de Términos y confirmación de edad que el registro.
+      if (body.terminos !== true || body.edad14 !== true) {
+        return NextResponse.json(
+          { error: "Debes aceptar los Términos y confirmar que tienes 14 años o más para crear tu cuenta con Google." },
+          { status: 400, headers: cors }
+        );
+      }
+      // Cuenta nueva: username derivado del correo y SIN contraseña por
+      // ahora - hash vacío (verifyPassword devuelve false con él) y el
+      // cliente muestra de inmediato el paso «Crea tu contraseña»
+      // (POST /api/auth/password). Así entra igual por cuenta Cumbre30
+      // que por Google, y «olvidé mi contraseña» queda solo para recuperar.
       const taken = new Set(
         (await db.user.findMany({ where: { username: { startsWith: email.split("@")[0].slice(0, 10) } }, select: { username: true } })).map((u) => u.username),
       );
       user = await db.user.create({
-        data: { email, username: usernameFrom(email, taken), passwordHash: hashPassword(crypto.randomUUID()) },
+        data: { email, username: usernameFrom(email, taken), passwordHash: "" },
       });
+      nueva = true;
     }
 
     const { token, expiresAt } = await createSession(user.id);
@@ -99,7 +112,7 @@ export async function POST(req: Request) {
     // contraseña - antes solo la cuenta Cumbre30 podía entrar en la
     // web. El APK sigue usando el token Bearer del cuerpo.
     const res = NextResponse.json(
-      { token, expiresAt: expiresAt.toISOString(), email: user.email, username: user.username },
+      { token, expiresAt: expiresAt.toISOString(), email: user.email, username: user.username, ...(nueva ? { nueva: true } : {}) },
       { headers: cors }
     );
     res.cookies.set(SESSION_COOKIE, token, { httpOnly: true, sameSite: "lax", path: "/", expires: expiresAt });

@@ -46,6 +46,9 @@ type OfflineUser = {
   googleSub?: string;
   /** Origen de la cuenta: contraseña local o inicio con Google. */
   provider?: "local" | "google";
+  /** Aceptación registrada al crear la cuenta (A-01/B-05, incluida la vía Google). */
+  terminosAceptados?: boolean;
+  edad14Confirmada?: boolean;
   /** Código de recuperación (XXXX-XXXX): permite restablecer la contraseña
    *  sin perder km/logros. Se genera al crear la cuenta y se muestra en Perfil. */
   recoveryCode?: string;
@@ -367,21 +370,30 @@ export async function offlineImportWebAccount(payload: { email?: string; passwor
  * SDK de Google Play Services y solo guardamos sub/email/nombre.
  *   1. Ya vinculada (googleSub) → entra directo.
  *   2. Mismo correo registrado → se vincula a esa cuenta (mantiene km y logros).
- *   3. Cuenta nueva → username derivado del correo, contraseña aleatoria no utilizable.
+ *   3. Cuenta nueva → username derivado del correo y SIN contraseña:
+ *      hash vacío; la UI muestra de inmediato «Crea tu contraseña»
+ *      (offlineSetPasswordNueva + passwordInicialServidor). Devuelve si
+ *      la cuenta fue creada ahora (nueva) para disparar ese paso.
+ * `aceptacion` (A-01/B-05) se guarda en la cuenta local y viaja al
+ * servidor dentro del linkGoogle para cuentas nuevas.
  */
-export async function offlineGoogleSignIn(acct: { sub: string; email: string; name?: string; idToken?: string }): Promise<string | null> {
+export async function offlineGoogleSignIn(
+  acct: { sub: string; email: string; name?: string; idToken?: string },
+  aceptacion?: { terminos: boolean; edad14: boolean },
+): Promise<{ err: string | null; nueva: boolean }> {
   const email = (acct.email ?? "").trim().toLowerCase();
   const sub = (acct.sub ?? "").trim();
-  if (!sub) return "Google no devolvió el identificador de la cuenta.";
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return "Google no devolvió un correo válido.";
+  if (!sub) return { err: "Google no devolvió el identificador de la cuenta.", nueva: false };
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { err: "Google no devolvió un correo válido.", nueva: false };
 
   const users = readUsers();
   let user = Object.values(users).find((u) => u.googleSub === sub) ?? null;
+  let nueva = false;
   if (!user) {
     const byEmail = users[email] ?? null;
     if (byEmail) {
       if (byEmail.googleSub && byEmail.googleSub !== sub) {
-        return "Ese correo ya está vinculado a otra cuenta de Google.";
+        return { err: "Ese correo ya está vinculado a otra cuenta de Google.", nueva: false };
       }
       byEmail.googleSub = sub;
       byEmail.provider = "google";
@@ -391,7 +403,9 @@ export async function offlineGoogleSignIn(acct: { sub: string; email: string; na
         id: `off-${randomHex(8)}`,
         email,
         username: uniqueUsernameFrom(email, users),
-        passwordHash: await hashPassword(randomHex(24)), // inutilizable a propósito
+        // Sin contraseña por ahora: hash vacío (verifyPassword devuelve
+        // false con él) y el paso «Crea tu contraseña» la fija a continuación.
+        passwordHash: "",
         selectedPin: "clasico",
         bikeBrand: null,
         bikeType: null,
@@ -401,7 +415,10 @@ export async function offlineGoogleSignIn(acct: { sub: string; email: string; na
         createdAt: new Date().toISOString(),
         googleSub: sub,
         provider: "google",
+        terminosAceptados: aceptacion?.terminos === true,
+        edad14Confirmada: aceptacion?.edad14 === true,
       };
+      nueva = true;
     }
     users[user.email] = user;
     writeJSON(USERS_KEY, users);
@@ -409,7 +426,51 @@ export async function offlineGoogleSignIn(acct: { sub: string; email: string; na
   setSession(user.email);
   // Progreso enlazado a la cuenta: el idToken nativo se cambia por un
   // token de sesión en el servidor (validación oficial de Google).
-  if (acct.idToken) void linkGoogle(acct.idToken);
+  // Await (antes fire-and-forget) para que el token exista antes del
+  // paso «Crea tu contraseña», que lo usa contra /api/auth/password.
+  if (acct.idToken) await linkGoogle(acct.idToken, aceptacion);
+  return { err: null, nueva };
+}
+
+/**
+ * Fija la contraseña de la cuenta con sesión activa: paso «Crea tu
+ * contraseña» justo después del primer ingreso con Google. Con
+ * `forzar` también sobreescribe un hash existente de una cuenta
+ * Google recién autenticada (permite reintentar si el servidor falló).
+ * Devuelve el error o null.
+ */
+export async function offlineSetPasswordNueva(password: string, forzar = false): Promise<string | null> {
+  if (password.length < 8) return "La contraseña debe tener al menos 8 caracteres.";
+  const email = getSession()?.email ?? null;
+  if (!email) return "Sin sesión activa en este dispositivo.";
+  const users = readUsers();
+  const user = users[email];
+  if (!user) return "No hay cuenta activa en este dispositivo.";
+  if (user.passwordHash !== "" && !forzar) return "Tu cuenta ya tiene una contraseña.";
+  user.passwordHash = await hashPassword(password);
+  users[email] = user;
+  writeJSON(USERS_KEY, users);
+  return null;
+}
+
+/**
+ * Cambia la contraseña de la cuenta con sesión activa verificando la
+ * actual (Cuenta → Gestionar). Si la cuenta no tiene contraseña aún,
+ * la fija sin pedir la actual. Devuelve el error o null.
+ */
+export async function offlineCambiarPassword(actual: string, nueva: string): Promise<string | null> {
+  if (nueva.length < 8) return "La contraseña debe tener al menos 8 caracteres.";
+  const email = getSession()?.email ?? null;
+  if (!email) return "Sin sesión activa en este dispositivo.";
+  const users = readUsers();
+  const user = users[email];
+  if (!user) return "No hay cuenta activa en este dispositivo.";
+  if (user.passwordHash !== "" && !(await verifyPassword(actual, user.passwordHash))) {
+    return "La contraseña actual no es correcta.";
+  }
+  user.passwordHash = await hashPassword(nueva);
+  users[email] = user;
+  writeJSON(USERS_KEY, users);
   return null;
 }
 

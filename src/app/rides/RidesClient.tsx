@@ -171,7 +171,10 @@ function AccesoRides({ alEntrar }: { alEntrar: () => void }) {
           });
           if (!vivo) return;
           if (!r.ok) {
-            setError("No pudimos iniciar sesión con Google. Intenta de nuevo.");
+            // Muestra el error real del servidor (p. ej. falta de aceptación
+            // de Términos/edad para crear la cuenta vía Google).
+            const d = (await r.json().catch(() => ({}))) as { error?: string };
+            setError(d.error ?? "No pudimos iniciar sesión con Google. Intenta de nuevo.");
             return;
           }
           alEntrar();

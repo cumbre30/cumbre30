@@ -30,7 +30,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { authAction, deleteAccount, forgotPassword, googleAuthAction, changeUsername, leerBienvenida, limpiarBienvenida, logout, resetPassword, revokeOtherSessions, useMe } from "@/hooks/useMe";
+import { authAction, cambiarPassword, crearPasswordInicial, deleteAccount, forgotPassword, googleAuthAction, changeUsername, leerBienvenida, limpiarBienvenida, logout, resetPassword, revokeOtherSessions, useMe } from "@/hooks/useMe";
 import { Checkbox } from "@/components/ui/checkbox";
 import { isOfflineMode, offlineUpdateProfile } from "@/lib/offlineAuth";
 import { DEFAULT_BIKE_KG, DEFAULT_RIDER_KG, getRideWeights, hydrateWeightsFromAccount, setRideWeights } from "@/lib/rideWeights";
@@ -103,6 +103,12 @@ export default function ProfileTab() {
   // A-01/B-05: aceptación de términos y confirmación de edad al crear cuenta.
   const [aceptaTerminos, setAceptaTerminos] = useState(false);
   const [confirmaEdad, setConfirmaEdad] = useState(false);
+  // Refs espejo de las casillas: el callback de Google (GSI) vive dentro
+  // de un efecto que no se re-ejecuta al tildar, así que lee estos refs.
+  const terminosRef = useRef(false);
+  const edadRef = useRef(false);
+  const alCambiarTerminos = (v: boolean) => { setAceptaTerminos(v); terminosRef.current = v; };
+  const alCambiarEdad = (v: boolean) => { setConfirmaEdad(v); edadRef.current = v; };
   // C-02: resultado de "cerrar otras sesiones".
   const [sesionesMsg, setSesionesMsg] = useState<string | null>(null);
   // A-02: resultado de la exportación de datos personales.
@@ -160,7 +166,7 @@ export default function ProfileTab() {
   // Server: paso 1 pide el código (lo entrega soporte por WhatsApp tras
   // verificar identidad), paso 2 cambia la contraseña con el código.
   // APK: se usa el código de recuperación local (XXXX-XXXX).
-  const [authView, setAuthView] = useState<"form" | "forgot">("form");
+  const [authView, setAuthView] = useState<"form" | "forgot" | "googlePass">("form");
   const [fStep, setFStep] = useState<1 | 2 | 3>(1); // 3 = listo
   const [fEmail, setFEmail] = useState("");
   const [fCode, setFCode] = useState("");
@@ -168,6 +174,21 @@ export default function ProfileTab() {
   const [fBusy, setFBusy] = useState(false);
   const [fMsg, setFMsg] = useState<string | null>(null);
   const [fErr, setFErr] = useState<string | null>(null);
+
+  // --- Paso «Crea tu contraseña» (primer ingreso con Google) ---
+  const [gpPass, setGpPass] = useState("");
+  const [gpPass2, setGpPass2] = useState("");
+  const [gpBusy, setGpBusy] = useState(false);
+  const [gpErr, setGpErr] = useState<string | null>(null);
+
+  // --- Cambiar contraseña (Gestionar): para quien conoce la actual ---
+  const [cambiarPassAbierto, setCambiarPassAbierto] = useState(false);
+  const [cpActual, setCpActual] = useState("");
+  const [cpNueva, setCpNueva] = useState("");
+  const [cpNueva2, setCpNueva2] = useState("");
+  const [cpBusy, setCpBusy] = useState(false);
+  const [cpOk, setCpOk] = useState(false);
+  const [cpMsg, setCpMsg] = useState<string | null>(null);
 
   // Subsección activa de Cuenta (se mantiene al iniciar sesión).
   // Sin sesión "pagos" y "gestionar" no existen: caen a "datos".
@@ -247,6 +268,12 @@ export default function ProfileTab() {
   };
 
   const signInGoogle = async () => {
+    // Uniformidad A-01/B-05: Google puede crear la cuenta desde
+    // cualquiera de las dos pestañas, así que exige las casillas.
+    if (!aceptaTerminos || !confirmaEdad) {
+      setError(t("pf.googleAcepta"));
+      return;
+    }
     setBusyGoogle(true);
     setError(null);
     try {
@@ -254,13 +281,60 @@ export default function ProfileTab() {
       // idToken incluido: offlineGoogleSignIn lo canjea por un token de
       // sesión del servidor (linkGoogle). Sin él, amigos/rides/compartir
       // en el APK nunca sabían de la cuenta Google (bug hasta v1.12.5).
-      const err = await googleAuthAction({ sub: acct.sub, email: acct.email, name: acct.name, idToken: acct.idToken });
+      const { err, nueva } = await googleAuthAction({ sub: acct.sub, email: acct.email, name: acct.name, idToken: acct.idToken, aceptacion: { terminos: aceptaTerminos, edad14: confirmaEdad } });
       if (err) setError(err);
+      else if (nueva) setAuthView("googlePass"); // paso obligatorio: crear contraseña
     } catch (e) {
       setError((e as Error).message || t("pf.googleErr1"));
     } finally {
       setBusyGoogle(false);
     }
+  };
+
+  // Paso «Crea tu contraseña»: fija la contraseña (server con la sesión
+  // recién canjeada + cuenta local en el APK) y recarga con la sesión.
+  const guardarPassGoogle = async () => {
+    if (gpPass !== gpPass2) {
+      setGpErr(t("pf.passNoCoincide"));
+      return;
+    }
+    setGpBusy(true);
+    setGpErr(null);
+    const err = await crearPasswordInicial(gpPass);
+    setGpBusy(false);
+    if (err) {
+      setGpErr(err);
+      return;
+    }
+    window.location.reload();
+  };
+
+  // Cambiar contraseña (Gestionar): pide la actual y la nueva; el
+  // servidor además cierra las sesiones activas en otros dispositivos.
+  const guardarCambioPass = async () => {
+    if (cpNueva !== cpNueva2) {
+      setCpOk(false);
+      setCpMsg(t("pf.passNoCoincide"));
+      return;
+    }
+    setCpBusy(true);
+    setCpMsg(null);
+    const err = await cambiarPassword(cpActual, cpNueva);
+    setCpBusy(false);
+    if (err) {
+      setCpOk(false);
+      setCpMsg(err);
+      return;
+    }
+    setCpOk(true);
+    setCpMsg(t("pf.cambiarPassOk"));
+    setCpActual("");
+    setCpNueva("");
+    setCpNueva2("");
+    setTimeout(() => {
+      setCpMsg(null);
+      setCambiarPassAbierto(false);
+    }, 6000);
   };
 
   // Google en la web (GSI oficial, v1.12.5): el botón renderizado por
@@ -278,15 +352,29 @@ export default function ProfileTab() {
     let vivo = true;
     void renderBotonGoogle(el, (idToken) => {
       void (async () => {
+        // Uniformidad A-01/B-05: sin casillas aceptadas no se consulta
+        // al servidor - una cuenta nueva vía Google las exige igual que
+        // el registro por correo.
+        if (!terminosRef.current || !edadRef.current) {
+          setError(t("pf.googleAcepta"));
+          return;
+        }
         try {
           const r = await fetch("/api/auth/google", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ idToken }),
+            body: JSON.stringify({ idToken, terminos: terminosRef.current, edad14: edadRef.current }),
           });
           if (!vivo) return;
           if (!r.ok) {
-            setError(t("pf.googleErr2"));
+            const d = (await r.json().catch(() => ({}))) as { error?: string };
+            setError(d.error ?? t("pf.googleErr2"));
+            return;
+          }
+          const d = (await r.json().catch(() => ({}))) as { nueva?: boolean };
+          if (d.nueva) {
+            // Cuenta recién creada: antes de entrar, crear contraseña.
+            if (vivo) setAuthView("googlePass");
             return;
           }
           window.location.reload(); // cookie de sesión lista: la web recarga con la sesión
@@ -462,6 +550,29 @@ export default function ProfileTab() {
               </>
             )}
           </Card>
+        ) : authView === "googlePass" ? (
+          /* --- Paso obligatorio tras el primer ingreso con Google:
+                crea la contraseña para entrar también por correo.
+                «Olvidé mi contraseña» queda solo para recuperar. --- */
+          <Card className="bg-card/80 border-border p-4 grid gap-3">
+            <div className="flex items-center gap-2">
+              <KeyRound className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+              <p className="font-medium text-foreground">{t("pf.googlePassTitulo")}</p>
+            </div>
+            <p className="text-sm text-muted-foreground">{t("pf.googlePassIntro")}</p>
+            <div className="grid gap-1.5">
+              <Label htmlFor="pf-gp-pass" className="text-foreground/90">{t("pf.contrasena")}</Label>
+              <Input id="pf-gp-pass" type="password" autoComplete="new-password" className="bg-card border-border" placeholder={t("pf.min6")} value={gpPass} onChange={(e) => setGpPass(e.target.value)} />
+            </div>
+            <div className="grid gap-1.5">
+              <Label htmlFor="pf-gp-pass2" className="text-foreground/90">{t("pf.confirmarContrasena")}</Label>
+              <Input id="pf-gp-pass2" type="password" autoComplete="new-password" className="bg-card border-border" value={gpPass2} onChange={(e) => setGpPass2(e.target.value)} />
+            </div>
+            {gpErr && <p className="text-sm text-red-600 dark:text-red-400" role="alert">{gpErr}</p>}
+            <Button disabled={gpBusy || gpPass.length < 8 || gpPass !== gpPass2} onClick={() => void guardarPassGoogle()} className="h-11 bg-emerald-600 hover:bg-emerald-500 text-(--c30-on-accent) font-bold">
+              {gpBusy ? t("pf.conectando") : t("pf.googlePassGuardar")}
+            </Button>
+          </Card>
         ) : (
         <>
         <div className="flex gap-2">
@@ -502,7 +613,7 @@ export default function ProfileTab() {
               </div>
               {/* A-01/B-05: aceptación explícita y confirmación de edad. */}
               <label className="flex items-start gap-2.5 text-[12px] leading-snug text-muted-foreground">
-                <Checkbox checked={aceptaTerminos} onCheckedChange={(v) => setAceptaTerminos(v === true)} className="mt-0.5" />
+                <Checkbox checked={aceptaTerminos} onCheckedChange={(v) => alCambiarTerminos(v === true)} className="mt-0.5" />
                 <span>
                   {t("pf.aceptoA")}{" "}
                   <a href="/terminos" className="font-medium text-emerald-600 underline-offset-2 hover:underline dark:text-emerald-400">{t("pf.terminos")}</a>{" "}
@@ -511,7 +622,7 @@ export default function ProfileTab() {
                 </span>
               </label>
               <label className="flex items-start gap-2.5 text-[12px] leading-snug text-muted-foreground">
-                <Checkbox checked={confirmaEdad} onCheckedChange={(v) => setConfirmaEdad(v === true)} className="mt-0.5" />
+                <Checkbox checked={confirmaEdad} onCheckedChange={(v) => alCambiarEdad(v === true)} className="mt-0.5" />
                 <span>{t("pf.confirmaEdad")}</span>
               </label>
             </>
@@ -537,6 +648,28 @@ export default function ProfileTab() {
             <p className="text-[11px] leading-snug text-muted-foreground text-center">
               {t("pf.webCuentaNota")}
             </p>
+          )}
+
+          {mode === "login" && (
+            /* Uniformidad A-01/B-05: desde «Iniciar sesión» Google también
+               puede crear la cuenta, así que exige las mismas casillas.
+               Solo importan para la vía Google, no para el login por clave. */
+            <>
+              <p className="text-[11px] text-muted-foreground">{t("pf.googleCasillasNota")}</p>
+              <label className="flex items-start gap-2.5 text-[12px] leading-snug text-muted-foreground">
+                <Checkbox checked={aceptaTerminos} onCheckedChange={(v) => alCambiarTerminos(v === true)} className="mt-0.5" />
+                <span>
+                  {t("pf.aceptoA")}{" "}
+                  <a href="/terminos" className="font-medium text-emerald-600 underline-offset-2 hover:underline dark:text-emerald-400">{t("pf.terminos")}</a>{" "}
+                  {t("pf.aceptoY")}{" "}
+                  <a href="/privacidad" className="font-medium text-emerald-600 underline-offset-2 hover:underline dark:text-emerald-400">{t("pf.privacidad")}</a>
+                </span>
+              </label>
+              <label className="flex items-start gap-2.5 text-[12px] leading-snug text-muted-foreground">
+                <Checkbox checked={confirmaEdad} onCheckedChange={(v) => alCambiarEdad(v === true)} className="mt-0.5" />
+                <span>{t("pf.confirmaEdad")}</span>
+              </label>
+            </>
           )}
 
           <div className="flex items-center gap-3 pt-1">
@@ -863,6 +996,42 @@ export default function ProfileTab() {
           {shareMsg}
         </p>
       )}
+
+      {/* Cambiar contraseña (Gestionar): para quien conoce su contraseña
+          actual; recuperar una perdida es «Olvidé mi contraseña». */}
+      <Card className="border-border bg-card p-4">
+        <div className="flex items-start gap-3">
+          <KeyRound className="h-5 w-5 text-emerald-600 dark:text-emerald-400 mt-0.5 shrink-0" />
+          <div className="text-sm flex-1 min-w-0">
+            <p className="font-medium text-foreground">{t("pf.cambiarPassTitulo")}</p>
+            <p className="mt-1 leading-relaxed text-muted-foreground">{t("pf.cambiarPassIntro")}</p>
+            {cambiarPassAbierto ? (
+              <div className="mt-3 grid gap-2">
+                <Input type="password" autoComplete="current-password" className="bg-card border-border" placeholder={t("pf.contrasenaActual")} value={cpActual} onChange={(e) => setCpActual(e.target.value)} />
+                <Input type="password" autoComplete="new-password" className="bg-card border-border" placeholder={t("pf.nuevaContrasena")} value={cpNueva} onChange={(e) => setCpNueva(e.target.value)} />
+                <Input type="password" autoComplete="new-password" className="bg-card border-border" placeholder={t("pf.confirmarContrasena")} value={cpNueva2} onChange={(e) => setCpNueva2(e.target.value)} />
+                {cpMsg && (
+                  <p className={`text-[11.5px] ${cpOk ? "text-emerald-700 dark:text-emerald-300" : "text-red-600 dark:text-red-400"}`} role="status">
+                    {cpMsg}
+                  </p>
+                )}
+                <div className="flex gap-2">
+                  <Button size="sm" disabled={cpBusy || cpNueva.length < 8 || cpNueva !== cpNueva2} onClick={() => void guardarCambioPass()} className="h-8 bg-emerald-600 hover:bg-emerald-500 text-(--c30-on-accent) font-bold">
+                    {cpBusy ? t("pf.conectando") : t("pf.cambiarPassBoton")}
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => { setCambiarPassAbierto(false); setCpMsg(null); setCpActual(""); setCpNueva(""); setCpNueva2(""); }} className="h-8 border-border px-3 text-[12px]">
+                    {t("pf.cancelar")}
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <Button variant="outline" size="sm" onClick={() => setCambiarPassAbierto(true)} className="mt-3 h-8 border-border px-3 text-[12px]">
+                <KeyRound className="mr-1 h-3.5 w-3.5" /> {t("pf.cambiarPassBoton")}
+              </Button>
+            )}
+          </div>
+        </div>
+      </Card>
 
       {/* A-02: portabilidad de datos personales (Ley 21.719). */}
       <Card className="border-border bg-card p-4">

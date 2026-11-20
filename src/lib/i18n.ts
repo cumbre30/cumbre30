@@ -751,6 +751,20 @@ const D: Record<string, E> = {
   "pf.codigo6": ["Código de 6 dígitos", "6-digit code", "Código de 6 dígitos"],
   "pf.nuevaContrasena": ["Nueva contraseña", "New password", "Nova senha"],
   "pf.min6": ["mínimo 8 caracteres", "at least 8 characters", "mínimo 8 caracteres"],
+  // Uniformidad del acceso vía Google (A-01/B-05): casillas y paso de contraseña.
+  "pf.googleAcepta": ["Para continuar con Google, acepta los Términos y confirma que tienes 14 años o más.", "To continue with Google, accept the Terms and confirm you are 14 or older.", "Para continuar com o Google, aceite os Termos e confirme que tem 14 anos ou mais."],
+  "pf.googleCasillasNota": ["Para crear tu cuenta con Google:", "To create your account with Google:", "Para criar sua conta com o Google:"],
+  "pf.googlePassTitulo": ["Crea tu contraseña", "Create your password", "Crie sua senha"],
+  "pf.googlePassIntro": ["Tu cuenta se creó con Google. Crea una contraseña para también entrar con tu correo, sin depender de Google.", "Your account was created with Google. Create a password to also sign in with your email, without depending on Google.", "Sua conta foi criada com o Google. Crie uma senha para também entrar com seu e-mail, sem depender do Google."],
+  "pf.googlePassGuardar": ["Guardar y entrar", "Save and sign in", "Salvar e entrar"],
+  "pf.confirmarContrasena": ["Confirmar contraseña", "Confirm password", "Confirmar senha"],
+  "pf.contrasenaActual": ["Contraseña actual", "Current password", "Senha atual"],
+  "pf.passNoCoincide": ["Las contraseñas no coinciden.", "Passwords do not match.", "As senhas não coincidem."],
+  "pf.cambiarPassTitulo": ["Cambiar contraseña", "Change password", "Alterar senha"],
+  "pf.cambiarPassIntro": ["Si conoces tu contraseña actual puedes cambiarla aquí. Si la olvidaste, usa «Olvidé mi contraseña» en el ingreso.", "If you know your current password you can change it here. If you forgot it, use \"Forgot password\" on the sign-in screen.", "Se você sabe sua senha atual pode alterá-la aqui. Se a esqueceu, use \"Esqueci minha senha\" na tela de entrada."],
+  "pf.cambiarPassBoton": ["Cambiar contraseña", "Change password", "Alterar senha"],
+  "pf.cambiarPassOk": ["Contraseña actualizada. Cerramos las sesiones activas en otros dispositivos.", "Password updated. Active sessions on other devices were closed.", "Senha atualizada. Encerramos as sessões ativas em outros dispositivos."],
+  "pf.cancelar": ["Cancelar", "Cancel", "Cancelar"],
   "pf.aceptoA": ["Acepto los", "I accept the", "Aceito os"],
   "pf.aceptoY": ["y la", "and the", "e a"],
   "pf.terminos": ["Términos y Condiciones", "Terms and Conditions", "Termos e Condições"],
@@ -844,6 +858,7 @@ const D: Record<string, E> = {
   "me.sinConexionReintenta": ["Sin conexión. Intenta de nuevo.", "Offline. Try again.", "Sem conexão. Tente de novo."],
   "me.errSolicitud": ["No pudimos registrar la solicitud.", "Could not submit the request.", "Não foi possível registrar a solicitação."],
   "me.errReset": ["No pudimos restablecer la contraseña.", "Could not reset the password.", "Não foi possível redefinir a senha."],
+  "me.passCorta": ["La contraseña debe tener al menos 8 caracteres.", "The password must be at least 8 characters.", "A senha deve ter pelo menos 8 caracteres."],
 
   // ---------- Estadísticas generales (fase 2) ----------
   "st.subAria": ["Subsecciones de Estadísticas generales", "Overall statistics subsections", "Subseções de Estatísticas gerais"],
