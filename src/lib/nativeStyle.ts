@@ -7,7 +7,7 @@
 // ============================================================
 
 import type { DataDrivenPropertyValueSpecification, ExpressionSpecification, LayerSpecification, StyleSpecification } from "maplibre-gl";
-import { circlePolygon, NAV_COLORS, navStyle } from "@/lib/navStyle";
+import { circlePolygon, navStyle } from "@/lib/navStyle";
 import { GATES, PARK_POLYGON, RISK_ZONES, type LatLng } from "@/lib/park";
 import { EMPTY_FC, lineFeat, polyFeat, toFc } from "@/lib/navCanvasLogic";
 
@@ -211,5 +211,3 @@ export function accuracyFeature(position: LatLng, radiusM: number) {
 export function trackFeature(track: LatLng[]) {
   return track.length > 1 ? toFc([lineFeat(track)]) : EMPTY_FC;
 }
-
-export { NAV_COLORS };

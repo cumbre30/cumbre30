@@ -17,29 +17,15 @@
 // concurrentes).
 //
 // v1.13.3 - alto contraste del ráster (mockup ciclocomputador):
-// contraste +0.12 y saturación -0.08 sobre los tiles para que la
-// ruta violeta y el casing oscuro dominen la lectura; el fondo
-// claro se mantiene. El pitch se quitó de la cámara (2D cenital).
+// contraste +0.12 y saturación -0.08 sobre los tiles. RETIRADO en
+// v1.14.3 a pedido del cliente: el minimapa se ve EXACTAMENTE igual
+// que el mapa grande y que Google Maps - tiles OSM estándar, blancos,
+// sin realce, en tema claro y en oscuro. El pitch se quitó de la
+// cámara (2D cenital). La paleta oscura NAV_COLORS (lienzo nativo de
+// la v1.3.x) también salió: código muerto, el ráster claro no la usa.
 // ============================================================
 
 import type { StyleSpecification } from "maplibre-gl";
-
-/** Paleta del tema oscuro del lienzo nativo (nativeStyle la
- *  re-exporta; el estilo ráster claro de abajo no la usa). */
-export const NAV_COLORS = {
-  bg: "#0a0e14",
-  park: "#0f2a1d",
-  parkOutline: "#1d5c3f",
-  water: "#0c2739",
-  building: "#161d27",
-  roadCase: "#04070b",
-  roadMinor: "#2b3442",
-  roadMid: "#39455a",
-  roadMajor: "#5b6b84",
-  path: "#3a4453",
-  label: "#aab6c6",
-  labelDim: "#7d8a9c",
-};
 
 /** Base principal (v1.12.14b): ráster estándar OSM France - mismo
  *  render que tile.openstreetmap.org, sin key y con límites más
@@ -80,17 +66,14 @@ export function navStyle(): StyleSpecification {
     layers: [
       // Fondo mientras cargan los tiles (claro, coherente con la base).
       { id: "bg", type: "background", paint: { "background-color": "#eef0f3" } },
-      // Base ráster OSM estándar con realce de contraste (v1.13.3,
-      // mockup ciclocomputador): la cámara ya NO inclina (2D cenital),
-      // el realce hace el trabajo de legibilidad sobre los tiles.
+      // Base ráster OSM estándar SIN realce (v1.14.3): mismo render
+      // que el mapa grande - tiles blancos tal como los pinta OSM.
       {
         id: "base",
         type: "raster",
         source: "base",
         paint: {
           "raster-fade-duration": 300,
-          "raster-contrast": 0.12,
-          "raster-saturation": -0.08,
         },
       },
     ],
