@@ -150,6 +150,11 @@ function bearing(a: LatLng, b: LatLng): number {
 
 let netPromise: Promise<Network | null> | null = null;
 
+/** Respaldo del fetch del grafo (v1.14.3): si el asset del bundle no
+ *  responde, se pide al despliegue web - la misma fuente de datos que
+ *  consume la web, así ambos lados trazan con el mismo grafo. */
+const ORIGEN_GRAFO = "https://cumbregeo.cl";
+
 /** Carga (una vez) y prepara el grafo de navegación.
  *  Aplica los puentes del grafo (islas OSM desconectadas, ver
  *  src/lib/puentesGrafo.ts) ANTES de memorizar la red: así el A*
@@ -157,8 +162,20 @@ let netPromise: Promise<Network | null> | null = null;
  *  camino real del parque. */
 export function loadNetwork(): Promise<Network | null> {
   if (!netPromise) {
+    // v1.14.3 - el grafo es la MISMA fuente en web y APK (viaja en el
+    // bundle). Unificación de % ciclovía/compartida: si el fetch relativo
+    // falla (bundle viejo, WebView sin el asset), reintenta contra la URL
+    // absoluta del despliegue antes de rendirse; y si todo falla NO se
+    // cachea el fracaso para siempre (antes quedaba null toda la sesión:
+    // las rutas caían a OSRM/Overpass con % de ciclovía distintos, sin
+    // aviso) - el próximo trazado reintenta la carga.
     netPromise = fetch("/red-ciclista.json")
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error("HTTP " + r.status))))
+      .catch(async (e1) => {
+        const r = await fetch(ORIGEN_GRAFO + "/red-ciclista.json");
+        if (!r.ok) throw new Error("HTTP " + r.status + " (respaldo tras " + (e1?.message ?? "error") + ")");
+        return r.json();
+      })
       .then((raw: { classes: string[]; names: string[]; nodes: NetNode[]; edges: NetEdge[]; cicloviaPolylines: number[][] }) => {
         const adj: Network["adj"] = raw.nodes.map(() => []);
         for (const [a, b, clsIdx, nameIdx, ciclo] of raw.edges) {
@@ -177,7 +194,11 @@ export function loadNetwork(): Promise<Network | null> {
         aplicarPuentes(net);
         return net;
       })
-      .catch(() => null);
+      .catch((e) => {
+        console.warn("[rutas] grafo local no disponible, el trazado usa OSRM/Overpass:", e?.message ?? e);
+        netPromise = null; // el próximo trazado reintenta la carga
+        return null;
+      });
   }
   return netPromise;
 }
