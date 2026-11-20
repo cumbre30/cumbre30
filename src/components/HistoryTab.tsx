@@ -45,6 +45,7 @@ import { shareOrDownloadFile } from "@/lib/shareFile";
 import { buildRideGpxBlob } from "@/lib/gpx";
 import { buildShareImage, sharePngBlob } from "@/lib/shareImage";
 import { computeSegmentStats, effortsByRide, SEGMENTS, fmtEffort } from "@/lib/segments";
+import { userSegmentDefs, useTrazas } from "@/lib/trazasUsuario";
 import { PINS, DEFAULT_PIN } from "@/lib/pins";
 import {
   constanciaCount,
@@ -127,9 +128,15 @@ export function HistoryTab({
     () => (pro.active ? computeSegmentStats(bikeRides) : []),
     [pro.active, bikeRides],
   );
+  // v1.13.15: segmentos del usuario (creador de trazados) corren en
+  // las estadísticas SIN gate Pro; userDefs se re-lee cuando cambia
+  // la lista de trazados (alta/baja en el mapa).
+  const trazas = useTrazas();
+  const userDefs = useMemo(() => userSegmentDefs(), [trazas]);
+  const userSegStats = useMemo(() => computeSegmentStats(bikeRides, userDefs), [bikeRides, userDefs]);
   const perRideEfforts = useMemo(
-    () => (pro.active ? effortsByRide(bikeRides) : new Map()),
-    [pro.active, bikeRides],
+    () => effortsByRide(bikeRides, pro.active ? [...SEGMENTS, ...userDefs] : userDefs),
+    [pro.active, bikeRides, userDefs],
   );
 
   // Relee el historial cuando se guarda un ride nuevo
@@ -654,7 +661,7 @@ export function HistoryTab({
                         {perRideEfforts
                           .get(r.id)!
                           .map((e) => {
-                            const def = SEGMENTS.find((d) => d.id === e.segmentId);
+                            const def = SEGMENTS.find((d) => d.id === e.segmentId) ?? userDefs.find((d) => d.id === e.segmentId);
                             return `${def?.name ?? e.segmentId}: ${fmtEffort(e.timeSec)}`;
                           })
                           .join(" · ")}
@@ -758,6 +765,40 @@ export function HistoryTab({
                 </Button>
               </>
             )}
+
+            {/* v1.13.15 - Tus segmentos (creador de trazados): visible en
+                ambos niveles, corren como intentos sobre tus viajes GPS. */}
+            <div className="mt-3 border-t border-border/60 pt-3">
+              <p className="text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground">{t("st.tusSegmentos")}</p>
+              {userSegStats.length ? (
+                <ul className="mt-2 flex flex-col gap-2">
+                  {userSegStats.map((s) => (
+                    <li key={s.def.id} className="rounded-lg border border-border bg-background/60 p-3">
+                      <div className="flex items-baseline justify-between gap-2 flex-wrap">
+                        <span className="text-sm font-medium text-foreground">📏 {s.def.name}</span>
+                        {s.pb ? (
+                          <span className="flex items-center gap-1 font-mono text-base font-semibold text-amber-600 dark:text-amber-300">
+                            <Trophy className="h-4 w-4" /> {fmtEffort(s.pb.timeSec)}
+                          </span>
+                        ) : (
+                          <span className="text-[11px] text-muted-foreground">{t("his.aunSinIntentos")}</span>
+                        )}
+                      </div>
+                      <p className="mt-0.5 text-[11px] text-muted-foreground">{s.def.detail}</p>
+                      {s.count > 0 && s.last && (
+                        <p className="mt-0.5 text-[11px] text-muted-foreground">
+                          {s.count === 1 ? t("his.intento", s.count) : t("his.intentos", s.count)} · {t("his.ultimo", fmtEffort(s.last.timeSec), fmtDate(s.last.dateISO))}
+                        </p>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="mt-1.5 text-[11px] leading-relaxed text-muted-foreground">
+                  {t("st.tusSegmentosVacio")}
+                </p>
+              )}
+            </div>
           </Card>
         </>
       )}

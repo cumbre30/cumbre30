@@ -26,7 +26,7 @@ import {
   useMap,
   useMapEvents,
 } from "react-leaflet";
-import { Crosshair, AlertTriangle, Trash2, X, Search, MapPin, Flag, Crown, Lock, Layers, ChevronDown, Eye, Share2, Check, RefreshCw } from "lucide-react";
+import { Crosshair, AlertTriangle, Trash2, X, Search, MapPin, Flag, Crown, Lock, Layers, ChevronDown, Eye, Share2, Check, RefreshCw, Route, Milestone, Navigation } from "lucide-react";
 import { apiUrl } from "@/lib/backend";
 import { useCamaraRumbo } from "@/hooks/useCamaraRumbo";
 import { NAV_DESTINATIONS, PARK_POLYGON, RISK_ZONES, type LatLng } from "@/lib/park";
@@ -56,6 +56,9 @@ import NativeMapCanvas from "@/components/NativeMapCanvas";
 import { buildCicloFeature } from "@/lib/navCanvasLogic";
 import { useProLicense } from "@/lib/proLicense";
 import { addMark, removeMark, useMarks, normalizeForSearch } from "@/lib/marks";
+import { useCreadorTrazas } from "@/hooks/useCreadorTrazas";
+import TrazadoOverlay from "@/components/TrazadoOverlay";
+import { useTrazas, removeTraza, type TrazaGuardada } from "@/lib/trazasUsuario";
 import { geocodeAddress, type AddrResult } from "@/lib/geocode";
 import type { CapaRuta } from "@/lib/mapLayers";
 import type { ProLockFeature } from "@/lib/planData";
@@ -293,11 +296,23 @@ function CapasPanel({
   onVer,
   onFocus,
   onGenerarRuta,
+  trazas,
+  verTrazas,
+  onVerTrazas,
+  onEnfocarTraza,
+  onNavegarTraza,
+  onBorrarTraza,
 }: {
   vis: Record<string, boolean>;
   onVer: (id: string) => void;
   onFocus: (f: Focus) => void;
   onGenerarRuta?: (r: CapaRuta) => void;
+  trazas?: TrazaGuardada[];
+  verTrazas?: boolean;
+  onVerTrazas?: () => void;
+  onEnfocarTraza?: (tz: TrazaGuardada) => void;
+  onNavegarTraza?: (tz: TrazaGuardada) => void;
+  onBorrarTraza?: (tz: TrazaGuardada) => void;
 }) {
   const [abierto, setAbierto] = useState(true);
   useLang();
@@ -553,6 +568,86 @@ function CapasPanel({
             </details>
           );
         })}
+
+        {/* v1.13.15 - Mis trazados: rutas y segmentos guardados por el
+            ciclista desde los botones «Trazar ruta» / «Trazar segmento».
+            Un segmento, además, corre en las estadísticas (intentos). */}
+        <details data-capa="mias" className="border-b border-border/50 last:border-0">
+          <summary className="flex cursor-pointer list-none items-center gap-2 px-1.5 py-2.5">
+            <span aria-hidden className="text-[15px]">🧭</span>
+            <span className="min-w-0 flex-1">
+              <span className="flex items-center gap-1.5">
+                <span className="text-[13px] font-bold text-foreground">{t("tra.capasTitulo")}</span>
+                <span className="rounded-full bg-emerald-600/10 px-1.5 py-px text-[9.5px] font-bold text-emerald-700 dark:text-emerald-300">
+                  {(trazas ?? []).length}
+                </span>
+              </span>
+              <span className="block truncate text-[10.5px] text-muted-foreground">{t("tra.capasSub")}</span>
+            </span>
+            <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground transition-transform details-chev" aria-hidden />
+          </summary>
+          <div className="px-1.5 pb-2.5">
+            <div className="mb-1 flex items-center justify-between gap-2">
+              <p className="text-[10px] text-muted-foreground">{t("tra.capasNota")}</p>
+              <SwitchCapa on={!!verTrazas} onClick={() => onVerTrazas?.()} label="mias" />
+            </div>
+            {(trazas ?? []).length === 0 ? (
+              <p className="py-1 text-[10.5px] leading-snug text-muted-foreground">{t("tra.capasVacio")}</p>
+            ) : (
+              <ul>
+                {(trazas ?? []).map((tz) => (
+                  <li key={tz.id} className="flex items-center gap-1.5 py-1.5">
+                    <span aria-hidden className="shrink-0 text-[13px]">{tz.kind === "ruta" ? "🛣️" : "🏁"}</span>
+                    <span className="min-w-0 flex-1">
+                      <span className="flex items-center gap-1.5">
+                        <span className="truncate text-xs font-semibold text-foreground">{tz.nombre}</span>
+                        <span
+                          className={`shrink-0 rounded px-1 py-px text-[9px] font-bold ${
+                            tz.kind === "ruta" ? "bg-orange-500/15 text-orange-700 dark:text-orange-300" : "bg-cyan-500/15 text-cyan-700 dark:text-cyan-300"
+                          }`}
+                        >
+                          {tz.kind === "ruta" ? t("tra.tipoRuta") : t("tra.tipoSegmento")}
+                        </span>
+                        {tz.origen === "gpx" && (
+                          <span className="shrink-0 rounded px-1 py-px text-[9px] font-bold text-muted-foreground border border-border">GPX</span>
+                        )}
+                      </span>
+                      <span className="block truncate text-[10px] text-muted-foreground">
+                        {tz.distKm.toFixed(1)} km{tz.gainM > 0 ? ` · +${tz.gainM} m` : ""}
+                      </span>
+                    </span>
+                    <button
+                      onClick={() => onEnfocarTraza?.(tz)}
+                      aria-label={t("tra.encuadrar", tz.nombre)}
+                      title={t("tra.encuadrarTitle")}
+                      className="shrink-0 rounded border border-border px-1.5 py-1 text-muted-foreground hover:border-emerald-500 hover:text-emerald-600"
+                    >
+                      <Eye className="h-3.5 w-3.5" />
+                    </button>
+                    {tz.kind === "ruta" && onNavegarTraza && (
+                      <button
+                        onClick={() => onNavegarTraza(tz)}
+                        aria-label={t("tra.navegar", tz.nombre)}
+                        title={t("tra.navegarTitle")}
+                        className="shrink-0 rounded border border-border px-1.5 py-1 text-muted-foreground hover:border-sky-500 hover:text-sky-600"
+                      >
+                        <Navigation className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                    <button
+                      onClick={() => onBorrarTraza?.(tz)}
+                      aria-label={t("mapa.eliminar")}
+                      title={t("mapa.eliminar")}
+                      className="shrink-0 rounded border border-border px-1.5 py-1 text-muted-foreground hover:border-red-500 hover:text-red-600"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </details>
         </div>
       )}
     </div>
@@ -893,6 +988,23 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
   // Buscador Pro: consulta y marcadores personales
   const { pro } = useProLicense();
   const marks = useMarks();
+  // v1.13.15: creador de trazados - «Trazar ruta» y «Trazar segmento»
+  // (el segmento, además de guardarse, corre en las estadísticas).
+  const trazar = useCreadorTrazas();
+  const trazas = useTrazas();
+  const [verTrazas, setVerTrazas] = useState(true);
+  const [trazaSel, setTrazaSel] = useState<string | null>(null);
+  /** Enfoca una traza guardada en el mapa (fitBounds a su línea). */
+  const enfocarTraza = (tz: TrazaGuardada) => {
+    setTrazaSel(tz.id);
+    setFocus({ kind: "ruta", coords: tz.coords });
+  };
+  /** Navega una ruta guardada: destino = su último punto (el motor
+      estándar traza desde tu ubicación, con sus reglas y avisos). */
+  const navegarTraza = (tz: TrazaGuardada) => {
+    if (!onSetDest || tz.coords.length === 0) return;
+    handleSetDest({ name: tz.nombre, position: tz.coords[tz.coords.length - 1] });
+  };
   // Encuadre único de la ruta recién trazada desde el buscador
   const pendingFitRef = useRef(false);
   // v1.12.10: cámara Waze del mapa grande - con navegación activa
@@ -1363,7 +1475,21 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
           documento (queja del cliente 2026-11-11: "al mover la búsqueda o el
           botón de capas se superpone a la información"). */}
       <div className="absolute inset-x-2 bottom-[calc(104px+env(safe-area-inset-bottom))] z-[690]">
-        <CapasPanel vis={capasVis} onVer={toggleCapa} onFocus={enfocar} onGenerarRuta={generarRuta} />
+        <CapasPanel
+          vis={capasVis}
+          onVer={toggleCapa}
+          onFocus={enfocar}
+          onGenerarRuta={generarRuta}
+          trazas={trazas}
+          verTrazas={verTrazas}
+          onVerTrazas={() => setVerTrazas((v) => !v)}
+          onEnfocarTraza={enfocarTraza}
+          onNavegarTraza={navegarTraza}
+          onBorrarTraza={(tz) => {
+            removeTraza(tz.id);
+            if (trazaSel === tz.id) setTrazaSel(null);
+          }}
+        />
       </div>
 
       {/* Mapa a pantalla completa (bajo header y barra inferior): 72 px
@@ -1628,6 +1754,70 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
           )}
           {dest && <Marker position={[dest.position.lat, dest.position.lon]} icon={flagIcon(mapBearing)} interactive={false} />}
 
+          {/* v1.13.15 - Creador de trazados: vista previa de la línea que
+              acaba de trazar el motor (o del GPX importado) y los puntos
+              elegidos (inicio verde, fin rojo). */}
+          {trazar.preview && trazar.preview.coords.length > 1 && (
+            <>
+              <Polyline
+                positions={trazar.preview.coords.map((p) => [p.lat, p.lon] as [number, number])}
+                pathOptions={{ color: "#05070a", weight: 9, opacity: 0.8 }}
+                interactive={false}
+              />
+              <Polyline
+                positions={trazar.preview.coords.map((p) => [p.lat, p.lon] as [number, number])}
+                pathOptions={{
+                  color: trazar.preview!.kind === "ruta" ? "#f97316" : "#06b6d4",
+                  weight: 5.5,
+                  opacity: 0.98,
+                  lineCap: "round",
+                  lineJoin: "round",
+                }}
+                interactive={false}
+              />
+            </>
+          )}
+          {trazar.picks.map((p, i) => (
+            <CircleMarker
+              key={`tpick-${i}`}
+              center={[p.lat, p.lon]}
+              radius={7}
+              pathOptions={{ color: "#fafafa", weight: 2.5, fillColor: i === 0 ? "#22c55e" : "#ef4444", fillOpacity: 1 }}
+              interactive={false}
+            />
+          ))}
+
+          {/* v1.13.15 - Mis trazados guardados: rutas (naranja sólido) y
+              segmentos (cian punteado, los que corren en estadísticas). */}
+          {verTrazas &&
+            trazas.map((tz) => {
+              if (tz.coords.length < 2) return null;
+              const line = tz.coords.map((c) => [c.lat, c.lon] as [number, number]);
+              const sel = trazaSel === tz.id;
+              return (
+                <Fragment key={`tz-${tz.id}`}>
+                  <Polyline positions={line} pathOptions={{ color: "#05070a", weight: 7.5, opacity: sel ? 0.9 : 0.5 }} interactive={false} />
+                  <Polyline
+                    positions={line}
+                    pathOptions={{
+                      color: tz.kind === "ruta" ? "#fb923c" : "#22d3ee",
+                      weight: sel ? 5 : 4,
+                      opacity: 0.95,
+                      dashArray: tz.kind === "segmento" ? "10 7" : undefined,
+                      lineCap: "round",
+                      lineJoin: "round",
+                    }}
+                  >
+                    <Tooltip direction="top">
+                      <span className="text-xs font-medium">
+                        {tz.kind === "ruta" ? "🛣️" : "🏁"} {tz.nombre} · {tz.distKm.toFixed(1)} km
+                      </span>
+                    </Tooltip>
+                  </Polyline>
+                </Fragment>
+              );
+            })}
+
           {/* Recorrido del ride */}
           {track.length > 1 && (
             <Polyline positions={track.map((p) => [p.lat, p.lon])} pathOptions={{ color: "#a3e635", weight: 4, opacity: 0.9 }} />
@@ -1683,7 +1873,15 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
           <NavCamara position={position} navOn={navOn} rotado={rotado} locateTarget={locateTarget} />
           <FocusHandler focus={focus} />
           <LocateHandler target={locateTarget} />
-          <ClickHandler enabled={reportMode} onPick={setPending} />
+          <ClickHandler
+            enabled={reportMode || trazar.modo !== null}
+            onPick={(p) => {
+              // El creador de trazados tiene prioridad sobre el reporte:
+              // su botón sigue activo, pero el tap alimenta el trazado.
+              if (trazar.modo) trazar.pick(p);
+              else setPending(p);
+            }}
+          />
         </MapContainer>
         </div>
 
@@ -1736,6 +1934,30 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
           >
             <AlertTriangle className="h-5 w-5" />
           </button>
+          {/* v1.13.15: creador de trazados - ruta (línea del entrenamiento,
+              navegable) y segmento (además corre en las estadísticas). */}
+          <button
+            onClick={() => trazar.empezar("ruta")}
+            aria-label={t("tra.btnRuta")}
+            title={t("tra.btnRuta")}
+            data-testid="btn-trazar-ruta"
+            className={`h-10 w-10 rounded-lg border flex items-center justify-center shadow-md ${
+              trazar.modo === "ruta" ? "bg-sky-500 border-sky-300 text-zinc-950" : "bg-background/90 border-border text-foreground hover:border-sky-400"
+            }`}
+          >
+            <Route className="h-5 w-5" />
+          </button>
+          <button
+            onClick={() => trazar.empezar("segmento")}
+            aria-label={t("tra.btnSegmento")}
+            title={t("tra.btnSegmento")}
+            data-testid="btn-trazar-segmento"
+            className={`h-10 w-10 rounded-lg border flex items-center justify-center shadow-md ${
+              trazar.modo === "segmento" ? "bg-cyan-500 border-cyan-300 text-zinc-950" : "bg-background/90 border-border text-foreground hover:border-cyan-400"
+            }`}
+          >
+            <Milestone className="h-5 w-5" />
+          </button>
           {(rotado || modoCamara === "rumbo") && (
             <button
               onClick={() => setModoCamara(modoCamara === "rumbo" ? "norte" : "rumbo")}
@@ -1782,11 +2004,15 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
             )}
           </div>
         )}
-        {reportMode && !pending && (
+        {reportMode && !pending && !trazar.modo && (
           <p className="absolute top-[112px] inset-x-2 z-[740] rounded-lg bg-background/95 border border-amber-600/50 px-3 py-2 text-xs text-amber-700/90 dark:text-amber-300/90 shadow-md">
             {t("mapa.reportarHint")}
           </p>
         )}
+
+        {/* v1.13.15: overlay del creador de trazados (opciones, preview
+            con minimapa, nombre y guardado). */}
+        <TrazadoOverlay ctrl={trazar} position={position} />
       </div>
     </div>
   );

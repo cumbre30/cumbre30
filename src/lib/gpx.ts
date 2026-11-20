@@ -6,6 +6,8 @@
 // ============================================================
 
 import type { RideSummary } from "./history";
+import { haversineM } from "./geo";
+import type { LatLng } from "./routing";
 
 function xmlEscape(s: string): string {
   return s
@@ -53,4 +55,69 @@ ${pts}
 </gpx>`;
 
   return new Blob([xml], { type: "application/gpx+xml" });
+}
+
+// ============================================================
+// Import GPX (v1.13.15, creador de trazados): lee una pista de
+// un archivo GPX y la reduce a una línea lista para el creador.
+// Acepta trkpt (trk/trkseg), rte/rtept y wpt como respaldo.
+// ============================================================
+
+export type GpxLinea = {
+  pts: LatLng[];
+  distKm: number;
+  /** Desnivel positivo acumulado (0 si el GPX no trae <ele>). */
+  gainM: number;
+};
+
+/** Parsea el XML de un GPX y devuelve la línea simplificada con su
+ *  distancia y desnivel. Devuelve null si no hay puntos usables. */
+export function parseGpxLine(xml: string): GpxLinea | null {
+  const crudos: { p: LatLng; e: number | null }[] = [];
+  try {
+    const doc = new DOMParser().parseFromString(xml, "text/xml");
+    if (doc.querySelector("parsererror")) return null;
+    const leer = (els: NodeListOf<Element>) => {
+      for (const el of Array.from(els)) {
+        const lat = parseFloat(el.getAttribute("lat") ?? "");
+        const lon = parseFloat(el.getAttribute("lon") ?? "");
+        if (!Number.isFinite(lat) || !Number.isFinite(lon)) continue;
+        const eRaw = el.querySelector("ele")?.textContent;
+        const e = eRaw !== null && eRaw !== undefined ? parseFloat(eRaw) : NaN;
+        crudos.push({ p: { lat, lon }, e: Number.isFinite(e) ? e : null });
+      }
+    };
+    const trkpts = doc.querySelectorAll("trkpt");
+    if (trkpts.length >= 2) leer(trkpts);
+    else if (doc.querySelectorAll("rtept").length >= 2) leer(doc.querySelectorAll("rtept"));
+    else leer(doc.querySelectorAll("wpt"));
+  } catch {
+    return null;
+  }
+  if (crudos.length < 2) return null;
+  // Simplificar conservando la elevación de cada punto elegido.
+  const dedup: { p: LatLng; e: number | null }[] = [];
+  for (const c of crudos) {
+    const prev = dedup[dedup.length - 1];
+    if (!prev || haversineM(prev.p, c.p) >= 2) dedup.push(c);
+  }
+  let elegidos = dedup;
+  if (dedup.length > 400) {
+    const step = (dedup.length - 1) / (400 - 1);
+    elegidos = [];
+    for (let i = 0; i < 400; i++) elegidos.push(dedup[Math.round(i * step)]);
+    elegidos[0] = dedup[0];
+    elegidos[399] = dedup[dedup.length - 1];
+  }
+  const pts = elegidos.map((c) => c.p);
+  let distM = 0;
+  let gain = 0;
+  let prevE: number | null = null;
+  for (let i = 0; i < elegidos.length; i++) {
+    if (i > 0) distM += haversineM(elegidos[i - 1].p, elegidos[i].p);
+    const e = elegidos[i].e;
+    if (e !== null && prevE !== null && e > prevE) gain += e - prevE;
+    if (e !== null) prevE = e;
+  }
+  return { pts, distKm: distM / 1000, gainM: Math.round(gain) };
 }

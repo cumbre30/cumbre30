@@ -20,6 +20,7 @@ import { Card } from "@/components/ui/card";
 import { bikeOnly, historyStore, ridesForAccount } from "@/lib/history";
 import { formatClock } from "@/lib/geo";
 import { computeSegmentStats, fmtEffort, SEGMENTS } from "@/lib/segments";
+import { userSegmentDefs } from "@/lib/trazasUsuario";
 import { bestMonth, deltaVsPrev, monthlyBuckets } from "@/lib/statsMonthly";
 import { useProLicense } from "@/lib/proLicense";
 import { useMe } from "@/hooks/useMe";
@@ -75,6 +76,13 @@ export function StatsTab({ onGoPro }: { onGoPro: () => void }) {
     () => (pro.active ? computeSegmentStats(gpsRides) : []),
     [pro.active, gpsRides],
   );
+
+  // v1.13.15: segmentos CREADOS POR EL USUARIO (creador de trazados).
+  // A diferencia de los oficiales, corren sin gate Pro: son tuyos.
+  // userSegmentDefs() lee localStorage al recomputar (montar la
+  // pestaña / cambiar rides): al guardar un segmento en el mapa y
+  // volver aquí, la lista sale fresca.
+  const userSegStats = useMemo(() => computeSegmentStats(gpsRides, userSegmentDefs()), [gpsRides]);
 
   // Estadísticas avanzadas (Pro): resumen de los últimos 6 meses.
   const months = useMemo(() => monthlyBuckets(gpsRides, 6), [gpsRides]);
@@ -243,6 +251,34 @@ export function StatsTab({ onGoPro }: { onGoPro: () => void }) {
                   <Lock className="mr-1 h-3 w-3" /> {t("st.conPro")}
                 </Button>
               </>
+            )}
+          </div>
+
+          {/* v1.13.15 - Tus segmentos (creador de trazados): sin gate Pro,
+              corren sobre tus viajes GPS como los oficiales. */}
+          <div>
+            <div className="mb-2 flex items-center gap-2">
+              <p className="text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground">{t("st.tusSegmentos")}</p>
+            </div>
+            {userSegStats.length ? (
+              <div className="flex flex-col gap-2">
+                {userSegStats.map((s) => (
+                  <Card key={s.def.id} className="flex items-center gap-3 p-3.5">
+                    <span className="text-xl">📏</span>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-[13.5px] font-bold text-foreground">{s.def.name}</p>
+                      <p className="text-[11px] text-muted-foreground">
+                        {s.def.detail} · {s.count === 1 ? t("his.intento", s.count) : t("his.intentos", s.count)}
+                        {s.pb ? t("st.conRecord", fmtEffort(s.pb.timeSec)) : ""}
+                      </p>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <Card className="p-4 text-center text-xs leading-relaxed text-muted-foreground">
+                {t("st.tusSegmentosVacio")}
+              </Card>
             )}
           </div>
         </>

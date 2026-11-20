@@ -1,14 +1,17 @@
 "use client";
 
 // ============================================================
-// Vista previa del minimapa en Configuración (v1.12.14).
+// Vista previa del minimapa en Configuración (v1.12.14) y, desde
+// v1.13.15, minimapa de la vista previa del creador de trazados:
+// si llega `coords` ([lng, lat]), pinta esa línea (naranja) con
+// su inicio (verde) y su fin (rojo), encuadrada - en vez de la
+// demo del minimapa.
 // El mismo motor del minimapa real (MapLibre + navStyle, ráster
 // estándar OSM France - la misma base del mapa grande) montado en
-// modo estático: centro del parque, un tramo de ciclovía violeta de
-// muestra y el pin del ciclista. Solo estética: el marco y el
-// acabado los da minimapStyleCls y la altura minimapHeight, así la
-// preview refleja el estilo y el tamaño elegidos, como la vista
-// previa del velocímetro.
+// modo estático. Solo estética: el marco y el acabado los da
+// minimapStyleCls y la altura minimapHeight, así la preview
+// refleja el estilo y el tamaño elegidos, como la vista previa
+// del velocímetro.
 // ============================================================
 
 import { useEffect, useRef } from "react";
@@ -31,10 +34,39 @@ const DEMO_ROUTE: [number, number][] = [
   [-70.6328, -33.4062],
 ];
 
-export function MinimapPreview({ style, size }: { style: MinimapStyle; size: MinimapSize }) {
+/** Pinta la línea (demo o del trazado) y encuadra si hay línea. */
+function pintarLinea(m: MlMap, coords?: [number, number][]) {
+  const line = coords && coords.length >= 2 ? coords : DEMO_ROUTE;
+  const esTrazado = coords && coords.length >= 2;
+  const src = m.getSource("demo-route") as maplibregl.GeoJSONSource | undefined;
+  if (src) {
+    src.setData({ type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: line } });
+    // La demo nace violeta; el trazado del creador es naranja.
+    if (m.getLayer("demo-route-line")) m.setPaintProperty("demo-route-line", "line-color", esTrazado ? "#f97316" : "#8b5cf6");
+  }
+  const pinSrc = m.getSource("demo-pin") as maplibregl.GeoJSONSource | undefined;
+  if (pinSrc) pinSrc.setData({ type: "Feature", properties: {}, geometry: { type: "Point", coordinates: line[line.length - 1] } });
+  const iniSrc = m.getSource("demo-pin-ini") as maplibregl.GeoJSONSource | undefined;
+  if (iniSrc) iniSrc.setData({ type: "Feature", properties: {}, geometry: { type: "Point", coordinates: line[0] } });
+  if (esTrazado) {
+    const lngs = line.map((c) => c[0]);
+    const lats = line.map((c) => c[1]);
+    m.fitBounds(
+      [
+        [Math.min(...lngs), Math.min(...lats)],
+        [Math.max(...lngs), Math.max(...lats)],
+      ],
+      { padding: 22, duration: 0, maxZoom: 16 },
+    );
+  }
+}
+
+export function MinimapPreview({ style, size, coords, heightClass }: { style: MinimapStyle; size: MinimapSize; coords?: [number, number][]; heightClass?: string }) {
   const boxRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MlMap | null>(null);
   const failedRef = useRef(false);
+  const loadedRef = useRef(false);
+  const pendRef = useRef<[number, number][] | undefined>(undefined);
 
   useEffect(() => {
     if (!boxRef.current || mapRef.current || failedRef.current) return;
@@ -60,9 +92,9 @@ export function MinimapPreview({ style, size }: { style: MinimapStyle; size: Min
         keyboard: false,
         boxZoom: false,
       });
-      // Capas demo de la vista previa (el failover setTiles no las toca).
+      // Capas demo de la vista previa (el failover setTiles no las toca);
+      // con coords presentes se reutilizan para la línea del trazado.
       const installDemo = (m: MlMap) => {
-        // Ciclovía violeta de muestra (color de la ruta ciclista).
         m.addSource("demo-route", { type: "geojson", data: { type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: DEMO_ROUTE } } });
         m.addLayer({
           id: "demo-route-case",
@@ -74,9 +106,9 @@ export function MinimapPreview({ style, size }: { style: MinimapStyle; size: Min
           id: "demo-route-line",
           type: "line",
           source: "demo-route",
-          paint: { "line-color": "#8b5cf6", "line-width": 5 },
+          paint: { "line-color": esTrazadoColor(coords), "line-width": 5 },
         });
-        // Pin del ciclista (punta de la ruta demo).
+        // Pin del extremo (punta de la ruta) y del inicio.
         m.addSource("demo-pin", { type: "geojson", data: { type: "Feature", properties: {}, geometry: { type: "Point", coordinates: DEMO_ROUTE[DEMO_ROUTE.length - 1] } } });
         m.addLayer({
           id: "demo-pin",
@@ -89,6 +121,23 @@ export function MinimapPreview({ style, size }: { style: MinimapStyle; size: Min
             "circle-stroke-width": 2.5,
           },
         });
+        m.addSource("demo-pin-ini", { type: "geojson", data: { type: "Feature", properties: {}, geometry: { type: "Point", coordinates: DEMO_ROUTE[0] } } });
+        m.addLayer({
+          id: "demo-pin-ini",
+          type: "circle",
+          source: "demo-pin-ini",
+          paint: {
+            "circle-radius": 7,
+            "circle-color": "#ef4444",
+            "circle-stroke-color": "#ffffff",
+            "circle-stroke-width": 2.5,
+          },
+        });
+        loadedRef.current = true;
+        if (pendRef.current) {
+          pintarLinea(m, pendRef.current);
+          pendRef.current = undefined;
+        }
       };
       map.on("load", () => {
         const m = mapRef.current;
@@ -102,7 +151,7 @@ export function MinimapPreview({ style, size }: { style: MinimapStyle; size: Min
         const m = mapRef.current;
         if (!m) return;
         const ev = e as unknown as { sourceId?: string };
-        if (ev.sourceId === "demo-route" || ev.sourceId === "demo-pin") return;
+        if (ev.sourceId === "demo-route" || ev.sourceId === "demo-pin" || ev.sourceId === "demo-pin-ini") return;
         errs++;
         if (errs >= 5) {
           const src = m.getSource("base") as maplibregl.RasterTileSource | undefined;
@@ -120,20 +169,38 @@ export function MinimapPreview({ style, size }: { style: MinimapStyle; size: Min
     return () => {
       map?.remove();
       mapRef.current = null;
+      loadedRef.current = false;
     };
   }, []);
 
+  // Línea del trazado: llega después de calcular; se aplica al
+  // cargar o se deja pendiente para el handler de load.
+  useEffect(() => {
+    const m = mapRef.current;
+    if (!m || !loadedRef.current) {
+      pendRef.current = coords;
+      return;
+    }
+    pintarLinea(m, coords);
+  }, [coords]);
+
   if (failedRef.current) {
     return (
-      <div className={`flex items-center justify-center bg-background/60 ${minimapStyleCls(style)} ${minimapHeight(size).base}`}>
+      <div className={`flex items-center justify-center bg-background/60 ${heightClass ?? minimapStyleCls(style) + " " + minimapHeight(size).base}`}>
         <span className="text-xs text-muted-foreground">MapLibre no disponible</span>
       </div>
     );
   }
 
   return (
-    <div className={`overflow-hidden bg-background ${minimapStyleCls(style)} ${minimapHeight(size).base}`}>
+    <div className={`overflow-hidden bg-background ${heightClass ?? minimapStyleCls(style) + " " + minimapHeight(size).base}`}>
       <div ref={boxRef} className="h-full w-full" />
     </div>
   );
+}
+
+/** Color de la línea: naranja para un trazado del usuario,
+ *  violeta ciclovía para la demo del minimapa. */
+function esTrazadoColor(coords?: [number, number][]): string {
+  return coords && coords.length >= 2 ? "#f97316" : "#8b5cf6";
 }

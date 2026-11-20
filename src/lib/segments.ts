@@ -47,9 +47,10 @@ export type SegmentDef = {
   /** Tiempo plausible del intento (s): fuera de este rango se descarta. */
   minTimeSec: number;
   maxTimeSec: number;
-  /** Dirección del intento: "subida" (default) o "bajada" (bajadas
-   *  del control 30 km/h, 2026-11-13). */
-  dir?: "subida" | "bajada";
+  /** Dirección del intento: "subida" (default), "bajada" (bajadas
+   *  del control 30 km/h, 2026-11-13) o "libre" (segmentos del
+   *  usuario, v1.13.15: cualquier dirección, sin exigir desnivel). */
+  dir?: "subida" | "bajada" | "libre";
   /** true: trazado preliminar, pendiente de la publicación oficial
    *  de Parquemet (5 rutas de enduro, antes del 15 de diciembre). */
   preliminar?: boolean;
@@ -265,8 +266,10 @@ export function detectEfforts(r: RideSummary, def: SegmentDef): SegmentEffort[] 
     const gainM = track[iEnd][2] - track[iStart][2];
 
     // Subida: se exige ganar al menos minGainM. Bajada: se exige
-    // PERDER al menos minGainM (gainM <= -minGainM).
-    const dirOk = def.dir === "bajada" ? gainM <= -def.minGainM : gainM >= def.minGainM;
+    // PERDER al menos minGainM (gainM <= -minGainM). Libre
+    // (segmentos del usuario): cualquier dirección, sólo importa
+    // la ventana de tiempo plausible.
+    const dirOk = def.dir === "libre" ? true : def.dir === "bajada" ? gainM <= -def.minGainM : gainM >= def.minGainM;
     if (timeSec >= def.minTimeSec && timeSec <= def.maxTimeSec && dirOk) {
       let distanceM = 0;
       for (let j = iStart + 1; j <= iEnd; j++) {
@@ -292,16 +295,18 @@ export function detectEfforts(r: RideSummary, def: SegmentDef): SegmentEffort[] 
   return efforts;
 }
 
-/** Todos los intentos de un viaje, en todos los segmentos. */
-export function rideEfforts(r: RideSummary): SegmentEffort[] {
+/** Todos los intentos de un viaje, en los segmentos dados
+ *  (default: los oficiales SEGMENTS; el creador de trazados pasa
+ *  además los segmentos del usuario). */
+export function rideEfforts(r: RideSummary, defs: SegmentDef[] = SEGMENTS): SegmentEffort[] {
   const out: SegmentEffort[] = [];
-  for (const def of SEGMENTS) out.push(...detectEfforts(r, def));
+  for (const def of defs) out.push(...detectEfforts(r, def));
   return out.sort((a, b) => a.timeSec - b.timeSec);
 }
 
 /** Resumen por segmento (récord, contador, últimos y top 3). */
-export function computeSegmentStats(rides: RideSummary[]): SegmentStats[] {
-  return SEGMENTS.map((def) => {
+export function computeSegmentStats(rides: RideSummary[], defs: SegmentDef[] = SEGMENTS): SegmentStats[] {
+  return defs.map((def) => {
     const efforts: SegmentEffort[] = [];
     for (const r of rides) efforts.push(...detectEfforts(r, def));
     efforts.sort((a, b) => a.timeSec - b.timeSec);
@@ -319,10 +324,10 @@ export function computeSegmentStats(rides: RideSummary[]): SegmentStats[] {
 }
 
 /** Mapa rideId → intentos de ese viaje (para la ficha de cada ride). */
-export function effortsByRide(rides: RideSummary[]): Map<string, SegmentEffort[]> {
+export function effortsByRide(rides: RideSummary[], defs: SegmentDef[] = SEGMENTS): Map<string, SegmentEffort[]> {
   const map = new Map<string, SegmentEffort[]>();
   for (const r of rides) {
-    const e = rideEfforts(r);
+    const e = rideEfforts(r, defs);
     if (e.length) map.set(r.id, e);
   }
   return map;
