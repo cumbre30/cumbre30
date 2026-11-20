@@ -31,6 +31,8 @@ const VENTANA_DIAS = 90;
 const LAMBDA = 0.015;
 const MIN_RUTAS = 5;
 const SEMANAS = 12;
+// g CO₂ por km en auto (referencia EEA: autos nuevos UE ≈ 107 g/km).
+const FACTOR_CO2_G_KM = 110;
 // Denominador mínimo para evaluar Exploración en un ride: menos km
 // medidos sobre la red significa "fuera de cobertura", no "cero off-road".
 const NET_KM_MIN = 0.3;
@@ -119,6 +121,9 @@ export type PerfilSummary = {
     // watts estimados en subida (media ponderada por frescura).
     offRoadTop3: number | null;
     estWatts: number | null;
+    // Huella de carbono (v1.14.1): CO₂ evitado por pedalear en lugar
+    // de manejar, en kg, sobre los km del mismo período de 90 días.
+    co2Kg: number | null;
   };
   /** Rides que alimentan el perfil (12 últimos) + excluidos (5 últimos). */
   rides: Array<{
@@ -275,6 +280,15 @@ export async function recalcularPerfil(userId: string): Promise<PerfilSummary> {
   const mkmAvg = wSum > 0 ? mkmSum / wSum : null;
   const vamAvg = vamWSum > 0 ? vamSum / vamWSum : null;
   const estWatts = wattsWSum > 0 ? Math.round(wattsSum / wattsWSum) : null;
+
+  // Huella de carbono: CO₂ evitado asumiendo que cada km pedaleado
+  // sustituyó un km en auto (los rides de la ventana ya son GPS y no
+  // motorizados). Factor: 110 g CO₂/km — media de autos nuevos en la
+  // UE según EEA ≈ 107 g/km (2023-2024); el parque circulante, más
+  // viejo, emite más, así que 110 es una referencia prudente y
+  // redonda. Es comparación referencial, no medición.
+  const kmTotales = valid.reduce((s, r) => s + r.distanceKm, 0);
+  const co2Kg = kmTotales > 0 ? Math.round((kmTotales * FACTOR_CO2_G_KM) / 100) / 10 : null;
   const climbing =
     mkmAvg === null
       ? null
@@ -381,6 +395,7 @@ export async function recalcularPerfil(userId: string): Promise<PerfilSummary> {
       stopsPerKm: stopsWSum > 0 ? Math.round((stopsKmSum / stopsWSum) * 10) / 10 : null,
       offRoadTop3: offRoadTop3 !== null ? Math.round(offRoadTop3 * 10) / 10 : null,
       estWatts,
+      co2Kg,
     },
     rides: ridesOut,
   };

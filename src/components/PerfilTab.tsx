@@ -314,6 +314,13 @@ function AdnContenido({
     // fase 2: watts estimados en subida >4% y km off-road del eje Exploración
     { ic: "🔋", v: ex.estWatts === null ? "—" : String(ex.estWatts), u: "W", l: t("pc.kWatts") },
     { ic: "🥾", v: ex.offRoadTop3 === null ? "—" : ex.offRoadTop3.toFixed(1), u: "km", l: t("pc.kOffroad") },
+    // huella de carbono: CO₂ evitado vs auto en la misma ventana (110 g/km)
+    {
+      ic: "🌱",
+      v: ex.co2Kg === null ? "—" : ex.co2Kg < 100 ? ex.co2Kg.toFixed(1) : String(Math.round(ex.co2Kg)),
+      u: "kg",
+      l: t("pc.kCo2"),
+    },
   ];
 
   const progreso = Math.min(100, Math.round((p.validRides / data.minRides) * 100));

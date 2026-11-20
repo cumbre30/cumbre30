@@ -66,7 +66,10 @@ try {
   apiFuera = true;
   console.log("✓ src/app/api aislado para el export");
 
-  // 2. Export estático del APK (sin /api).
+  // 2. Export estático del APK (sin /api). gen-version-json: igual
+  //    que el build web de Vercel, publica public/version.json desde
+  //    appVersion.ts (corazón del «revisar actualizaciones»).
+  run("node scripts/gen-version-json.mjs");
   run("STATIC_EXPORT=1 npx next build");
   const index = join(ROOT, "build-static", "index.html");
   if (!existsSync(index) || statSync(index).size === 0) {

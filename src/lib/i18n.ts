@@ -1063,6 +1063,7 @@ const D: Record<string, E> = {
   "pc.archDescEXPLORER": ["Tu mapa tiene tierra: sostienes distancia sobre senderos y caminos off-road mejor que en el asfalto.", "Your map has dirt: you hold distance over trails and off-road paths better than on asphalt.", "Seu mapa tem terra: você mantém distância em trilhas e caminhos off-road melhor que no asfalto."],
   "pc.kWatts": ["Watts estimados en subida >4%", "Estimated watts on >4% climbs", "Watts estimados em subida >4%"],
   "pc.kOffroad": ["Km off-road (top-3, red path/track)", "Off-road km (top-3, path/track net)", "Km off-road (top-3, rede path/track)"],
+  "pc.kCo2": ["CO₂ evitado (vs auto)", "CO₂ avoided (vs car)", "CO₂ evitado (vs carro)"],
   "pc.sinDatos": ["sin datos", "no data", "sem dados"],
   "pc.medidas": ["Medidas de los últimos 90 días", "Last 90 days metrics", "Medidas dos últimos 90 dias"],
   "pc.kVam": ["VAM medio en subida >4%", "Avg VAM on >4% climbs", "VAM médio em subida >4%"],
