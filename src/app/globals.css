@@ -200,24 +200,10 @@ html[data-accent="grafito"] {
   }
 }
 
-/* Mapa en modo oscuro: invierte los tiles OSM para tema nocturno */
-.map-dark .leaflet-tile-pane {
-  filter: invert(1) hue-rotate(185deg) brightness(0.9) contrast(0.88) saturate(0.65);
-}
-.map-dark .leaflet-control-attribution {
-  background: rgba(9, 9, 11, 0.8) !important;
-  color: #a1a1aa !important;
-  font-size: 10px;
-}
-.map-dark .leaflet-control-attribution a {
-  color: #d4d4d8 !important;
-}
-.map-dark .leaflet-tooltip {
-  background: #18181b;
-  color: #f4f4f5;
-  border: 1px solid #3f3f46;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-}
+/* Mapa SIEMPRE claro (v1.14.3): se retiró el bloque .map-dark que
+   invertía los tiles OSM en tema oscuro — el cliente pidió el mapa
+   blanco tipo Google Maps en todo momento. Los tooltips de Leaflet
+   heredan el tema de la app sin necesidad de estilos nocturnos. */
 
 /* Los controles internos del mapa (escala) quedan bajo las capas de la app */
 .c30-minimap .leaflet-control-container {

@@ -10,7 +10,6 @@
 // ============================================================
 
 import { useEffect, useMemo, useRef, useState, Fragment } from "react";
-import { useTheme } from "next-themes";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import {
@@ -975,10 +974,10 @@ function IncidentSheet({
 
 export default function MapView({ track, position, accuracyM, heading, userPin, route, dest, navLoading, navNote, onSetDest, onProLocked }: Props) {
   const lang = useLang(); // re-render al cambiar el idioma
-  // Filtro nocturno de los tiles OSM: solo con el tema oscuro
-  // (en modo claro el mapa se muestra con sus colores normales).
-  const { resolvedTheme } = useTheme();
-  const darkMap = resolvedTheme !== "light";
+  // Mapa SIEMPRE claro (pedido del cliente): los tiles OSM se muestran
+  // blancos tipo Google Maps aunque el resto de la app esté en tema
+  // oscuro. El filtro nocturno (clase map-dark, invert+hue-rotate en
+  // globals.css) se retiró en v1.14.3.
   const [net, setNet] = useState<Network | null>(null);
   const incidents = useIncidentFeed();
   const [reportMode, setReportMode] = useState(false);
@@ -1515,7 +1514,7 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
           zoom={14}
           zoomControl={false}
           scrollWheelZoom
-          className={`${darkMap ? "map-dark" : ""} h-full w-full bg-background ${reportMode ? "cursor-crosshair" : ""}`}
+          className={`h-full w-full bg-background ${reportMode ? "cursor-crosshair" : ""}`}
           // v1.13.1: sin control de Leaflet (vivía dentro del wrapper
           // rotado y desaparecía al girar); la atribución exigida por la
           // ODbL va FIJA fuera del wrapper, igual en web y APK.
