@@ -34,6 +34,10 @@ export interface RideNativePluginInterface {
   // YouTube Music, reproductores locales…). Mecanismo nativo, sin
   // API remota ni cuentas: igual que los botones de los audífonos.
   mediaPermitido(): Promise<{ granted: boolean }>;
+  /** Abre el ajuste para dar el «acceso a las notificaciones». Con
+   *  la app «restringida» (APK fuera de la tienda, Android 13+)
+   *  abre Información de la aplicación (⋮ → Permitir ajustes
+   *  restringidos); sin restricción, la lista de acceso. */
   abrirAjustesMedia(): Promise<void>;
   mediaSesiones(): Promise<{ granted: boolean; sesiones: MediaSesion[] }>;
   mediaAccion(o: { id: string; accion: AccionMedia }): Promise<void>;

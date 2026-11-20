@@ -89,3 +89,6 @@ public/cumbre30-codigo.zip
 /android/keystore.properties
 /android/cumbre30-release.keystore
 /backups/
+/.jdk21/
+/.android-sdk/
+/.apk-hold/

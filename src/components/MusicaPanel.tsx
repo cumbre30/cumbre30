@@ -11,8 +11,12 @@
 //     YouTube Music y cualquier reproductor. Sin cuentas, sin API
 //     remota y sin Premium.
 //   · Requisito único: el acceso a notificaciones que Android exige
-//     para cualquier controlador de media de terceros. El panel
-//     abre el ajuste y re-revisa al volver (visibilitychange).
+//     para cualquier controlador de media de terceros. El panel abre
+//     el ajuste y re-revisa al volver (visibilitychange). Con el APK
+//     instalado fuera de la tienda Android 13+ bloquea la concesión
+//     («Aplicación restringida»): el botón lleva entonces a Información
+//     de la aplicación para levantar la restricción (⋮ → Permitir
+//     ajustes restringidos); sin restricción abre la lista de acceso.
 //   · Solo APK: en la web no hay sesiones de media — el botón no
 //     se renderiza (RideView).
 // ============================================================

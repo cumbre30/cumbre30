@@ -11,6 +11,10 @@
 // (cron-job.org) o Vercel Cron cada 10-15 minutos.
 // ============================================================
 
+// Ruta dinámica: solo el deploy web la sirve (el export del APK
+// excluye /api por completo — scripts/build-apk.mjs).
+export const dynamic = "force-dynamic";
+
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { fetchRecentApprovedPayments, isProPayment, deliverCodeForPayment } from "@/lib/proDeliver";

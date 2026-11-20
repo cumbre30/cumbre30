@@ -18,6 +18,7 @@ package cl.cumbre30.app
 // ============================================================
 
 import android.Manifest
+import android.app.AppOpsManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
@@ -25,6 +26,7 @@ import android.content.pm.PackageManager
 import android.media.MediaMetadata
 import android.media.session.MediaSessionManager
 import android.media.session.PlaybackState
+import android.net.Uri
 import android.os.Build
 import android.os.VibrationEffect
 import android.os.Vibrator
@@ -217,12 +219,47 @@ class RideNativePlugin : Plugin() {
         call.resolve(data)
     }
 
-    /** Abre el ajuste de Android «Acceso a las notificaciones» para
-     *  que el usuario conceda el acceso una sola vez. */
+    /** ¿La app está con «ajustes restringidos»? En APKs instalados
+     *  fuera de la tienda Android 13+ bloquea conceder el acceso a
+     *  notificaciones desde la lista de ajustes: el usuario debe
+     *  permitirlo en Información de la aplicación (⋮ → Permitir
+     *  ajustes restringidos). El op es oculto en el SDK: se lee por
+     *  reflexión; si no existe (Android < 13) o falla, NO restringido
+     *  (queda el camino de siempre). */
+    private fun ajustesRestringidos(): Boolean = try {
+        val ops = bridge.context.getSystemService(AppOpsManager::class.java)
+        val op = try {
+            AppOpsManager::class.java.getField("OPSTR_ACCESS_RESTRICTED_SETTINGS").get(null) as? String
+        } catch (_: Throwable) {
+            null
+        }
+        if (ops == null || op == null) false
+        else {
+            val uid = bridge.context.packageManager.getApplicationInfo(bridge.context.packageName, 0).uid
+            ops.unsafeCheckOpNoThrow(op, uid, bridge.context.packageName) != AppOpsManager.MODE_ALLOWED
+        }
+    } catch (_: Throwable) {
+        false
+    }
+
+    /** Abre el ajuste para conceder el «acceso a las notificaciones».
+     *  Si la app está con «ajustes restringidos» (APK instalado fuera
+     *  de la tienda, Android 13+), la lista de acceso bloquea la
+     *  concesión: llevamos al usuario a INFORMACIÓN DE LA APLICACIÓN,
+     *  donde se ve el estado «Aplicación restringida» (⋮ → Permitir
+     *  ajustes restringidos). Al volver, el panel re-revisa y una vez
+     *  sin restricción este mismo botón abre la lista de acceso. */
     @PluginMethod
     fun abrirAjustesMedia(call: PluginCall) {
         try {
-            val i = Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
+            val i = if (ajustesRestringidos()) {
+                Intent(
+                    Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                    Uri.fromParts("package", bridge.context.packageName, null),
+                )
+            } else {
+                Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
+            }
             i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             bridge.activity.startActivity(i)
             call.resolve()

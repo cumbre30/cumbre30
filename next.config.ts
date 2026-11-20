@@ -24,6 +24,11 @@ const nextConfig: NextConfig = isStaticExport
       output: "export",
       distDir: "build-static",
       images: { unoptimized: true },
+      // Las rutas /api NO van en el export del APK: con Next 16 una
+      // route handler dinámica ya no se puede exportar (rompía el
+      // build). Las excluye scripts/build-apk.mjs moviendo src/app/api
+      // fuera del árbol durante el build — la API vive en el despliegue
+      // web y el APK habla con el servidor por URL absoluta. (v1.14.1)
     }
   : {
       ...baseConfig,
