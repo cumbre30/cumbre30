@@ -67,11 +67,11 @@ export const CEC_MODULOS: ModuloCEC[] = [
     titulo: "Señales de mano: gira y detente avisando",
     desc: "Las tres señales que debes hacer con el brazo antes de virar o detenerte, con una ilustración para cada una.",
     cuerpo: [
-      "La Ley de Tránsito obliga a señalizar los cambios de rumbo con el brazo o con un señalizador eléctrico adosado al cuerpo (art. 138); no hacer las señales debidas antes de virar es infracción menos grave (art. 201 N°5).",
+      "La Ley de Tránsito exige advertir cada viraje con una anticipación mínima de 30 metros, mediante el señalizador del vehículo o con el brazo (art. 138); no hacer las señales debidas antes de virar es infracción menos grave (art. 201 N°5).",
       "Giro a la izquierda: brazo izquierdo extendido horizontalmente, paralelo al suelo, con la palma abierta.",
-      "Giro a la derecha: brazo derecho extendido horizontalmente, paralelo al suelo (también es válida la variante con el brazo izquierdo flexionado hacia arriba).",
+      "Giro a la derecha: brazo derecho extendido horizontalmente, paralelo al suelo; la variante general es con el brazo izquierdo flexionado hacia arriba en ángulo recto (art. 138).",
       "Detención o freno: brazo extendido hacia abajo, inclinado unos 45 grados respecto del cuerpo.",
-      "Haz la señal unos 20 a 30 metros antes de la maniobra y vuelve a poner la mano en el manubrio antes de virar o de frenar con firmeza."
+      "Haz la señal con al menos 30 metros de anticipación (así lo exige el art. 138) y vuelve a poner la mano en el manubrio antes de virar o de frenar con firmeza."
     ],
     recos: [
       "Practica las señales en línea recta y en un espacio abierto antes de usarlas dentro del flujo.",
@@ -536,8 +536,8 @@ export const CEC_MODULOS: ModuloCEC[] = [
       "Dónde circular en zonas urbanas (art. 222): por la ciclovía y, si no existe, por la pista derecha de la calzada. Excepciones: virar a la izquierda, los casos del art. 116 (adelantar o sortear un obstáculo) y, en vías unidireccionales con pista exclusiva de buses al costado derecho, circular por el costado izquierdo de la pista izquierda.",
       "La acera solo en casos excepcionales (art. 222 b): menores de 14 años, adultos mayores, personas con discapacidad o movilidad reducida, quienes llevan niños menores de 7, o cuando las condiciones hagan peligroso continuar por ciclovía o calzada. En la vereda se avanza a velocidad de peatón y, si el flujo peatonal es muy alto, hay que descender del ciclo.",
       "Equipamiento y atención: casco obligatorio en zonas urbanas (art. 80), freno eficaz (art. 223), reflectantes para la noche (art. 72) y nada de audífonos o elementos que dificulten la visión o la audición (art. 223 a).",
-      "Convivencia en la vía: máximo dos en fondo (art. 130), prohibido tomarse de otros vehículos en movimiento (art. 131), virajes cerca del borde o del elemento segregador de la ciclovía (art. 135), señalizando con el brazo o con un señalizador eléctrico adosado al cuerpo (art. 138).",
-      "Familia y estacionamiento: transportar menores de 7 años exige conductor mayor de edad (art. 223 c); las bicicletas se estacionan en lugares habilitados y no deben aferrarse a paraderos de transporte público, pasos de peatones ni zonas prohibidas (art. 224)."
+      "Convivencia en la vía: máximo dos en fondo (art. 130), prohibido tomarse de otros vehículos en movimiento (art. 131), virajes cerca del borde o del elemento segregador de la ciclovía (art. 135), señalizando cada viraje con el brazo o un señalizador y con 30 metros de anticipación (art. 138).",
+      "Familia y estacionamiento: transportar menores de 7 años exige conductor mayor de edad (art. 223 c); las bicicletas se estacionan en lugares habilitados y no deben aferrarse a paradas de transporte público, pasos de peatones ni zonas de estacionamiento prohibido (art. 224)."
     ],
     recos: [
       "Las zonas de tránsito calmado fijan máximos de 40, 30 o 20 km/h (art. 2, Ley 21.088): en ellas el límite es menor que el general de la vía.",
