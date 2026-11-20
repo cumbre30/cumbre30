@@ -3,10 +3,12 @@
 // ============================================================
 // Pestaña Cuenta (antes «Perfil»; el nombre pasa al Perfil Ciclista) - con subsecciones (solo se ve la activa):
 //   · "Mis datos": sesión (correo + usuario), resumen de cuenta,
-//     bici, pin y compartir resumen para Instagram. La versión de
-//     la app vive en Configuración → Acerca de.
+//     bici y pin. La versión de la app vive en Configuración → Acerca de.
 //   · "Pagos y suscripciones": modo Pro (código / Play Billing) -
 //     la licencia va atada al correo de la cuenta.
+//   · "Gestionar" (v1.14.0): gestión de la cuenta — código de
+//     recuperación, sincronización en la nube, descarga de datos y
+//     eliminación de la cuenta.
 // ============================================================
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
@@ -17,7 +19,6 @@ import {
   LogIn,
   UserPlus,
   Users,
-  MapPin,
   KeyRound,
   PenLine,
   Trash2,
@@ -47,14 +48,16 @@ import { PagosTab } from "@/components/PagosTab";
 import { SubTabs, type SubTabDef } from "@/components/SubTabs";
 import { t, useLang } from "@/lib/i18n";
 
-/** Subsecciones de Perfil: se muestran al entrar y solo se ve la activa.
- *  "Pagos y suscripciones" aparece solo con sesión: la licencia Pro va
- *  atada al correo de la cuenta. */
-type SubKey = "datos" | "pagos";
+/** Subsecciones de Cuenta: se muestran al entrar y solo se ve la activa.
+ *  "Pagos y suscripciones" y "Gestionar" aparecen solo con sesión: la
+ *  licencia Pro va atada al correo y las tarjetas de gestión son de la
+ *  cuenta. */
+type SubKey = "datos" | "pagos" | "gestionar";
 // labels = claves i18n (se traducen al renderizar; ver SubTabs abajo)
 const PROFILE_SUBS: SubTabDef[] = [
   { key: "datos", label: "pf.subDatos" },
   { key: "pagos", label: "pf.subPagos" },
+  { key: "gestionar", label: "pf.subGestionar" },
 ];
 
 function StatBox({ label, value, unit }: { label: string; value: string | number; unit?: string }) {
@@ -118,7 +121,7 @@ export default function ProfileTab() {
     setPesoR(String(w.riderKg));
     setPesoB(String(w.bikeKg));
     hydrateWeightsFromAccount(me.user);
-  }, [me?.user.email]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [me?.user.email]);
   const guardarPesos = () => {
     const w = setRideWeights(Number(pesoR.replace(",", ".")), Number(pesoB.replace(",", ".")));
     if (!w) {
@@ -159,10 +162,10 @@ export default function ProfileTab() {
   const [fMsg, setFMsg] = useState<string | null>(null);
   const [fErr, setFErr] = useState<string | null>(null);
 
-  // Subsección activa de Perfil (se mantiene al iniciar sesión).
-  // Sin sesión "pagos" no existe: cae a "datos".
+  // Subsección activa de Cuenta (se mantiene al iniciar sesión).
+  // Sin sesión "pagos" y "gestionar" no existen: caen a "datos".
   const [sub, setSub] = useState<SubKey>("datos");
-  const activeSub: SubKey = sub === "pagos" && !me ? "datos" : sub;
+  const activeSub: SubKey = (sub === "pagos" || sub === "gestionar") && !me ? "datos" : sub;
 
   const submit = async () => {
     setBusy(true);
@@ -642,88 +645,6 @@ export default function ProfileTab() {
           <StatBox label={t("pf.desnivelAcum")} value={`+${me.stats.totalGainM}`} unit="m" />
         </div>
       </Card>
-      {offline && me.user.recoveryCode && (
-        /* Solo APK: el código permite restablecer la contraseña de la
-           cuenta local sin perder km, logros ni pines. */
-        <Card className="bg-card/60 border-border p-3">
-          <div className="flex items-center gap-3">
-            <KeyRound className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
-            <div className="min-w-0 flex-1">
-              <p className="text-[13px] font-medium text-foreground">{t("pf.codigoRecuperacion")}</p>
-              <p className="text-[11px] text-muted-foreground leading-snug">
-                {t("pf.guardarCodigo")}
-              </p>
-            </div>
-            <div className="flex shrink-0 items-center gap-2">
-              <span className="font-mono text-sm font-bold tracking-widest text-foreground">{me.user.recoveryCode}</span>
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-7 px-2 text-[11px] text-muted-foreground"
-                onClick={() => {
-                  void navigator.clipboard?.writeText(me.user.recoveryCode ?? "").then(
-                    () => setShareMsg(t("pf.codigoCopiado")),
-                    () => undefined
-                  );
-                  setTimeout(() => setShareMsg(null), 8000);
-                }}
-              >
-                {t("pf.copiar")}
-              </Button>
-            </div>
-          </div>
-        </Card>
-      )}
-      {offline && (
-        /* Progreso enlazado a la cuenta (APK): outbox en IndexedDB +
-           token de sesión. Estado visible y sync manual a demanda. */
-        <Card className="bg-card/60 border-border p-3">
-          <div className="flex items-center gap-3">
-            {sync.phase === "syncing" ? (
-              <RefreshCw className="h-4 w-4 shrink-0 animate-spin text-sky-600 dark:text-sky-400" />
-            ) : sync.phase === "unlinked" || sync.phase === "offline" ? (
-              <CloudOff className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
-            ) : (
-              <CloudUpload className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
-            )}
-            <div className="min-w-0 flex-1">
-              <p className="text-[13px] font-medium text-foreground">{t("pf.syncNube")}</p>
-              <p className="text-[11px] text-muted-foreground leading-snug">
-                {sync.phase === "syncing"
-                  ? t("pf.syncSubiendo")
-                  : sync.phase === "ok"
-                    ? t("pf.syncOk", sync.email ? ` (${sync.email})` : "")
-                    : sync.phase === "offline"
-                      ? t("pf.syncOffline", sync.pending)
-                      : sync.phase === "unlinked"
-                        ? t("pf.syncUnlinked")
-                        : sync.phase === "error"
-                          ? t("pf.syncError")
-                          : t("pf.syncEntra")}
-                {sync.phase === "ok" && sync.lastSyncAt
-                  ? t("pf.ultimaSync", new Date(sync.lastSyncAt).toLocaleString("es-CL", { dateStyle: "short", timeStyle: "short" }))
-                  : ""}
-              </p>
-            </div>
-            {sync.phase !== "syncing" && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-7 shrink-0 px-2 text-[11px] text-muted-foreground"
-                onClick={() => void manualSync()}
-              >
-                {t("pf.sincronizar")}
-              </Button>
-            )}
-          </div>
-        </Card>
-      )}
-      {shareMsg && (
-        <p className="text-xs text-emerald-700 dark:text-emerald-300" role="status">
-          {shareMsg}
-        </p>
-      )}
-
       {/* Cambiar nombre de usuario (1 vez cada 30 días) */}
       <Card className="bg-card/80 border-border p-4">
         <div className="flex items-start gap-3 mb-3">
@@ -822,19 +743,95 @@ export default function ProfileTab() {
         )}
       </Card>
 
-      {/* Logros y pin activo */}
-      <Card className="bg-card/80 border-border p-4">
-        <div className="flex items-center gap-2 mb-2">
-          <MapPin className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-          <p className="font-medium text-foreground text-sm">{t("pf.pinActivo")}</p>
-        </div>
-        <p className="text-xs text-muted-foreground">
-          {t("pf.pinNota1")}<span className="text-foreground">{pin.emoji} {pin.name}</span>{t("pf.pinNota2")}<span className="text-foreground/90">{t("pf.desafios")}</span>.
+      </>
+      )}
+
+      {/* Gestionar (v1.14.0): gestión de la cuenta en un solo lugar —
+          código de recuperación, sincronización en la nube, descarga de
+          datos y baja definitiva. Sin sesión la subsección cae a "datos". */}
+      {sub === "gestionar" && (
+      <>
+      {offline && me.user.recoveryCode && (
+        /* Solo APK: el código permite restablecer la contraseña de la
+           cuenta local sin perder km, logros ni pines. */
+        <Card className="bg-card/60 border-border p-3">
+          <div className="flex items-center gap-3">
+            <KeyRound className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+            <div className="min-w-0 flex-1">
+              <p className="text-[13px] font-medium text-foreground">{t("pf.codigoRecuperacion")}</p>
+              <p className="text-[11px] text-muted-foreground leading-snug">
+                {t("pf.guardarCodigo")}
+              </p>
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
+              <span className="font-mono text-sm font-bold tracking-widest text-foreground">{me.user.recoveryCode}</span>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 px-2 text-[11px] text-muted-foreground"
+                onClick={() => {
+                  void navigator.clipboard?.writeText(me.user.recoveryCode ?? "").then(
+                    () => setShareMsg(t("pf.codigoCopiado")),
+                    () => undefined
+                  );
+                  setTimeout(() => setShareMsg(null), 8000);
+                }}
+              >
+                {t("pf.copiar")}
+              </Button>
+            </div>
+          </div>
+        </Card>
+      )}
+      {offline && (
+        /* Progreso enlazado a la cuenta (APK): outbox en IndexedDB +
+           token de sesión. Estado visible y sync manual a demanda. */
+        <Card className="bg-card/60 border-border p-3">
+          <div className="flex items-center gap-3">
+            {sync.phase === "syncing" ? (
+              <RefreshCw className="h-4 w-4 shrink-0 animate-spin text-sky-600 dark:text-sky-400" />
+            ) : sync.phase === "unlinked" || sync.phase === "offline" ? (
+              <CloudOff className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+            ) : (
+              <CloudUpload className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+            )}
+            <div className="min-w-0 flex-1">
+              <p className="text-[13px] font-medium text-foreground">{t("pf.syncNube")}</p>
+              <p className="text-[11px] text-muted-foreground leading-snug">
+                {sync.phase === "syncing"
+                  ? t("pf.syncSubiendo")
+                  : sync.phase === "ok"
+                    ? t("pf.syncOk", sync.email ? ` (${sync.email})` : "")
+                    : sync.phase === "offline"
+                      ? t("pf.syncOffline", sync.pending)
+                      : sync.phase === "unlinked"
+                        ? t("pf.syncUnlinked")
+                        : sync.phase === "error"
+                          ? t("pf.syncError")
+                          : t("pf.syncEntra")}
+                {sync.phase === "ok" && sync.lastSyncAt
+                  ? t("pf.ultimaSync", new Date(sync.lastSyncAt).toLocaleString("es-CL", { dateStyle: "short", timeStyle: "short" }))
+                  : ""}
+              </p>
+            </div>
+            {sync.phase !== "syncing" && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 shrink-0 px-2 text-[11px] text-muted-foreground"
+                onClick={() => void manualSync()}
+              >
+                {t("pf.sincronizar")}
+              </Button>
+            )}
+          </div>
+        </Card>
+      )}
+      {shareMsg && (
+        <p className="text-xs text-emerald-700 dark:text-emerald-300" role="status">
+          {shareMsg}
         </p>
-        <p className="mt-2 text-xs text-muted-foreground flex items-center gap-1">
-          <KeyRound className="h-3.5 w-3.5" /> {t("pf.pinSync")}
-        </p>
-      </Card>
+      )}
 
       {/* A-02: portabilidad de datos personales (Ley 21.719). */}
       <Card className="border-border bg-card p-4">

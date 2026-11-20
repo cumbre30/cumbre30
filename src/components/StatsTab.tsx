@@ -14,14 +14,13 @@
 // ============================================================
 
 import { useMemo, useState, useSyncExternalStore } from "react";
-import { CalendarRange, Flame, Gauge, Clock, Lock, Mountain, Route, TrendingUp, Trophy } from "lucide-react";
+import { CalendarRange, Gauge, Clock, Lock, Mountain, Route, TrendingUp, Trophy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { bikeOnly, historyStore, ridesForAccount } from "@/lib/history";
 import { formatClock } from "@/lib/geo";
 import { computeSegmentStats, fmtEffort, SEGMENTS } from "@/lib/segments";
 import { bestMonth, deltaVsPrev, monthlyBuckets } from "@/lib/statsMonthly";
-import { rachasDe } from "@/lib/rachas";
 import { useProLicense } from "@/lib/proLicense";
 import { useMe } from "@/hooks/useMe";
 import { ProTag } from "@/components/ProUI";
@@ -82,8 +81,7 @@ export function StatsTab({ onGoPro }: { onGoPro: () => void }) {
   const best = useMemo(() => bestMonth(months), [months]);
   const delta = useMemo(() => deltaVsPrev(months), [months]);
 
-  // Rachas (Ola 1): días/semanas consecutivas con al menos un ride GPS.
-  const rachas = useMemo(() => rachasDe(gpsRides), [gpsRides]);
+  // Rachas: tarjeta trasladada al Perfil → Desafíos y recompensas (v1.14.0).
 
   return (
     <div className="flex flex-col gap-4">
@@ -111,40 +109,8 @@ export function StatsTab({ onGoPro }: { onGoPro: () => void }) {
             {t("st.notaGps")}
           </p>
 
-          {/* Rachas de actividad (Ola 1): días y semanas consecutivas con ride */}
-          <Card className="p-4">
-            <div className="flex items-center gap-2">
-              <Flame className="h-4 w-4 text-orange-500" />
-              <p className="text-sm font-semibold text-foreground">{t("st.rachas")}</p>
-            </div>
-            <div className="mt-3 grid grid-cols-3 gap-2.5 text-center">
-              <div className="rounded-lg border border-border/70 bg-background/40 p-2.5">
-                <p className="font-mono text-[20px] font-bold leading-none tabular-nums text-foreground">
-                  {rachas.diasActual}
-                </p>
-                <p className="mt-1 text-[10px] leading-tight text-muted-foreground">{t("st.diasSeguidos")}</p>
-              </div>
-              <div className="rounded-lg border border-border/70 bg-background/40 p-2.5">
-                <p className="font-mono text-[20px] font-bold leading-none tabular-nums text-foreground">
-                  {rachas.diasMaxima}
-                </p>
-                <p className="mt-1 text-[10px] leading-tight text-muted-foreground">{t("st.recordDias")}</p>
-              </div>
-              <div className="rounded-lg border border-border/70 bg-background/40 p-2.5">
-                <p className="font-mono text-[20px] font-bold leading-none tabular-nums text-foreground">
-                  {rachas.semanasActual}
-                </p>
-                <p className="mt-1 text-[10px] leading-tight text-muted-foreground">{t("st.semanasSeguidas")}</p>
-              </div>
-            </div>
-            <p className="mt-2.5 text-center text-[11px] text-muted-foreground">
-              {rachas.diasTotales > 0
-                ? rachas.diasTotales === 1
-                  ? t("st.diaDistinto", rachas.diasTotales)
-                  : t("st.diasDistintos", rachas.diasTotales)
-                : t("st.arrancaRacha")}
-            </p>
-          </Card>
+          {/* Rachas de actividad se trasladó al Perfil → Desafíos y
+              recompensas (v1.14.0), como apertura de esa sección. */}
 
           {/* Teaser del resumen mensual avanzado (Pro) */}
           {!pro.active && (

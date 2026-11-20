@@ -28,7 +28,6 @@ import { PlanesTab } from "@/components/PlanesTab";
 import { StatsTab } from "@/components/StatsTab";
 import { ConfigTab } from "@/components/ConfigTab";
 import { HelpTab } from "@/components/HelpTab";
-import { AmigosTab } from "@/components/AmigosTab";
 import { FallOverlay } from "@/components/FallOverlay";
 import { useRideEngine, type Source } from "@/hooks/useRideEngine";
 import { useMe } from "@/hooks/useMe";
@@ -86,16 +85,6 @@ const ProfileTab = dynamic(() => import("@/components/ProfileTab"), {
   ),
 });
 
-const ChallengesTab = dynamic(() => import("@/components/ChallengesTab"), {
-  ssr: false,
-  loading: () => (
-    <Loading
-      k="pg.cargandoDesafios"
-      className="h-40 rounded-xl border border-border bg-card flex items-center justify-center"
-    />
-  ),
-});
-
 const PerfilTab = dynamic(() => import("@/components/PerfilTab").then((m) => ({ default: m.PerfilTab })), {
   ssr: false,
   loading: () => (
@@ -109,20 +98,20 @@ const PerfilTab = dynamic(() => import("@/components/PerfilTab").then((m) => ({ 
 /** Destinos de la barra inferior (los 4 del brief + Perfil Ciclista). */
 type TabScreen = "ride" | "explorar" | "acceso" | "ciclista";
 /** Sub-pantallas accesibles desde el menú lateral. */
-type SubScreen = MenuScreen; // historial | stats | premios | amigos | perfil | config | ayuda | planes
+type SubScreen = MenuScreen; // historial | stats | perfil | config | ayuda | planes
 type Screen = TabScreen | SubScreen;
 
 /** Claves i18n de las sub-pantallas del menú lateral. */
 const SUB_KEYS: Record<SubScreen, string> = {
   historial: "menu.historial",
   stats: "menu.stats",
-  premios: "menu.premios",
-  amigos: "menu.amigos",
   perfil: "menu.perfil",
   config: "menu.config",
   ayuda: "menu.ayuda",
   planes: "menu.planes",
 };
+// "premios" y "amigos" ya no son pantallas (v1.14.0): son secciones del
+// Perfil Ciclista (screen "ciclista"), unificadas según el brief. 
 
 function GpsChip({ status, simRunning }: { status: string; simRunning: boolean }) {
   useLang(); // re-render al cambiar el idioma
@@ -190,15 +179,15 @@ export default function Home() {
     registrarToqueActualizacion();
     void autoCheckAlAbrir();
   }, []);
-  // Invitación de amigo (Ola 2): /geo?agregar=usuario abre la pestaña
-  // Amigos con el nombre prellenado (después del montaje, sin romper
-  // la hidratación).
+  // Invitación de amigo (Ola 2): /geo?agregar=usuario abre el Perfil
+  // Ciclista en su sección Amigos con el nombre prellenado (después del
+  // montaje, sin romper la hidratación).
   const [invitado, setInvitado] = useState<string | null>(null);
   useEffect(() => {
     const quien = new URLSearchParams(window.location.search).get("agregar");
     if (quien) {
       setInvitado(quien);
-      setScreen("amigos");
+      setScreen("ciclista");
     }
   }, []);
   // Enlace viaje ↔ cuenta: rides nuevos y antiguos quedan asociados al
@@ -391,7 +380,13 @@ export default function Home() {
 
         {/* Perfil Ciclista (v1.13.16): 4ª pestaña. Sin sesión muestra la
             invitación a Cuenta — el perfil no se inventa datos. */}
-        {screen === "ciclista" && <PerfilTab onGoCuenta={() => go("perfil")} />}
+        {screen === "ciclista" && (
+          <PerfilTab
+            onGoCuenta={() => go("perfil")}
+            onGoPro={() => go("planes")} // desafíos Pro → comparación FREE/PRO
+            invitado={invitado}
+          />
+        )}
 
         {screen !== "ride" && screen !== "explorar" && screen !== "acceso" && screen !== "ciclista" && (
           <section aria-label={t(SUB_KEYS[screen])}>
@@ -409,13 +404,7 @@ export default function Home() {
               />
             )}
             {screen === "stats" && <StatsTab onGoPro={() => go("planes")} />}
-            {screen === "premios" && (
-              <ChallengesTab
-                onGoPerfil={() => go("perfil")}
-                onGoPro={() => go("planes")} // desafíos Pro → comparación FREE/PRO
-              />
-            )}
-            {screen === "amigos" && <AmigosTab onGoPerfil={() => go("perfil")} invitado={invitado} />}
+            {/* Desafíos y recompensas + Amigos: secciones del Perfil Ciclista (v1.14.0) */}
             {screen === "perfil" && <ProfileTab />}
             {screen === "config" && (
               <ConfigTab

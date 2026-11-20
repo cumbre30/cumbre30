@@ -1,19 +1,23 @@
 "use client";
 
 /**
- * PerfilTab — Perfil Ciclista (fase 1, v1.13.16): 4ª pestaña de la
- * barra inferior. Muestra el arquetipo con su "por qué", el radar de
- * los 5 ejes, las medidas de los últimos 90 días y los rides que
- * alimentan el perfil con su peso por frescura. El botón "Compartir
- * perfil" se trasladó aquí desde Cuenta: genera la tarjeta del perfil
- * (arquetipo + ejes) en vez del resumen de totales.
+ * PerfilTab — Perfil Ciclista (v1.13.16, reorganizado en v1.14.0):
+ * 4ª pestaña de la barra inferior con TRES secciones (SubTabs):
+ *   · ADN — todo lo del perfil de pedaleo: arquetipo con su "por qué",
+ *     radar de los 6 ejes, medidas de los últimos 90 días y los rides
+ *     que lo alimentan. Al principio: las tarjetas "Tu progreso" y
+ *     "Tus niveles" (trasladadas desde Desafíos y recompensas).
+ *   · Desafíos y recompensas — rachas (trasladada desde Estadísticas
+ *     generales) + desafíos del cerro, con fecha, retos y pines.
+ *   · Amigos — el listado y la invitación por enlace (trasladado del
+ *     menú lateral).
  *
  * El cálculo vive en el servidor (lib/profileServer): esta pantalla
- * solo consume GET /api/profile. Sin sesión muestra la invitación a
- * Cuenta — el perfil no se inventa datos.
+ * solo consume GET /api/profile. Sin sesión, la ADN muestra la
+ * invitación a Cuenta y las otras secciones sus propios accesos.
  */
 
-import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { useLang, t } from "@/lib/i18n";
 import { useMe } from "@/hooks/useMe";
@@ -23,12 +27,17 @@ import { serverToken, syncStore } from "@/lib/cloudSync";
 import { sharePngBlob, buildShareImage } from "@/lib/shareImage";
 import { PINS, DEFAULT_PIN, type PinId } from "@/lib/pins";
 import type { PerfilSummary } from "@/lib/profileServer";
+import { SubTabs } from "@/components/SubTabs";
+import { DesafiosYRecompensas, ProgresoYNivel } from "@/components/ChallengesTab";
+import { AmigosTab } from "@/components/AmigosTab";
 
 type Data = {
   perfil: PerfilSummary;
   minRides: number;
   ventanaDias: number;
 };
+
+type Seccion = "adn" | "desafios" | "amigos";
 
 const EMOJI: Record<string, string> = {
   CALIBRATING: "🧭",
@@ -110,7 +119,15 @@ function Radar({ scores }: { scores: PerfilSummary["scores"] }) {
   );
 }
 
-export function PerfilTab({ onGoCuenta }: { onGoCuenta?: () => void }) {
+export function PerfilTab({
+  onGoCuenta,
+  onGoPro,
+  invitado,
+}: {
+  onGoCuenta?: () => void;
+  onGoPro?: () => void;
+  invitado?: string | null;
+}) {
   useLang();
   const { me } = useMe();
   const offline = isOfflineMode();
@@ -126,6 +143,13 @@ export function PerfilTab({ onGoCuenta }: { onGoCuenta?: () => void }) {
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [shareMsg, setShareMsg] = useState<string | null>(null);
+
+  // Secciones del Perfil (v1.14.0). La invitación por enlace de amigo
+  // (/geo?agregar=usuario) aterriza directo en Amigos.
+  const [seccion, setSeccion] = useState<Seccion>(invitado ? "amigos" : "adn");
+  useEffect(() => {
+    if (invitado) setSeccion("amigos");
+  }, [invitado]);
 
   const cargar = useCallback(async () => {
     if (url === null || !hasSession) {
@@ -182,9 +206,11 @@ export function PerfilTab({ onGoCuenta }: { onGoCuenta?: () => void }) {
     setTimeout(() => setShareMsg(null), 8000);
   }, [me, data]);
 
-  // ---------- sin sesión utilizable: invitación a Cuenta ----------
+  // ---------- ADN: contenido según estado de sesión/datos ----------
+  let adn: ReactNode;
   if (!hasSession) {
-    return (
+    // Sin sesión utilizable: invitación a Cuenta — el perfil no se inventa datos.
+    adn = (
       <section aria-label={t("pc.titulo")} className="rounded-xl border border-border bg-card p-5">
         <h2 className="text-base font-bold text-foreground">{t("pc.titulo")}</h2>
         <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{t("pc.requiereSesion")}</p>
@@ -195,11 +221,9 @@ export function PerfilTab({ onGoCuenta }: { onGoCuenta?: () => void }) {
         )}
       </section>
     );
-  }
-
-  // ---------- con sesión pero sin servidor de cuenta (APK) ----------
-  if (noBackend) {
-    return (
+  } else if (noBackend) {
+    // Con sesión pero sin servidor de cuenta (APK)
+    adn = (
       <section aria-label={t("pc.titulo")} className="rounded-xl border border-border bg-card p-5">
         <h2 className="text-base font-bold text-foreground">{t("pc.titulo")}</h2>
         <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{t("pc.noBackend")}</p>
@@ -210,14 +234,10 @@ export function PerfilTab({ onGoCuenta }: { onGoCuenta?: () => void }) {
         )}
       </section>
     );
-  }
-
-  // ---------- cargando / error ----------
-  if (cargando && !data) {
-    return <div className="mt-6 text-center text-sm text-muted-foreground">{t("pg.cargandoCiclista")}</div>;
-  }
-  if (error && !data) {
-    return (
+  } else if (cargando && !data) {
+    adn = <div className="mt-6 text-center text-sm text-muted-foreground">{t("pg.cargandoCiclista")}</div>;
+  } else if (error && !data) {
+    adn = (
       <div className="mt-6 text-center text-sm text-muted-foreground">
         {error}
         <Button variant="outline" size="sm" className="mt-3" onClick={() => void cargar()}>
@@ -225,9 +245,45 @@ export function PerfilTab({ onGoCuenta }: { onGoCuenta?: () => void }) {
         </Button>
       </div>
     );
+  } else if (!data) {
+    adn = null;
+  } else {
+    adn = <AdnContenido data={data} me={me} onShare={share} shareMsg={shareMsg} />;
   }
-  if (!data) return null;
 
+  return (
+    <div className="flex flex-col gap-3">
+      {/* Tres secciones (v1.14.0): ADN · Desafíos y recompensas · Amigos */}
+      <SubTabs
+        ariaLabel={t("pc.seccionesAria")}
+        value={seccion}
+        onChange={(k) => setSeccion(k as Seccion)}
+        tabs={[
+          { key: "adn", label: t("pc.secAdn") },
+          { key: "desafios", label: t("menu.premios") },
+          { key: "amigos", label: t("menu.amigos") },
+        ]}
+      />
+
+      {seccion === "adn" && adn}
+      {seccion === "desafios" && <DesafiosYRecompensas onGoPerfil={onGoCuenta} onGoPro={onGoPro} />}
+      {seccion === "amigos" && <AmigosTab onGoPerfil={onGoCuenta} invitado={invitado} />}
+    </div>
+  );
+}
+
+/** Contenido de la ADN: progreso/niveles al principio + perfil de pedaleo. */
+function AdnContenido({
+  data,
+  me,
+  onShare,
+  shareMsg,
+}: {
+  data: Data;
+  me: ReturnType<typeof useMe>["me"];
+  onShare: () => void;
+  shareMsg: string | null;
+}) {
   const p = data.perfil;
   const emoji = EMOJI[p.archetype] ?? "";
   const axes: Array<[ClaveEje, number | null]> = [
@@ -264,6 +320,10 @@ export function PerfilTab({ onGoCuenta }: { onGoCuenta?: () => void }) {
 
   return (
     <div className="flex flex-col gap-3">
+      {/* Progreso y niveles (trasladados desde Desafíos y recompensas):
+          al principio de la ADN. Sin datos de cuenta no renderizan. */}
+      <ProgresoYNivel />
+
       {/* Calibración */}
       <section aria-label={t("pc.calibracion")} className="rounded-xl border border-border bg-card p-4">
         <div className="flex items-center justify-between text-[12.5px] text-muted-foreground">
@@ -372,7 +432,7 @@ export function PerfilTab({ onGoCuenta }: { onGoCuenta?: () => void }) {
 
       {/* Compartir (trasladado desde Cuenta) + metodología */}
       <section aria-label={t("pf.compartirPerfil")} className="rounded-xl border border-border bg-card p-4">
-        <Button variant="outline" size="sm" className="w-full" onClick={() => void share()} title={t("pf.compartirPerfilTitle")}>
+        <Button variant="outline" size="sm" className="w-full" onClick={onShare} title={t("pf.compartirPerfilTitle")}>
           {t("pf.compartirPerfil")}
         </Button>
         {shareMsg && <p className="mt-2 text-center text-[11.5px] text-emerald-600 dark:text-emerald-400">{shareMsg}</p>}

@@ -723,6 +723,7 @@ const D: Record<string, E> = {
   // ---------- Cuenta (antes «Perfil»; el nombre queda reservado para el Perfil Ciclista, fase 1) ----------
   "pf.subDatos": ["Mis datos", "My data", "Meus dados"],
   "pf.subPagos": ["Pagos y suscripciones", "Payments and subscriptions", "Pagamentos e assinaturas"],
+  "pf.subGestionar": ["Gestionar", "Manage", "Gerenciar"],
   "pf.subAria": ["Subsecciones de Cuenta", "Account subsections", "Subseções de Conta"],
   "pf.tuCuenta": ["Tu cuenta Cumbre30", "Your Cumbre30 account", "Sua conta Cumbre30"],
   "pf.cuentaIntro": ["Crea tu sesión con correo y nombre de usuario para acumular kilómetros, desbloquear pines y reportar incidencias visibles para todos.", "Create your account with email and username to accumulate kilometers, unlock pins and report incidents visible to everyone.", "Crie sua sessão com e-mail e nome de usuário para acumular quilômetros, desbloquear pins e reportar incidentes visíveis para todos."],
@@ -1025,6 +1026,8 @@ const D: Record<string, E> = {
   // ---------- Perfil Ciclista (fase 1, v1.13.16) ----------
   // Pantalla del perfil deportivo de 5 ejes (4ª pestaña). Claves pc.*.
   "pc.titulo": ["Tu perfil de pedaleo", "Your riding profile", "Seu perfil de pedalada"],
+  "pc.secAdn": ["ADN", "DNA", "ADN"],
+  "pc.seccionesAria": ["Secciones del perfil", "Profile sections", "Seções do perfil"],
   "pc.sub": ["Cómo pedala tu cuerpo según tus últimos 90 días de rides. Se recalcula al cerrar cada ruta.", "How your body rides, based on your last 90 days of rides. It recalculates when each route is saved.", "Como seu corpo pedala segundo seus últimos 90 dias de passeios. Recalcula ao salvar cada rota."],
   "pc.requiereSesion": ["Inicia sesión para construir tu perfil con tus rutas de los últimos 90 días.", "Sign in to build your profile from your last 90 days of routes.", "Entre para construir seu perfil com suas rotas dos últimos 90 dias."],
   "pc.irCuenta": ["Iniciar sesión en Cuenta", "Sign in via Account", "Entrar em Conta"],

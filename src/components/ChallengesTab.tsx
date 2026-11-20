@@ -1,9 +1,15 @@
 "use client";
 
 // ============================================================
-// Desafíos y recompensas - sección de la cuenta (requiere sesión;
-// sin sesión muestra acceso directo a iniciar sesión y luego carga).
-// Estructura (referencia: mockup de progreso gamificado):
+// Desafíos y recompensas (v1.14.0: sección del Perfil Ciclista).
+// La pestaña propia del menú desaparece: su contenido se divide en
+// dos piezas exportadas que el Perfil renderiza como secciones:
+//   · ProgresoYNivel — "Tu progreso" + "Tus niveles": al PRINCIPIO
+//     de la sección ADN del Perfil.
+//   · DesafiosYRecompensas — rachas (trasladada desde Estadísticas
+//     generales, al principio) + Desafíos del cerro + Desafíos con
+//     fecha + Retos puntuales + Tus pines.
+// Estructura original (referencia: mockup de progreso gamificado):
 //   · "Tu progreso": km acumulados (GPS real, de la cuenta) + anillo
 //     de avance del nivel actual y km que faltan al siguiente.
 //   · "Tus niveles": Explorador → Ciclista → Montañero → Desafiante
@@ -17,8 +23,8 @@
 //     requiere Cumbre30 Pro (los ya ganados se conservan).
 // ============================================================
 
-import { useEffect, useState, type ReactNode } from "react";
-import { CheckCircle2, ChevronDown, Crown, Lock, LogIn, MapPin } from "lucide-react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { CheckCircle2, ChevronDown, Crown, Flame, Lock, LogIn, MapPin } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -44,6 +50,7 @@ import {
   type TimeScope,
 } from "@/lib/pins";
 import { bikeOnly, historyStore, ridesForAccount, type RideSummary } from "@/lib/history";
+import { rachasDe } from "@/lib/rachas";
 import { isOfflineMode, offlineUpdateProfile } from "@/lib/offlineAuth";
 import { useMe, refreshMe, type MeData } from "@/hooks/useMe";
 import { useProLicense } from "@/lib/proLicense";
@@ -203,7 +210,7 @@ function TimeChallengeRow({ c, ws }: { c: TimeChallenge; ws: Record<TimeScope, {
  * Rides de la cuenta para los desafíos con fecha: en el APK, el
  * historial local (en bici); en la web, GET /api/rides del servidor.
  */
-function useAccountRides(me: MeData | null): RideSummary[] {
+export function useAccountRides(me: MeData | null): RideSummary[] {
   const [rides, setRides] = useState<RideSummary[]>([]);
   const email = me?.user.email ?? null;
   const offline = isOfflineMode();
@@ -260,7 +267,159 @@ function LevelRing({ pct, km, gold = false }: { pct: number; km: number; gold?: 
   );
 }
 
-export default function ChallengesTab({ onGoPerfil, onGoPro }: { onGoPerfil: () => void; onGoPro?: () => void }) {
+// ------------------------------------------------------------
+// Rachas (trasladada desde Estadísticas generales, v1.14.0): abre
+// la sección Desafíos y recompensas. Recibe los rides de la cuenta
+// ya filtrados (en bici, GPS real) — los mismos del progreso con
+// fecha, así que una sola fuente alimenta ambas tarjetas.
+// ------------------------------------------------------------
+export function RachasCard({ rides }: { rides: RideSummary[] }) {
+  useLang();
+  const rachas = useMemo(() => rachasDe(rides), [rides]);
+  return (
+    <Card className="p-4">
+      <div className="flex items-center gap-2">
+        <Flame className="h-4 w-4 text-orange-500" />
+        <p className="text-sm font-semibold text-foreground">{t("st.rachas")}</p>
+      </div>
+      <div className="mt-3 grid grid-cols-3 gap-2.5 text-center">
+        <div className="rounded-lg border border-border/70 bg-background/40 p-2.5">
+          <p className="font-mono text-[20px] font-bold leading-none tabular-nums text-foreground">
+            {rachas.diasActual}
+          </p>
+          <p className="mt-1 text-[10px] leading-tight text-muted-foreground">{t("st.diasSeguidos")}</p>
+        </div>
+        <div className="rounded-lg border border-border/70 bg-background/40 p-2.5">
+          <p className="font-mono text-[20px] font-bold leading-none tabular-nums text-foreground">
+            {rachas.diasMaxima}
+          </p>
+          <p className="mt-1 text-[10px] leading-tight text-muted-foreground">{t("st.recordDias")}</p>
+        </div>
+        <div className="rounded-lg border border-border/70 bg-background/40 p-2.5">
+          <p className="font-mono text-[20px] font-bold leading-none tabular-nums text-foreground">
+            {rachas.semanasActual}
+          </p>
+          <p className="mt-1 text-[10px] leading-tight text-muted-foreground">{t("st.semanasSeguidas")}</p>
+        </div>
+      </div>
+      <p className="mt-2.5 text-center text-[11px] text-muted-foreground">
+        {rachas.diasTotales > 0
+          ? rachas.diasTotales === 1
+            ? t("st.diaDistinto", rachas.diasTotales)
+            : t("st.diasDistintos", rachas.diasTotales)
+          : t("st.arrancaRacha")}
+      </p>
+    </Card>
+  );
+}
+
+// ------------------------------------------------------------
+// Progreso + Niveles: viven al PRINCIPIO de la sección ADN del
+// Perfil Ciclista (v1.14.0). Sin sesión no renderiza nada: la ADN
+// ya muestra su invitación a entrar.
+// ------------------------------------------------------------
+export function ProgresoYNivel() {
+  const { me, ready } = useMe();
+  useLang();
+  if (!ready || !me) return null;
+
+  // ---- Nivel actual según km acumulados (helper compartido con Cuenta) ----
+  const km = me.stats.totalKm;
+  const { index: lvlIdx, level: lvl, next, pct: lvlPct, toNext } = riderLevelForKm(km);
+  // 🌟 Leyenda: título exclusivo de esta tarjeta al superar los 500 km
+  // (el umbral coincide con el Diamante de la Serie Kilómetros).
+  const isLeyenda = km >= LEYENDA_KM;
+
+  return (
+    <div className="flex flex-col gap-4">
+      {/* ---- Tu progreso ---- */}
+      <Card className={`bg-card/80 border-border p-4 ${isLeyenda ? "border-amber-500/50 bg-gradient-to-br from-amber-950/30 to-card" : ""}`}>
+        <p className="text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground">{t("ch.tuProgreso")}</p>
+        <div className="mt-3 flex items-center gap-4">
+          <LevelRing pct={lvlPct} km={km} gold={isLeyenda} />
+          <div className="min-w-0 flex-1">
+            {isLeyenda ? (
+              <>
+                <p className="flex items-center gap-1.5 text-base font-extrabold text-amber-500 dark:text-amber-300">
+                  <span aria-hidden>🌟</span> {t("ch.leyenda")}
+                </p>
+                <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">
+                  {t("ch.leyendaNivel", lvlIdx + 1, lvl.emoji, lvl.name, km.toFixed(0))}
+                </p>
+                <p className="mt-2 text-[11px] leading-snug text-muted-foreground">
+                  {t("ch.leyendaSub", LEYENDA_KM)}
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="text-sm font-bold text-foreground">
+                  {t("ch.nivel", lvlIdx + 1, lvl.emoji, lvl.name)}
+                </p>
+                {next ? (
+                  <>
+                    <div className="mt-2">
+                      <ProgressBar pct={lvlPct} />
+                    </div>
+                    <p className="mt-1.5 text-[11px] leading-snug text-muted-foreground">
+                      {t("ch.teFaltan1")}<span className="font-semibold text-foreground">{toNext.toFixed(1)} km</span>{t("ch.teFaltan2", next.name, next.min)}
+                    </p>
+                  </>
+                ) : (
+                  <p className="mt-2 text-[11px] leading-snug text-muted-foreground">
+                    {t("ch.nivelMaximo")}
+                  </p>
+                )}
+              </>
+            )}
+            <p className="mt-1 text-[10.5px] leading-snug text-muted-foreground/80">
+              {t("ch.kmAcumulados")}
+            </p>
+          </div>
+        </div>
+      </Card>
+
+      {/* ---- Tus niveles ---- */}
+      <Card className="bg-card/80 border-border p-4">
+        <p className="text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground">{t("ch.tusNiveles")}</p>
+        <div className="mt-3 grid grid-cols-4 gap-2">
+          {RIDER_LEVELS.map((L, i) => {
+            const done = L.max != null ? km >= L.max : km >= L.min;
+            const current = i === lvlIdx;
+            return (
+              <div
+                key={L.name}
+                className={`relative flex flex-col items-center gap-1 rounded-xl border p-2.5 text-center ${
+                  current
+                    ? "border-emerald-500 bg-emerald-950/40 shadow-[0_0_14px_rgba(16,185,129,0.25)]"
+                    : "border-border bg-background/40"
+                }`}
+              >
+                <span className={`text-xl leading-none ${!done && !current ? "grayscale opacity-50" : ""}`} aria-hidden>{L.emoji}</span>
+                <span className={`text-[11px] font-semibold leading-tight ${current ? "text-emerald-700 dark:text-emerald-300" : done ? "text-foreground" : "text-muted-foreground"}`}>{L.name}</span>
+                <span className="text-[9.5px] leading-tight text-muted-foreground/80">
+                  {L.max != null ? `${L.min}-${L.max} km` : `${L.min}+ km`}
+                </span>
+                {done && !current && <CheckCircle2 className="absolute -top-1.5 -right-1.5 h-4 w-4 rounded-full bg-card text-emerald-600 dark:text-emerald-400" />}
+                {current && (
+                  <span className="absolute -top-2 right-1 rounded-full bg-emerald-500 px-1.5 text-[8px] font-extrabold uppercase tracking-wide text-(--c30-on-accent)">{t("ch.aqui")}</span>
+                )}
+                {!done && !current && <Lock className="absolute -top-1.5 -right-1.5 h-3.5 w-3.5 text-muted-foreground/70" />}
+              </div>
+            );
+          })}
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+// ------------------------------------------------------------
+// Desafíos y recompensas: sección del Perfil Ciclista (v1.14.0).
+// Rachas al principio (trasladada desde Estadísticas generales) +
+// los grupos de desafíos y los pines. Sin sesión muestra su propio
+// acceso directo a Cuenta.
+// ------------------------------------------------------------
+export function DesafiosYRecompensas({ onGoPerfil, onGoPro }: { onGoPerfil?: () => void; onGoPro?: () => void }) {
   const { me, ready } = useMe();
   useLang();
   const { pro } = useProLicense();
@@ -272,7 +431,7 @@ export default function ChallengesTab({ onGoPerfil, onGoPro }: { onGoPerfil: () 
   const [openTimeSeries, setOpenTimeSeries] = useState<Record<string, boolean>>({});
   const rides = useAccountRides(me);
 
-  // ---- Sin sesión: la sección es parte de la cuenta ----
+  // ---- Sin sesión: la sección es parte del Perfil ----
   if (!ready) {
     return (
       <div className="flex h-24 items-center justify-center rounded-xl border border-border bg-card text-sm text-muted-foreground">
@@ -413,92 +572,10 @@ export default function ChallengesTab({ onGoPerfil, onGoPro }: { onGoPerfil: () 
   const timeTotal = timeRows.reduce((n, r) => n + r.ts.challenges.length, 0);
   const timePct = timeTotal ? Math.round((timeDone / timeTotal) * 100) : 0;
 
-  // ---- Nivel actual según km acumulados (helper compartido con Perfil) ----
-  const km = stats.totalKm;
-  const { index: lvlIdx, level: lvl, next, pct: lvlPct, toNext } = riderLevelForKm(km);
-  // 🌟 Leyenda: título exclusivo de esta tarjeta al superar los 500 km
-  // (el umbral coincide con el Diamante de la Serie Kilómetros).
-  const isLeyenda = km >= LEYENDA_KM;
-
   return (
     <div className="flex flex-col gap-4">
-      {/* ---- Tu progreso ---- */}
-      <Card className={`bg-card/80 border-border p-4 ${isLeyenda ? "border-amber-500/50 bg-gradient-to-br from-amber-950/30 to-card" : ""}`}>
-        <p className="text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground">{t("ch.tuProgreso")}</p>
-        <div className="mt-3 flex items-center gap-4">
-          <LevelRing pct={lvlPct} km={km} gold={isLeyenda} />
-          <div className="min-w-0 flex-1">
-            {isLeyenda ? (
-              <>
-                <p className="flex items-center gap-1.5 text-base font-extrabold text-amber-500 dark:text-amber-300">
-                  <span aria-hidden>🌟</span> {t("ch.leyenda")}
-                </p>
-                <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">
-                  {t("ch.leyendaNivel", lvlIdx + 1, lvl.emoji, lvl.name, km.toFixed(0))}
-                </p>
-                <p className="mt-2 text-[11px] leading-snug text-muted-foreground">
-                  {t("ch.leyendaSub", LEYENDA_KM)}
-                </p>
-              </>
-            ) : (
-              <>
-                <p className="text-sm font-bold text-foreground">
-                  {t("ch.nivel", lvlIdx + 1, lvl.emoji, lvl.name)}
-                </p>
-                {next ? (
-                  <>
-                    <div className="mt-2">
-                      <ProgressBar pct={lvlPct} />
-                    </div>
-                    <p className="mt-1.5 text-[11px] leading-snug text-muted-foreground">
-                      {t("ch.teFaltan1")}<span className="font-semibold text-foreground">{toNext.toFixed(1)} km</span>{t("ch.teFaltan2", next.name, next.min)}
-                    </p>
-                  </>
-                ) : (
-                  <p className="mt-2 text-[11px] leading-snug text-muted-foreground">
-                    {t("ch.nivelMaximo")}
-                  </p>
-                )}
-              </>
-            )}
-            <p className="mt-1 text-[10.5px] leading-snug text-muted-foreground/80">
-              {t("ch.kmAcumulados")}
-            </p>
-          </div>
-        </div>
-      </Card>
-
-      {/* ---- Tus niveles ---- */}
-      <Card className="bg-card/80 border-border p-4">
-        <p className="text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground">{t("ch.tusNiveles")}</p>
-        <div className="mt-3 grid grid-cols-4 gap-2">
-          {RIDER_LEVELS.map((L, i) => {
-            const done = L.max != null ? km >= L.max : km >= L.min;
-            const current = i === lvlIdx;
-            return (
-              <div
-                key={L.name}
-                className={`relative flex flex-col items-center gap-1 rounded-xl border p-2.5 text-center ${
-                  current
-                    ? "border-emerald-500 bg-emerald-950/40 shadow-[0_0_14px_rgba(16,185,129,0.25)]"
-                    : "border-border bg-background/40"
-                }`}
-              >
-                <span className={`text-xl leading-none ${!done && !current ? "grayscale opacity-50" : ""}`} aria-hidden>{L.emoji}</span>
-                <span className={`text-[11px] font-semibold leading-tight ${current ? "text-emerald-700 dark:text-emerald-300" : done ? "text-foreground" : "text-muted-foreground"}`}>{L.name}</span>
-                <span className="text-[9.5px] leading-tight text-muted-foreground/80">
-                  {L.max != null ? `${L.min}-${L.max} km` : `${L.min}+ km`}
-                </span>
-                {done && !current && <CheckCircle2 className="absolute -top-1.5 -right-1.5 h-4 w-4 rounded-full bg-card text-emerald-600 dark:text-emerald-400" />}
-                {current && (
-                  <span className="absolute -top-2 right-1 rounded-full bg-emerald-500 px-1.5 text-[8px] font-extrabold uppercase tracking-wide text-(--c30-on-accent)">{t("ch.aqui")}</span>
-                )}
-                {!done && !current && <Lock className="absolute -top-1.5 -right-1.5 h-3.5 w-3.5 text-muted-foreground/70" />}
-              </div>
-            );
-          })}
-        </div>
-      </Card>
+      {/* ---- Rachas (trasladada desde Estadísticas generales) ---- */}
+      <RachasCard rides={rides} />
 
       {/* ---- Desafíos del cerro (menú desplegable con % por serie) ---- */}
       <Card className="bg-card/80 border-border p-4">

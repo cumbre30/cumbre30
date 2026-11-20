@@ -32,12 +32,12 @@ import { t, useLang } from "@/lib/i18n";
 export type MenuScreen =
   | "historial"
   | "stats"
-  | "premios"
-  | "amigos"
   | "perfil"
   | "config"
   | "ayuda"
   | "planes";
+// "premios" y "amigos" dejaron de ser pantallas (v1.14.0): su contenido
+// vive como secciones del Perfil Ciclista (barra inferior).
 
 function MenuItem({
   icon,
@@ -157,8 +157,7 @@ export function AppDrawer({
           <p className="px-1 pb-1 pt-2 text-[10.5px] font-extrabold uppercase tracking-widest text-muted-foreground/70">{t("drawer.zonaActividad")}</p>
           <MenuItem icon={<History className="h-5 w-5" />} label={t("menu.historial")} onClick={() => go("historial")} />
           <MenuItem icon={<ChartLine className="h-5 w-5" />} label={t("menu.stats")} onClick={() => go("stats")} />
-          <MenuItem icon={<Trophy className="h-5 w-5" />} label={t("menu.premios")} onClick={() => go("premios")} />
-          <MenuItem icon={<Users className="h-5 w-5" />} label={t("menu.amigos")} hint={t("drawer.amigosHint")} onClick={() => go("amigos")} />
+          {/* Desafíos y recompensas + Amigos: secciones del Perfil Ciclista desde v1.14.0 */}
         </div>
 
         {/* Zona 3: Cuenta - abre subsecciones (datos/pagos) */}
