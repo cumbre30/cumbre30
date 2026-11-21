@@ -54,8 +54,8 @@ export default function TerminosPage() {
           un estudio independiente de software. Para cualquier consulta escribe a{" "}
           <a href="mailto:contacto.cumbre30@gmail.com" className="font-medium text-emerald-600 underline-offset-2 hover:underline dark:text-emerald-400">
             contacto.cumbre30@gmail.com
-          </a>{" "}
-          o contáctanos por WhatsApp al +56 9 4296 1619. Al descargar, instalar o usar Cumbre30, ya sea en el
+          </a>
+          . Al descargar, instalar o usar Cumbre30, ya sea en el
           teléfono o en la web, aceptas estos términos.
         </p>
       </Section>

@@ -2,8 +2,10 @@
 
 // ============================================================
 // Ayuda y contacto - con subsecciones:
-//   · "Ayuda": contacto (correo; sin WhatsApp a pedido del
+//   · "Ayuda": contacto (SOLO correo — el número de WhatsApp de
+//     soporte se eliminó de la app y de la web a pedido del
 //     proyecto), consejos rápidos de GPS e info de constancias.
+//     Los párrafos van justificados (text-justify).
 //   · "Prototipo": formulario "¿Gestionas un parque o ciclovía?"
 //     para armar un prototipo white-label del motor Cumbre30.
 // ============================================================
@@ -15,7 +17,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { CONTACT_EMAIL, CONTACT_WHATSAPP, openExternal } from "@/lib/proConfig";
+import { CONTACT_EMAIL, openExternal } from "@/lib/proConfig";
 import { SubTabs } from "@/components/SubTabs";
 import { t, useLang } from "@/lib/i18n";
 
@@ -47,13 +49,6 @@ export function HelpTab() {
     if (cPhone.trim()) lines.push(t("ay.msgTelefono", cPhone.trim()));
     if (cText.trim()) lines.push("", t("ay.msgMensaje", cText.trim()));
     return lines.join("\n");
-  };
-
-  const sendWhatsApp = (): void => {
-    if (!CONTACT_WHATSAPP) return;
-    void openExternal(`https://wa.me/${CONTACT_WHATSAPP}?text=${encodeURIComponent(buildContactMsg())}`);
-    setCMsg({ ok: true, text: t("ay.waListo") });
-    setTimeout(() => setCMsg(null), 9000);
   };
 
   const sendMail = (): void => {
@@ -97,14 +92,14 @@ export function HelpTab() {
         <div className="mb-1.5 flex items-center gap-2 font-bold text-foreground">
           <Mountain className="h-4 w-4 text-emerald-500" /> {t("ay.gpsTitulo")}
         </div>
-        <p className="text-[13px] leading-relaxed text-muted-foreground">
+        <p className="text-[13px] leading-relaxed text-justify text-muted-foreground">
           {t("ay.gpsCuerpo1")}<b className="text-foreground">{t("ay.permitirSiempre")}</b>{t("ay.gpsCuerpo2")}
         </p>
       </Card>
 
       <Card className="p-4">
         <div className="mb-1.5 font-bold text-foreground">{t("ay.constanciasTitulo")}</div>
-        <p className="text-[13px] leading-relaxed text-muted-foreground">
+        <p className="text-[13px] leading-relaxed text-justify text-muted-foreground">
           {t("ay.constanciasCuerpo1")}<b className="text-foreground">{t("ay.misViajes")}</b>{t("ay.constanciasCuerpo2")}
         </p>
       </Card>
@@ -114,7 +109,7 @@ export function HelpTab() {
         <div className="mb-1.5 flex items-center gap-2 font-bold text-foreground">
           <Map className="h-4 w-4 text-emerald-500" /> {t("ay.fuentesTitulo")}
         </div>
-        <p className="text-[13px] leading-relaxed text-muted-foreground">
+        <p className="text-[13px] leading-relaxed text-justify text-muted-foreground">
           {t("ay.fuentesCuerpo")}
         </p>
         <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
@@ -136,7 +131,7 @@ export function HelpTab() {
         <div className="mb-1.5 flex items-center gap-2 font-bold text-foreground">
           <ShieldCheck className="h-4 w-4 text-emerald-500" /> {t("ay.terminosTitulo")}
         </div>
-        <p className="text-[13px] leading-relaxed text-muted-foreground">
+        <p className="text-[13px] leading-relaxed text-justify text-muted-foreground">
           {t("ay.terminosCuerpo")}
         </p>
         {/* A-01: enlaces a los documentos legales completos. */}
@@ -155,7 +150,7 @@ export function HelpTab() {
         <div className="mb-1.5 flex items-center gap-2 font-bold text-foreground">
           <Lock className="h-4 w-4 text-emerald-500" /> {t("ay.privacidadTitulo")}
         </div>
-        <p className="text-[13px] leading-relaxed text-muted-foreground">
+        <p className="text-[13px] leading-relaxed text-justify text-muted-foreground">
           {t("ay.privacidadCuerpo1")}
         </p>
         <ul className="mt-2 list-disc space-y-1 pl-5 text-[12.5px] leading-relaxed text-muted-foreground">
@@ -175,7 +170,7 @@ export function HelpTab() {
         <div className="mb-1.5 flex items-center gap-2 font-bold text-foreground">
           <Mountain className="h-4 w-4 text-emerald-500" /> {t("ay.parqueTitulo")}
         </div>
-        <p className="text-[13px] leading-relaxed text-muted-foreground">
+        <p className="text-[13px] leading-relaxed text-justify text-muted-foreground">
           {t("ay.parqueCuerpo")}
         </p>
         {!showContact ? (
@@ -212,22 +207,15 @@ export function HelpTab() {
             </div>
             <div className="flex gap-2">
               <Button
-                disabled={!CONTACT_WHATSAPP || !contactOk}
-                onClick={sendWhatsApp}
-                className="h-10 flex-1 bg-emerald-600 font-semibold text-(--c30-on-accent) hover:bg-emerald-500"
-              >
-                {t("ay.enviarWhatsapp")}
-              </Button>
-              <Button
                 variant="outline"
                 disabled={!CONTACT_EMAIL || !contactOk}
                 onClick={sendMail}
-                className="h-10 flex-1 border-border text-foreground"
+                className="h-10 w-full border-border text-foreground"
               >
                 {t("ay.porCorreo")}
               </Button>
             </div>
-            {(!CONTACT_WHATSAPP || !CONTACT_EMAIL) && (
+            {!CONTACT_EMAIL && (
               <p className="text-[11px] text-muted-foreground">
                 {t("ay.contactoConfigurando")}
               </p>

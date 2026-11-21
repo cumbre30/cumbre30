@@ -63,20 +63,11 @@ export default function EliminarCuentaPage() {
       </div>
 
       <p className="mt-6 text-[13px] leading-relaxed text-justify text-muted-foreground">
-        ¿Problemas o prefieres que lo hagamos nosotros? Escríbenos a{" "}
+        ¿Problemas o prefieres que lo hagamos nosotros? Escríbenos desde el correo de tu cuenta a{" "}
         <a href="mailto:contacto.cumbre30@gmail.com" className="font-medium text-emerald-600 hover:underline dark:text-emerald-400">
           contacto.cumbre30@gmail.com
         </a>{" "}
-        o por{" "}
-        <a
-          href="https://wa.me/56942961619?text=Hola%2C%20quiero%20eliminar%20mi%20cuenta%20de%20Cumbre30"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="font-medium text-emerald-600 hover:underline dark:text-emerald-400"
-        >
-          WhatsApp +56 9 4296 1619
-        </a>{" "}
-        desde el correo de tu cuenta y la damos de baja.
+        y la damos de baja.
       </p>
 
       <p className="mt-8 text-xs text-muted-foreground">

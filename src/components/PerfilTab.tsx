@@ -24,8 +24,7 @@ import { useMe } from "@/hooks/useMe";
 import { apiUrl } from "@/lib/backend";
 import { isOfflineMode } from "@/lib/offlineAuth";
 import { serverToken, syncStore } from "@/lib/cloudSync";
-import { sharePngBlob, buildShareImage } from "@/lib/shareImage";
-import { PINS, DEFAULT_PIN, type PinId } from "@/lib/pins";
+import { sharePngBlob, buildAdnImage } from "@/lib/shareAdn";
 import type { PerfilSummary } from "@/lib/profileServer";
 import { SubTabs } from "@/components/SubTabs";
 import { DesafiosYRecompensas, ProgresoYNivel } from "@/components/ChallengesTab";
@@ -181,23 +180,20 @@ export function PerfilTab({
     setShareMsg(null);
     try {
       const p = data.perfil;
-      const ejeLabel = (k: string) => t(NOMBRE_EJE[k]);
-      const valor = (v: number | null) => (v === null ? "-" : String(Math.round(v)));
-      const pin = PINS[(me.user.selectedPin as PinId) ?? DEFAULT_PIN] ?? PINS[DEFAULT_PIN];
-      const blob = await buildShareImage({
-        headline: `${EMOJI[p.archetype] ?? ""} ${t(`pc.arch${p.archetype}`)}`,
-        sub: `${t("pc.shareSub")} · @${me.user.username}`,
-        rows: [
-          { label: ejeLabel("climbing"), value: valor(p.scores.climbing) },
-          { label: ejeLabel("endurance"), value: valor(p.scores.endurance) },
-          { label: ejeLabel("speed"), value: valor(p.scores.speed) },
-          { label: ejeLabel("power"), value: valor(p.scores.power) },
-          { label: ejeLabel("consistency"), value: valor(p.scores.consistency) },
-          { label: ejeLabel("explorer"), value: valor(p.scores.explorer) },
-        ],
-        footer: `${pin.emoji} ${t("pc.shareTexto")}`,
+      const blob = await buildAdnImage({
+        archetype: p.archetype,
+        calibrating: p.calibrating,
+        validRides: p.validRides,
+        minRides: data.minRides,
+        scores: p.scores,
+        extras: {
+          vamAvg: p.extras.vamAvg,
+          estWatts: p.extras.estWatts,
+          flatAvg: p.extras.flatAvg,
+          co2Kg: p.extras.co2Kg,
+        },
       });
-      const res = await sharePngBlob(blob, "cumbre30-perfil.png", t("pc.shareTexto"));
+      const res = await sharePngBlob(blob, "cumbre30-adn.png", t("pc.shareTexto"));
       setShareMsg(res === "shared" ? t("his.shareOk") : t("his.shareDescargada"));
     } catch (e) {
       if ((e as Error)?.name === "AbortError") return;

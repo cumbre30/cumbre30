@@ -43,10 +43,9 @@ import { apiUrl } from "@/lib/backend";
 import { serverToken } from "@/lib/cloudSync";
 import { shareOrDownloadFile } from "@/lib/shareFile";
 import { buildRideGpxBlob } from "@/lib/gpx";
-import { buildShareImage, sharePngBlob } from "@/lib/shareImage";
+import { buildWeekImage, sharePngBlob } from "@/lib/shareAdn";
 import { computeSegmentStats, effortsByRide, SEGMENTS, fmtEffort } from "@/lib/segments";
 import { userSegmentDefs, useTrazas } from "@/lib/trazasUsuario";
-import { PINS, DEFAULT_PIN } from "@/lib/pins";
 import {
   constanciaCount,
   FREE_CONSTANCIA_LIMIT,
@@ -190,17 +189,15 @@ export function HistoryTab({
     setShareBusy(true);
     setShareMsg(null);
     try {
-      const pin = PINS[(user?.selectedPin as keyof typeof PINS) ?? DEFAULT_PIN] ?? PINS[DEFAULT_PIN];
-      const uname = user?.username ?? "ciclista";
-      const blob = await buildShareImage({
-        headline: `${pin.emoji} @${uname}`,
-        sub: t("his.semanaSub", wk.label),
-        rows: [
-          { label: t("his.filaViajes"), value: String(weekStats.count) },
-          { label: t("his.filaKm"), value: `${weekStats.km.toFixed(1)} km` },
-          { label: t("his.filaTiempo"), value: formatClock(weekStats.sec) },
-          { label: t("his.filaDesnivel"), value: `+${Math.round(weekStats.gain)} m` },
-        ],
+      const blob = await buildWeekImage({
+        rides: weekRides.map((r) => ({
+          dateISO: r.dateISO,
+          distanceKm: r.distanceKm,
+          elapsedSec: r.elapsedSec,
+          gainM: r.gainM,
+        })),
+        start: wk.start,
+        end: wk.end,
       });
       const res = await sharePngBlob(blob, "cumbre30-semana.png", t("his.shareSemana"));
       setShareMsg(

@@ -35,7 +35,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { isOfflineMode, offlineUpdateProfile } from "@/lib/offlineAuth";
 import { DEFAULT_BIKE_KG, DEFAULT_RIDER_KG, getRideWeights, hydrateWeightsFromAccount, setRideWeights } from "@/lib/rideWeights";
 import { manualSync, syncStore } from "@/lib/cloudSync";
-import { CONTACT_WHATSAPP } from "@/lib/proConfig";
+import { CONTACT_EMAIL } from "@/lib/proConfig";
 import { nativeGoogleSignIn, nativeGoogleSignOut } from "@/lib/googleAuth";
 import { renderBotonGoogle } from "@/lib/googleWeb";
 import { Capacitor } from "@capacitor/core";
@@ -163,7 +163,7 @@ export default function ProfileTab() {
   };
 
   // --- Olvidé mi contraseña ---
-  // Server: paso 1 pide el código (lo entrega soporte por WhatsApp tras
+  // Server: paso 1 pide el código (lo entrega soporte por CORREO tras
   // verificar identidad), paso 2 cambia la contraseña con el código.
   // APK: se usa el código de recuperación local (XXXX-XXXX).
   const [authView, setAuthView] = useState<"form" | "forgot" | "googlePass">("form");
@@ -473,11 +473,9 @@ export default function ProfileTab() {
                     <p>{fMsg}</p>
                     <Button asChild variant="outline" className="mt-2 h-9 w-full border-emerald-600/50 text-emerald-700 hover:bg-emerald-950/40 dark:text-emerald-300">
                       <a
-                        href={`https://wa.me/${CONTACT_WHATSAPP}?text=${encodeURIComponent(`Hola Cumbre30, olvidé mi contraseña. Mi correo es ${fEmail}. ¿Me envían el código de restablecimiento?`)}`}
-                        target="_blank"
-                        rel="noreferrer"
+                        href={`mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(t("pf.resetAsunto"))}&body=${encodeURIComponent(`${t("pf.resetCuerpo")} ${fEmail}`)}`}
                       >
-                        {t("pf.escribirWhatsapp")}
+                        {t("pf.escribirSoporte")}
                       </a>
                     </Button>
                   </div>

@@ -50,8 +50,10 @@ export const DONATE_OPTIONS: { label: string; url: string }[] = [
   { label: "Aportar - monto libre", url: "https://link.mercadopago.cl/perfumatch" },
 ];
 
-/** Contacto para soporte (permitido por Play: no es steering de compra). */
-export const CONTACT_WHATSAPP = "56942961619"; // código de país + número, sin "+"
+/** Contacto para soporte — SOLO correo: el número de WhatsApp de
+ *  soporte se eliminó de la app y de la web (2026-11-21). El
+ *  WhatsApp que queda en iceContacts es el de los contactos de
+ *  emergencia DEL PROPIO usuario (ICE), no de Cumbre30. */
 export const CONTACT_EMAIL = "contacto.cumbre30@gmail.com";
 
 /** Beneficios Pro que se muestran en la tarjeta (validados en código). */

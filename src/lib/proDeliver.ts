@@ -110,7 +110,7 @@ export function licenseEmailHtml(email: string, code: string): string {
       <li>Ingresa tu correo <b>${email}</b> y el código de arriba</li>
     </ol>
     <p style="font-size:12.5px;color:#5a5248;line-height:1.6">El código está ligado a este correo. Si cambias de teléfono, quita la licencia desde el teléfono antiguo (Pagos y suscripciones → Quitar licencia) y actívala en el nuevo con el mismo correo.</p>
-    <p style="font-size:12.5px;color:#5a5248">¿Dudas? Responde este correo o escríbenos por WhatsApp.<br/>- Cumbre GEO · App independiente de apoyo al ciclista</p>
+    <p style="font-size:12.5px;color:#5a5248">¿Dudas? Responde este correo.<br/>- Cumbre GEO · App independiente de apoyo al ciclista</p>
   </div>`;
 }
 

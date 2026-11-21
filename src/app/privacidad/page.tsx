@@ -56,8 +56,8 @@ export default function PrivacidadPage() {
           cualquier consulta sobre tus datos escribe a{" "}
           <a href="mailto:contacto.cumbre30@gmail.com" className="font-medium text-emerald-600 underline-offset-2 hover:underline dark:text-emerald-400">
             contacto.cumbre30@gmail.com
-          </a>{" "}
-          o contáctanos por WhatsApp al +56 9 4296 1619.
+          </a>
+          , nuestro único canal oficial de contacto.
         </p>
       </Section>
 
@@ -232,8 +232,7 @@ export default function PrivacidadPage() {
           <a href="mailto:contacto.cumbre30@gmail.com" className="font-medium text-emerald-600 underline-offset-2 hover:underline dark:text-emerald-400">
             contacto.cumbre30@gmail.com
           </a>
-          , nuestro canal oficial como responsables del tratamiento. También puedes ejercerlas escribiendo por
-          WhatsApp al +56 9 4296 1619. Si crees que no respondimos como corresponde, puedes reclamar ante la
+          , nuestro canal oficial como responsables del tratamiento. Si crees que no respondimos como corresponde, puedes reclamar ante la
           Agencia de Protección de Datos Personales que establece la Ley 21.719.
         </p>
       </Section>

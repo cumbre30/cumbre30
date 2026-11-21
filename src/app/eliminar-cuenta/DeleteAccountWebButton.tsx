@@ -51,11 +51,11 @@ export function DeleteAccountWebButton() {
                 setMsg(
                   r.status === 401
                     ? "Necesitas sesión iniciada en la web para eliminar desde aquí. Entra con tu cuenta y vuelve a intentarlo, o elimina directamente en la app."
-                    : "No pudimos eliminar tu cuenta en este momento. Escríbenos por WhatsApp y lo hacemos nosotros."
+                    : "No pudimos eliminar tu cuenta en este momento. Escríbenos a contacto.cumbre30@gmail.com y lo hacemos nosotros."
                 );
               } catch {
                 setStage("error");
-                setMsg("Sin conexión con el servidor. Intenta más tarde o escríbenos por WhatsApp.");
+                setMsg("Sin conexión con el servidor. Intenta más tarde o escríbenos a contacto.cumbre30@gmail.com.");
               }
             }}
             className="rounded-md bg-red-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-500 disabled:opacity-60"

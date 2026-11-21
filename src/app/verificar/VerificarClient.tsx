@@ -227,7 +227,7 @@ export default function VerificarClient() {
         >
           cumbregeo.cl
         </Link>{" "}
-        · contacto.cumbre30@gmail.com · WhatsApp +56 9 4296 1619
+        · contacto.cumbre30@gmail.com
       </p>
     </main>
   );

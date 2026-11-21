@@ -157,7 +157,7 @@ export default function Wallet() {
           <IdCard className="h-5 w-5 text-emerald-600 dark:text-emerald-400 mt-0.5 shrink-0" />
           <div className="text-sm text-muted-foreground">
             <p className="font-medium text-foreground">QR Pedalea Seguro (Parquemet)</p>
-            <p className="mt-1 leading-relaxed">{t("qr.intro")}</p>
+            <p className="mt-1 leading-relaxed text-justify">{t("qr.intro")}</p>
           </div>
         </div>
       </Card>
@@ -168,7 +168,7 @@ export default function Wallet() {
           <CalendarDays className="h-5 w-5 text-emerald-600 dark:text-emerald-400 mt-0.5 shrink-0" />
           <div className="flex-1 text-sm text-muted-foreground">
             <p className="font-medium text-foreground">{t("qr.fechasTitulo")}</p>
-            <p className="mt-1 leading-relaxed">
+            <p className="mt-1 leading-relaxed text-justify">
               {t("qr.fechas1")}
               <span className="font-medium text-foreground">{t("qr.fecha1")}</span>
               {t("qr.fechas2")}
