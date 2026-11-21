@@ -163,17 +163,21 @@ export default function Home() {
   // Separación web/APK (v1.11.0): el APK es el producto GPS - el demo se
   // prueba en vivo en la web (botón "Probar demo" del modal en /geo) y la
   // web corre el demo por defecto. Escape hatch de desarrollo: ?gps=1.
-  const [source] = useState<Source>(() => {
-    if (process.env.NEXT_PUBLIC_STATIC === "1") return "gps";
-    try {
-      if (typeof window !== "undefined" && new URLSearchParams(window.location.search).has("gps")) {
-        return "gps";
-      }
-    } catch {
-      // sin window: default
+  // Fase F: el switch ?gps=1 se resuelve DESPUÉS del montaje — leerlo en
+  // el inicializador renderizaba "Demo" en el servidor y "GPS real" en el
+  // cliente (mismatch de hidratación que el ensayo in-vivo registró).
+  const [source, setSource] = useState<Source>("sim");
+  useEffect(() => {
+    if (process.env.NEXT_PUBLIC_STATIC === "1") {
+      setSource("gps");
+      return;
     }
-    return "sim";
-  });
+    try {
+      if (new URLSearchParams(window.location.search).has("gps")) setSource("gps");
+    } catch {
+      // sin window: queda demo
+    }
+  }, []);
 
   const status = ride.status; // idle | running | paused
   const active = status !== "idle"; // el ride (o su pausa) está en curso
