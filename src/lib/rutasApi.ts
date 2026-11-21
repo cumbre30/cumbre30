@@ -476,6 +476,34 @@ export async function misExperiencias(): Promise<{ ok: boolean; error?: string; 
   }
 }
 
+// Novedades en rutas guardadas (propuesta Pro, Grupo D): cuenta de
+// experiencias nuevas desde la última visita. Sin plan el servidor
+// responde permitido:false (el cliente tampoco la llama si no es Pro).
+export type NovedadesMuro = {
+  permitido: boolean;
+  total: number;
+  items: { id: string; createdAt: string; fechaRealizacion: string; username: string; ruta: { id: string; nombre: string } }[];
+};
+
+export async function novedadesMuro(desde: string): Promise<{ ok: boolean; error?: string; permitido?: boolean; total?: number; items?: NovedadesMuro["items"] }> {
+  const target = url(`/api/experiences/nuevas?desde=${encodeURIComponent(desde)}`);
+  if (target === null) return { ok: false, error: "Sin backend configurado." };
+  const headers = sessionHeaders();
+  try {
+    const res = await fetch(target, { headers, signal: AbortSignal.timeout(15_000) });
+    const d = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+    if (!res.ok) return { ok: false, error: typeof d.error === "string" ? d.error : `Error ${res.status}.` };
+    return {
+      ok: true,
+      permitido: d.permitido === true,
+      total: typeof d.total === "number" ? d.total : 0,
+      items: Array.isArray(d.items) ? (d.items as NovedadesMuro["items"]) : [],
+    };
+  } catch {
+    return { ok: false, error: "Sin red." };
+  }
+}
+
 export type ColaModeracion = {
   ocultas: { id: string; nombre: string; estadoVigencia: string; updatedAt: string; reports: { id: string; motivo: string; estado: string; clasificacion: string; peso: number }[] }[];
   sospechosos: { id: string; routeId: string; motivo: string; peso: number }[];

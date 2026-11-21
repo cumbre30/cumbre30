@@ -39,6 +39,7 @@ import {
   Navigation,
   PencilRuler,
   Route,
+  Share2,
   Trash2,
   Upload,
   Users,
@@ -51,6 +52,8 @@ import { CONDICIONES } from "@/components/ComunidadTab";
 import { useMe } from "@/hooks/useMe";
 import { useProLicense } from "@/lib/proLicense";
 import { buildRutaGpxBlob } from "@/lib/gpx";
+import { buildExperienciaImage, sharePngBlob } from "@/lib/shareAdn";
+import { chequearNovedadesMuro, marcarMuroVisto } from "@/lib/novedadesMuro";
 import { PARK_POLYGON } from "@/lib/park";
 import { ETIQUETAS_DIFICULTAD, type Dificultad } from "@/lib/dificultad";
 import CatalogoTab from "@/components/CatalogoTab";
@@ -189,6 +192,21 @@ function ExplorarView({
       clearTimeout(id);
     };
   }, [userEmail, pro.active]);
+  // Novedades del muro en mis rutas guardadas (propuesta Pro): el
+  // contador se cierra cuando el usuario entra a la subsección.
+  const [nuevas, setNuevas] = useState(0);
+  useEffect(() => {
+    // Diferido al siguiente tick (patrón del módulo: el efecto no
+    // marca estado de forma síncrona).
+    const id = setTimeout(() => {
+      if (!userEmail || !pro.active) {
+        setNuevas(0);
+        return;
+      }
+      void chequearNovedadesMuro().then((n) => setNuevas(n));
+    }, 0);
+    return () => clearTimeout(id);
+  }, [userEmail, pro.active]);
   // Favoritas y destacadas son LECTURAS CON SESIÓN: sin cuenta no se
   // golpea el servidor (evita 401 ruidosos de invitados); el estado
   // honesto es la lista vacía. El catálogo inline de «Rutas
@@ -256,6 +274,30 @@ function ExplorarView({
     const a = document.createElement("a");
     a.href = url;
     a.download = `${slug}.gpx`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  /** Exportación legible del historial propio (propuesta Pro, Grupo D):
+   *  CSV con comillas escapadas — Excel/LibreOffice/Numbers lo abren
+   *  sin drama. Solo vive en el panel Pro del aporte. */
+  const exportarMiasCsv = (datos: MisExperiencias): void => {
+    const celdaCsv = (s: string): string => `"${s.replace(/"/g, '""')}"`;
+    const filas = [["fecha", "ruta", "km", "condiciones", "comentario"].join(",")];
+    for (const x of datos.experiencias) {
+      filas.push([
+        celdaCsv(x.fechaRealizacion),
+        celdaCsv(x.ruta.nombre),
+        String(x.ruta.distKm).replace(".", ","),
+        celdaCsv(x.condiciones.join("; ")),
+        celdaCsv(x.comentario ?? ""),
+      ].join(","));
+    }
+    const blob = new Blob([`\uFEFF${filas.join("\n")}`], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "mis-experiencias-cumbre30.csv";
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -561,6 +603,21 @@ function ExplorarView({
                   fechas y amigos primero. FREE ve los controles; al
                   tocarlos abre el modal Pro — el feed sin filtros es
                   y sigue siendo gratuito. */}
+              {/* Novedades en rutas guardadas (propuesta Pro): al entrar
+                  al muro se cierra el contador — tocar la etiqueta lo
+                  marca como visto. */}
+              {nuevas > 0 && (
+                <button
+                  onClick={() => {
+                    marcarMuroVisto();
+                    setNuevas(0);
+                  }}
+                  data-testid="ex-muro-novedades"
+                  className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-emerald-600 px-3 py-1 text-[11px] font-bold text-white hover:bg-emerald-500"
+                >
+                  {t("ex.muroNovedades", nuevas)}
+                </button>
+              )}
               <div className="mt-3 rounded-2xl border border-border bg-card p-2.5" data-testid="ex-muro-filtros">
                 <p className="text-[10px] font-extrabold uppercase tracking-[0.14em] text-muted-foreground">{t("ex.muroFiltros")}{pro.active ? "" : " · Pro"}</p>
                 <div className="mt-1.5 flex flex-wrap gap-1">
@@ -653,7 +710,7 @@ function ExplorarView({
                   </p>
                   <ul className="mt-2 grid gap-2" data-testid="ex-muro-lista">
                     {muro.experiencias.map((e) => (
-                      <TarjetaMuro key={e.id} e={e} onVerRuta={() => onSub("compartidas")} />
+                      <TarjetaMuro key={e.id} e={e} onVerRuta={() => onSub("compartidas")} onProBloqueado={() => mapProps.onProLocked?.("muro")} />
                     ))}
                   </ul>
                 </>
@@ -695,16 +752,25 @@ function ExplorarView({
                       {mias.experiencias.length === 0 ? (
                         <p className="mt-2 rounded-xl border border-dashed border-border p-3 text-center text-xs text-muted-foreground">{t("ex.apExpVacio")}</p>
                       ) : (
-                        <ul className="mt-2 grid gap-1">
-                          {mias.experiencias.slice(0, 8).map((x) => (
-                            <li key={x.id} className="rounded-lg border border-border/60 px-2 py-1" data-testid="ex-aporte-exp">
-                              <p className="text-[10px] font-bold text-foreground">
-                                {x.fechaRealizacion} <span className="font-normal text-muted-foreground">· {x.ruta.nombre}</span>
-                              </p>
-                              {x.comentario && <p className="line-clamp-1 text-[10.5px] text-muted-foreground">{x.comentario}</p>}
-                            </li>
-                          ))}
-                        </ul>
+                        <>
+                          <ul className="mt-2 grid gap-1">
+                            {mias.experiencias.slice(0, 8).map((x) => (
+                              <li key={x.id} className="rounded-lg border border-border/60 px-2 py-1" data-testid="ex-aporte-exp">
+                                <p className="text-[10px] font-bold text-foreground">
+                                  {x.fechaRealizacion} <span className="font-normal text-muted-foreground">· {x.ruta.nombre}</span>
+                                </p>
+                                {x.comentario && <p className="line-clamp-1 text-[10.5px] text-muted-foreground">{x.comentario}</p>}
+                              </li>
+                            ))}
+                          </ul>
+                          <button
+                            onClick={() => exportarMiasCsv(mias)}
+                            data-testid="ex-aporte-exportar"
+                            className="mt-2 w-full rounded-xl border border-border px-3 py-1.5 text-[11px] font-bold text-muted-foreground hover:border-emerald-500 hover:text-foreground"
+                          >
+                            {t("ex.apExportar")}
+                          </button>
+                        </>
                       )}
                     </>
                   )}
@@ -951,17 +1017,46 @@ function MilestoneIcon() {
 
 /** Tarjeta del muro de experiencias (2026-11-21): quien lo vivió,
  *  cuándo, en qué ruta, las condiciones tipificadas del día, el
- *  comentario, la observación y hasta 3 fotos. Sin GPS, sin datos
+ *  comentario, la observación y hasta 6 fotos. Sin GPS, sin datos
  *  privados: username público + resumen de la ruta (igual que la
- *  ficha). «Ver ruta» lleva al catálogo de compartidas. */
-function TarjetaMuro({ e, onVerRuta }: { e: ExperienciaMuro; onVerRuta: () => void }) {
+ *  ficha). «Ver ruta» lleva al catálogo de compartidas; «compartir»
+ *  genera la tarjeta imagen (propuesta Pro, Grupo D). */
+function TarjetaMuro({ e, onVerRuta, onProBloqueado }: { e: ExperienciaMuro; onVerRuta: () => void; onProBloqueado: () => void }) {
   useLang();
+  const { pro } = useProLicense();
+  const [compartiendo, setCompartiendo] = useState(false);
   // Fecha de realización en el idioma activo; ISO de solo fecha se
   // fija al mediodía para que la zona horaria no la corra un día.
   const d = new Date(e.fechaRealizacion.length === 10 ? `${e.fechaRealizacion}T12:00:00` : e.fechaRealizacion);
   const fecha = Number.isNaN(d.getTime()) ? e.fechaRealizacion : new Intl.DateTimeFormat(ttsLocale(), { day: "numeric", month: "short", year: "numeric" }).format(d);
   const inicial = (e.username || "?").slice(0, 1).toUpperCase();
   const km = new Intl.NumberFormat(ttsLocale(), { maximumFractionDigits: 1 }).format(e.ruta.distKm);
+
+  /** Tarjeta imagen (Pro): canvas de shareAdn → panel del sistema o
+   *  descarga de respaldo. Sin plan, modal Pro honesto. */
+  const compartir = async () => {
+    if (!pro.active) {
+      onProBloqueado();
+      return;
+    }
+    setCompartiendo(true);
+    try {
+      const blob = await buildExperienciaImage({
+        username: e.username,
+        pro: e.pro,
+        fechaRealizacion: e.fechaRealizacion,
+        rutaNombre: e.ruta.nombre,
+        rutaKm: e.ruta.distKm,
+        comentario: e.comentario,
+        condiciones: e.condiciones,
+        textos: { eyebrow: t("ex.muroTarjetaEyebrow"), sinComentario: t("ex.muroSinComentario") },
+      });
+      await sharePngBlob(blob, `experiencia-${e.id}.png`, t("ex.muroTarjetaMsg", e.ruta.nombre));
+    } catch {
+      // sin canvas o sin panel de sistema: nada visible, sin ruido
+    }
+    setCompartiendo(false);
+  };
   return (
     <li className="rounded-2xl border border-border bg-card p-3.5" data-testid="ex-muro-tarjeta">
       <div className="flex items-center gap-2.5">
@@ -979,6 +1074,15 @@ function TarjetaMuro({ e, onVerRuta }: { e: ExperienciaMuro; onVerRuta: () => vo
           </p>
           <p className="text-[10.5px] text-muted-foreground">{fecha}</p>
         </div>
+        <button
+          onClick={() => void compartir()}
+          aria-label={t("ex.muroCompartir")}
+          data-testid="ex-muro-compartir"
+          disabled={compartiendo}
+          className="shrink-0 rounded-full border border-border p-1.5 text-muted-foreground hover:border-emerald-500 hover:text-foreground disabled:opacity-60"
+        >
+          <Share2 className="h-3.5 w-3.5" />
+        </button>
         <button
           onClick={onVerRuta}
           title={e.ruta.nombre}

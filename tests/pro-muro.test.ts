@@ -19,6 +19,7 @@ import { POST as POST_EXP } from "../src/app/api/routes/[id]/experience/route";
 import { POST as POST_FOTO } from "../src/app/api/routes/[id]/experience/photos/route";
 import { GET } from "../src/app/api/experiences/route";
 import { GET as GET_MIAS } from "../src/app/api/experiences/mias/route";
+import { GET as GET_NUEVAS } from "../src/app/api/experiences/nuevas/route";
 import { GET as GET_UNO } from "../src/app/api/routes/[id]/route";
 
 let pasos = 0;
@@ -212,6 +213,31 @@ async function main(): Promise<void> {
     const ids1 = new Set(c1.route.comunidad.experiencias.map((e) => e.id));
     assert.ok(c2.route.comunidad.experiencias.every((e) => !ids1.has(e.id)), "sin repetidos entre páginas");
     ok("cursor: 20 + resto con expHayMas honesto y sin duplicados");
+
+    // ---------- OLA 3 · novedades en rutas guardadas ----------
+    // FREE: sin compra registrada → permitido:false (sin revelar nada).
+    const novFree = await GET_NUEVAS(req("GET", "/api/experiences/nuevas?desde=2026-01-01T00:00:00Z", sesFree.token));
+    assert.equal(novFree.status, 200);
+    const novF = (await novFree.json()) as { permitido: boolean; total: number };
+    assert.equal(novF.permitido, false);
+    assert.equal(novF.total, 0);
+    ok("novedades FREE: permitido:false sin conteo");
+
+    // Pro con una favorita: la experiencia nueva del OTRO ciclista
+    // cuenta; las propias no; desde el futuro no hay nada.
+    await dbPrueba.routeFavorite.create({ data: { userId: pro.id, routeId: rutaId } });
+    const novPro = await GET_NUEVAS(req("GET", "/api/experiences/nuevas?desde=2026-01-01T00:00:00Z", sesPro.token));
+    const novP = (await novPro.json()) as { permitido: boolean; total: number; items: { id: string; username: string; ruta: { id: string } }[] };
+    assert.equal(novP.permitido, true);
+    assert.equal(novP.total, 1, "solo la experiencia ajena cuenta");
+    assert.equal(novP.items[0]?.username, `proMuroF${semilla}`);
+    assert.equal(novP.items[0]?.ruta.id, rutaId);
+    const novFuturo = await GET_NUEVAS(req("GET", "/api/experiences/nuevas?desde=2030-01-01T00:00:00Z", sesPro.token));
+    const novFu = (await novFuturo.json()) as { total: number };
+    assert.equal(novFu.total, 0, "desde el futuro: nada");
+    const novSin = await GET_NUEVAS(req("GET", "/api/experiences/nuevas", null));
+    assert.equal(novSin.status, 401);
+    ok("novedades Pro: favorita + ajena cuenta, propias no, 401 sin sesión");
 
     console.log(`\nPRO-MURO: ${pasos} verificaciones OK con DB real (ola 1)`);
   } finally {

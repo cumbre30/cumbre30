@@ -1751,6 +1751,15 @@ const D: Record<string, E> = {
   "ex.muroDesde": ["Desde", "From", "De"],
   "ex.muroHasta": ["Hasta", "To", "Até"],
   "ex.muroLimpiar": ["Limpiar filtros", "Clear filters", "Limpar filtros"],
+  // Tarjeta imagen de la experiencia (propuesta Pro, Grupo D).
+  "ex.muroTarjetaEyebrow": ["MURO · EXPERIENCIA", "WALL · EXPERIENCE", "MURO · EXPERIÊNCIA"],
+  "ex.muroTarjetaMsg": ["Mi experiencia en {0} · Cumbre30", "My experience on {0} · Cumbre30", "Minha experiência em {0} · Cumbre30"],
+  "ex.muroCompartir": ["Compartir tarjeta de la experiencia", "Share the experience card", "Compartilhar o cartão da experiência"],
+  "ex.muroSinComentario": ["Recorrió la ruta y la registró en el muro.", "Rode the route and logged it on the wall.", "Percorreu a rota e registrou no muro."],
+  // Novedades de rutas guardadas (propuesta Pro, Grupo D).
+  "ex.muroNovedades": ["{0} nuevas en tus rutas guardadas", "{0} new in your saved routes", "{0} novas nas suas rotas salvas"],
+  // Exportación del historial propio (propuesta Pro, Grupo D).
+  "ex.apExportar": ["Exportar mis experiencias (CSV)", "Export my experiences (CSV)", "Exportar minhas experiências (CSV)"],
   "ex.sigSub": ["Ciclistas que sigues y su actividad reciente.", "Cyclists you follow and their recent activity.", "Ciclistas que você segue e sua atividade recente."],
   "ex.apSub": ["Tu actividad dentro de la comunidad.", "Your activity inside the community.", "Sua atividade dentro da comunidade."],
   "ex.apStatPublicadas": ["Rutas publicadas", "Published routes", "Rotas publicadas"],

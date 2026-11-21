@@ -21,7 +21,7 @@
 
 import { Capacitor } from "@capacitor/core";
 import { shareOrDownloadFile } from "@/lib/shareFile";
-import { t, getLang, type Lang } from "@/lib/i18n";
+import { t, getLang, ttsLocale, type Lang } from "@/lib/i18n";
 
 // ---------- helpers puros (probados en node) ----------
 
@@ -454,6 +454,113 @@ export async function buildWeekImage(input: WeekShareInput): Promise<Blob> {
 
 function aPng(c: HTMLCanvasElement): Promise<Blob> {
   return new Promise((resolve, reject) => c.toBlob((b) => (b ? resolve(b) : reject(new Error("canvas"))), "image/png", 0.92));
+}
+
+// ---------- tarjeta de experiencia del muro (propuesta Pro, Grupo D) ----------
+
+export type ExperienciaShareInput = {
+  username: string;
+  pro: boolean;
+  /** yyyy-mm-dd o ISO — se formatea en el idioma activo. */
+  fechaRealizacion: string;
+  rutaNombre: string;
+  rutaKm: number;
+  comentario: string | null;
+  /** ids del enumerado cerrado (com.cond.*) — máx 3. */
+  condiciones: string[];
+  /** Textos ya resueltos con t() en el componente (el lema del módulo
+   *  audita sus claves ex.* desde ExplorarView, no desde aquí). */
+  textos: { eyebrow: string; sinComentario: string };
+};
+
+/** Envuelve un texto a un ancho máximo (palabras completas). */
+function envolver(ctx: CanvasRenderingContext2D, s: string, maxW: number): string[] {
+  const lineas: string[] = [];
+  let cur = "";
+  for (const palabra of s.split(/\s+/).filter(Boolean)) {
+    const intento = cur ? `${cur} ${palabra}` : palabra;
+    if (ctx.measureText(intento).width <= maxW || !cur) cur = intento;
+    else {
+      lineas.push(cur);
+      cur = palabra;
+    }
+  }
+  if (cur) lineas.push(cur);
+  return lineas;
+}
+
+/** Tarjeta 1080×1350 de una experiencia del muro (misma familia
+ *  visual que ADN y Semana): comentario como héroe, chip de ruta,
+ *  condiciones del día y autor con distintivo Pro si corresponde. */
+export function buildExperienciaImage(input: ExperienciaShareInput): Promise<Blob> {
+  const c = document.createElement("canvas");
+  c.width = 1080;
+  c.height = 1350;
+  const ctx = c.getContext("2d");
+  if (!ctx) return Promise.reject(new Error("canvas"));
+
+  fondo(ctx, "#0d2b1e");
+  reticula(ctx, 210, 1080);
+  marca(ctx, "#34d399");
+  texto(ctx, input.textos.eyebrow, 60, 240, { size: 26, color: "#fbbf24", weight: "800", ls: 6 });
+
+  // Chip de ruta: nombre · km.
+  const chip = `${input.rutaNombre} · ${new Intl.NumberFormat(ttsLocale(), { maximumFractionDigits: 1 }).format(input.rutaKm)} km`;
+  ctx.font = "700 34px system-ui, -apple-system, sans-serif";
+  const chipW = Math.min(ctx.measureText(chip).width + 64, 960);
+  ctx.fillStyle = "#34d399";
+  rectRedondeado(ctx, 60, 290, chipW, 66, 33);
+  ctx.fill();
+  texto(ctx, chip, 60 + 32, 333, { size: 34, color: "#0a0a0c", weight: "700" });
+
+  // Comentario héroe (máx 6 líneas, el resto «…»).
+  const comentario = (input.comentario ?? input.textos.sinComentario).trim();
+  ctx.font = "700 52px system-ui, -apple-system, sans-serif";
+  const lineas = envolver(ctx, comentario, 960).slice(0, 6);
+  let y = 470;
+  for (const linea of lineas) {
+    texto(ctx, linea, 60, y, { size: 52, color: "#fafafa", weight: "700", ls: -0.5 });
+    y += 76;
+  }
+  if (envolver(ctx, comentario, 960).length > 6) {
+    texto(ctx, "…", 60, y, { size: 52, color: "#71717a", weight: "700" });
+  }
+
+  // Condiciones del día (chips esmeralda).
+  let cx = 60;
+  const cy = 950;
+  for (const cond of input.condiciones.slice(0, 3)) {
+    const etiqueta = t(`com.cond.${cond}`);
+    ctx.font = "700 26px system-ui, -apple-system, sans-serif";
+    const w = ctx.measureText(etiqueta).width + 44;
+    ctx.fillStyle = "rgba(52, 211, 153, 0.14)";
+    rectRedondeado(ctx, cx, cy, w, 48, 24);
+    ctx.fill();
+    texto(ctx, etiqueta, cx + 22, cy + 32, { size: 26, color: "#34d399", weight: "700" });
+    cx += w + 16;
+  }
+
+  // Autor + fecha (+ Pro).
+  ctx.fillStyle = "rgba(52, 211, 153, 0.16)";
+  ctx.beginPath();
+  ctx.arc(88, 1130, 34, 0, Math.PI * 2);
+  ctx.fill();
+  texto(ctx, (input.username || "?").slice(0, 1).toUpperCase(), 88, 1143, { size: 30, color: "#34d399", weight: "800", align: "center" });
+  texto(ctx, input.username, 140, 1122, { size: 34, color: "#fafafa", weight: "800" });
+  if (input.pro) {
+    ctx.font = "800 24px system-ui, -apple-system, sans-serif";
+    const pw = ctx.measureText("PRO").width + 28;
+    ctx.fillStyle = "rgba(251, 191, 36, 0.16)";
+    rectRedondeado(ctx, 140, 1142, pw, 40, 20);
+    ctx.fill();
+    texto(ctx, "PRO", 140 + 14, 1170, { size: 24, color: "#fbbf24", weight: "800", ls: 2 });
+  }
+  const dFecha = new Date(input.fechaRealizacion.length === 10 ? `${input.fechaRealizacion}T12:00:00` : input.fechaRealizacion);
+  const fechaTxt = Number.isNaN(dFecha.getTime()) ? input.fechaRealizacion : new Intl.DateTimeFormat(ttsLocale(), { day: "numeric", month: "short", year: "numeric" }).format(dFecha);
+  texto(ctx, fechaTxt, 1020, 1170, { size: 28, color: "#71717a", weight: "600", align: "right" });
+
+  lineaFirma(ctx, 1240, "#34d399");
+  return aPng(c);
 }
 
 /**

@@ -37,6 +37,7 @@ import { useNavEngine } from "@/hooks/useNavEngine";
 import { useProLicense } from "@/lib/proLicense";
 import { applyThemeColor, useRideTheme } from "@/lib/rideTheme";
 import { linkRidesToAccount, setRideOwner } from "@/lib/history";
+import { chequearNovedadesMuro } from "@/lib/novedadesMuro";
 import { runMetricBackfill } from "@/lib/rideBackfill";
 import { courseHeading } from "@/lib/geo";
 import { createSmoother, snapToNet, snapToRoute } from "@/lib/navSnap";
@@ -234,6 +235,12 @@ export default function Home() {
     setRideOwner(userEmail);
     if (userEmail) linkRidesToAccount(userEmail);
   }, [userEmail]);
+  // Novedades del muro en rutas guardadas (propuesta Pro, Ola 3): al
+  // abrir con sesión y plan Pro consulta y avisa (nativa solo en APK;
+  // en web queda la etiqueta dentro del muro).
+  useEffect(() => {
+    if (userEmail && pro.active) void chequearNovedadesMuro();
+  }, [userEmail, pro.active]);
   // Backfill del Perfil Ciclista (v1.13.17): rides sin métricas derivadas
   // se recalculan desde su pista local (IndexedDB) y suben. Una vez por
   // apertura, en segundo plano a los 12 s para no competir con el arranque
