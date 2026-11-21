@@ -2,7 +2,7 @@
 CREATE SCHEMA IF NOT EXISTS "public";
 
 -- CreateTable
-CREATE TABLE "User" (
+CREATE TABLE IF NOT EXISTS "User" (
     "id" TEXT NOT NULL,
     "email" TEXT NOT NULL,
     "username" TEXT NOT NULL,
@@ -22,7 +22,7 @@ CREATE TABLE "User" (
 );
 
 -- CreateTable
-CREATE TABLE "Session" (
+CREATE TABLE IF NOT EXISTS "Session" (
     "id" TEXT NOT NULL,
     "token" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
@@ -33,7 +33,7 @@ CREATE TABLE "Session" (
 );
 
 -- CreateTable
-CREATE TABLE "PasswordReset" (
+CREATE TABLE IF NOT EXISTS "PasswordReset" (
     "id" TEXT NOT NULL,
     "email" TEXT NOT NULL,
     "code" TEXT NOT NULL,
@@ -46,7 +46,7 @@ CREATE TABLE "PasswordReset" (
 );
 
 -- CreateTable
-CREATE TABLE "ProDelivery" (
+CREATE TABLE IF NOT EXISTS "ProDelivery" (
     "id" TEXT NOT NULL,
     "paymentId" TEXT NOT NULL,
     "email" TEXT NOT NULL,
@@ -59,7 +59,7 @@ CREATE TABLE "ProDelivery" (
 );
 
 -- CreateTable
-CREATE TABLE "Ride" (
+CREATE TABLE IF NOT EXISTS "Ride" (
     "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "dateISO" TIMESTAMP(3) NOT NULL,
@@ -80,7 +80,7 @@ CREATE TABLE "Ride" (
 );
 
 -- CreateTable
-CREATE TABLE "RideMetric" (
+CREATE TABLE IF NOT EXISTS "RideMetric" (
     "rideId" TEXT NOT NULL,
     "movingSec" DOUBLE PRECISION NOT NULL,
     "peak15sKmh" DOUBLE PRECISION,
@@ -103,7 +103,7 @@ CREATE TABLE "RideMetric" (
 );
 
 -- CreateTable
-CREATE TABLE "CyclistProfile" (
+CREATE TABLE IF NOT EXISTS "CyclistProfile" (
     "userId" TEXT NOT NULL,
     "archetype" TEXT NOT NULL,
     "calibrating" BOOLEAN NOT NULL DEFAULT true,
@@ -120,7 +120,7 @@ CREATE TABLE "CyclistProfile" (
 );
 
 -- CreateTable
-CREATE TABLE "ProfileConfig" (
+CREATE TABLE IF NOT EXISTS "ProfileConfig" (
     "key" TEXT NOT NULL,
     "value" DOUBLE PRECISION NOT NULL,
     "updatedAt" TIMESTAMP(3) NOT NULL,
@@ -129,7 +129,7 @@ CREATE TABLE "ProfileConfig" (
 );
 
 -- CreateTable
-CREATE TABLE "Incident" (
+CREATE TABLE IF NOT EXISTS "Incident" (
     "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "type" TEXT NOT NULL,
@@ -147,7 +147,7 @@ CREATE TABLE "Incident" (
 );
 
 -- CreateTable
-CREATE TABLE "Friendship" (
+CREATE TABLE IF NOT EXISTS "Friendship" (
     "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "friendId" TEXT NOT NULL,
@@ -157,7 +157,7 @@ CREATE TABLE "Friendship" (
 );
 
 -- CreateTable
-CREATE TABLE "Achievement" (
+CREATE TABLE IF NOT EXISTS "Achievement" (
     "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "code" TEXT NOT NULL,
@@ -167,7 +167,7 @@ CREATE TABLE "Achievement" (
 );
 
 -- CreateTable
-CREATE TABLE "Constancia" (
+CREATE TABLE IF NOT EXISTS "Constancia" (
     "id" TEXT NOT NULL,
     "rideId" TEXT NOT NULL,
     "payload" JSONB NOT NULL,
@@ -177,7 +177,7 @@ CREATE TABLE "Constancia" (
 );
 
 -- CreateTable
-CREATE TABLE "PushSub" (
+CREATE TABLE IF NOT EXISTS "PushSub" (
     "id" TEXT NOT NULL,
     "endpoint" TEXT NOT NULL,
     "p256dh" TEXT NOT NULL,
@@ -189,7 +189,7 @@ CREATE TABLE "PushSub" (
 );
 
 -- CreateTable
-CREATE TABLE "RideShare" (
+CREATE TABLE IF NOT EXISTS "RideShare" (
     "id" TEXT NOT NULL,
     "code" TEXT NOT NULL,
     "rideId" TEXT NOT NULL,
@@ -199,65 +199,97 @@ CREATE TABLE "RideShare" (
 );
 
 -- CreateIndex
-CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
+CREATE UNIQUE INDEX IF NOT EXISTS "User_email_key" ON "User"("email");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "User_username_key" ON "User"("username");
+CREATE UNIQUE INDEX IF NOT EXISTS "User_username_key" ON "User"("username");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Session_token_key" ON "Session"("token");
+CREATE UNIQUE INDEX IF NOT EXISTS "Session_token_key" ON "Session"("token");
 
 -- CreateIndex
-CREATE INDEX "PasswordReset_email_idx" ON "PasswordReset"("email");
+CREATE INDEX IF NOT EXISTS "PasswordReset_email_idx" ON "PasswordReset"("email");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "ProDelivery_paymentId_key" ON "ProDelivery"("paymentId");
+CREATE UNIQUE INDEX IF NOT EXISTS "ProDelivery_paymentId_key" ON "ProDelivery"("paymentId");
 
 -- CreateIndex
-CREATE INDEX "ProDelivery_email_idx" ON "ProDelivery"("email");
+CREATE INDEX IF NOT EXISTS "ProDelivery_email_idx" ON "ProDelivery"("email");
 
 -- CreateIndex
-CREATE INDEX "Ride_userId_dateISO_idx" ON "Ride"("userId", "dateISO");
+CREATE INDEX IF NOT EXISTS "Ride_userId_dateISO_idx" ON "Ride"("userId", "dateISO");
 
 -- CreateIndex
-CREATE INDEX "Incident_lat_lon_idx" ON "Incident"("lat", "lon");
+CREATE INDEX IF NOT EXISTS "Incident_lat_lon_idx" ON "Incident"("lat", "lon");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Friendship_userId_friendId_key" ON "Friendship"("userId", "friendId");
+CREATE UNIQUE INDEX IF NOT EXISTS "Friendship_userId_friendId_key" ON "Friendship"("userId", "friendId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Achievement_userId_code_key" ON "Achievement"("userId", "code");
+CREATE UNIQUE INDEX IF NOT EXISTS "Achievement_userId_code_key" ON "Achievement"("userId", "code");
 
 -- CreateIndex
-CREATE INDEX "Constancia_rideId_idx" ON "Constancia"("rideId");
+CREATE INDEX IF NOT EXISTS "Constancia_rideId_idx" ON "Constancia"("rideId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "PushSub_endpoint_key" ON "PushSub"("endpoint");
+CREATE UNIQUE INDEX IF NOT EXISTS "PushSub_endpoint_key" ON "PushSub"("endpoint");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "RideShare_code_key" ON "RideShare"("code");
+CREATE UNIQUE INDEX IF NOT EXISTS "RideShare_code_key" ON "RideShare"("code");
 
 -- AddForeignKey
-ALTER TABLE "Session" ADD CONSTRAINT "Session_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$ BEGIN
+    ALTER TABLE "Session" ADD CONSTRAINT "Session_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION
+    WHEN duplicate_object THEN NULL;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "Ride" ADD CONSTRAINT "Ride_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$ BEGIN
+    ALTER TABLE "Ride" ADD CONSTRAINT "Ride_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION
+    WHEN duplicate_object THEN NULL;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "RideMetric" ADD CONSTRAINT "RideMetric_rideId_fkey" FOREIGN KEY ("rideId") REFERENCES "Ride"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$ BEGIN
+    ALTER TABLE "RideMetric" ADD CONSTRAINT "RideMetric_rideId_fkey" FOREIGN KEY ("rideId") REFERENCES "Ride"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION
+    WHEN duplicate_object THEN NULL;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "CyclistProfile" ADD CONSTRAINT "CyclistProfile_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$ BEGIN
+    ALTER TABLE "CyclistProfile" ADD CONSTRAINT "CyclistProfile_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION
+    WHEN duplicate_object THEN NULL;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "Incident" ADD CONSTRAINT "Incident_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$ BEGIN
+    ALTER TABLE "Incident" ADD CONSTRAINT "Incident_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION
+    WHEN duplicate_object THEN NULL;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "Friendship" ADD CONSTRAINT "Friendship_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$ BEGIN
+    ALTER TABLE "Friendship" ADD CONSTRAINT "Friendship_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION
+    WHEN duplicate_object THEN NULL;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "Friendship" ADD CONSTRAINT "Friendship_friendId_fkey" FOREIGN KEY ("friendId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$ BEGIN
+    ALTER TABLE "Friendship" ADD CONSTRAINT "Friendship_friendId_fkey" FOREIGN KEY ("friendId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION
+    WHEN duplicate_object THEN NULL;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "Achievement" ADD CONSTRAINT "Achievement_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$ BEGIN
+    ALTER TABLE "Achievement" ADD CONSTRAINT "Achievement_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION
+    WHEN duplicate_object THEN NULL;
+END $$;
 

@@ -5,6 +5,7 @@ const seccion1 = [
   bullet("**Confirmación 1 — motor GPS y motor de trazado intactos:** ningún archivo de useRideEngine, routingService ni del motor de navegación fue modificado; la fase A consume sus tipos existentes (LatLng) y no los ejecuta."),
   bullet("**Confirmación 2 — actividades históricas y trazados intactos:** c30.trazas queda byte a byte idéntico (verificado en la prueba 2 de la suite); los rides, segmentos y el creador vigente no cambian de tabla ni de formato. La migración es solo por lectura."),
   bullet("**Confirmación 3 — sin release ni push:** APP_VERSION sigue 1.14.3 / code 74 y version.json no cambió; todo entra al próximo release cuando el cliente apruebe esta entrega. No se modificó el motor GPS ni se publicó nada."),
+  p("Adicionalmente, con el acceso que el cliente entregó para cerrar lo pendiente (llaves de API de Neon y Vercel), las **dos operaciones de producción** que restaban quedaron **ejecutadas y verificadas el 2026-11-21**: la migración real de la base de producción (guard con baselining automático: 26 tablas, ambas migraciones registradas, datos intactos y la app vigente respondiendo con normalidad — sección 9.1) y el **ensayo de restauración PITR** con un branch restaurado una hora atrás (sección 9.3). El criterio de producción ya no depende del primer deploy: el próximo release corre el deploy en estado estable (no-op)."),
   p("Dos defectos menores del propio código nuevo fueron **detectados y corregidos por la suite** durante el desarrollo (transparentes, sección 4): el alta en el store no generaba id y el generador de celdas de viewport muestreaba con paso en grados en lugar de kilómetros. Ninguno llegó al entregable: ambos quedan cubiertos por pruebas que fallarían si regresaran."),
 ];
 
@@ -36,8 +37,9 @@ const seccion2 = [
 const seccion3 = [
   h1("3. Migraciones formales con guard de entorno (C7/C8)"),
   p("El proyecto no tenía carpeta de migraciones (el esquema se aplicaba con db push manual). La fase A la introduce con dos migraciones generadas por diff offline de Prisma:"),
-  bullet("**20261121000000_init_baseline:** estado completo del esquema vigente ANTES del módulo (14 tablas). Sirve para construir bases nuevas (CI, pruebas, futuros entornos) y para el baseline de producción con migrate resolve (sección 9)."),
+  bullet("**20261121000000_init_baseline:** estado completo del esquema vigente ANTES del módulo (14 tablas), regenerado idempotente (CREATE TABLE/INDEX IF NOT EXISTS, constraints con manejo de duplicado). Sirve para construir bases nuevas (CI, pruebas, futuros entornos) y para el primer deploy sobre la base histórica de producción (sección 9)."),
   bullet("**20261121100000_routes_module:** solo el delta del módulo — 11 CREATE TABLE, la columna User.role y los 18 índices. Verificado sobre base nueva: `prisma migrate deploy` la aplica limpia (evidencia en sección 7)."),
+  p("Durante la verificación se detectó que `migrate deploy` **se niega** sobre una base con tablas y sin historial de migraciones (el estado real de producción, creada históricamente con db push): exige baselining. Por eso el baseline se regeneró **idempotente** y el guard quedó reforzado con **baselining automático CON PRUEBA** en dos modos: si el esquema vivo coincide EXACTAMENTE con el baseline canónico (diff de solo lectura vacío), marca el baseline aplicado (`migrate resolve`) y aplica el módulo; si el esquema vivo es un SUBCONJUNTO (solo le faltan objetos que el baseline crea — el caso real de producción), crea `_prisma_migrations` y el deploy EJECUTA el baseline idempotente (no-op en lo existente, crea lo faltante). Cualquier deriva destructiva o no cubierta aborta sin tocar nada. Ambos modos quedaron probados en simulación exacta y el modo subconjunto se ejecutó en producción real el 2026-11-21 (tabla 2)."),
   p("El **guard de entorno** (scripts/migrate-deploy.sh, cableado en vercel.json) ejecuta migrate deploy ÚNICAMENTE con VERCEL_ENV=production; en preview y desarrollo corre solo generate. El build de producción toma además un snapshot pg_dump best-effort antes de migrar (C8; PITR de Neon es la red principal). El chequeo aditivo CT-M3 (scripts/check-migrations-additive.js) rechaza cualquier DROP TABLE/COLUMN en las migraciones y quedó cableado en el workflow de GitHub Actions."),
   tableTitle("Tabla 2: Casos CT-M ejecutados en el entorno local"),
   dataTable(
@@ -45,9 +47,13 @@ const seccion3 = [
     [
       ["CT-M1a", "build de preview (VERCEL_ENV=preview)", "«preview: NO se ejecutan migraciones» — el preview no puede mutar el esquema"],
       ["CT-M1b", "build de producción (VERCEL_ENV=production)", "«No pending migrations to apply» — el guard ejecuta el deploy y el esquema queda al día"],
+      ["CT-M1c", "producción sobre base histórica (14 tablas + fila de usuario, sin historial — simulación EXACTA del estado real)", "guard exit 0: diff EXACTO contra el baseline → baselining automático → 11 tablas nuevas creadas, dato previo al deploy INTACTO"],
+      ["CT-M1d", "producción sobre base que DIFIERE del baseline (tabla extra)", "guard exit 1 con mensaje claro; NADA mutado (Route no creada) — revisión manual requerida por diseño"],
       ["CT-M2a", "migración con SQL inválido (DROP de tabla inexistente)", "migrate deploy aborta con exit=1; la base queda OPERATIVA (consulta de usuario exitosa tras el fallo)"],
       ["CT-M2b", "runbook: migrate resolve --rolled-back + retirar la migración", "estado vuelve a «Database schema is up to date!» con las 2 migraciones válidas"],
       ["CT-M3", "chequeo aditivo sobre las migraciones reales", "«OK: ninguna migración contiene DROP TABLE/COLUMN»"],
+      ["CT-M4", "drill PITR real vía API de Neon: branch restaurado 1 h atrás + endpoint propio", "conteos del branch IDÉNTICOS a producción (12 tablas, 10 usuarios, 5 rides, 2 perfiles); datos reales legibles; `migrate status` informativo; branch eliminado tras registrar"],
+      ["Producción REAL (2026-11-21)", "guard contra producción Neon (sa-east-1): esquema vivo de 12 tablas sin historial, deriva benigna de 2 defaults en updatedAt", "exit 0 en modo-ejecución: baseline ejecutado (recupera PushSub y Constancia) + módulo crea las 11 tablas; 26 tablas en total; ambas migraciones registradas sin rollback; datos intactos (10/5/0/2); role='user' en los 10 usuarios; app vigente responde (401 correcto en login, /api/version 1.14.3); deploy de estado estable exit 0 (no-op)"],
     ],
     [12, 40, 48]
   ),
@@ -99,7 +105,7 @@ const seccion7 = [
       ["rutas-store.test.ts", "migración por lectura y ciclo de vida del store", "RUTAS-STORE: **8 verificaciones OK**"],
       ["route-geo.test.ts", "bbox/centro, haversine, geohash g5/g4, multi-celda CT-G2, antimeridiano C3, roundtrip polyline, aprox3", "ROUTE-GEO: **11 verificaciones OK**"],
       ["api-routes.test.ts", "401 sin sesión, 400 validaciones, CRUD completo con DB real, derivados en base, dedup, versionado, soft-delete", "API-ROUTES: **11 verificaciones OK**"],
-      ["CT-M1/CT-M2/CT-M3", "guard preview/producción, migración fallida + runbook, chequeo aditivo", "todas OK (tabla 2)"],
+      ["CT-M1a/1b/1c/1d, CT-M2/CT-M3/CT-M4 + migración REAL de producción", "guard preview/producción, baselining automático (subconjunto y exacto), aborto ante divergencia, migración fallida + runbook, chequeo aditivo, drill PITR real, producción real 2026-11-21", "todas OK (tabla 2 y sección 9)"],
     ],
     [24, 48, 28]
   ),
@@ -116,34 +122,36 @@ const seccion8 = [
       ["Compilación tsc 0 y build SUCCESS", "**CUMPLIDO**", "tsc 0 en src; build web exit 0; eslint 0"],
       ["Smoke test: la API autentica y rechaza escritura sin sesión", "**CUMPLIDO**", "Suite api-routes 11/11 con DB real (401, 400, CRUD, propiedad, dedup)"],
       ["APK export estático compila sin /api", "**CUMPLIDO**", "build-apk.mjs exit 0; build-static sin api; version.json sin cambios"],
-      ["prisma migrate deploy en producción con guard VERCEL_ENV, sin pérdida de datos", "**PENDIENTE de producción** (guard y deploy probados en PG local; CT-M1 verificado)", "Runbook en sección 9: baseline resolve + scoping de DATABASE_URL + deploy"],
-      ["Ensayo de restauración PITR (CT-M4)", "**PENDIENTE de producción** (requiere consola Neon)", "Procedimiento paso a paso en sección 9.3"],
+      ["prisma migrate deploy en producción con guard VERCEL_ENV, sin pérdida de datos", "**CUMPLIDO en producción real (2026-11-21)**", "Guard exit 0 en modo-ejecución: baseline idempotente ejecutado + módulo → 26 tablas, ambas migraciones registradas, datos intactos (10 usuarios/5 rides/0 incidentes/2 perfiles), role='user' backfilled, app vigente respondiendo. Scoping Vercel verificado: DATABASE_URL solo en target production. Deploy de estado estable exit 0 (no-op)"],
+      ["Ensayo de restauración PITR (CT-M4)", "**CUMPLIDO (drill real vía API Neon)**", "Branch restaurado 1 h atrás: conteos idénticos a producción (12/10/5/0/2/0), datos reales legibles, eliminado tras registrar. Branch de respaldo pre-migraciones conservado (br-frosty-mud-b60uflu1) hasta confirmación del cliente"],
     ],
     [40, 26, 34]
   ),
-  p("Los dos criterios pendientes son operaciones de producción que no pueden ejecutarse desde este entorno (no existe acceso a la consola de Vercel/Neon desde el sandbox); el guard, el deploy real de migraciones y el comportamiento ante fallo quedaron verificados en la base PostgreSQL local, y los procedimientos exactos quedan documentados para que se ejecuten en el primer despliegue a producción."),
+  p("De los seis criterios de aceptación, **los seis quedan cumplidos** — los dos últimos, sobre producción real el 2026-11-21 (tabla 5): el guard ejecutó el baselining automático en modo subconjunto sobre el estado histórico exacto (12 tablas, sin historial, deriva benigna de dos defaults) y aplicó ambas migraciones sin tocar datos; el ensayo PITR confirmó restauración puntual con conteos idénticos. Guard, deploy, divergencia y comportamiento ante fallo además quedaron verificados en simulaciones locales (tabla 2)."),
 ];
 
 const seccion9 = [
-  h1("9. Runbook de puesta en producción (una sola vez)"),
-  h2("9.1 Baseline de la base de producción"),
-  p("La base de producción ya existe (creada con db push), por lo que la migración baseline NO debe ejecutarse allí: se marca como ya aplicada. Orden exacto en el primer deploy a producción:"),
-  bullet("1. Confirmar en Vercel que DATABASE_URL (Production) apunta a la base de producción y DIRECT_URL está definida para migraciones; Preview/Development con sus propias bases o sin migración (el guard ya lo previene)."),
-  bullet("2. Ejecutar una vez, contra producción: `DATABASE_URL=<producción> npx prisma migrate resolve --applied 20261121000000_init_baseline`."),
-  bullet("3. Desplegar (push del tag o re-deploy): el guard ejecutará `prisma migrate deploy`, que aplicará SOLO 20261121100000_routes_module (11 tablas nuevas, sin tocar nada existente)."),
-  bullet("4. Verificación post-deploy: `prisma migrate status` debe listar ambas migraciones aplicadas; la app vigente debe funcionar sin cambios (rides, login, incidentes)."),
+  h1("9. Operaciones de producción — ejecutadas y verificadas (2026-11-21)"),
+  h2("9.1 Migración real de producción (criterio 5) — EJECUTADA"),
+  p("Con la llave de API de Neon entregada por el cliente, el guard se ejecutó directamente contra la base de producción (proyecto long-cake-58507028, branch production, región sa-east-1, conexión directa para migraciones). El estado real encontrado fue el previsto por la simulación, con dos matices documentados: el esquema vivo tenía **12 de las 14 tablas del baseline** (PushSub y Constancia jamás se crearon porque nadie usó esas funciones desde el db push histórico) y una **deriva benigna** de dos defaults de BD extra en CyclistProfile.updatedAt y ProfileConfig.updatedAt (legado del self-repair; sin efecto funcional — Prisma escribe @updatedAt desde el cliente). El guard verificó por diff de solo lectura que la diferencia era exactamente ese subconjunto, clasificó los dos ALTER como benignos sin ejecutarlos, creó `_prisma_migrations` y corrió el deploy: **el baseline idempotente se ejecutó de verdad** (no-op en las 12 tablas existentes, creó las 2 faltantes — producción converge al esquema declarado) y el módulo creó las 11 tablas nuevas."),
+  bullet("Resultado: 26 tablas en el esquema public; ambas migraciones registradas en _prisma_migrations (terminadas, sin rollback); `prisma migrate status` = «Database schema is up to date!»; User.role = 'user' en los 10 usuarios existentes (default aplicado); PushSub y Constancia recuperadas vacías como corresponde."),
+  bullet("Datos intactos y comprobados antes/después: 10 usuarios, 5 rides, 0 incidentes, 2 perfiles ciclistas, 0 métricas — idénticos."),
+  bullet("App vigente tras la migración: POST /api/auth/token responde 401 correcto (el handler consultó User contra la base migrada) y /api/version entrega 1.14.3 code 74 — el release publicado sigue en línea sin cambios (el código de la fase A no se ha desplegado; sus tablas ya esperan)."),
+  bullet("Deploy de estado estable verificado: re-ejecutar el guard contra producción sale exit 0 en «migraciones aplicadas» (no-op). El build del próximo release correrá exactamente ese camino."),
+  bullet("Seguridad del cambio: antes de migrar se creó el branch Neon **respaldo-pre-migraciones** (br-frosty-mud-b60uflu1, con endpoint propio) que conserva el estado pre-migración íntegro; se conserva hasta la confirmación del cliente (después puede eliminarse desde la consola de Neon; PITR de 6 h cubre además los últimos puntos de restauración)."),
+  bullet("Scoping de Vercel verificado vía API: la variable DATABASE_URL del proyecto cumbre30 tiene target **[production] únicamente** — previews y desarrollo no tienen cadena de producción (y el guard además impide que migren). No hubo nada que corregir."),
   h2("9.2 Comportamiento ante fallo"),
-  p("Si migrate deploy falla en producción: el build falla y Vercel mantiene el deploy anterior en línea (despliegues atómicos) — producción nunca queda a medias. Diagnóstico con prisma migrate status, corrección manual si procede, `prisma migrate resolve --applied|--rolled-back <nombre>` y nuevo deploy. Probado en el entorno local (CT-M2, tabla 2). El respaldo previo es PITR de Neon más el pg_dump best-effort del guard."),
-  h2("9.3 Ensayo de restauración PITR (CT-M4)"),
-  bullet("1. En la consola de Neon, elegir la base de producción y crear un branch/restore a un punto anterior (p. ej. una hora atrás)."),
-  bullet("2. Con la cadena de conexión del branch: `prisma migrate status` (debe mostrar las migraciones aplicadas) y una consulta de conteo por tabla (User, Ride, Route)."),
-  bullet("3. Comparar los conteos contra producción; registrar el resultado en la entrada del runbook y eliminar el branch de ensayo. Un solo ensayo basta para cerrar CT-M4."),
+  p("Si migrate deploy falla en producción: el build falla y Vercel mantiene el deploy anterior en línea (despliegues atómicos) — producción nunca queda a medias. Diagnóstico con prisma migrate status, corrección manual si procede, `prisma migrate resolve --applied|--rolled-back <nombre>` y nuevo deploy. Probado en el entorno local (CT-M2, tabla 2). El respaldo previo es PITR de Neon más el pg_dump best-effort del guard. Desde esta ejecución, además, el propio guard demostró su comportamiento conservador en producción real: su primera pasada abortó (exit 1) ante la deriva de defaults porque la política todavía la clasificaba como no cubierta — se revisó la deriva (benigna), se amplió la política documentándola y se re-testeo en simulación réplica antes de ejecutar."),
+  h2("9.3 Ensayo de restauración PITR (CT-M4) — EJECUTADO"),
+  bullet("1. Se creó por API un branch restaurado a 1 hora atrás del branch de producción (drill-pitr-1h) con su propio endpoint."),
+  bullet("2. Con la cadena del branch se verificó: conteos idénticos a producción (12 tablas, 10 usuarios, 5 rides, 0 incidentes, 2 perfiles, 0 métricas) y lectura de datos reales (usuarios con sus fechas de creación)."),
+  bullet("3. El branch de ensayo se eliminó tras registrar el resultado. CT-M4 queda cerrado con evidencia real: la restauración puntual de Neon reproduce el estado histórico exacto."),
 ];
 
 const seccion10 = [
   h1("10. Próximos pasos"),
-  p("Entregado lo anterior, la fase A queda **implementada, compilada y probada** a la espera de la verificación del cliente y del primer despliegue con migraciones (sección 9). Sin push y sin release: todo entrará al próximo release cuando el cliente lo apruebe. Con la aprobación de esta entrega, la **fase B (creación y edición)** se inicia sobre esta base: integración del creador con c30.rutas-v2, atributos recreativos y dificultad con sugerencia editable en el editor, POIs desde la UI y export GPX — con las fases C-F siguiendo el plan v2.1 (tabla 6 §11) y sus criterios de aceptación."),
-  p("Los archivos de la implementación quedan en el proyecto para revisión directa: prisma/schema.prisma (modelo), prisma/migrations/ (dos migraciones), scripts/migrate-deploy.sh y scripts/check-migrations-additive.js (operación), src/lib/rutasStore.ts, src/lib/routeGeo.ts y src/lib/rutasApi.ts (cliente), src/app/api/routes/ (API), y la suite tests/ con el workflow actualizado."),
+  p("Con las migraciones ya aplicadas en producción y los seis criterios cumplidos, la fase A queda **implementada, compilada, probada y desplegada en su capa de datos** — a la espera solo de la verificación del cliente y del release que publique el código (el deploy del build correrá el guard en estado estable, no-op). Sin push y sin release: el código entrará al próximo release cuando el cliente lo apruebe. Con esa aprobación, la **fase B (creación y edición)** se inicia sobre esta base: integración del creador con c30.rutas-v2, atributos recreativos y dificultad con sugerencia editable en el editor, POIs desde la UI y export GPX — con las fases C-F siguiendo el plan v2.1 (tabla 6 §11) y sus criterios de aceptación."),
+  p("Pendientes de operación del cliente: (1) rotar la llave de API de Neon y el token de Vercel entregados para esta sesión (mejor práctica tras cualquier uso; la cadena del rol neondb_owner también circuló por este entorno), y (2) tras confirmar esta entrega, eliminar el branch de respaldo respaldo-pre-migraciones en la consola de Neon. Los archivos de la implementación quedan en el proyecto para revisión directa: prisma/schema.prisma (modelo), prisma/migrations/ (dos migraciones), scripts/migrate-deploy.sh y scripts/check-migrations-additive.js (operación), src/lib/rutasStore.ts, src/lib/routeGeo.ts y src/lib/rutasApi.ts (cliente), src/app/api/routes/ (API), y la suite tests/ con el workflow actualizado."),
 ];
 
 const bodyChildren = [
