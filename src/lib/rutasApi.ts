@@ -358,6 +358,53 @@ export async function misFavoritas(): Promise<{ ok: boolean; error?: string; fav
   }
 }
 
+// Muro público de experiencias (2026-11-21): feed de la subsección
+// «Experiencias» del módulo Explorar. Lectura con sesión — sin cuenta
+// el componente ni siquiera la llama (política de invitado, sin 401).
+export type ExperienciaMuro = {
+  id: string;
+  fechaRealizacion: string;
+  comentario: string | null;
+  observacion: string | null;
+  condiciones: string[];
+  createdAt: string;
+  username: string;
+  fotos: string[];
+  ruta: {
+    id: string;
+    nombre: string;
+    distKm: number;
+    dificultadFisica: number;
+    dificultadTecnica: number;
+    estadoVigencia: string;
+  };
+};
+
+export type MuroExperiencias = { experiencias: ExperienciaMuro[]; total: number; ciclistas: number };
+
+/** Feed del muro (más recientes primero; el API acota take 1..50). */
+export async function muroExperiencias(take = 30): Promise<{ ok: boolean; error?: string; muro?: MuroExperiencias }> {
+  const target = url(`/api/experiences?take=${take}`);
+  if (target === null) return { ok: false, error: "Sin backend configurado." };
+  const headers = sessionHeaders();
+  try {
+    const res = await fetch(target, { headers, signal: AbortSignal.timeout(15_000) });
+    const d = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+    if (!res.ok) return { ok: false, error: typeof d.error === "string" ? d.error : `Error ${res.status}.` };
+    const experiencias = Array.isArray(d.experiencias) ? (d.experiencias as ExperienciaMuro[]) : [];
+    return {
+      ok: true,
+      muro: {
+        experiencias,
+        total: typeof d.total === "number" ? d.total : experiencias.length,
+        ciclistas: typeof d.ciclistas === "number" ? d.ciclistas : 0,
+      },
+    };
+  } catch {
+    return { ok: false, error: "Sin red." };
+  }
+}
+
 export type ColaModeracion = {
   ocultas: { id: string; nombre: string; estadoVigencia: string; updatedAt: string; reports: { id: string; motivo: string; estado: string; clasificacion: string; peso: number }[] }[];
   sospechosos: { id: string; routeId: string; motivo: string; peso: number }[];

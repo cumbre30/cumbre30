@@ -18,21 +18,35 @@
 //   t("voz.cierreProximo", hora, min) // {0} {1} interpolados
 // ============================================================
 
-import { useSyncExternalStore } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 
 export type Lang = "es" | "en" | "pt";
 
 const LS_KEY = "cumbre30-lang";
 const LANGS: Lang[] = ["es", "en", "pt"];
 
+// Valor de HIDRATACIÓN: «es» en el servidor Y en el primer render del
+// cliente. La preferencia guardada se aplica DESPUÉS del montaje
+// (hidratarLang): leer localStorage aquí producía un mismatch de
+// hidratación (#418 de React) en cada recarga con idioma ≠ español —
+// el HTML venía en «es» y el primer render del cliente pintaba el
+// idioma guardado. (fix 2026-11-21)
 let current: Lang = "es";
-try {
-  if (typeof window !== "undefined" && window.localStorage) {
+let hidratado = false;
+
+/** Carga el idioma persistido UNA vez, fuera de la hidratación.
+ *  La llama el primer efecto de cada consumidor de useLang; si la
+ *  preferencia difiere de «es», los suscriptores re-renderizan con el
+ *  idioma real en el frame siguiente al montaje. */
+export function hidratarLang(): void {
+  if (hidratado || typeof window === "undefined") return;
+  hidratado = true;
+  try {
     const v = window.localStorage.getItem(LS_KEY);
-    if (v && (LANGS as string[]).includes(v)) current = v as Lang;
+    if (v && (LANGS as string[]).includes(v) && v !== current) setLang(v as Lang);
+  } catch {
+    // sin localStorage (privado): queda español
   }
-} catch {
-  // sin localStorage (SSR / privado): español
 }
 
 const listeners = new Set<() => void>();
@@ -57,8 +71,11 @@ function subscribe(fn: () => void): () => void {
   return () => listeners.delete(fn);
 }
 
-/** Hook: re-renderiza el componente cuando cambia el idioma. */
+/** Hook: re-renderiza el componente cuando cambia el idioma.
+ *  El primer efecto aplica la preferencia guardada tras el montaje
+ *  (hidratación honesta: servidor y cliente pintan «es» primero). */
 export function useLang(): Lang {
+  useEffect(hidratarLang, []);
   return useSyncExternalStore(subscribe, getLang, () => "es" as Lang);
 }
 
@@ -1307,6 +1324,12 @@ const D: Record<string, E> = {
 
   // ---------- app principal (page.tsx) ----------
   "pg.navegacionAria": ["Navegación principal", "Main navigation", "Navegação principal"],
+  // Política de invitado (2026-11-21): el mapa (y Ajustes/Cuenta, que
+  // son la puerta de entrada) son libres; el resto vive en la cuenta.
+  "pg.invitadoTitulo": ["Esta sección vive en tu cuenta", "This section lives in your account", "Esta seção vive na sua conta"],
+  "pg.invitadoCuerpo": ["El mapa es libre para todos. Las rutas, la comunidad, la credencial y tu perfil ciclista se guardan en tu cuenta: inicia sesión o crea una gratis para usarlas.", "The map is free for everyone. Routes, community, your credential and your cyclist profile are saved in your account: sign in or create a free one to use them.", "O mapa é livre para todos. As rotas, a comunidade, a credencial e o seu perfil de ciclista ficam na sua conta: entre ou crie uma grátis para usá-las."],
+  "pg.invitadoCta": ["Ir a Cuenta", "Go to Account", "Ir para Conta"],
+  "pg.invitadoMapa": ["Volver al mapa", "Back to the map", "Voltar ao mapa"],
   "pg.cargandoBilletera": ["Cargando billetera…", "Loading wallet…", "Carregando carteira…"],
   "pg.cargandoMapa": ["Cargando mapa…", "Loading map…", "Carregando mapa…"],
   "pg.cargandoCiclista": ["Cargando perfil…", "Loading profile…", "Carregando perfil…"],
@@ -1700,6 +1723,11 @@ const D: Record<string, E> = {
   "ex.expVacioTitulo": ["Aún no hay experiencias para mostrar", "No experiences to show yet", "Ainda não há experiências para mostrar"],
   "ex.expVacioSub": ["Tras cerrar un viaje con una ruta proyectada, la app te invita a registrar cómo la encontraste: condiciones, recomendaciones y consejos.", "After finishing a ride with a projected route, the app invites you to record how you found it: conditions, recommendations and tips.", "Ao encerrar um passeio com rota projetada, o app convida você a registrar como a encontrou: condições, recomendações e dicas."],
   "ex.expVacioCta": ["Ver rutas para pedalear", "See routes to ride", "Ver rotas para pedalar"],
+  // Muro público de experiencias (2026-11-21): feed real de la comunidad.
+  "ex.muroConteo": ["{0} experiencias de {1} ciclistas", "{0} experiences from {1} cyclists", "{0} experiências de {1} ciclistas"],
+  "ex.muroVerRuta": ["Ver ruta", "View route", "Ver rota"],
+  "ex.muroObsAria": ["Observación del día", "Day observation", "Observação do dia"],
+  "ex.muroFotoAria": ["Foto de la experiencia", "Experience photo", "Foto da experiência"],
   "ex.sigSub": ["Ciclistas que sigues y su actividad reciente.", "Cyclists you follow and their recent activity.", "Ciclistas que você segue e sua atividade recente."],
   "ex.apSub": ["Tu actividad dentro de la comunidad.", "Your activity inside the community.", "Sua atividade dentro da comunidade."],
   "ex.apStatPublicadas": ["Rutas publicadas", "Published routes", "Rotas publicadas"],

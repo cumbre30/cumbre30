@@ -35,6 +35,16 @@ const MOTIVOS_CLI: { id: MotivoReporteCli; clave: string }[] = [
   { id: "contenido_inapropiado", clave: "com.motivo.inapropiado" },
 ];
 
+// Condiciones tipificadas de las experiencias (§6) con su etiqueta
+// i18n. Fuente ÚNICA compartida: la usa el formulario de la ficha y
+// el muro de experiencias de Explorar (mismo enumerado cerrado).
+export const CONDICIONES = [
+  { id: "camino_ok", clave: "com.cond.camino_ok" }, { id: "tramo_cerrado", clave: "com.cond.tramo_cerrado" },
+  { id: "barro", clave: "com.cond.barro" }, { id: "mucho_trafico", clave: "com.cond.trafico" },
+  { id: "sombra", clave: "com.cond.sombra" }, { id: "agua", clave: "com.cond.agua" },
+  { id: "otro", clave: "com.cond.otro" },
+];
+
 export default function ComunidadTab({ rutaId, datos }: { rutaId: string; datos: DatosComunidad }) {
   useLang();
   const [favorito, setFavorito] = useState(datos.miFavorito);
@@ -98,13 +108,6 @@ export default function ComunidadTab({ rutaId, datos }: { rutaId: string; datos:
       else avisar(t("com.reporteOk"));
     } else avisar(r.error ?? "");
   };
-
-  const CONDICIONES = [
-    { id: "camino_ok", clave: "com.cond.camino_ok" }, { id: "tramo_cerrado", clave: "com.cond.tramo_cerrado" },
-    { id: "barro", clave: "com.cond.barro" }, { id: "mucho_trafico", clave: "com.cond.trafico" },
-    { id: "sombra", clave: "com.cond.sombra" }, { id: "agua", clave: "com.cond.agua" },
-    { id: "otro", clave: "com.cond.otro" },
-  ];
 
   return (
     <div className="mt-3 border-t border-border/60 pt-2.5" data-testid="comunidad">

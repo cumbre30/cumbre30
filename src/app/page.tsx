@@ -32,6 +32,7 @@ import { FallOverlay } from "@/components/FallOverlay";
 import ExperienciaPostRide from "@/components/ExperienciaPostRide";
 import { useRideEngine, type Source } from "@/hooks/useRideEngine";
 import { useMe } from "@/hooks/useMe";
+import PanelSesionRequerida from "@/components/PanelSesionRequerida";
 import { useNavEngine } from "@/hooks/useNavEngine";
 import { useProLicense } from "@/lib/proLicense";
 import { applyThemeColor, useRideTheme } from "@/lib/rideTheme";
@@ -156,7 +157,7 @@ function GpsChip({ status, simRunning }: { status: string; simRunning: boolean }
 export default function Home() {
   useLang(); // re-render de header/nav al cambiar el idioma
   const ride = useRideEngine();
-  const { me } = useMe();
+  const { me, ready } = useMe();
   const { pro } = useProLicense();
   const [screen, setScreen] = useState<Screen>("ride");
   // Subsección activa del módulo Explorar (rediseño 2026-11-21): el
@@ -218,6 +219,17 @@ export default function Home() {
   // Enlace viaje ↔ cuenta: rides nuevos y antiguos quedan asociados al
   // correo de la sesión; sin correo son locales del dispositivo.
   const userEmail = me?.user.email ?? null;
+  // Política de invitado (2026-11-21): libres el mapa — ride y la
+  // subsección «Explorar mapa» — más Cuenta (la puerta de inicio de
+  // sesión) y Ajustes (idioma/sonido/accesibilidad, sin datos de
+  // servidor). Todo lo demás vive en la cuenta: se sustituye por
+  // PanelSesionRequerida y NUNCA llama al servidor (adiós 401
+  // ruidosos de invitado). Antes de la sonda inicial (ready=false)
+  // el contenido se pinta normal: sin muro parpadeante.
+  const esInvitado = ready && !userEmail;
+  const enMapaLibre = screen === "explorar" && explorarSub === "mapa";
+  const sesionRequerida =
+    esInvitado && screen !== "ride" && screen !== "perfil" && screen !== "config" && !enMapaLibre;
   useEffect(() => {
     setRideOwner(userEmail);
     if (userEmail) linkRidesToAccount(userEmail);
@@ -360,6 +372,13 @@ export default function Home() {
             : "flex-1 w-full max-w-md mx-auto px-4 pt-4 pb-28"
         }
       >
+        {sesionRequerida ? (
+          <PanelSesionRequerida
+            onIrCuenta={() => go("perfil")}
+            onVolverMapa={screen === "explorar" ? () => setExplorarSub("mapa") : undefined}
+          />
+        ) : (
+        <>
         {screen === "ride" && (
           <RideView
             speedKmh={ride.speedKmh}
@@ -451,6 +470,8 @@ export default function Home() {
             {screen === "ayuda" && <HelpTab />}
             {screen === "educacion" && <EducacionTab />}
           </section>
+        )}
+        </>
         )}
 
         {/* v1.12.11: popup de reglas de accesos (F3/D3) - compartido por

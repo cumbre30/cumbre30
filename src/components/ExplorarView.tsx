@@ -46,7 +46,8 @@ import {
 
 import { rutasStore, type RutaV2 } from "@/lib/rutasStore";
 import { useTrazas, removeTraza, type TrazaGuardada } from "@/lib/trazasUsuario";
-import { catalogoRutas, misFavoritas, type RutaFavorita, type RutaPublica } from "@/lib/rutasApi";
+import { catalogoRutas, misFavoritas, muroExperiencias, type RutaFavorita, type RutaPublica, type ExperienciaMuro, type MuroExperiencias } from "@/lib/rutasApi";
+import { CONDICIONES } from "@/components/ComunidadTab";
 import { useMe } from "@/hooks/useMe";
 import { buildRutaGpxBlob } from "@/lib/gpx";
 import { PARK_POLYGON } from "@/lib/park";
@@ -54,7 +55,7 @@ import { ETIQUETAS_DIFICULTAD, type Dificultad } from "@/lib/dificultad";
 import CatalogoTab from "@/components/CatalogoTab";
 import { AmigosTab } from "@/components/AmigosTab";
 import type { MapViewProps, OrdenExplorar } from "@/components/MapView";
-import { t, useLang } from "@/lib/i18n";
+import { t, ttsLocale, useLang } from "@/lib/i18n";
 
 const MapView = dynamic(() => import("@/components/MapView"), {
   ssr: false,
@@ -153,6 +154,8 @@ function ExplorarView({
   const [favoritas, setFavoritas] = useState<RutaFavorita[] | null>(null);
   const [destacadas, setDestacadas] = useState<RutaPublica[] | null>(null);
   const [destacadasNota, setDestacadasNota] = useState(false);
+  // Muro de experiencias (2026-11-21): feed real de la comunidad.
+  const [muro, setMuro] = useState<MuroExperiencias | null>(null);
   // Favoritas y destacadas son LECTURAS CON SESIÓN: sin cuenta no se
   // golpea el servidor (evita 401 ruidosos de invitados); el estado
   // honesto es la lista vacía. El catálogo inline de «Rutas
@@ -179,6 +182,26 @@ function ExplorarView({
         setDestacadas([]);
         setDestacadasNota(true);
       }
+    };
+    const id = setTimeout(() => void ir(), 0);
+    return () => {
+      alive = false;
+      clearTimeout(id);
+    };
+  }, [userEmail]);
+
+  // Muro de experiencias: lectura CON SESIÓN, igual que favoritas —
+  // sin cuenta no se golpea el servidor (política de invitado, sin
+  // 401) y el estado honesto es el muro vacío.
+  useEffect(() => {
+    let alive = true;
+    const ir = async () => {
+      if (!userEmail) {
+        if (alive) setMuro({ experiencias: [], total: 0, ciclistas: 0 });
+        return;
+      }
+      const m = await muroExperiencias();
+      if (alive) setMuro(m.ok && m.muro ? m.muro : { experiencias: [], total: 0, ciclistas: 0 });
     };
     const id = setTimeout(() => void ir(), 0);
     return () => {
@@ -500,17 +523,35 @@ function ExplorarView({
           {!esRutas && sub === "experiencias" && (
             <section className="mt-4" data-testid="ex-contenido-experiencias">
               <p className="text-[13px] text-muted-foreground">{t("ex.expSub")}</p>
-              <div className="mt-4 rounded-2xl border border-border bg-card p-5 text-center">
-                <MessagesSquare className="mx-auto h-8 w-8 text-emerald-600 dark:text-emerald-400" aria-hidden />
-                <p className="mt-2 text-sm font-bold text-foreground">{t("ex.expVacioTitulo")}</p>
-                <p className="mx-auto mt-1.5 max-w-sm text-xs leading-snug text-muted-foreground">{t("ex.expVacioSub")}</p>
-                <button
-                  onClick={() => onSub("compartidas")}
-                  className="mt-3 rounded-xl bg-emerald-600 px-3.5 py-2 text-xs font-bold text-white hover:bg-emerald-500"
-                >
-                  {t("ex.expVacioCta")}
-                </button>
-              </div>
+              {muro === null ? (
+                <p className="mt-4 text-center text-xs text-muted-foreground">{t("cat.cargando")}</p>
+              ) : muro.experiencias.length === 0 ? (
+                <div className="mt-4 rounded-2xl border border-border bg-card p-5 text-center">
+                  <MessagesSquare className="mx-auto h-8 w-8 text-emerald-600 dark:text-emerald-400" aria-hidden />
+                  <p className="mt-2 text-sm font-bold text-foreground">{t("ex.expVacioTitulo")}</p>
+                  <p className="mx-auto mt-1.5 max-w-sm text-xs leading-snug text-muted-foreground">{t("ex.expVacioSub")}</p>
+                  <button
+                    onClick={() => onSub("compartidas")}
+                    className="mt-3 rounded-xl bg-emerald-600 px-3.5 py-2 text-xs font-bold text-white hover:bg-emerald-500"
+                  >
+                    {t("ex.expVacioCta")}
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <p
+                    className="mt-3 text-[11px] font-extrabold uppercase tracking-[0.16em] text-emerald-600 dark:text-emerald-400"
+                    data-testid="ex-muro-conteo"
+                  >
+                    {t("ex.muroConteo", muro.total, muro.ciclistas)}
+                  </p>
+                  <ul className="mt-2 grid gap-2" data-testid="ex-muro-lista">
+                    {muro.experiencias.map((e) => (
+                      <TarjetaMuro key={e.id} e={e} onVerRuta={() => onSub("compartidas")} />
+                    ))}
+                  </ul>
+                </>
+              )}
             </section>
           )}
 
@@ -768,6 +809,67 @@ function MiniBoton({ children, onClick, className, ariaLabel }: { children: Reac
 /** Icono de segmento (tramo) para la lista de Mis segmentos. */
 function MilestoneIcon() {
   return <Bookmark className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" aria-hidden />;
+}
+
+/** Tarjeta del muro de experiencias (2026-11-21): quien lo vivió,
+ *  cuándo, en qué ruta, las condiciones tipificadas del día, el
+ *  comentario, la observación y hasta 3 fotos. Sin GPS, sin datos
+ *  privados: username público + resumen de la ruta (igual que la
+ *  ficha). «Ver ruta» lleva al catálogo de compartidas. */
+function TarjetaMuro({ e, onVerRuta }: { e: ExperienciaMuro; onVerRuta: () => void }) {
+  useLang();
+  // Fecha de realización en el idioma activo; ISO de solo fecha se
+  // fija al mediodía para que la zona horaria no la corra un día.
+  const d = new Date(e.fechaRealizacion.length === 10 ? `${e.fechaRealizacion}T12:00:00` : e.fechaRealizacion);
+  const fecha = Number.isNaN(d.getTime()) ? e.fechaRealizacion : new Intl.DateTimeFormat(ttsLocale(), { day: "numeric", month: "short", year: "numeric" }).format(d);
+  const inicial = (e.username || "?").slice(0, 1).toUpperCase();
+  const km = new Intl.NumberFormat(ttsLocale(), { maximumFractionDigits: 1 }).format(e.ruta.distKm);
+  return (
+    <li className="rounded-2xl border border-border bg-card p-3.5" data-testid="ex-muro-tarjeta">
+      <div className="flex items-center gap-2.5">
+        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-emerald-600/15 text-xs font-bold text-emerald-700 dark:text-emerald-300" aria-hidden>
+          {inicial}
+        </span>
+        <div className="min-w-0">
+          <p className="truncate text-xs font-bold text-foreground">{e.username}</p>
+          <p className="text-[10.5px] text-muted-foreground">{fecha}</p>
+        </div>
+        <button
+          onClick={onVerRuta}
+          title={e.ruta.nombre}
+          aria-label={`${t("ex.muroVerRuta")}: ${e.ruta.nombre}`}
+          className="ml-auto max-w-[10.5rem] shrink-0 truncate rounded-full border border-border px-2.5 py-1 text-[10.5px] font-bold text-emerald-700 hover:bg-accent dark:text-emerald-300"
+        >
+          {e.ruta.nombre} · {km} km
+        </button>
+      </div>
+      {e.comentario && <p className="mt-2 text-[13px] leading-snug text-foreground">{e.comentario}</p>}
+      {e.condiciones.length > 0 && (
+        <div className="mt-2 flex flex-wrap gap-1">
+          {e.condiciones.map((c) => {
+            const et = CONDICIONES.find((x) => x.id === c);
+            return et ? (
+              <span key={c} className="rounded-full bg-emerald-600/15 px-2 py-0.5 text-[10px] font-bold text-emerald-700 dark:text-emerald-300">
+                {t(et.clave)}
+              </span>
+            ) : null;
+          })}
+        </div>
+      )}
+      {e.observacion && (
+        <p className="mt-1.5 text-xs italic leading-snug text-muted-foreground" aria-label={t("ex.muroObsAria")}>
+          “{e.observacion}”
+        </p>
+      )}
+      {e.fotos.length > 0 && (
+        <div className="mt-2 flex gap-1.5">
+          {e.fotos.map((u, i) => (
+            <img key={`${e.id}-f${i}`} src={u} alt={t("ex.muroFotoAria")} loading="lazy" className="h-20 w-24 rounded-lg object-cover" />
+          ))}
+        </div>
+      )}
+    </li>
+  );
 }
 
 export default ExplorarView;
