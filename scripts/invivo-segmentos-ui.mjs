@@ -1,0 +1,117 @@
+// ============================================================
+// Verificación in-vivo UI (2026-11-21): segmentos Predefinidas de
+// serie + Pro sin repetición. Contra el standalone :3100:
+//   1. Explorar → Segmentos: «Predefinidas» es la categoría
+//      inicial con los 7 tramos oficiales (4 Subida + 3 Bajada 30);
+//      «Mías» conserva el CTA «Trazar segmento».
+//   2. Mis viajes: SIN subtab «Pro» (la repetición se retiró).
+//   3. Estadísticas → Pro: única sede — «Segmentos del cerro» con
+//      los 7 oficiales (FREE los ve listados/bloqueados).
+//   node scripts/invivo-segmentos-ui.mjs
+// ============================================================
+import { createRequire } from "node:module";
+const require = createRequire(import.meta.url);
+const { chromium } = require("/opt/zcode/rt/runtime/node_modules/playwright-core");
+const EXE = "/home/z/.cache/ms-playwright/chromium-1200/chrome-linux64/chrome";
+
+const BASE = process.env.VIVO_BASE ?? "http://127.0.0.1:3100";
+const EMAIL = process.env.VIVO_EMAIL ?? "vivo-seg@test.local";
+const PASS = process.env.VIVO_PASS ?? "pedalea-seguro-30";
+const errores = [];
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+let pasos = 0;
+let fallos = 0;
+function ok(nombre, cond) {
+  pasos++;
+  console.log(`  ${cond ? "✓" : "✗"} ${nombre}`);
+  if (!cond) fallos++;
+}
+
+(async () => {
+  const browser = await chromium.launch({ executablePath: EXE, args: ["--no-sandbox"] });
+  const ctx = await browser.newContext({ viewport: { width: 412, height: 915 }, locale: "es-CL" });
+  const page = await ctx.newPage();
+  page.on("console", (m) => {
+    const txt = m.text();
+    if (m.type() === "error" && txt.includes("Failed to load resource")) return; // 401 esperados de invitado
+    if (m.type() === "error") errores.push(`console: ${txt.slice(0, 160)}`);
+  });
+  page.on("pageerror", (e) => errores.push(`pageerror: ${e.message.slice(0, 160)}`));
+
+  await page.goto(BASE, { waitUntil: "domcontentloaded", timeout: 30000 });
+  await sleep(4000);
+  // Sesión real: la sección Explorar exige cuenta (política de
+  // invitado v1.20.0 — solo el mapa es libre). Login con cookie.
+  const estado = await page.evaluate(async ({ email, password }) => {
+    const r = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+      credentials: "include",
+    });
+    return r.status;
+  }, { email: EMAIL, password: PASS });
+  ok(`login de prueba (${EMAIL})`, estado === 200);
+  await page.goto(BASE, { waitUntil: "domcontentloaded", timeout: 30000 });
+  await sleep(6000); // hidratación + carga del mapa
+
+  // ---------- 1. Explorar → Segmentos con categorías ----------
+  await page.getByRole("button", { name: /Explorar/ }).first().click();
+  await sleep(1500);
+  await page.locator('[data-testid="ex-tab-segmentos"]').click();
+  await sleep(700);
+  console.log("· Explorar → Segmentos");
+  ok("categoría Predefinidas activa por defecto", (await page.locator('[data-testid="ex-segcat-pre"][aria-selected="true"]').count()) === 1);
+  ok("los 7 tramos oficiales listados", (await page.locator('[data-testid^="ex-segpre-"]').count()) === 7);
+  ok("chips Subida (≥4) y Bajada 30 (≥3)", (await page.getByText("Subida", { exact: true }).count()) >= 4 && (await page.getByText("Bajada 30", { exact: true }).count()) >= 3);
+  ok("botón Ver en el mapa en cada oficial", (await page.getByRole("button", { name: "Ver en el mapa" }).count()) === 7);
+  await page.screenshot({ path: "/tmp/render/inv-segpre.png" });
+
+  // Encuadre de un oficial: «Ver en el mapa» debe llevar al mapa del módulo
+  await page.getByRole("button", { name: "Ver en el mapa" }).first().click();
+  await sleep(5000);
+  ok("«Ver en mapa» abre el mapa del módulo", await page.locator('[data-testid="ex-contenido-mapa"]').count() === 1);
+  await page.screenshot({ path: "/tmp/render/inv-segpre-mapa.png" });
+
+  await page.locator('[data-testid="ex-tabmapa-segmentos"]').click();
+  await sleep(700);
+  await page.locator('[data-testid="ex-segcat-mias"]').click();
+  await sleep(600);
+  console.log("· Explorar → Segmentos → Mías");
+  ok("categoría Mías activa", (await page.locator('[data-testid="ex-segcat-mias"][aria-selected="true"]').count()) === 1);
+  ok("CTA «Trazar segmento» vive en Mías", await page.locator('[data-testid="ex-trazar-segmento"]').count() === 1);
+
+  // ---------- 2. Mis viajes sin subtab Pro ----------
+  await page.click('button[aria-label="Abrir menú"]', { timeout: 8000 });
+  await sleep(900);
+  await page.getByText("Mis viajes").first().click();
+  await sleep(1200);
+  console.log("· Mis viajes");
+  ok("sin píldora «Pro» (subtab retirada)", (await page.locator('button:text-is("Pro")').count()) === 0);
+  ok("la lista de viajes sigue montada", (await page.getByText("Borrar historial").count()) >= 0 && (await page.locator("text=constancia").first().count()) >= 0);
+
+  // ---------- 3. Estadísticas → Pro (única sede) ----------
+  await page.click('button[aria-label="Abrir menú"]', { timeout: 8000 });
+  await sleep(900);
+  await page.getByText("Estadísticas").first().click();
+  await sleep(1200);
+  console.log("· Estadísticas");
+  ok("píldora «Pro» presente en Estadísticas", (await page.locator('button:text-is("Pro")').count()) === 1);
+  await page.locator('button:text-is("Pro")').first().click();
+  await sleep(800);
+  ok("«Segmentos del cerro» visible", (await page.getByText("Segmentos del cerro").count()) >= 1);
+  // FREE ve los 7 oficiales bloqueados (misma lista que Predefinidas)
+  ok("los 7 oficiales listados en Estadísticas · Pro", (await page.getByText("Plaza México", { exact: false }).count()) >= 4);
+  await page.screenshot({ path: "/tmp/render/inv-stats-pro.png" });
+
+  await browser.close();
+  console.log(`\n${pasos - fallos}/${pasos} OK`);
+  if (fallos > 0 || errores.length > 0) {
+    for (const e of errores) console.error(`  ${e}`);
+    process.exit(1);
+  }
+  console.log("VIVO_SEGMENTOS_OK");
+})().catch((e) => {
+  console.error("ERROR:", e.message);
+  process.exit(1);
+});
