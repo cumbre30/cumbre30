@@ -388,7 +388,7 @@ export default function BibliotecaRutas({
                 {ficha.gainM != null ? (
                   <p className="text-xs font-bold text-foreground">+{Math.round(ficha.gainM)} m</p>
                 ) : (
-                  <p className="text-xs font-bold text-muted-foreground">— {t("bib.sinElev")}</p>
+                  <p className="text-xs font-bold text-muted-foreground">{t("bib.sinElev")}</p>
                 )}
               </div>
               <div className="rounded-lg border border-border bg-card px-1 py-1.5" data-testid="ficha-tiempo">

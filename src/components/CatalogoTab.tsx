@@ -229,7 +229,7 @@ export default function CatalogoTab({
                   </div>
                   <div className="rounded-lg border border-border bg-card px-1 py-1.5">
                     <p className="text-[9px] font-bold text-muted-foreground">{t("bib.elev")}</p>
-                    {ficha.gainM != null ? <p className="text-xs font-bold text-foreground">+{Math.round(ficha.gainM)} m</p> : <p className="text-xs font-bold text-muted-foreground">— {t("bib.sinElev")}</p>}
+                    {ficha.gainM != null ? <p className="text-xs font-bold text-foreground">+{Math.round(ficha.gainM)} m</p> : <p className="text-xs font-bold text-muted-foreground">{t("bib.sinElev")}</p>}
                   </div>
                   <div className="rounded-lg border border-border bg-card px-1 py-1.5">
                     <p className="text-[9px] font-bold text-muted-foreground">{t("cat.vigencia")}</p>
