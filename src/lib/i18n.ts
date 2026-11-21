@@ -587,6 +587,15 @@ const D: Record<string, E> = {
   "com.expPlaceholder": ["¿Cómo estuvo la ruta? (sin pista GPS)", "How was the ride? (no GPS track)", "Como foi a rota? (sem trilha GPS)"],
   "com.expGuardar": ["Guardar experiencia", "Save experience", "Salvar experiência"],
   "com.expGuardada": ["Experiencia guardada.", "Experience saved.", "Experiência salva."],
+  // Fotos de experiencias (propuesta Pro, Grupo A): FREE 1 · PRO 6.
+  "com.fotoAgregar": ["Foto", "Photo", "Foto"],
+  "com.fotoProNota": ["Gratis: 1 foto · Pro: hasta 6", "Free: 1 photo · Pro: up to 6", "Grátis: 1 foto · Pro: até 6"],
+  "com.fotoLimite": ["Límite de 6 fotos alcanzado.", "Limit of 6 photos reached.", "Limite de 6 fotos atingido."],
+  "com.fotoSoloUna": ["Tu plan gratuito permite 1 foto por experiencia.", "Your free plan allows 1 photo per experience.", "Seu plano grátis permite 1 foto por experiência."],
+  "com.fotoError": ["No se pudo procesar la foto.", "The photo could not be processed.", "Não foi possível processar a foto."],
+  "com.fotoSubiendo": ["Subiendo fotos…", "Uploading photos…", "Enviando fotos…"],
+  "com.fotoQuitar": ["Quitar foto", "Remove photo", "Remover foto"],
+  "com.fotoAlt": ["Foto de la experiencia", "Experience photo", "Foto da experiência"],
   "com.cond.camino_ok": ["camino en buen estado", "good path", "caminho em bom estado"],
   "com.cond.tramo_cerrado": ["tramo cerrado", "closed section", "trecho fechado"],
   "com.cond.barro": ["barro", "mud", "barro"],
@@ -1735,6 +1744,13 @@ const D: Record<string, E> = {
   "ex.apStatFavoritas": ["En tus favoritas", "In your favorites", "Nos seus favoritos"],
   "ex.apVacio": ["Publica una ruta para compartirla con la comunidad: pasa revisión y aparece en el catálogo.", "Publish a route to share it with the community: it goes through review and shows up in the catalog.", "Publique uma rota para compartilhar com a comunidade: passa por revisão e aparece no catálogo."],
   "ex.apPublicar": ["Publicar una ruta", "Publish a route", "Publicar uma rota"],
+  // Distintivo Pro del muro y panel Pro del aporte (propuesta Pro).
+  "ex.muroPro": ["PRO", "PRO", "PRO"],
+  "ex.muroProAria": ["Ciclista Pro de la comunidad", "Pro community cyclist", "Ciclista Pro da comunidade"],
+  "ex.apMisExp": ["Mis experiencias · Pro", "My experiences · Pro", "Minhas experiências · Pro"],
+  "ex.apExpTotal": ["Experiencias registradas", "Experiences recorded", "Experiências registradas"],
+  "ex.apRutasCubiertas": ["Rutas cubiertas", "Routes covered", "Rotas cobertas"],
+  "ex.apExpVacio": ["Aún no has registrado experiencias: cierra un viaje con ruta proyectada y cuéntanos cómo la encontraste.", "You haven't recorded experiences yet: finish a ride with a projected route and tell us how you found it.", "Você ainda não registrou experiências: encerre um passeio com rota projetada e conte como a encontrou."],
   "ex.verEnMapa": ["Ver en el mapa", "See on the map", "Ver no mapa"],
 };
 

@@ -369,6 +369,7 @@ export type ExperienciaMuro = {
   condiciones: string[];
   createdAt: string;
   username: string;
+  pro: boolean;
   fotos: string[];
   ruta: {
     id: string;
@@ -398,6 +399,57 @@ export async function muroExperiencias(take = 30): Promise<{ ok: boolean; error?
         experiencias,
         total: typeof d.total === "number" ? d.total : experiencias.length,
         ciclistas: typeof d.ciclistas === "number" ? d.ciclistas : 0,
+      },
+    };
+  } catch {
+    return { ok: false, error: "Sin red." };
+  }
+}
+
+// Fotos de experiencias (propuesta Pro, Grupo A): el cliente escala
+// la imagen y la envía como data URL; el API decide el límite real
+// (FREE 1 · PRO 6) según el registro de compras del servidor.
+export async function agregarFotoExperiencia(rutaId: string, experienciaId: string, foto: string): Promise<{ ok: boolean; error?: string }> {
+  const target = url(`/api/routes/${encodeURIComponent(rutaId)}/experience/photos`);
+  if (target === null) return { ok: false, error: "Sin backend configurado." };
+  const headers = sessionHeaders();
+  try {
+    const res = await fetch(target, { method: "POST", headers, body: JSON.stringify({ experienciaId, foto }), signal: AbortSignal.timeout(20_000) });
+    const d = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+    if (!res.ok) return { ok: false, error: typeof d.error === "string" ? d.error : `Error ${res.status}.` };
+    return { ok: true };
+  } catch {
+    return { ok: false, error: "Sin red." };
+  }
+}
+
+// Mis experiencias (panel «Mi aporte» + exportación legible).
+export type ExperienciaPropia = {
+  id: string;
+  fechaRealizacion: string;
+  comentario: string | null;
+  condiciones: string[];
+  createdAt: string;
+  ruta: { id: string; nombre: string; distKm: number; estadoVigencia: string };
+};
+
+export type MisExperiencias = { experiencias: ExperienciaPropia[]; total: number; rutasCubiertas: number };
+
+export async function misExperiencias(): Promise<{ ok: boolean; error?: string; mias?: MisExperiencias }> {
+  const target = url("/api/experiences/mias");
+  if (target === null) return { ok: false, error: "Sin backend configurado." };
+  const headers = sessionHeaders();
+  try {
+    const res = await fetch(target, { headers, signal: AbortSignal.timeout(15_000) });
+    const d = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+    if (!res.ok) return { ok: false, error: typeof d.error === "string" ? d.error : `Error ${res.status}.` };
+    const experiencias = Array.isArray(d.experiencias) ? (d.experiencias as ExperienciaPropia[]) : [];
+    return {
+      ok: true,
+      mias: {
+        experiencias,
+        total: typeof d.total === "number" ? d.total : experiencias.length,
+        rutasCubiertas: typeof d.rutasCubiertas === "number" ? d.rutasCubiertas : 0,
       },
     };
   } catch {

@@ -9,17 +9,20 @@
 // oficiales de la ruta. Sin sesión: mensajes honestos.
 // ============================================================
 
-import { useState } from "react";
-import { Heart, Star, MessageSquare, Flag, Trash2, Send } from "lucide-react";
+import { useRef, useState } from "react";
+import { Heart, Star, MessageSquare, Flag, Trash2, Send, ImagePlus, X } from "lucide-react";
 import {
   toggleFavorito, valorarRuta, comentarRuta, borrarComentario,
-  reportarRuta, registrarExperiencia, type MotivoReporteCli,
+  reportarRuta, registrarExperiencia, agregarFotoExperiencia,
+  type MotivoReporteCli,
 } from "@/lib/rutasApi";
+import { escalarFoto } from "@/lib/fotoExperiencia";
+import { useProLicense } from "@/lib/proLicense";
 import { t, useLang } from "@/lib/i18n";
 
 export type DatosComunidad = {
   comentarios: { id: string; body: string; createdAt: string; username: string }[];
-  experiencias: { id: string; fechaRealizacion: string; comentario: string | null; observacion: string | null; condiciones: string[]; username: string }[];
+  experiencias: { id: string; fechaRealizacion: string; comentario: string | null; observacion: string | null; condiciones: string[]; username: string; pro?: boolean; fotos?: string[] }[];
   valoracionPromedio: number | null;
   valoracionVotos: number;
   favoritos: number;
@@ -47,6 +50,8 @@ export const CONDICIONES = [
 
 export default function ComunidadTab({ rutaId, datos }: { rutaId: string; datos: DatosComunidad }) {
   useLang();
+  const { pro } = useProLicense();
+  const MAX_FOTOS = pro.active ? 6 : 1;
   const [favorito, setFavorito] = useState(datos.miFavorito);
   const [favoritos, setFavoritos] = useState(datos.favoritos);
   const [miNota, setMiNota] = useState<number | null>(datos.miValoracion);
@@ -58,11 +63,30 @@ export default function ComunidadTab({ rutaId, datos }: { rutaId: string; datos:
   const [expComentario, setExpComentario] = useState("");
   const [expCondiciones, setExpCondiciones] = useState<string[]>([]);
   const [expFecha, setExpFecha] = useState(new Date().toISOString().slice(0, 10));
+  const [fotosPendientes, setFotosPendientes] = useState<string[]>([]);
+  const [subiendoFotos, setSubiendoFotos] = useState(false);
+  const inputFotoRef = useRef<HTMLInputElement | null>(null);
   const [reporteAbierto, setReporteAbierto] = useState(false);
   const [motivo, setMotivo] = useState<MotivoReporteCli>("cierre");
   const [mensaje, setMensaje] = useState<string | null>(null);
 
   const avisar = (m: string) => { setMensaje(m); setTimeout(() => setMensaje(null), 3500); };
+
+  /** Escala la foto elegida y la encola si hay cupo (FREE 1 · PRO 6). */
+  const onElegirFoto = async (file: File | undefined) => {
+    if (!file) return;
+    if (inputFotoRef.current) inputFotoRef.current.value = "";
+    if (fotosPendientes.length >= MAX_FOTOS) {
+      avisar(pro.active ? t("com.fotoLimite") : t("com.fotoSoloUna"));
+      return;
+    }
+    try {
+      const dataUrl = await escalarFoto(file);
+      setFotosPendientes((l) => (l.length < MAX_FOTOS ? [...l, dataUrl] : l));
+    } catch {
+      avisar(t("com.fotoError"));
+    }
+  };
 
   const onFavorito = async () => {
     const r = await toggleFavorito(rutaId);
@@ -94,8 +118,25 @@ export default function ComunidadTab({ rutaId, datos }: { rutaId: string; datos:
       condiciones: expCondiciones,
     });
     if (r.ok) {
-      setExperiencias((l) => [{ id: r.id ?? "", fechaRealizacion: expFecha, comentario: expComentario.trim() || null, observacion: null, condiciones: expCondiciones, username: "" }, ...l]);
+      const idNueva = r.id ?? "";
+      setExperiencias((l) => [{ id: idNueva, fechaRealizacion: expFecha, comentario: expComentario.trim() || null, observacion: null, condiciones: expCondiciones, username: "", fotos: [] }, ...l]);
       setExpComentario(""); setExpCondiciones([]);
+      // Fotos (Grupo A): se suben DESPUÉS de crear la experiencia; el
+      // límite real lo decide el servidor (registro de compras).
+      if (fotosPendientes.length > 0 && idNueva) {
+        setSubiendoFotos(true);
+        const urls: string[] = [];
+        for (const f of fotosPendientes) {
+          const fr = await agregarFotoExperiencia(rutaId, idNueva, f);
+          if (fr.ok) urls.push(f);
+          else avisar(fr.error ?? t("com.fotoError"));
+        }
+        setSubiendoFotos(false);
+        setFotosPendientes([]);
+        if (urls.length > 0) {
+          setExperiencias((l) => l.map((e) => (e.id === idNueva ? { ...e, fotos: urls } : e)));
+        }
+      }
       avisar(t("com.expGuardada"));
     } else avisar(r.error ?? "");
   };
@@ -183,19 +224,54 @@ export default function ComunidadTab({ rutaId, datos }: { rutaId: string; datos:
               </button>
             ))}
           </div>
-          <button onClick={onExperiencia} className="mt-1.5 rounded-lg bg-emerald-600 px-2.5 py-1 text-[11px] font-bold text-white hover:bg-emerald-500" data-testid="com-exp-guardar">
-            <Send className="mr-1 inline h-3 w-3" />{t("com.expGuardar")}
+          {/* Fotos (Grupo A): FREE 1 · PRO hasta 6 — el cliente escala
+              (canvas → JPEG) y el servidor decide el límite final. */}
+          <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+            {fotosPendientes.map((f, i) => (
+              <span key={`foto-${i}`} className="relative inline-block" data-testid="com-foto-preview">
+                <img src={f} alt={t("com.fotoAlt")} className="h-12 w-16 rounded-md object-cover" />
+                <button
+                  onClick={() => setFotosPendientes((l) => l.filter((_, j) => j !== i))}
+                  aria-label={t("com.fotoQuitar")}
+                  className="absolute -right-1 -top-1 grid h-4 w-4 place-items-center rounded-full bg-foreground text-background"
+                >
+                  <X className="h-2.5 w-2.5" />
+                </button>
+              </span>
+            ))}
+            {fotosPendientes.length < MAX_FOTOS && (
+              <label className="flex cursor-pointer items-center gap-1 rounded-lg border border-border bg-background px-2 py-1 text-[10px] font-bold text-muted-foreground hover:border-emerald-500 hover:text-foreground" data-testid="com-foto-agregar">
+                <ImagePlus className="h-3 w-3" />
+                {t("com.fotoAgregar")}
+                <input type="file" accept="image/*" className="hidden" onChange={(e) => void onElegirFoto(e.target.files?.[0])} ref={inputFotoRef} />
+              </label>
+            )}
+            <span className="text-[9px] text-muted-foreground">{t("com.fotoProNota")}</span>
+          </div>
+          <button onClick={onExperiencia} disabled={subiendoFotos} className="mt-1.5 rounded-lg bg-emerald-600 px-2.5 py-1 text-[11px] font-bold text-white hover:bg-emerald-500 disabled:opacity-60" data-testid="com-exp-guardar">
+            <Send className="mr-1 inline h-3 w-3" />{subiendoFotos ? t("com.fotoSubiendo") : t("com.expGuardar")}
           </button>
         </div>
         <ul className="mt-1.5 grid gap-1">
           {experiencias.map((e) => (
             <li key={e.id} className="rounded-lg border border-border bg-card/60 px-2 py-1.5" data-testid="com-experiencia">
-              <p className="text-[10px] font-bold text-foreground">{e.username || t("com.usuario")} · {e.fechaRealizacion}</p>
+              <p className="text-[10px] font-bold text-foreground">
+                {e.username || t("com.usuario")}
+                {e.pro && <span className="ml-1 rounded-full bg-amber-500/15 px-1.5 py-px text-[8px] font-extrabold uppercase tracking-wider text-amber-600 dark:text-amber-400">{t("ex.muroPro")}</span>}
+                <span className="font-normal"> · {e.fechaRealizacion}</span>
+              </p>
               {e.comentario && <p className="text-[11px] text-foreground/90">{e.comentario}</p>}
               {e.condiciones.length > 0 && (
                 <p className="mt-0.5 flex flex-wrap gap-1">
                   {e.condiciones.map((c) => (
                     <span key={c} className="rounded-full bg-emerald-600/10 px-1.5 py-px text-[9px] font-bold text-emerald-700 dark:text-emerald-300">{t(`com.cond.${c}`)}</span>
+                  ))}
+                </p>
+              )}
+              {e.fotos && e.fotos.length > 0 && (
+                <p className="mt-1 flex flex-wrap gap-1">
+                  {e.fotos.map((u, i) => (
+                    <img key={`f${i}`} src={u} alt={t("com.fotoAlt")} loading="lazy" className="h-14 w-20 rounded-md object-cover" />
                   ))}
                 </p>
               )}

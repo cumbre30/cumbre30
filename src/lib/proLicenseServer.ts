@@ -8,6 +8,7 @@
 // Debe coincidir con scripts/gen-license.mjs.
 // ============================================================
 
+import { db } from "@/lib/db";
 import { cleanCode, generateProLicenseCode, PRO_LICENSE_SECRET_LEGACY } from "./proLicenseCore";
 
 // Secreto vigente (rotado 2026-11-18): vive SOLO en la variable de
@@ -42,4 +43,33 @@ export async function validateAnyProLicenseCode(email: string, code: string): Pr
     if (diff === 0) return true;
   }
   return false;
+}
+
+/**
+ * ¿Este correo tiene una compra Pro registrada? Fuente de verdad del
+ * SERVIDOR para los beneficios que ejecuta la API (límite de fotos de
+ * experiencias, avisos del muro): la tabla ProDelivery es el registro
+ * de pagos (webhook/sync/manual), igual que la cola de entrega de
+ * códigos. El cliente declara su plan con la licencia local, pero lo
+ * que autoriza límites aquí es el registro de compras.
+ */
+export async function esProServer(email: string | null | undefined): Promise<boolean> {
+  if (!email) return false;
+  const fila = await db.proDelivery.findFirst({
+    where: { email: email.toLowerCase() },
+    select: { id: true },
+  });
+  return fila != null;
+}
+
+/** Conjunto de correos CON compra registrada (batch para feeds: el
+ *  distintivo Pro del muro y la ficha se deriva de este registro). */
+export async function proEmailsServer(emails: string[]): Promise<Set<string>> {
+  const limpios = emails.filter(Boolean).map((e) => e.toLowerCase());
+  if (limpios.length === 0) return new Set();
+  const filas = await db.proDelivery.findMany({
+    where: { email: { in: limpios } },
+    select: { email: true },
+  });
+  return new Set(filas.map((f) => f.email.toLowerCase()));
 }

@@ -46,9 +46,10 @@ import {
 
 import { rutasStore, type RutaV2 } from "@/lib/rutasStore";
 import { useTrazas, removeTraza, type TrazaGuardada } from "@/lib/trazasUsuario";
-import { catalogoRutas, misFavoritas, muroExperiencias, type RutaFavorita, type RutaPublica, type ExperienciaMuro, type MuroExperiencias } from "@/lib/rutasApi";
+import { catalogoRutas, misFavoritas, muroExperiencias, misExperiencias, type RutaFavorita, type RutaPublica, type ExperienciaMuro, type MuroExperiencias, type MisExperiencias } from "@/lib/rutasApi";
 import { CONDICIONES } from "@/components/ComunidadTab";
 import { useMe } from "@/hooks/useMe";
+import { useProLicense } from "@/lib/proLicense";
 import { buildRutaGpxBlob } from "@/lib/gpx";
 import { PARK_POLYGON } from "@/lib/park";
 import { ETIQUETAS_DIFICULTAD, type Dificultad } from "@/lib/dificultad";
@@ -150,12 +151,32 @@ function ExplorarView({
   const rutas = useSyncExternalStore(rutasStore.subscribe, () => rutasStore.get(), () => SERVIDOR_VACIO);
   const trazas = useTrazas();
   const { me } = useMe();
+  const { pro } = useProLicense();
   const userEmail = me?.user.email ?? null;
   const [favoritas, setFavoritas] = useState<RutaFavorita[] | null>(null);
   const [destacadas, setDestacadas] = useState<RutaPublica[] | null>(null);
   const [destacadasNota, setDestacadasNota] = useState(false);
   // Muro de experiencias (2026-11-21): feed real de la comunidad.
   const [muro, setMuro] = useState<MuroExperiencias | null>(null);
+  // Mis experiencias (propuesta Pro): solo se consultan con plan Pro
+  // activo — el panel completo del aporte es beneficio Pro.
+  const [mias, setMias] = useState<MisExperiencias | null>(null);
+  useEffect(() => {
+    let alive = true;
+    const ir = async () => {
+      if (!userEmail || !pro.active) {
+        if (alive) setMias(null);
+        return;
+      }
+      const r = await misExperiencias();
+      if (alive) setMias(r.ok && r.mias ? r.mias : { experiencias: [], total: 0, rutasCubiertas: 0 });
+    };
+    const id = setTimeout(() => void ir(), 0);
+    return () => {
+      alive = false;
+      clearTimeout(id);
+    };
+  }, [userEmail, pro.active]);
   // Favoritas y destacadas son LECTURAS CON SESIÓN: sin cuenta no se
   // golpea el servidor (evita 401 ruidosos de invitados); el estado
   // honesto es la lista vacía. El catálogo inline de «Rutas
@@ -572,6 +593,38 @@ function ExplorarView({
                 <StatCard n={listaBorradores.length} label={t("ex.apStatBorradores")} />
                 <StatCard n={favoritas?.length ?? 0} label={t("ex.apStatFavoritas")} />
               </div>
+              {/* Panel Pro del aporte (propuesta Pro, Grupo C): histórico
+                  completo de mis experiencias + rutas cubiertas. FREE
+                  sigue viendo el resumen básico de arriba. */}
+              {pro.active && (
+                <div className="mt-3 rounded-2xl border border-border bg-card p-3" data-testid="ex-aporte-pro">
+                  <p className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-amber-600 dark:text-amber-400">{t("ex.apMisExp")}</p>
+                  {mias === null ? (
+                    <p className="mt-2 text-center text-xs text-muted-foreground">{t("cat.cargando")}</p>
+                  ) : (
+                    <>
+                      <div className="mt-2 grid grid-cols-2 gap-2">
+                        <StatCard n={mias.total} label={t("ex.apExpTotal")} />
+                        <StatCard n={mias.rutasCubiertas} label={t("ex.apRutasCubiertas")} />
+                      </div>
+                      {mias.experiencias.length === 0 ? (
+                        <p className="mt-2 rounded-xl border border-dashed border-border p-3 text-center text-xs text-muted-foreground">{t("ex.apExpVacio")}</p>
+                      ) : (
+                        <ul className="mt-2 grid gap-1">
+                          {mias.experiencias.slice(0, 8).map((x) => (
+                            <li key={x.id} className="rounded-lg border border-border/60 px-2 py-1" data-testid="ex-aporte-exp">
+                              <p className="text-[10px] font-bold text-foreground">
+                                {x.fechaRealizacion} <span className="font-normal text-muted-foreground">· {x.ruta.nombre}</span>
+                              </p>
+                              {x.comentario && <p className="line-clamp-1 text-[10.5px] text-muted-foreground">{x.comentario}</p>}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
               {listaPublicadas.length === 0 ? (
                 <p className="mt-4 rounded-xl border border-dashed border-border p-4 text-center text-xs text-muted-foreground">{t("ex.apVacio")}</p>
               ) : (
@@ -827,11 +880,18 @@ function TarjetaMuro({ e, onVerRuta }: { e: ExperienciaMuro; onVerRuta: () => vo
   return (
     <li className="rounded-2xl border border-border bg-card p-3.5" data-testid="ex-muro-tarjeta">
       <div className="flex items-center gap-2.5">
-        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-emerald-600/15 text-xs font-bold text-emerald-700 dark:text-emerald-300" aria-hidden>
+        <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-full bg-emerald-600/15 text-xs font-bold text-emerald-700 dark:text-emerald-300 ${e.pro ? "ring-2 ring-amber-400" : ""}`} aria-hidden>
           {inicial}
         </span>
         <div className="min-w-0">
-          <p className="truncate text-xs font-bold text-foreground">{e.username}</p>
+          <p className="truncate text-xs font-bold text-foreground">
+            {e.username}
+            {e.pro && (
+              <span className="ml-1.5 inline-block rounded-full bg-amber-500/15 px-1.5 py-px align-middle text-[8px] font-extrabold uppercase tracking-wider text-amber-600 dark:text-amber-400" title={t("ex.muroProAria")} data-testid="ex-muro-pro">
+                {t("ex.muroPro")}
+              </span>
+            )}
+          </p>
           <p className="text-[10.5px] text-muted-foreground">{fecha}</p>
         </div>
         <button

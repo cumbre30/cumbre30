@@ -14,6 +14,7 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth";
+import { proEmailsServer } from "@/lib/proLicenseServer";
 import { corsHeaders, corsPreflight } from "@/lib/apiCors";
 import { guard } from "@/lib/rateLimit";
 import type { Prisma } from "@prisma/client";
@@ -68,7 +69,11 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
         where: { removedAt: null },
         orderBy: { createdAt: "desc" },
         take: 20,
-        select: { id: true, fechaRealizacion: true, comentario: true, observacion: true, condiciones: true, rideId: true, routeVersionId: true, createdAt: true, user: { select: { username: true } } },
+        // fotos: galería de la experiencia (≤6, cap del upload). El
+        // email del autor NO se selecciona aquí: el array crudo de la
+        // relación viaja en el payload y el email jamás debe salir;
+        // el distintivo Pro se deriva con una consulta aparte.
+        select: { id: true, fechaRealizacion: true, comentario: true, observacion: true, condiciones: true, rideId: true, routeVersionId: true, createdAt: true, photos: { select: { url: true }, orderBy: { createdAt: "asc" } }, user: { select: { username: true } } },
       },
       favorites: { select: { userId: true } },
       ratings: { select: { userId: true, valor: true } },
@@ -81,9 +86,18 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   }
   // Agregados + "lo mío" (el detalle nunca expone otros userIds).
   const valores = ruta.ratings.map((r) => r.valor);
+  // Distintivo Pro por autor de experiencias (propuesta Pro): consulta
+  // aparte por id de experiencia para obtener SOLO el email en el
+  // servidor — el include crudo no lo lleva y el payload queda limpio.
+  const autoresDeExp = await db.routeExperience.findMany({
+    where: { id: { in: ruta.experiences.map((e) => e.id) } },
+    select: { id: true, user: { select: { email: true } } },
+  });
+  const emailDeExp = new Map(autoresDeExp.map((a) => [a.id, a.user.email.toLowerCase()]));
+  const pros = await proEmailsServer([...emailDeExp.values()]);
   const comunidad = {
     comentarios: ruta.comments.map((c) => ({ ...c, username: c.user.username, user: undefined })),
-    experiencias: ruta.experiences.map((e) => ({ ...e, username: e.user.username, user: undefined })),
+    experiencias: ruta.experiences.map((e) => ({ ...e, username: e.user.username, pro: pros.has(emailDeExp.get(e.id) ?? ""), fotos: e.photos.map((f) => f.url), user: undefined })),
     valoracionPromedio: valores.length ? Math.round((valores.reduce((a, b) => a + b, 0) / valores.length) * 10) / 10 : null,
     valoracionVotos: valores.length,
     favoritos: ruta.favorites.length,

@@ -9,12 +9,16 @@ export const dynamic = "force-dynamic";
 // las ocultas por moderación y las retiradas no exponen contenido.
 // Lectura CON SESIÓN (política de invitado: la comunidad vive en la
 // cuenta); respuesta ligera: sin geometría, con username público,
-// hasta 3 fotos y el resumen de la ruta para el chip del muro.
+// hasta 6 fotos (propuesta Pro) y el resumen de la ruta. Cada
+// experiencia lleva el distintivo `pro` del autor, derivado del
+// REGISTRO de compras (ProDelivery) — nunca de lo que declare el
+// cliente.
 // ============================================================
 
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth";
+import { proEmailsServer } from "@/lib/proLicenseServer";
 import { corsHeaders, corsPreflight } from "@/lib/apiCors";
 
 export async function OPTIONS(req: Request) {
@@ -50,8 +54,9 @@ export async function GET(req: Request) {
           observacion: true,
           condiciones: true,
           createdAt: true,
+          userId: true,
           user: { select: { username: true } },
-          photos: { select: { url: true }, orderBy: { createdAt: "asc" }, take: 3 },
+          photos: { select: { url: true }, orderBy: { createdAt: "asc" }, take: 6 },
           route: {
             select: {
               id: true,
@@ -68,6 +73,15 @@ export async function GET(req: Request) {
       db.routeExperience.groupBy({ by: ["userId"], where }),
     ]);
 
+    // Distintivo Pro por autor: emails de los autores → registro de
+    // compras (una sola consulta batch por feed).
+    const autores = await db.user.findMany({
+      where: { id: { in: exps.map((e) => e.userId) } },
+      select: { id: true, email: true },
+    });
+    const emailDe = new Map(autores.map((a) => [a.id, a.email]));
+    const pros = await proEmailsServer(autores.map((a) => a.email));
+
     return NextResponse.json(
       {
         experiencias: exps.map((e) => ({
@@ -78,6 +92,7 @@ export async function GET(req: Request) {
           condiciones: e.condiciones,
           createdAt: e.createdAt,
           username: e.user.username,
+          pro: pros.has((emailDe.get(e.userId) ?? "").toLowerCase()),
           fotos: e.photos.map((f) => f.url),
           ruta: e.route,
         })),
