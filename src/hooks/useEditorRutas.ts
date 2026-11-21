@@ -68,6 +68,7 @@ export function useEditorRutas() {
   const [distKm, setDistKm] = useState(0);
   const [gainM, setGainM] = useState<number | null>(null);
   const [eleFuente, setEleFuente] = useState<"gpx" | "servicio" | null>(null);
+  const [eleM, setEleM] = useState<(number | null)[] | undefined>(undefined);
   const [err, setErr] = useState<string | null>(null);
   const [aviso, setAvisoInterno] = useState<string | null>(null);
   const [modoPoi, setModoPoi] = useState(false);
@@ -100,6 +101,7 @@ export function useEditorRutas() {
     setDistKm(0);
     setGainM(null);
     setEleFuente(null);
+    setEleM(undefined);
     setErr(null);
     setModoPoi(false);
     setPoiPendiente(null);
@@ -219,6 +221,9 @@ export function useEditorRutas() {
           setDistKm(linea.distKm);
           setGainM(gain);
           setEleFuente(gain != null ? "gpx" : null);
+          // Elevación por punto (fase C): el perfil altimétrico de la
+          // ficha solo se renderiza cuando el archivo la trae.
+          setEleM(gain != null && linea.eles ? linea.eles : undefined);
           setFase("editando");
           const sug = sugerirDificultad({ distKm: linea.distKm, gainM: gain, modalidad, attrs });
           setDificultadFisica(sug.fisica);
@@ -268,6 +273,7 @@ export function useEditorRutas() {
     setDistKm(r.distKm);
     setGainM(r.gainM);
     setEleFuente(r.eleFuente ?? null);
+    setEleM(r.eleM);
     setPois(r.pois ?? []);
     setNombre(r.nombre);
     setDescripcion(r.descripcion ?? "");
@@ -342,6 +348,7 @@ export function useEditorRutas() {
           distKm,
           gainM,
           eleFuente,
+          eleM,
           waypoints,
         });
       } else {
@@ -353,6 +360,7 @@ export function useEditorRutas() {
             distKm,
             gainM,
             eleFuente,
+            eleM,
             waypoints,
             modalidad: metadatos.modalidad,
             attrs: metadatos.attrs,
@@ -366,7 +374,7 @@ export function useEditorRutas() {
       reset();
       return guardado;
     },
-    [nombre, descripcion, modalidad, attrs, dificultadFisica, dificultadTecnica, dificultadOrigen, pois, editandoId, coords, distKm, gainM, eleFuente, waypoints, reset],
+    [nombre, descripcion, modalidad, attrs, dificultadFisica, dificultadTecnica, dificultadOrigen, pois, editandoId, coords, distKm, gainM, eleFuente, eleM, waypoints, reset],
   );
 
   return {

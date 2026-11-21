@@ -49,6 +49,14 @@ export type RutaV2 = Omit<TrazaGuardada, "gainM"> & {
   pois?: { id: string; orden: number; lat: number; lon: number; tipo: string; nombre: string; nota?: string }[];
   /** Atributos recreativos orientativos (máx 3, enumerado cerrado). */
   attrs?: string[];
+  /** Elevación por punto cuando existe una fuente (fase C: GPX
+   *  importado); undefined = sin datos por punto — jamás array de
+   *  ceros (§5.1). Alineada 1:1 con coords; alimenta el perfil
+   *  altimétrico de la ficha (solo se renderiza cuando existe). */
+  eleM?: (number | null)[];
+  /** Última revisión del creador («revisé esta ruta hoy», §7.4);
+   *  alimenta el banner de vigencia de la ficha. */
+  ultimaRevisionAt?: string;
   /** Registro de protección aplicada al publicar (v2.1 §3). */
   proteccion?: {
     recorteIniM: number;
@@ -88,18 +96,28 @@ function esRutaValida(t: unknown): t is RutaV2 {
 /** Fábrica pura del store (probable en node con storage fake). */
 export function rutasStoreFor(storage: KVStorage) {
   let snapshot: RutaV2[] = [];
+  // Caché de la cadena cruda: get() debe devolver la MISMA referencia
+  // mientras no cambie el storage — es el snapshot de
+  // useSyncExternalStore en la UI (patrón useTrazas) y una
+  // referencia nueva en cada llamada dispara un bucle infinito.
+  let rawCache: string | null | undefined = undefined;
   const listeners = new Set<() => void>();
 
   function escribir(entries: RutaV2[]): void {
     const env: Envelope = { v: 1, migrado: true, entries };
-    storage.setItem(RUTAS_V2_KEY, JSON.stringify(env));
+    const json = JSON.stringify(env);
+    storage.setItem(RUTAS_V2_KEY, json);
+    rawCache = json;
     snapshot = entries;
     for (const l of listeners) l();
   }
 
-  /** Lectura con migración por lectura (única vez). */
+  /** Lectura con migración por lectura (única vez) y snapshot
+   *  estable entre llamadas (misma referencia si el crudo no cambió). */
   function leer(): RutaV2[] {
     const raw = storage.getItem(RUTAS_V2_KEY);
+    if (raw !== null && raw === rawCache) return snapshot;
+    rawCache = raw;
     if (raw) {
       try {
         const env = JSON.parse(raw) as Envelope;

@@ -59,6 +59,7 @@ import { useCreadorTrazas } from "@/hooks/useCreadorTrazas";
 import TrazadoOverlay from "@/components/TrazadoOverlay";
 import EditorRutaPanel, { ListaBorradores } from "@/components/EditorRutaPanel";
 import { useEditorRutas } from "@/hooks/useEditorRutas";
+import BibliotecaRutas from "@/components/BibliotecaRutas";
 import { useTrazas, removeTraza, type TrazaGuardada } from "@/lib/trazasUsuario";
 import { geocodeAddress, type AddrResult } from "@/lib/geocode";
 import type { CapaRuta } from "@/lib/mapLayers";
@@ -305,6 +306,7 @@ function CapasPanel({
   onBorrarTraza,
   onCrearRutaTraza,
   onEditarBorrador,
+  onAbrirBiblioteca,
 }: {
   vis: Record<string, boolean>;
   onVer: (id: string) => void;
@@ -320,6 +322,8 @@ function CapasPanel({
   onCrearRutaTraza?: (tz: TrazaGuardada) => void;
   /** Fase B: continuar la edición de un borrador guardado. */
   onEditarBorrador?: (id: string) => void;
+  /** Fase C: abrir la biblioteca de rutas. */
+  onAbrirBiblioteca?: () => void;
 }) {
   const [abierto, setAbierto] = useState(true);
   useLang();
@@ -667,7 +671,7 @@ function CapasPanel({
           </div>
         </details>
         {/* Fase B: borradores de ruta del editor (c30.rutas-v2). */}
-        <ListaBorradores onEditar={onEditarBorrador} />
+        <ListaBorradores onEditar={onEditarBorrador} onAbrirBiblioteca={onAbrirBiblioteca} />
         </div>
       )}
     </div>
@@ -1014,6 +1018,13 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
   // Fase B: editor de rutas del módulo (multi-waypoint, POIs,
   // metadatos, borradores y export GPX) — no toca el creador de trazados.
   const editor = useEditorRutas();
+  // Fase C: biblioteca de rutas (cuatro secciones + ficha completa).
+  const [bibliotecaAbierta, setBibliotecaAbierta] = useState(false);
+  /** Encuadra una ruta v2 (borrador o migrada) en el mapa. */
+  const encuadrarRuta = (r: { id: string; coords: { lat: number; lon: number }[] }) => {
+    setTrazaSel(r.id);
+    setFocus({ kind: "ruta", coords: r.coords });
+  };
   const trazas = useTrazas();
   const [verTrazas, setVerTrazas] = useState(true);
   const [trazaSel, setTrazaSel] = useState<string | null>(null);
@@ -1514,6 +1525,7 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
           }}
           onCrearRutaTraza={(tz) => editor.desdeActividad(tz)}
           onEditarBorrador={(id) => editor.editarBorrador(id)}
+          onAbrirBiblioteca={() => setBibliotecaAbierta(true)}
         />
       </div>
 
@@ -2085,6 +2097,17 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
         {/* Fase B: panel del editor de rutas (metadatos, POIs, GPX). */}
         <EditorRutaPanel ctrl={editor} />
       </div>
+
+      {/* Fase C: biblioteca de rutas con ficha completa — al nivel raíz
+          de MapView, FUERA del wrapper rotado: el transform crea un
+          stacking context y el chrome del mapa (buscador, panel de
+          capas) quedaría por encima del overlay si va dentro. */}
+      <BibliotecaRutas
+        abierto={bibliotecaAbierta}
+        onClose={() => setBibliotecaAbierta(false)}
+        onEditar={(id) => editor.editarBorrador(id)}
+        onEncuadrar={encuadrarRuta}
+      />
     </div>
   );
 }

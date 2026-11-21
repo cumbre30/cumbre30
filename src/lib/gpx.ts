@@ -68,6 +68,10 @@ export type GpxLinea = {
   distKm: number;
   /** Desnivel positivo acumulado (0 si el GPX no trae <ele>). */
   gainM: number;
+  /** Elevación por punto, ALINEADA 1:1 con pts (fase C: alimenta el
+   *  perfil altimétrico y el export del borrador). undefined cuando
+   *  el archivo no trae <ele> — jamás array de ceros (§5.1). */
+  eles?: (number | null)[];
 };
 
 /** Parsea el XML de un GPX y devuelve la línea simplificada con su
@@ -110,6 +114,10 @@ export function parseGpxLine(xml: string): GpxLinea | null {
     elegidos[399] = dedup[dedup.length - 1];
   }
   const pts = elegidos.map((c) => c.p);
+  // Elevación por punto: solo si el archivo trae <ele> en algún
+  // punto; los puntos sin valor quedan null (§5.1, jamás 0 ficticio).
+  const conEle = elegidos.some((c) => c.e !== null);
+  const eles = conEle ? elegidos.map((c) => c.e) : undefined;
   let distM = 0;
   let gain = 0;
   let prevE: number | null = null;
@@ -119,7 +127,7 @@ export function parseGpxLine(xml: string): GpxLinea | null {
     if (e !== null && prevE !== null && e > prevE) gain += e - prevE;
     if (e !== null) prevE = e;
   }
-  return { pts, distKm: distM / 1000, gainM: Math.round(gain) };
+  return { pts, distKm: distM / 1000, gainM: Math.round(gain), eles };
 }
 
 // ============================================================

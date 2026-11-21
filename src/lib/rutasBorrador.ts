@@ -75,6 +75,9 @@ export function nuevoBorrador(entrada: {
   distKm: number;
   gainM: number | null;
   eleFuente?: "gpx" | "servicio" | null;
+  /** Elevación por punto (fase C): debe venir ALINEADA con coords.
+   *  Solo se guarda si hay gain real — jamás array de ceros (§5.1). */
+  eleM?: (number | null)[];
   waypoints?: LatLng[];
   descripcion?: string;
   modalidad?: Modalidad;
@@ -101,6 +104,7 @@ export function nuevoBorrador(entrada: {
     distKm,
     gainM: gain,
     eleFuente: gain != null ? (entrada.eleFuente ?? "gpx") : null,
+    eleM: gain != null && entrada.eleM && entrada.eleM.length === entrada.coords.length ? entrada.eleM : undefined,
     createdAt: new Date().toISOString(),
     origen: entrada.eleFuente === "gpx" ? "gpx" : "motor",
     status: "borrador",
@@ -145,6 +149,10 @@ export function borradoresFor(store: ReturnType<typeof rutasStoreFor>) {
       distKm?: number;
       gainM?: number | null;
       eleFuente?: "gpx" | "servicio" | null;
+      /** Elevación por punto alineada con las coords finales. */
+      eleM?: (number | null)[];
+      /** «Revisé esta ruta hoy» (§7.4): actualiza la vigencia. */
+      ultimaRevisionAt?: string;
       waypoints?: LatLng[];
     },
   ): RutaV2 | null {
@@ -182,6 +190,16 @@ export function borradoresFor(store: ReturnType<typeof rutasStoreFor>) {
     asignar("distKm", distKm);
     asignar("gainM", gainM);
     if (patch.eleFuente !== undefined) asignar("eleFuente", gainM != null ? patch.eleFuente ?? "gpx" : null);
+    // eleM: solo si queda alineada con las coords finales y hay gain
+    // real; si la nueva geometría la desalinea se ELIMINA explícitamente
+    // (asignar() salta undefined por diseño, aquí el borrado es el
+    // comportamiento buscado — perfil honesto, §5.1).
+    const coordsFinales = patch.coords ?? actual.coords;
+    const eleFinales = patch.eleM !== undefined ? patch.eleM : actual.eleM;
+    if (patch.eleM !== undefined || patch.coords !== undefined) {
+      p.eleM = gainM != null && eleFinales && eleFinales.length === coordsFinales.length ? eleFinales : undefined;
+    }
+    if (patch.ultimaRevisionAt !== undefined) asignar("ultimaRevisionAt", patch.ultimaRevisionAt);
     return store.update(id, p);
   }
 

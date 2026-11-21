@@ -12,12 +12,13 @@
 // Textos vía i18n (claves edi.*).
 // ============================================================
 
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ChevronDown, Loader2, Upload, X, Plus, Download, MapPin, Trash2, PencilRuler } from "lucide-react";
 import type { EditorRutas } from "@/hooks/useEditorRutas";
 import { ATRIBUTOS_RECREATIVOS, ETIQUETAS_DIFICULTAD, MAX_ATRIBUTOS, type Dificultad } from "@/lib/dificultad";
 import { TIPOS_POI, borradores } from "@/lib/rutasBorrador";
 import { rutasStore, type RutaV2 } from "@/lib/rutasStore";
+import { BotonBiblioteca } from "@/components/BibliotecaRutas";
 import { buildRutaGpxBlob } from "@/lib/gpx";
 import { t, useLang } from "@/lib/i18n";
 
@@ -303,7 +304,7 @@ export default function EditorRutaPanel({ ctrl }: { ctrl: EditorRutas }) {
 /** Lista de borradores guardados (c30.rutas-v2, status 'borrador')
  *  dentro del panel de capas: continuar edición, exportar GPX o
  *  eliminar. Autocontenida: se suscribe al store y se refresca sola. */
-export function ListaBorradores({ onEditar }: { onEditar?: (id: string) => void }) {
+export function ListaBorradores({ onEditar, onAbrirBiblioteca }: { onEditar?: (id: string) => void; onAbrirBiblioteca?: () => void }) {
   useLang();
   const [items, setItems] = useState<RutaV2[]>([]);
   useEffect(() => {
@@ -328,6 +329,7 @@ export function ListaBorradores({ onEditar }: { onEditar?: (id: string) => void 
           </span>
           <span className="block truncate text-[10.5px] text-muted-foreground">{t("edi.borradoresSub")}</span>
         </span>
+        {onAbrirBiblioteca && <BotonBiblioteca onClick={(e) => { e.stopPropagation(); onAbrirBiblioteca(); }} />}
         <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground transition-transform details-chev" aria-hidden />
       </summary>
       <div className="px-1.5 pb-2.5">
