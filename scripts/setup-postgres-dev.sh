@@ -24,6 +24,13 @@ if [ ! -x "$PGBIN/initdb" ]; then
   echo "ERROR: no están los binarios (npm i embedded-postgres)"; exit 1
 fi
 
+# Los binarios traen ICU 60 compilado como .so.60.2 pero sin el symlink
+# .so.60 que el loader busca; en sistemas sin libicu 60 el initdb muere con
+# "libicuuc.so.60: cannot open shared object file". Los creamos idempotentes.
+for n in icuuc icui18n icudata; do
+  [ -f "$PGBIN/../lib/lib${n}.so.60.2" ] && ln -sf "lib${n}.so.60.2" "$PGBIN/../lib/lib${n}.so.60"
+done
+
 if [ ! -f "$PGDATA/PG_VERSION" ]; then
   echo "initdb → $PGDATA"
   "$PGBIN/initdb" -D "$PGDATA" -U postgres -E UTF8 --auth=trust > /dev/null
