@@ -52,6 +52,8 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     include: {
       pois: { orderBy: { orden: "asc" } },
       versions: { orderBy: { v: "asc" }, select: { id: true, v: true, publishedAt: true } },
+      // Nombre público del creador para la ficha (username es público).
+      owner: { select: { username: true } },
     },
   });
   if (!ruta) return NextResponse.json({ error: "Ruta no encontrada." }, { status: 404, headers: cors });

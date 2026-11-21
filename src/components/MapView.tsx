@@ -9,7 +9,7 @@
 // se traza sola desde tu ubicación (grafo propio u OSRM bici).
 // ============================================================
 
-import { useEffect, useMemo, useRef, useState, Fragment } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, Fragment } from "react";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import {
@@ -60,6 +60,10 @@ import TrazadoOverlay from "@/components/TrazadoOverlay";
 import EditorRutaPanel, { ListaBorradores } from "@/components/EditorRutaPanel";
 import { useEditorRutas } from "@/hooks/useEditorRutas";
 import BibliotecaRutas from "@/components/BibliotecaRutas";
+import PublicarRuta from "@/components/PublicarRuta";
+import type { BboxMapa } from "@/components/CatalogoTab";
+import type { RutaPublica } from "@/lib/rutasApi";
+import { polylineDecode } from "@/lib/routeGeo";
 import { useTrazas, removeTraza, type TrazaGuardada } from "@/lib/trazasUsuario";
 import { geocodeAddress, type AddrResult } from "@/lib/geocode";
 import type { CapaRuta } from "@/lib/mapLayers";
@@ -231,6 +235,42 @@ type Focus =
   | { kind: "ruta"; coords: LatLng[] }
   | { kind: "control30"; coords: LatLng[] }
   | null;
+
+/** Fase D: refleja el viewport del mapa para las consultas del
+ *  catálogo (bbox en columnas del servidor — nunca en el cliente). */
+function BboxReflector({ onMove }: { onMove: (b: BboxMapa) => void }) {
+  const map = useMap();
+  useEffect(() => {
+    const leer = () => {
+      const b = map.getBounds();
+      onMove({ n: b.getNorth(), s: b.getSouth(), e: b.getEast(), o: b.getWest() });
+    };
+    leer();
+    map.on("moveend zoomend", leer);
+    return () => { map.off("moveend zoomend", leer); };
+  }, [map, onMove]);
+  return null;
+}
+
+/** Fase D: dibuja la geometría PROTEGIDA de una ruta pública sobre
+ *  el mapa grande (la original jamás llegó al servidor). */
+function RutaPublicaLayer({ sel }: { sel: RutaPublica | null }) {
+  const map = useMap();
+  useEffect(() => {
+    if (!sel) return;
+    const pts = polylineDecode(sel.polyline);
+    const linea = L.polyline(pts.map((p) => [p.lat, p.lon] as [number, number]), { color: "#059669", weight: 5 }).addTo(map);
+    if (sel.inicioAproxLat != null && sel.inicioAproxLon != null) {
+      L.circle([sel.inicioAproxLat, sel.inicioAproxLon], { radius: 150, color: "#059669", weight: 1, fillOpacity: 0.15 }).addTo(map);
+    }
+    if (sel.finAproxLat != null && sel.finAproxLon != null) {
+      L.circle([sel.finAproxLat, sel.finAproxLon], { radius: 150, color: "#059669", weight: 1, fillOpacity: 0.15 }).addTo(map);
+    }
+    map.fitBounds(linea.getBounds(), { padding: [30, 30] });
+    return () => { linea.remove(); map.eachLayer((l) => { if (l instanceof L.Circle) l.remove(); }); };
+  }, [map, sel]);
+  return null;
+}
 
 function FocusHandler({ focus }: { focus: Focus }) {
   const map = useMap();
@@ -1020,6 +1060,11 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
   const editor = useEditorRutas();
   // Fase C: biblioteca de rutas (cuatro secciones + ficha completa).
   const [bibliotecaAbierta, setBibliotecaAbierta] = useState(false);
+  // Fase D: publicación (vista previa) + ruta pública sobre el mapa.
+  const [publicarId, setPublicarId] = useState<string | null>(null);
+  const [rutaPublicaSel, setRutaPublicaSel] = useState<RutaPublica | null>(null);
+  const bboxRef = useRef<BboxMapa | null>(null);
+  const getBbox = useCallback(() => bboxRef.current, []);
   /** Encuadra una ruta v2 (borrador o migrada) en el mapa. */
   const encuadrarRuta = (r: { id: string; coords: { lat: number; lon: number }[] }) => {
     setTrazaSel(r.id);
@@ -1951,6 +1996,8 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
               else setPending(p);
             }}
           />
+          <BboxReflector onMove={(b) => { bboxRef.current = b; }} />
+          <RutaPublicaLayer sel={rutaPublicaSel} />
         </MapContainer>
         </div>
 
@@ -2098,16 +2145,33 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
         <EditorRutaPanel ctrl={editor} />
       </div>
 
+      {/* Fase D: chip de la ruta pública dibujada sobre el mapa. */}
+      {rutaPublicaSel && (
+        <div className="absolute top-2 left-2 right-2 z-[820] flex items-center gap-1.5 rounded-xl border border-emerald-600/40 bg-card/95 px-2.5 py-2 shadow-md" data-testid="chip-ruta-publica">
+          <p className="min-w-0 flex-1 truncate text-xs font-bold text-foreground">🛣️ {rutaPublicaSel.nombre} <span className="font-normal text-muted-foreground">· {t("cat.geometriaProtegida")}</span></p>
+          <button onClick={() => setRutaPublicaSel(null)} aria-label={t("bib.cerrar")} className="rounded-lg border border-border px-1.5 py-1 text-muted-foreground hover:border-red-400">✕</button>
+        </div>
+      )}
+
       {/* Fase C: biblioteca de rutas con ficha completa — al nivel raíz
-          de MapView, FUERA del wrapper rotado: el transform crea un
-          stacking context y el chrome del mapa (buscador, panel de
-          capas) quedaría por encima del overlay si va dentro. */}
+          de MapView, FUERA del wrapper rotado (portal a body: el ancestro
+          del mapa es un stacking context y el chrome pintaba encima). */}
       <BibliotecaRutas
         abierto={bibliotecaAbierta}
         onClose={() => setBibliotecaAbierta(false)}
         onEditar={(id) => editor.editarBorrador(id)}
         onEncuadrar={encuadrarRuta}
+        onPublicar={(id) => setPublicarId(id)}
+        getBbox={getBbox}
+        onVerEnMapa={(r) => setRutaPublicaSel(r)}
+        onIrAInicio={(r) => {
+          if (r.inicioAproxLat == null || r.inicioAproxLon == null || !onSetDest) return;
+          handleSetDest({ name: r.nombre, position: { lat: r.inicioAproxLat, lon: r.inicioAproxLon } });
+        }}
       />
+
+      {/* Fase D: vista previa de publicación (checkbox obligatoria). */}
+      <PublicarRuta rutaId={publicarId} abierto={publicarId !== null} onClose={() => setPublicarId(null)} />
     </div>
   );
 }

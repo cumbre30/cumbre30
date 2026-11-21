@@ -29,6 +29,7 @@ import { rutasStore, type RutaV2 } from "@/lib/rutasStore";
 import { borradores } from "@/lib/rutasBorrador";
 import { buildRutaGpxBlob } from "@/lib/gpx";
 import { estadoVigencia, formatearTiempo, tiempoEstimadoRango, recientes, type EstadoVigencia } from "@/lib/rutasFicha";
+import CatalogoTab, { type BboxMapa } from "@/components/CatalogoTab";
 import { ETIQUETAS_DIFICULTAD } from "@/lib/dificultad";
 import { t, useLang } from "@/lib/i18n";
 
@@ -140,6 +141,10 @@ export default function BibliotecaRutas({
   onClose,
   onEditar,
   onEncuadrar,
+  onPublicar,
+  getBbox,
+  onVerEnMapa,
+  onIrAInicio,
 }: {
   abierto: boolean;
   onClose: () => void;
@@ -147,6 +152,14 @@ export default function BibliotecaRutas({
   onEditar?: (id: string) => void;
   /** Encuadrar la geometría en el mapa y cerrar la biblioteca. */
   onEncuadrar?: (r: RutaV2) => void;
+  /** Fase D — abrir la vista previa de publicación de un borrador. */
+  onPublicar?: (id: string) => void;
+  /** Fase D — bbox del mapa grande para el catálogo. */
+  getBbox?: () => BboxMapa | null;
+  /** Fase D — dibujar la geometría protegida de una ruta pública. */
+  onVerEnMapa?: (r: import("@/lib/rutasApi").RutaPublica) => void;
+  /** Fase D — «cómo llegar»: destino = inicio aproximado. */
+  onIrAInicio?: (r: import("@/lib/rutasApi").RutaPublica) => void;
 }) {
   useLang();
   const [tab, setTab] = useState<Tab>("mias");
@@ -241,11 +254,7 @@ export default function BibliotecaRutas({
         )}
 
         {tab === "catalogo" && (
-          <div className="mt-8 text-center">
-            <p className="text-2xl" aria-hidden>🗺️</p>
-            <p className="mt-2 text-xs font-bold text-foreground">{t("bib.vacioCatalogo")}</p>
-            <p className="mx-auto mt-1 max-w-xs text-[11px] leading-snug text-muted-foreground">{t("bib.vacioCatalogoSub")}</p>
-          </div>
+          <CatalogoTab activo onVerEnMapa={(r) => { onVerEnMapa?.(r); onClose(); }} onIrAInicio={(r) => { onIrAInicio?.(r); onClose(); }} getBbox={getBbox} />
         )}
 
         {tab === "favoritas" && (
@@ -281,6 +290,7 @@ export default function BibliotecaRutas({
                 <p className="truncate text-base font-bold text-foreground">{ficha.nombre}</p>
                 <p className="text-[11px] text-muted-foreground">
                   {ficha.status === "borrador" ? t("bib.badgeBorrador") : t("bib.badgeTrazada")}
+                  {ficha.serverId && <span className="ml-1 rounded bg-emerald-600/10 px-1 py-px text-[9px] font-bold text-emerald-700 dark:text-emerald-300">{t("pub.badgePublicada")}</span>}
                   {ficha.modalidad ? ` · ${t("bib.modalidad")} ${t(ficha.modalidad === "mtb" ? "edi.modalidadMtb" : "edi.modalidadPavimento")}` : ""}
                 </p>
               </div>
@@ -404,6 +414,15 @@ export default function BibliotecaRutas({
                   data-testid="ficha-editar"
                 >
                   <PencilRuler className="mr-1 inline h-3.5 w-3.5" /> {t("bib.accEditar")}
+                </button>
+              )}
+              {ficha.status === "borrador" && onPublicar && !ficha.serverId && (
+                <button
+                  onClick={() => { onPublicar(ficha.id); onClose(); }}
+                  className="rounded-xl bg-emerald-600 px-3.5 py-2 text-xs font-bold text-white hover:bg-emerald-500"
+                  data-testid="ficha-publicar"
+                >
+                  {t("pub.publicar")}
                 </button>
               )}
               {ficha.status === "borrador" && (

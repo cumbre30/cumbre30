@@ -21,6 +21,7 @@ import type { Prisma } from "@prisma/client";
 import {
   type Punto, aprox3, bboxOf, centerOf, cellsOfRoute, distKm, polylineEncode,
 } from "@/lib/routeGeo";
+import { resolverElevacionServicio } from "@/lib/elevacionServicio";
 
 /** Normaliza a InputJsonValue (los payload del cliente son unknown). */
 function jsonInput(v: unknown): Prisma.InputJsonValue {
@@ -166,7 +167,17 @@ export async function POST(req: Request) {
     const bbox = bboxOf(v.coords);
     const centro = centerOf(bbox);
     const celdas = cellsOfRoute(v.coords);
-    const ele = eleDePayload(b);
+    let ele = eleDePayload(b);
+    // Elevación resuelta AL PUBLICAR (v2.1 §5.1): si el payload no trae
+    // datos, el servidor muestrea la geometría protegida contra Open-
+    // Meteo (~100 pts) con eleFuente = 'servicio'. Si el servicio
+    // falla, publica igual con null — jamás 0 ficticio.
+    if (ele.gainM === null && ele.lossM === null) {
+      const resuelta = await resolverElevacionServicio(v.coords);
+      if (resuelta) {
+        ele = { ...resuelta, eleFuente: "servicio" };
+      }
+    }
     const polyline = polylineEncode(v.coords);
     const proteccion = b.proteccion && typeof b.proteccion === "object" ? (b.proteccion as Record<string, unknown>) : null;
     const metaVersion = {

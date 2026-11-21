@@ -57,6 +57,12 @@ export type RutaV2 = Omit<TrazaGuardada, "gainM"> & {
   /** Última revisión del creador («revisé esta ruta hoy», §7.4);
    *  alimenta el banner de vigencia de la ficha. */
   ultimaRevisionAt?: string;
+  /** Id en el servidor cuando la ruta ya fue PUBLICADA (fase D);
+   *  undefined = solo vive en este dispositivo. La copia local sigue
+   *  siendo «tu copia» — el original jamás salió del dispositivo. */
+  serverId?: string;
+  /** Fecha de publicación (ISO) cuando serverId existe. */
+  publicadaAt?: string;
   /** Registro de protección aplicada al publicar (v2.1 §3). */
   proteccion?: {
     recorteIniM: number;
