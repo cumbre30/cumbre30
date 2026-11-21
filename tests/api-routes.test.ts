@@ -63,7 +63,7 @@ async function main(): Promise<void> {
   // ---------- semillas: dos ciclistas con sesión Bearer ----------
   const dueño = await dbPrueba.user.create({ data: { email: "fase-a-dueño@test.local", username: "faseAdueno", passwordHash: "x" } });
   const otro = await dbPrueba.user.create({ data: { email: "fase-a-otro@test.local", username: "faseAotro", passwordHash: "x" } });
-  const sesDueño = await dbPrueba.session.create({ data: { userId: dueño.id, token: "tok-dueño-" + Date.now(), expiresAt: new Date(Date.now() + 86_400_000) } });
+  const sesDueño = await dbPrueba.session.create({ data: { userId: dueño.id, token: "tok-dueno-" + Date.now(), expiresAt: new Date(Date.now() + 86_400_000) } });
   const sesOtro = await dbPrueba.session.create({ data: { userId: otro.id, token: "tok-otro-" + Date.now(), expiresAt: new Date(Date.now() + 86_400_000) } });
 
   try {
