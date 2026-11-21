@@ -10,7 +10,10 @@
 #   DATABASE_URL=postgresql://postgres@127.0.0.1:5433/cumbre30
 # ============================================================
 set -e
-cd /home/z/my-project
+# Raíz del repo RELATIVA al script (funciona en el sandbox y en CI;
+# el cd absoluto /home/z/my-project rompía la build del APK en
+# GitHub Actions, donde esa ruta no existe).
+cd "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 PGBIN="$PWD/node_modules/@embedded-postgres/linux-x64/native/bin"
 export LD_LIBRARY_PATH="$PWD/node_modules/@embedded-postgres/linux-x64/native/lib:${LD_LIBRARY_PATH:-}"
