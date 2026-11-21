@@ -14,6 +14,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Download, MapPin, Navigation, RefreshCw, Search } from "lucide-react";
 import { catalogoRutas, detalleRuta, type RutaPublica, type RespuestaDetalle } from "@/lib/rutasApi";
 import { polylineDecode } from "@/lib/routeGeo";
+import { rutaProyectadaStore } from "@/lib/rutaProyectada";
 import { buildRutaGpxBlob } from "@/lib/gpx";
 import { ETIQUETAS_DIFICULTAD } from "@/lib/dificultad";
 import ComunidadTab from "@/components/ComunidadTab";
@@ -250,6 +251,26 @@ export default function CatalogoTab({
                       {t("bib.accEncuadrar")}
                     </button>
                   )}
+                  {/* Fase F: proyector — la geometría PROTEGIDA (v2.1 §3)
+                      se proyecta para seguirla; el original jamás existió
+                      aquí. routeId = id del servidor (experiencia ancla). */}
+                  <button
+                    onClick={() => {
+                      rutaProyectadaStore.set({
+                        routeId: ficha.id,
+                        serverId: ficha.id,
+                        nombre: ficha.nombre,
+                        coords: polylineDecode(ficha.polyline),
+                        origen: "publica",
+                      });
+                      setFichaId(null);
+                    }}
+                    className="rounded-xl bg-indigo-600 px-3.5 py-2 text-xs font-bold text-white hover:bg-indigo-500"
+                    data-testid="catficha-navegar"
+                    title={t("navf.navegarTitle")}
+                  >
+                    <Navigation className="mr-1 inline h-3.5 w-3.5" />{t("navf.navegar")}
+                  </button>
                   {onIrAInicio && ficha.inicioAproxLat != null && ficha.inicioAproxLon != null && (
                     <button onClick={() => { onIrAInicio(ficha); setFichaId(null); }} className="rounded-xl border border-border bg-background px-3.5 py-2 text-xs font-bold text-foreground hover:border-emerald-400" data-testid="catficha-irllegar">
                       <Navigation className="mr-1 inline h-3.5 w-3.5" />{t("cat.irALlegar")}

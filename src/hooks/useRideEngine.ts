@@ -25,6 +25,7 @@ import { getRideWeights } from "@/lib/rideWeights";
 import { augmentRideOffRoad } from "@/lib/rideOffroad";
 import { isMotorizedRide, VEH_LIMIT_KMH, VEH_STREAK_SEC, VEH_TOTAL_SEC } from "@/lib/vehicleDetect";
 import { syncRideAfterSave, markRideAsBike } from "@/lib/sync";
+import { rutaProyectadaStore, conRouteRef } from "@/lib/rutaProyectada";
 
 export type SpeedState = "ok" | "caution" | "over";
 export type RideStatus = "idle" | "running" | "paused";
@@ -83,6 +84,10 @@ export function useRideEngine() {
   // (se renderiza a nivel de app en page.tsx). Las callbacks viven
   // más abajo, tras la declaración de logEvent.
   const [fallAlert, setFallAlert] = useState<{ at: number; help: boolean } | null>(null);
+  // Fase F (v2.1 §8): resumen del ride recién cerrado — con routeRef
+  // cuando había una ruta proyectada al cerrar. Solo alimenta el
+  // prompt de experiencia post-ride; el ride mismo no cambia.
+  const [resumenCerrado, setResumenCerrado] = useState<RideSummary | null>(null);
 
   // --- refs del motor ---
   const engine = useRef({
@@ -715,6 +720,7 @@ export function useRideEngine() {
       setAccuracyM(null);
       setPosition(null);
       setFallAlert(null);
+      setResumenCerrado(null);
       setStatus("running");
       logEvent("info", src === "gps" ? t("log.rideGps") : t("log.rideDemo"));
       // Corredores de las bajadas 30: carga perezosa (import dinámico,
@@ -829,7 +835,7 @@ export function useRideEngine() {
       // watts estimados en subida >4%.
       const metrics =
         source === "gps" && e.trackPts.length > 2 ? computeRideMetrics(e.trackPts, getRideWeights()) : null;
-      const summary: RideSummary = {
+      const summary: RideSummary = conRouteRef({
         id: crypto.randomUUID(),
         dateISO: new Date().toISOString(),
         source: source,
@@ -845,8 +851,9 @@ export function useRideEngine() {
         metrics: metrics ?? undefined,
         // Solo los viajes GPS guardan pista (los demo no exportan GPX).
         track: source === "gps" && e.trackPts.length > 1 ? e.trackPts : undefined,
-      };
+      }, rutaProyectadaStore.get());
       saveRide(summary);
+      setResumenCerrado(summary); // fase F: habilita la experiencia post-ride
       logEvent("info", t("log.guardado"));
       void syncRideAfterSave(summary); // sube al servidor + logros si hay sesión
       // Exploración (v1.13.17): km off-road contra la red de navegación.
@@ -874,6 +881,10 @@ export function useRideEngine() {
     if (!wasBike) return; // ya quedó guardado como vehículo
     void markRideAsBike(s);
   }, []);
+
+  /** Fase F: descartar el prompt de experiencia post-ride (el ride
+   *  ya está guardado con su routeRef; solo se cierra el diálogo). */
+  const descartarResumenCerrado = useCallback(() => setResumenCerrado(null), []);
 
   // Re-adquirir Wake Lock al volver a la app
   useEffect(() => {
@@ -923,6 +934,7 @@ export function useRideEngine() {
     insidePark, speedState, overLimitSec, maxInParkKmh,
     events, track, position, course,
     pendingConfirm, confirmVehicle,
+    resumenCerrado, descartarResumenCerrado,
     fallAlert, dismissFall, requestFallHelp,
     start, pause, resume, stop,
   };

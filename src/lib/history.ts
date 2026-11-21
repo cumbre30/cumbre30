@@ -39,6 +39,12 @@ export type RideSummary = {
    *  por el usuario tras la sospecha del motor): NO cuenta para
    *  desafíos ni estadísticas; queda en el historial con badge. */
   motorized?: boolean;
+  /** Fase F (v2.1 §8): ruta proyectada que seguía este ride al
+   *  cerrarse — SOLO ids y nombre, jamás geometría. Vive en el
+   *  historial LOCAL: el payload al servidor (rideToPayload) es un
+   *  whitelist y no la incluye, así los rides del servidor quedan
+   *  intocados. Alimenta la experiencia post-ride (rideId anclado). */
+  routeRef?: { id: string; serverId?: string | null; nombre: string; origen: "local" | "publica" };
 };
 
 const KEY = "cumbre30-history-v1";

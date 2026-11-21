@@ -76,6 +76,11 @@ export type RutaV2 = Omit<TrazaGuardada, "gainM"> & {
   servidorId?: string | null;
   /** id de la versión publicada (RouteVersion) si existe. */
   versionId?: string | null;
+  /** COMPLETADA BINARIA (fase F, v2.1 §8): true cuando un ride con
+   *  esta ruta proyectada se cerró. Sí/no — sin conteos ni ranking;
+   *  completadaAt conserva la PRIMERA fecha (ISO del ride cerrado). */
+  completada?: boolean;
+  completadaAt?: string;
   updatedAt?: string;
   /** Marca de la migración por lectura desde c30.trazas (fase A). */
   migradaDe?: "c30.trazas";

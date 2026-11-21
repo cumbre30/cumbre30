@@ -23,7 +23,7 @@
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
-import { Download, Heart, MapPin, PencilRuler, Trash2, X, BookOpen, RefreshCw, Eye } from "lucide-react";
+import { Download, Heart, MapPin, PencilRuler, Trash2, X, BookOpen, RefreshCw, Eye, BadgeCheck, Navigation } from "lucide-react";
 
 import { rutasStore, type RutaV2 } from "@/lib/rutasStore";
 import { borradores } from "@/lib/rutasBorrador";
@@ -144,6 +144,7 @@ export default function BibliotecaRutas({
   onEditar,
   onEncuadrar,
   onPublicar,
+  onNavegar,
   getBbox,
   onVerEnMapa,
   onIrAInicio,
@@ -156,6 +157,8 @@ export default function BibliotecaRutas({
   onEncuadrar?: (r: RutaV2) => void;
   /** Fase D — abrir la vista previa de publicación de un borrador. */
   onPublicar?: (id: string) => void;
+  /** Fase F — proyectar la ruta sobre el mapa (proyector «Navegar»). */
+  onNavegar?: (r: RutaV2) => void;
   /** Fase D — bbox del mapa grande para el catálogo. */
   getBbox?: () => BboxMapa | null;
   /** Fase D — dibujar la geometría protegida de una ruta pública. */
@@ -432,6 +435,15 @@ export default function BibliotecaRutas({
               </div>
             )}
 
+            {/* Fase F: completada binaria (§8) — sí/no, sin conteos ni
+                ranking; fecha de la PRIMERA vez. */}
+            {ficha.completada && (
+              <p className="mt-2.5 flex items-center gap-1.5 text-[11px] font-bold text-emerald-700 dark:text-emerald-300" data-testid="ficha-completada">
+                <BadgeCheck className="h-4 w-4" /> {t("navf.completada")}
+                {ficha.completadaAt && <span className="font-normal text-muted-foreground">· {ficha.completadaAt.slice(0, 10)}</span>}
+              </p>
+            )}
+
             {/* Descripción */}
             {ficha.descripcion && (
               <p className="mt-2.5 whitespace-pre-wrap text-[11px] leading-snug text-foreground/90">{ficha.descripcion}</p>
@@ -459,6 +471,16 @@ export default function BibliotecaRutas({
 
             {/* Acciones */}
             <div className="mt-3 flex flex-wrap gap-1.5 border-t border-border/60 pt-3">
+              {onNavegar && ficha.coords.length > 1 && (
+                <button
+                  onClick={() => { onNavegar(ficha); onClose(); }}
+                  className="rounded-xl bg-indigo-600 px-3.5 py-2 text-xs font-bold text-white hover:bg-indigo-500"
+                  data-testid="ficha-navegar"
+                  title={t("navf.navegarTitle")}
+                >
+                  <Navigation className="mr-1 inline h-3.5 w-3.5" /> {t("navf.navegar")}
+                </button>
+              )}
               {onEncuadrar && (
                 <button
                   onClick={() => { onEncuadrar(ficha); onClose(); }}

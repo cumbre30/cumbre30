@@ -29,6 +29,7 @@ import { StatsTab } from "@/components/StatsTab";
 import { ConfigTab } from "@/components/ConfigTab";
 import { HelpTab } from "@/components/HelpTab";
 import { FallOverlay } from "@/components/FallOverlay";
+import ExperienciaPostRide from "@/components/ExperienciaPostRide";
 import { useRideEngine, type Source } from "@/hooks/useRideEngine";
 import { useMe } from "@/hooks/useMe";
 import { useNavEngine } from "@/hooks/useNavEngine";
@@ -467,6 +468,14 @@ export default function Home() {
 
       {/* ¿Fuiste en bici?: corrección del flag de vehículo detectado */}
       <VehicleConfirmModal pending={ride.pendingConfirm} onAnswer={ride.confirmVehicle} />
+
+      {/* Fase F (v2.1 §6/§8): experiencia post-ride — solo rides GPS con
+          ruta proyectada (routeRef). Al abrirse marca la copia local
+          COMPLETADA (binaria) y ofrece registrar la experiencia con la
+          fecha del ride y su rideId; jamás lleva la pista GPS. */}
+      {ride.resumenCerrado?.source === "gps" && (
+        <ExperienciaPostRide key={ride.resumenCerrado.id} resumen={ride.resumenCerrado} onCerrar={ride.descartarResumenCerrado} />
+      )}
 
       {/* Detección de caída (2026-11-14): overlay "¿Estás bien?" a nivel
           de app, activo aunque el ciclista esté en otra pestaña. */}

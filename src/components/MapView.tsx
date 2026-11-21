@@ -65,6 +65,8 @@ import type { BboxMapa } from "@/components/CatalogoTab";
 import type { RutaPublica } from "@/lib/rutasApi";
 import { polylineDecode } from "@/lib/routeGeo";
 import { useTrazas, removeTraza, type TrazaGuardada } from "@/lib/trazasUsuario";
+import { rutaProyectadaStore, type RutaProyectada } from "@/lib/rutaProyectada";
+import { useRutaProyectada } from "@/hooks/useRutaProyectada";
 import { geocodeAddress, type AddrResult } from "@/lib/geocode";
 import type { CapaRuta } from "@/lib/mapLayers";
 import type { ProLockFeature } from "@/lib/planData";
@@ -268,6 +270,27 @@ function RutaPublicaLayer({ sel }: { sel: RutaPublica | null }) {
     }
     map.fitBounds(linea.getBounds(), { padding: [30, 30] });
     return () => { linea.remove(); map.eachLayer((l) => { if (l instanceof L.Circle) l.remove(); }); };
+  }, [map, sel]);
+  return null;
+}
+
+/** Fase F (v2.1 §8): proyector de la ruta planificada — «Navegar» en
+ *  una ficha proyecta aquí la geometría para seguirla pedaleando.
+ *  LOCAL = tu copia completa; PÚBLICA = geometría protegida que el
+ *  servidor ya entabló. Línea índigo punteada + extremos marcados;
+ *  se encuadra al proyectar pero NO persigue al ciclista (el mapa
+ *  no se envía solo: misma regla del resto de la app). */
+function RutaProyectadaLayer({ sel }: { sel: RutaProyectada | null }) {
+  const map = useMap();
+  useEffect(() => {
+    if (!sel || sel.coords.length < 2) return;
+    const line = sel.coords.map((c) => [c.lat, c.lon] as [number, number]);
+    const casing = L.polyline(line, { color: "#05070a", weight: 9, opacity: 0.75, interactive: false }).addTo(map);
+    const linea = L.polyline(line, { color: "#6366f1", weight: 5.5, opacity: 0.95, dashArray: "12 8", lineCap: "round", lineJoin: "round" }).addTo(map);
+    const ini = L.circleMarker(line[0], { radius: 7, color: "#fafafa", weight: 2, fillColor: "#22c55e", fillOpacity: 1 }).addTo(map);
+    const fin = L.circleMarker(line[line.length - 1], { radius: 7, color: "#fafafa", weight: 2, fillColor: "#6366f1", fillOpacity: 1 }).addTo(map);
+    map.fitBounds(linea.getBounds(), { padding: [40, 40] });
+    return () => { casing.remove(); linea.remove(); ini.remove(); fin.remove(); };
   }, [map, sel]);
   return null;
 }
@@ -1073,6 +1096,9 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
   const trazas = useTrazas();
   const [verTrazas, setVerTrazas] = useState(true);
   const [trazaSel, setTrazaSel] = useState<string | null>(null);
+  // Fase F: ruta proyectada («Navegar» en fichas) — estado global del
+  // dispositivo; el ride la vincula (routeRef) al cerrarse.
+  const proyectada = useRutaProyectada();
   /** Enfoca una traza guardada en el mapa (fitBounds a su línea). */
   const enfocarTraza = (tz: TrazaGuardada) => {
     setTrazaSel(tz.id);
@@ -1998,6 +2024,7 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
           />
           <BboxReflector onMove={(b) => { bboxRef.current = b; }} />
           <RutaPublicaLayer sel={rutaPublicaSel} />
+          <RutaProyectadaLayer sel={proyectada} />
         </MapContainer>
         </div>
 
@@ -2153,6 +2180,17 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
         </div>
       )}
 
+      {/* Fase F: chip de la ruta proyectada (proyector «Navegar»). */}
+      {proyectada && (
+        <div className="absolute top-2 left-2 right-2 z-[820] flex items-center gap-1.5 rounded-xl border border-indigo-500/50 bg-card/95 px-2.5 py-2 shadow-md" data-testid="chip-ruta-proyectada">
+          <p className="min-w-0 flex-1 truncate text-xs font-bold text-foreground">
+            🧭 <span className="text-indigo-600 dark:text-indigo-300">{t("navf.siguiendo")}</span> {proyectada.nombre}{" "}
+            <span className="font-normal text-muted-foreground">· {proyectada.origen === "publica" ? t("navf.origenPublica") : t("navf.origenLocal")}</span>
+          </p>
+          <button onClick={() => rutaProyectadaStore.set(null)} aria-label={t("navf.quitar")} className="rounded-lg border border-border px-1.5 py-1 text-muted-foreground hover:border-red-400">✕</button>
+        </div>
+      )}
+
       {/* Fase C: biblioteca de rutas con ficha completa — al nivel raíz
           de MapView, FUERA del wrapper rotado (portal a body: el ancestro
           del mapa es un stacking context y el chrome pintaba encima). */}
@@ -2162,6 +2200,17 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
         onEditar={(id) => editor.editarBorrador(id)}
         onEncuadrar={encuadrarRuta}
         onPublicar={(id) => setPublicarId(id)}
+        onNavegar={(r) => {
+          // Proyector (fase F): la COPIA LOCAL se proyecta completa —
+          // jamás sale del dispositivo (v2.1 §3/§8).
+          rutaProyectadaStore.set({
+            routeId: r.id,
+            serverId: r.serverId ?? null,
+            nombre: r.nombre,
+            coords: r.coords,
+            origen: "local",
+          });
+        }}
         getBbox={getBbox}
         onVerEnMapa={(r) => setRutaPublicaSel(r)}
         onIrAInicio={(r) => {

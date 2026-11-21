@@ -31,6 +31,7 @@ import { etiquetaAire, etiquetaClima, etiquetaUV, useClima } from "@/hooks/useCl
 import { useCiudad } from "@/hooks/useCiudad";
 import { minimapHeight, minimapStyleCls, useRideTheme } from "@/lib/rideTheme";
 import { alerts } from "@/lib/alertEngine";
+import { useRutaProyectada } from "@/hooks/useRutaProyectada";
 import { fetchAvisosOperativos, textoAviso, type AvisoOperativo } from "@/lib/avisos";
 import { getFcConfig, HrTracker, zonaLabel, type ZonaId } from "@/lib/zonasFc";
 import { initAhorroAutomatico, setAhorroBateria, wakeLockSuspendido } from "@/lib/rideBateria";
@@ -136,6 +137,8 @@ export function RideView(p: Props) {
   }, []);
   // Detalle expandible del banner (v1.12.0): viento, calidad del aire y UV.
   const [climaOpen, setClimaOpen] = useState(false);
+  // Fase F: ruta proyectada («Navegar» en una ficha) para el recordatorio.
+  const proyectada = useRutaProyectada();
 
   // ---- Avisos operativos en tiempo real (2026-11-14) ----
   // Fuente remota public/avisos.json en cumbregeo.cl; poll cada 5 min
@@ -544,6 +547,14 @@ export function RideView(p: Props) {
       />
       {p.nav.note && (
         <p className={`text-xs -mt-2 ${p.nav.provisional ? "text-sky-700/90 dark:text-sky-300/90" : "text-amber-700/90 dark:text-amber-300/90"}`}>{p.nav.note}</p>
+      )}
+      {/* Fase F (v2.1 §8): ruta proyectada activa — el ride quedará
+          vinculado (routeRef) al cerrarse. La geometría completa se ve
+          en el mapa grande (tab Explorar); aquí solo el recordatorio. */}
+      {proyectada && (
+        <p className="-mt-1 flex items-center gap-1.5 text-[11px] font-semibold text-indigo-700 dark:text-indigo-300" data-testid="ride-proyectada">
+          <Navigation className="h-3.5 w-3.5 shrink-0" /> {t("navf.siguiendo")}: <span className="min-w-0 truncate">{proyectada.nombre}</span>
+        </p>
       )}
 
       {/* VELOCIDAD - protagonista (elemento 2 del brief), estilo y tamaño personalizables Pro */}
