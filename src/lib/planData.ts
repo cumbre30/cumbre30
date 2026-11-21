@@ -60,6 +60,11 @@ export const PRO_LOCK_COPY = {
     body: "p.marcadorBody",
     free: "p.marcadorFree",
   },
+  muro: {
+    title: "p.muroTitle",
+    body: "p.muroBody",
+    free: "p.muroFree",
+  },
 } as const;
 
 export type ProLockFeature = keyof typeof PRO_LOCK_COPY;

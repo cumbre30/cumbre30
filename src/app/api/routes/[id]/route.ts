@@ -48,6 +48,21 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   const me = await getSessionUser(req);
   if (!me) return NextResponse.json({ error: "Sin sesión" }, { status: 401, headers: cors });
   const { id } = await params;
+  // Historial de experiencias con cursor (propuesta Pro, Grupo B):
+  // FREE ve las últimas 20; «ver más» trae la página siguiente con
+  // expCursor (id de la última recibida). El botón es Pro, el API
+  // sigue siendo honesto y acotado para cualquiera.
+  let expTake = 20;
+  let expCursor: string | null = null;
+  try {
+    const sp = new URL(req.url).searchParams;
+    const t = Number(sp.get("expTake"));
+    if (Number.isFinite(t) && t >= 1) expTake = Math.min(Math.floor(t), 50);
+    const c = sp.get("expCursor");
+    if (c && /^[\w-]{1,40}$/.test(c)) expCursor = c;
+  } catch {
+    // sin parámetros válidos: primera página
+  }
   const ruta = await db.route.findFirst({
     where: { id, removedAt: null },
     include: {
@@ -68,7 +83,11 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       experiences: {
         where: { removedAt: null },
         orderBy: { createdAt: "desc" },
-        take: 20,
+        // +1 para detectar hayMas sin segunda consulta; el cursor
+        // (id de la última entregada) salta esa fila.
+        take: expTake + 1,
+        skip: expCursor ? 1 : undefined,
+        cursor: expCursor ? { id: expCursor } : undefined,
         // fotos: galería de la experiencia (≤6, cap del upload). El
         // email del autor NO se selecciona aquí: el array crudo de la
         // relación viaja en el payload y el email jamás debe salir;
@@ -86,18 +105,25 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   }
   // Agregados + "lo mío" (el detalle nunca expone otros userIds).
   const valores = ruta.ratings.map((r) => r.valor);
+  // Paginación del historial: se pidió take+1 para detectar si hay
+  // más; se entregan solo `expTake` y el cursor de la siguiente.
+  const hayMasExp = ruta.experiences.length > expTake;
+  const expsVisibles = ruta.experiences.slice(0, expTake);
+  const expCursorSiguiente = expsVisibles.length > 0 ? expsVisibles[expsVisibles.length - 1].id : null;
   // Distintivo Pro por autor de experiencias (propuesta Pro): consulta
   // aparte por id de experiencia para obtener SOLO el email en el
   // servidor — el include crudo no lo lleva y el payload queda limpio.
   const autoresDeExp = await db.routeExperience.findMany({
-    where: { id: { in: ruta.experiences.map((e) => e.id) } },
+    where: { id: { in: expsVisibles.map((e) => e.id) } },
     select: { id: true, user: { select: { email: true } } },
   });
   const emailDeExp = new Map(autoresDeExp.map((a) => [a.id, a.user.email.toLowerCase()]));
   const pros = await proEmailsServer([...emailDeExp.values()]);
   const comunidad = {
     comentarios: ruta.comments.map((c) => ({ ...c, username: c.user.username, user: undefined })),
-    experiencias: ruta.experiences.map((e) => ({ ...e, username: e.user.username, pro: pros.has(emailDeExp.get(e.id) ?? ""), fotos: e.photos.map((f) => f.url), user: undefined })),
+    experiencias: expsVisibles.map((e) => ({ ...e, username: e.user.username, pro: pros.has(emailDeExp.get(e.id) ?? ""), fotos: e.photos.map((f) => f.url), user: undefined })),
+    expHayMas: hayMasExp,
+    expCursor: expCursorSiguiente,
     valoracionPromedio: valores.length ? Math.round((valores.reduce((a, b) => a + b, 0) / valores.length) * 10) / 10 : null,
     valoracionVotos: valores.length,
     favoritos: ruta.favorites.length,

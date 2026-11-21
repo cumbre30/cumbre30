@@ -17,7 +17,7 @@ import { polylineDecode } from "@/lib/routeGeo";
 import { rutaProyectadaStore } from "@/lib/rutaProyectada";
 import { buildRutaGpxBlob } from "@/lib/gpx";
 import { ETIQUETAS_DIFICULTAD } from "@/lib/dificultad";
-import ComunidadTab from "@/components/ComunidadTab";
+import ComunidadTab, { type DatosComunidad } from "@/components/ComunidadTab";
 import { t, useLang } from "@/lib/i18n";
 
 export type BboxMapa = { n: number; s: number; e: number; o: number };
@@ -62,6 +62,9 @@ export default function CatalogoTab({
   const [fichaId, setFichaId] = useState<string | null>(null);
   const [ficha, setFicha] = useState<(RespuestaDetalle & { ok: true })["route"] | null>(null);
   const [fichaError, setFichaError] = useState<string | null>(null);
+  // Historial de experiencias paginado (propuesta Pro, Grupo B).
+  const [expCursor, setExpCursor] = useState<string | null>(null);
+  const [hayMasExp, setHayMasExp] = useState(false);
   const [buscadas, setBuscadas] = useState(0);
 
   const buscar = useCallback(async () => {
@@ -98,10 +101,27 @@ export default function CatalogoTab({
     setFichaId(id);
     setFicha(null);
     setFichaError(null);
+    setExpCursor(null);
+    setHayMasExp(false);
     const r = await detalleRuta(id);
-    if (r.ok) setFicha(r.route);
-    else setFichaError(r.error);
+    if (r.ok) {
+      setFicha(r.route);
+      setExpCursor(r.route.comunidad?.expCursor ?? null);
+      setHayMasExp(!!r.route.comunidad?.expHayMas);
+    } else setFichaError(r.error);
   }, []);
+
+  // Historial completo de experiencias (propuesta Pro, Grupo B):
+  // el cursor vive aquí y ComunidadTab solo pide la página siguiente.
+  const cargarMasExp = useCallback(async (): Promise<DatosComunidad["experiencias"]> => {
+    if (!fichaId || !expCursor) return [];
+    const r = await detalleRuta(fichaId, expCursor);
+    if (!r.ok) return [];
+    const pagina = r.route.comunidad?.experiencias ?? [];
+    setExpCursor(r.route.comunidad?.expCursor ?? null);
+    setHayMasExp(!!r.route.comunidad?.expHayMas);
+    return pagina;
+  }, [fichaId, expCursor]);
 
   // Ficha pedida desde otro tab (Favoritas): se abre igual aquí y la
   // hoja vive en este componente aunque el tab no esté activo. Diferida
@@ -286,7 +306,7 @@ export default function CatalogoTab({
                 </div>
                 <p className="mt-1.5 text-[9.5px] text-muted-foreground">{t("cat.gpxNota")}</p>
                 {ficha.comunidad && (
-                  <ComunidadTab rutaId={ficha.id} datos={ficha.comunidad} />
+                  <ComunidadTab rutaId={ficha.id} datos={ficha.comunidad} hayMasExp={hayMasExp} cargarMasExp={cargarMasExp} />
                 )}
               </>
             ) : (

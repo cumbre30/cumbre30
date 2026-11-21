@@ -20,6 +20,7 @@ import { db } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth";
 import { proEmailsServer } from "@/lib/proLicenseServer";
 import { corsHeaders, corsPreflight } from "@/lib/apiCors";
+import { CONDICIONES_VALIDAS } from "@/lib/comunidad";
 
 export async function OPTIONS(req: Request) {
   return corsPreflight(req);
@@ -39,14 +40,47 @@ export async function GET(req: Request) {
     // sin parámetro válido: default
   }
 
-  const where = { removedAt: null, route: { status: "publicado" } };
+  // Filtros (propuesta Pro, Grupo B) — todos validados en servidor:
+  //   cond=barro,sombra  → condiciones hasSome del enumerado cerrado
+  //   desde/hasta=yyyy-mm-dd → rango de fechaRealizacion
+  //   amigos=1 → los autores que sigo primero (orden estable por fecha)
+  let condiciones: string[] = [];
+  let desde: string | null = null;
+  let hasta: string | null = null;
+  let amigos = false;
+  try {
+    const sp = new URL(req.url).searchParams;
+    const condRaw = (sp.get("cond") ?? "").split(",").map((c) => c.trim()).filter(Boolean);
+    condiciones = condRaw.filter((c) => CONDICIONES_VALIDAS.includes(c));
+    const fechaOk = /^(\d{4}-\d{2}-\d{2})?$/;
+    const d1 = sp.get("desde") ?? "";
+    const d2 = sp.get("hasta") ?? "";
+    if (fechaOk.test(d1) && d1) desde = d1;
+    if (fechaOk.test(d2) && d2) hasta = d2;
+    amigos = sp.get("amigos") === "1";
+  } catch {
+    // sin parámetros válidos: feed sin filtros
+  }
+
+  const where: {
+    removedAt: null;
+    route: { status: string };
+    condiciones?: { hasSome: string[] };
+    fechaRealizacion?: { gte: string; lte?: string };
+  } = { removedAt: null, route: { status: "publicado" } };
+  if (condiciones.length > 0) where.condiciones = { hasSome: condiciones };
+  if (desde || hasta) where.fechaRealizacion = { gte: desde ?? "0000-01-01", ...(hasta ? { lte: hasta } : {}) };
+
+  // Con amigos primero se trae un lote mayor y se reordena en memoria
+  // (orden estable: amigos primero, luego createdAt desc).
+  const takeBusqueda = amigos ? Math.min(take * 3, 100) : take;
 
   try {
     const [exps, total, porCiclista] = await Promise.all([
       db.routeExperience.findMany({
         where,
         orderBy: { createdAt: "desc" },
-        take,
+        take: takeBusqueda,
         select: {
           id: true,
           fechaRealizacion: true,
@@ -73,10 +107,24 @@ export async function GET(req: Request) {
       db.routeExperience.groupBy({ by: ["userId"], where }),
     ]);
 
+    let lista = exps;
+
+    if (amigos) {
+      const amistades = await db.friendship.findMany({ where: { userId: me.id }, select: { friendId: true } });
+      const amigosSet = new Set(amistades.map((a) => a.friendId));
+      lista = [...exps].sort((a, b) => {
+        const fa = amigosSet.has(a.userId) ? 0 : 1;
+        const fb = amigosSet.has(b.userId) ? 0 : 1;
+        if (fa !== fb) return fa - fb;
+        return b.createdAt.getTime() - a.createdAt.getTime();
+      }).slice(0, take);
+    }
+
     // Distintivo Pro por autor: emails de los autores → registro de
     // compras (una sola consulta batch por feed).
+    const idsAutores = [...new Set(lista.map((e) => e.userId))];
     const autores = await db.user.findMany({
-      where: { id: { in: exps.map((e) => e.userId) } },
+      where: { id: { in: idsAutores } },
       select: { id: true, email: true },
     });
     const emailDe = new Map(autores.map((a) => [a.id, a.email]));
@@ -84,7 +132,7 @@ export async function GET(req: Request) {
 
     return NextResponse.json(
       {
-        experiencias: exps.map((e) => ({
+        experiencias: lista.map((e) => ({
           id: e.id,
           fechaRealizacion: e.fechaRealizacion,
           comentario: e.comentario,
@@ -98,6 +146,7 @@ export async function GET(req: Request) {
         })),
         total,
         ciclistas: porCiclista.length,
+        amigos,
       },
       { headers: cors }
     );

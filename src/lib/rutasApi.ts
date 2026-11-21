@@ -180,7 +180,10 @@ export type RutaDetalle = RutaPublica & {
   /** Fase E — comunidad del detalle (lo mío incluido). */
   comunidad?: {
     comentarios: { id: string; body: string; createdAt: string; username: string }[];
-    experiencias: { id: string; fechaRealizacion: string; comentario: string | null; observacion: string | null; condiciones: string[]; username: string }[];
+    experiencias: { id: string; fechaRealizacion: string; comentario: string | null; observacion: string | null; condiciones: string[]; username: string; pro?: boolean; fotos?: string[] }[];
+    /** Propuesta Pro (Grupo B): paginación del historial. */
+    expHayMas?: boolean;
+    expCursor?: string | null;
     valoracionPromedio: number | null;
     valoracionVotos: number;
     favoritos: number;
@@ -193,8 +196,8 @@ export type RespuestaDetalle =
   | { ok: true; route: RutaDetalle }
   | { ok: false; error: string };
 
-export async function detalleRuta(id: string): Promise<RespuestaDetalle> {
-  const target = url(`/api/routes/${encodeURIComponent(id)}`);
+export async function detalleRuta(id: string, expCursor?: string | null): Promise<RespuestaDetalle> {
+  const target = url(`/api/routes/${encodeURIComponent(id)}${expCursor ? `?expCursor=${encodeURIComponent(expCursor)}` : ""}`);
   if (target === null) return { ok: false, error: "Sin backend configurado." };
   const token = serverToken();
   const headers: Record<string, string> = {};
@@ -383,9 +386,25 @@ export type ExperienciaMuro = {
 
 export type MuroExperiencias = { experiencias: ExperienciaMuro[]; total: number; ciclistas: number };
 
-/** Feed del muro (más recientes primero; el API acota take 1..50). */
-export async function muroExperiencias(take = 30): Promise<{ ok: boolean; error?: string; muro?: MuroExperiencias }> {
-  const target = url(`/api/experiences?take=${take}`);
+/** Filtros del muro (propuesta Pro, Grupo B): condición, rango de
+ *  fecha y «amigos primero». El API valida y acota todo. */
+export type FiltrosMuro = { condiciones: string[]; desde: string; hasta: string; amigos: boolean };
+export const FILTROS_MURO_VACIOS: FiltrosMuro = { condiciones: [], desde: "", hasta: "", amigos: false };
+
+function qsFiltrosMuro(f: FiltrosMuro): string {
+  const qs = new URLSearchParams();
+  if (f.condiciones.length > 0) qs.set("cond", f.condiciones.join(","));
+  if (f.desde) qs.set("desde", f.desde);
+  if (f.hasta) qs.set("hasta", f.hasta);
+  if (f.amigos) qs.set("amigos", "1");
+  const s = qs.toString();
+  return s ? `&${s}` : "";
+}
+
+/** Feed del muro (más recientes primero; el API acota take 1..50 y
+ *  valida los filtros; amigos=1 ordena autores seguidos primero). */
+export async function muroExperiencias(take = 30, filtros: FiltrosMuro = FILTROS_MURO_VACIOS): Promise<{ ok: boolean; error?: string; muro?: MuroExperiencias }> {
+  const target = url(`/api/experiences?take=${take}${qsFiltrosMuro(filtros)}`);
   if (target === null) return { ok: false, error: "Sin backend configurado." };
   const headers = sessionHeaders();
   try {

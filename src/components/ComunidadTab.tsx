@@ -48,10 +48,23 @@ export const CONDICIONES = [
   { id: "otro", clave: "com.cond.otro" },
 ];
 
-export default function ComunidadTab({ rutaId, datos }: { rutaId: string; datos: DatosComunidad }) {
+export default function ComunidadTab({
+  rutaId,
+  datos,
+  hayMasExp,
+  cargarMasExp,
+}: {
+  rutaId: string;
+  datos: DatosComunidad;
+  /** Propuesta Pro (Grupo B): «ver más» del historial. El cursor y la
+   *  petición viven en CatalogoTab; aquí solo se pintan y se anexan. */
+  hayMasExp?: boolean;
+  cargarMasExp?: () => Promise<DatosComunidad["experiencias"]>;
+}) {
   useLang();
   const { pro } = useProLicense();
   const MAX_FOTOS = pro.active ? 6 : 1;
+  const [cargandoMas, setCargandoMas] = useState(false);
   const [favorito, setFavorito] = useState(datos.miFavorito);
   const [favoritos, setFavoritos] = useState(datos.favoritos);
   const [miNota, setMiNota] = useState<number | null>(datos.miValoracion);
@@ -71,6 +84,20 @@ export default function ComunidadTab({ rutaId, datos }: { rutaId: string; datos:
   const [mensaje, setMensaje] = useState<string | null>(null);
 
   const avisar = (m: string) => { setMensaje(m); setTimeout(() => setMensaje(null), 3500); };
+
+  /** «Ver más experiencias»: Pro anexa la página siguiente; FREE ve
+   *  la nota honesta (el feed reciente del muro sigue gratis). */
+  const onVerMas = async () => {
+    if (!pro.active) {
+      avisar(t("com.expVerMasProNota"));
+      return;
+    }
+    if (!cargarMasExp) return;
+    setCargandoMas(true);
+    const pagina = await cargarMasExp();
+    setCargandoMas(false);
+    if (pagina.length > 0) setExperiencias((l) => [...l, ...pagina]);
+  };
 
   /** Escala la foto elegida y la encola si hay cupo (FREE 1 · PRO 6). */
   const onElegirFoto = async (file: File | undefined) => {
@@ -278,6 +305,17 @@ export default function ComunidadTab({ rutaId, datos }: { rutaId: string; datos:
             </li>
           ))}
         </ul>
+        {hayMasExp && (
+          <button
+            onClick={() => void onVerMas()}
+            disabled={cargandoMas}
+            className="mt-1.5 w-full rounded-lg border border-border bg-background px-2 py-1 text-[11px] font-bold text-emerald-700 hover:border-emerald-500 dark:text-emerald-300 disabled:opacity-60"
+            data-testid="com-exp-vermas"
+          >
+            {cargandoMas ? t("com.expCargandoMas") : t("com.expVerMas")}
+            {!pro.active && <span className="ml-1 text-[9px] font-extrabold uppercase tracking-wider text-amber-600 dark:text-amber-400">{t("ex.muroPro")}</span>}
+          </button>
+        )}
       </div>
 
       {/* Comentarios */}

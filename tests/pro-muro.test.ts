@@ -160,6 +160,59 @@ async function main(): Promise<void> {
     assert.equal(miasF.total, 1);
     ok("mias: histórico propio aislado por sesión + rutasCubiertas");
 
+    // ---------- OLA 2 · filtros del muro (condición / fecha / amigos) ----------
+    await dbPrueba.routeExperience.update({ where: { id: expPro }, data: { condiciones: ["barro"] } });
+    await dbPrueba.routeExperience.update({ where: { id: expFree }, data: { condiciones: ["agua"] } });
+    const muroCond = await GET(req("GET", "/api/experiences?cond=barro", sesFree.token));
+    const muroC = (await muroCond.json()) as { experiencias: { id: string }[] };
+    assert.ok(muroC.experiencias.some((e) => e.id === expPro), "cond=barro trae la de barro");
+    assert.ok(!muroC.experiencias.some((e) => e.id === expFree), "cond=barro excluye la de agua");
+    const muroFecha = await GET(req("GET", "/api/experiences?desde=2026-11-20", sesFree.token));
+    const muroF = (await muroFecha.json()) as { experiencias: { id: string }[] };
+    assert.ok(muroF.experiencias.some((e) => e.id === expPro) && !muroF.experiencias.some((e) => e.id === expFree), "desde excluye la antigua");
+    ok("filtros: condición y rango de fechas validados en servidor");
+
+    // Amigos primero: free sigue a pro → su experiencia arriba del
+    // resto. Ambas llevan «barro» para que el filtro acote el conjunto
+    // a NUESTRO par y la aserción sea inmune a residuos de otras
+    // suites.
+    await dbPrueba.routeExperience.update({ where: { id: expFree }, data: { condiciones: ["barro", "agua"] } });
+    await dbPrueba.friendship.create({ data: { userId: free.id, friendId: pro.id } });
+    const muroAm = await GET(req("GET", "/api/experiences?cond=barro&amigos=1", sesFree.token));
+    const muroA = (await muroAm.json()) as { experiencias: { id: string }[] };
+    const iPro = muroA.experiencias.findIndex((e) => e.id === expPro);
+    const iFree = muroA.experiencias.findIndex((e) => e.id === expFree);
+    assert.ok(iPro !== -1 && iFree !== -1, "el par filtrado está presente");
+    assert.ok(iPro < iFree, "la de mi amigo queda antes que la de un ajeno");
+    ok("amigos primero: orden estable con el amigo arriba");
+
+    // ---------- OLA 2 · historial por ruta con cursor ----------
+    const version2 = await dbPrueba.routeVersion.findFirst({ where: { routeId: ruta2 }, orderBy: { v: "desc" } });
+    assert.ok(version2, "ruta2 con versión");
+    for (let i = 0; i < 24; i++) {
+      await dbPrueba.routeExperience.create({
+        data: {
+          routeId: ruta2,
+          routeVersionId: version2.id,
+          userId: pro.id,
+          fechaRealizacion: `2026-${String((i % 12) + 1).padStart(2, "0")}-${i < 12 ? "01" : "15"}`,
+          comentario: `lote ${i}`,
+        },
+      });
+    }
+    const p1 = await GET_UNO(req("GET", `/api/routes/${ruta2}`, sesFree.token), ctx(ruta2));
+    const c1 = (await p1.json()) as { route: { comunidad: { experiencias: { id: string }[]; expHayMas: boolean; expCursor: string | null } } };
+    assert.equal(c1.route.comunidad.experiencias.length, 20, "primera página = 20");
+    assert.equal(c1.route.comunidad.expHayMas, true);
+    assert.ok(c1.route.comunidad.expCursor, "cursor de siguiente página");
+    const p2 = await GET_UNO(req("GET", `/api/routes/${ruta2}?expCursor=${c1.route.comunidad.expCursor}`, sesFree.token), ctx(ruta2));
+    const c2 = (await p2.json()) as { route: { comunidad: { experiencias: { id: string }[]; expHayMas: boolean } } };
+    assert.equal(c2.route.comunidad.experiencias.length, 5, "segunda página = resto");
+    assert.equal(c2.route.comunidad.expHayMas, false);
+    const ids1 = new Set(c1.route.comunidad.experiencias.map((e) => e.id));
+    assert.ok(c2.route.comunidad.experiencias.every((e) => !ids1.has(e.id)), "sin repetidos entre páginas");
+    ok("cursor: 20 + resto con expHayMas honesto y sin duplicados");
+
     console.log(`\nPRO-MURO: ${pasos} verificaciones OK con DB real (ola 1)`);
   } finally {
     await dbPrueba.user.delete({ where: { id: pro.id } });

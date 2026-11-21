@@ -46,7 +46,7 @@ import {
 
 import { rutasStore, type RutaV2 } from "@/lib/rutasStore";
 import { useTrazas, removeTraza, type TrazaGuardada } from "@/lib/trazasUsuario";
-import { catalogoRutas, misFavoritas, muroExperiencias, misExperiencias, type RutaFavorita, type RutaPublica, type ExperienciaMuro, type MuroExperiencias, type MisExperiencias } from "@/lib/rutasApi";
+import { catalogoRutas, misFavoritas, muroExperiencias, misExperiencias, FILTROS_MURO_VACIOS, type RutaFavorita, type RutaPublica, type ExperienciaMuro, type MuroExperiencias, type MisExperiencias, type FiltrosMuro } from "@/lib/rutasApi";
 import { CONDICIONES } from "@/components/ComunidadTab";
 import { useMe } from "@/hooks/useMe";
 import { useProLicense } from "@/lib/proLicense";
@@ -158,6 +158,18 @@ function ExplorarView({
   const [destacadasNota, setDestacadasNota] = useState(false);
   // Muro de experiencias (2026-11-21): feed real de la comunidad.
   const [muro, setMuro] = useState<MuroExperiencias | null>(null);
+  // Filtros del muro (propuesta Pro): controlarlos sin plan abre el
+  // modal Pro; el feed se reconsulta con cada cambio aplicado.
+  const [filtros, setFiltros] = useState<FiltrosMuro>(FILTROS_MURO_VACIOS);
+  const filtrosActivos = filtros.condiciones.length > 0 || filtros.desde !== "" || filtros.hasta !== "" || filtros.amigos;
+  /** Free → modal Pro (no toca el estado); Pro → toggle honesto. */
+  const gateFiltros = (): boolean => {
+    if (!pro.active) {
+      mapProps.onProLocked?.("muro");
+      return true;
+    }
+    return false;
+  };
   // Mis experiencias (propuesta Pro): solo se consultan con plan Pro
   // activo — el panel completo del aporte es beneficio Pro.
   const [mias, setMias] = useState<MisExperiencias | null>(null);
@@ -213,7 +225,8 @@ function ExplorarView({
 
   // Muro de experiencias: lectura CON SESIÓN, igual que favoritas —
   // sin cuenta no se golpea el servidor (política de invitado, sin
-  // 401) y el estado honesto es el muro vacío.
+  // 401) y el estado honesto es el muro vacío. Se reconsulta cuando
+  // cambian los filtros aplicados (propuesta Pro, Grupo B).
   useEffect(() => {
     let alive = true;
     const ir = async () => {
@@ -221,7 +234,7 @@ function ExplorarView({
         if (alive) setMuro({ experiencias: [], total: 0, ciclistas: 0 });
         return;
       }
-      const m = await muroExperiencias();
+      const m = await muroExperiencias(30, filtros);
       if (alive) setMuro(m.ok && m.muro ? m.muro : { experiencias: [], total: 0, ciclistas: 0 });
     };
     const id = setTimeout(() => void ir(), 0);
@@ -229,7 +242,7 @@ function ExplorarView({
       alive = false;
       clearTimeout(id);
     };
-  }, [userEmail]);
+  }, [userEmail, filtros]);
 
   const listaPublicadas = rutas.filter((r) => r.serverId);
   const listaBorradores = rutas.filter((r) => r.status === "borrador");
@@ -544,6 +557,78 @@ function ExplorarView({
           {!esRutas && sub === "experiencias" && (
             <section className="mt-4" data-testid="ex-contenido-experiencias">
               <p className="text-[13px] text-muted-foreground">{t("ex.expSub")}</p>
+              {/* Filtros (propuesta Pro, Grupo B): condición, rango de
+                  fechas y amigos primero. FREE ve los controles; al
+                  tocarlos abre el modal Pro — el feed sin filtros es
+                  y sigue siendo gratuito. */}
+              <div className="mt-3 rounded-2xl border border-border bg-card p-2.5" data-testid="ex-muro-filtros">
+                <p className="text-[10px] font-extrabold uppercase tracking-[0.14em] text-muted-foreground">{t("ex.muroFiltros")}{pro.active ? "" : " · Pro"}</p>
+                <div className="mt-1.5 flex flex-wrap gap-1">
+                  {CONDICIONES.map((c) => {
+                    const on = filtros.condiciones.includes(c.id);
+                    return (
+                      <button
+                        key={c.id}
+                        data-testid={`ex-muro-filtro-${c.id}`}
+                        onClick={() => {
+                          if (gateFiltros()) return;
+                          setFiltros((f) => ({ ...f, condiciones: on ? f.condiciones.filter((x) => x !== c.id) : [...f.condiciones, c.id] }));
+                        }}
+                        className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${on ? "bg-emerald-600 text-white" : "border border-border bg-background text-muted-foreground"}`}
+                      >
+                        {t(c.clave)}
+                      </button>
+                    );
+                  })}
+                  <button
+                    data-testid="ex-muro-filtro-amigos"
+                    onClick={() => {
+                      if (gateFiltros()) return;
+                      setFiltros((f) => ({ ...f, amigos: !f.amigos }));
+                    }}
+                    className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${filtros.amigos ? "bg-emerald-600 text-white" : "border border-border bg-background text-muted-foreground"}`}
+                  >
+                    {t("ex.muroAmigos")}
+                  </button>
+                </div>
+                <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                  <label className="flex items-center gap-1 text-[10px] font-bold text-muted-foreground">
+                    {t("ex.muroDesde")}
+                    <input
+                      type="date"
+                      value={filtros.desde}
+                      data-testid="ex-muro-desde"
+                      onChange={(e) => {
+                        if (gateFiltros()) return;
+                        setFiltros((f) => ({ ...f, desde: e.target.value }));
+                      }}
+                      className="rounded border border-border bg-background px-1.5 py-0.5 text-[10px] text-foreground"
+                    />
+                  </label>
+                  <label className="flex items-center gap-1 text-[10px] font-bold text-muted-foreground">
+                    {t("ex.muroHasta")}
+                    <input
+                      type="date"
+                      value={filtros.hasta}
+                      data-testid="ex-muro-hasta"
+                      onChange={(e) => {
+                        if (gateFiltros()) return;
+                        setFiltros((f) => ({ ...f, hasta: e.target.value }));
+                      }}
+                      className="rounded border border-border bg-background px-1.5 py-0.5 text-[10px] text-foreground"
+                    />
+                  </label>
+                  {filtrosActivos && (
+                    <button
+                      data-testid="ex-muro-limpiar"
+                      onClick={() => setFiltros(FILTROS_MURO_VACIOS)}
+                      className="ml-auto rounded-full border border-border px-2 py-0.5 text-[10px] font-bold text-muted-foreground hover:bg-accent hover:text-foreground"
+                    >
+                      {t("ex.muroLimpiar")}
+                    </button>
+                  )}
+                </div>
+              </div>
               {muro === null ? (
                 <p className="mt-4 text-center text-xs text-muted-foreground">{t("cat.cargando")}</p>
               ) : muro.experiencias.length === 0 ? (
