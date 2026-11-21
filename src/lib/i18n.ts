@@ -919,8 +919,8 @@ const D: Record<string, E> = {
   "mini.brujulaNorteTitle": ["Norte arriba · tocar para girar al rumbo", "North up · tap to follow the route", "Norte para cima · tocar para o rumbo"],
 
   // ---------- Mis viajes / historial (fase 2) ----------
-  "his.subAria": ["Subsecciones de Mis viajes", "My rides subsections", "Subseções de Meus passeios"],
-  "his.tabViajes": ["Viajes", "Rides", "Passeios"],
+  // 2026-11-21: sin subsecciones (la pestaña «Pro» se retiró de
+  // Viajes: el cronometraje de segmentos vive solo en Estadísticas → Pro).
   "his.rangoSemana": ["Semana", "Week", "Semana"],
   "his.rangoMes": ["Mes", "Month", "Mês"],
   "his.rangoDia": ["Día", "Day", "Dia"],
@@ -1017,16 +1017,8 @@ const D: Record<string, E> = {
   "his.borrarHistorial": ["Borrar historial", "Clear history", "Apagar histórico"],
   "his.localesNota": ["Estos viajes son locales del dispositivo. Inicia sesión en Cuenta y quedarán enlazados a tu correo automáticamente.", "These rides are local to the device. Sign in under Account and they will be linked to your email automatically.", "Esses passeios são locais do dispositivo. Entre em Conta e ficarão vinculados ao seu e-mail automaticamente."],
   "his.segmentosCerro": ["Segmentos del cerro", "Hill segments", "Segmentos do morro"],
-  "his.soloGps": ["solo viajes GPS", "GPS rides only", "só passeios GPS"],
-  "his.aunSinIntentos": ["aún sin intentos", "no attempts yet", "ainda sem tentativas"],
-  "his.record": ["Récord: {0} · prom {1} km/h · +{2} m", "Record: {0} · avg {1} km/h · +{2} m", "Recorde: {0} · méd {1} km/h · +{2} m"],
   "his.intento": ["{0} intento", "{0} attempt", "{0} tentativa"],
   "his.intentos": ["{0} intentos", "{0} attempts", "{0} tentativas"],
-  "his.ultimo": ["último: {0} - {1}", "last: {0} - {1}", "último: {0} - {1}"],
-  "his.top": ["Top: {0}", "Top: {0}", "Top: {0}"],
-  "his.segExplicacion": ["Se detectan solos: graba tu viaje con GPS y si pasas por el inicio del segmento hasta la meta, queda cronometrado con récord personal e historial.", "They are detected automatically: record your ride with GPS and if you pass the segment start to the finish line, it gets timed with a personal record and history.", "São detectados sozinhos: grave seu passeio com GPS e, se passar do início do segmento até a meta, fica cronometrado com recorde pessoal e histórico."],
-  "his.proTeaser": ["Cronometraje oficial de tus subidas (Pío Nono, Pedro de Valdivia Norte, Antilén y La Pirámide, todas → Plaza México) y de las 3 bajadas del control 30 km/h (Plaza México → Pío Nono, Antilén → Pedro de Valdivia y Chacarillas → La Pirámide) - con récord personal, contador de intentos e historial de tiempos. Aplican solo a viajes grabados con GPS.", "Official timing of your climbs (Pío Nono, Pedro de Valdivia Norte, Antilén and La Pirámide, all → Plaza México) and of the 3 descents under the 30 km/h control (Plaza México → Pío Nono, Antilén → Pedro de Valdivia and Chacarillas → La Pirámide) - with personal record, attempt counter and time history. Only applies to rides recorded with GPS.", "Cronometragem oficial das suas subidas (Pío Nono, Pedro de Valdivia Norte, Antilén e La Pirâmide, todas → Plaza México) e das 3 descidas do controle de 30 km/h (Plaza México → Pío Nono, Antilén → Pedro de Valdivia e Chacarillas → La Pirâmide) - com recorde pessoal, contador de tentativas e histórico de tempos. Vale só para passeios gravados com GPS."],
-  "his.esPro": ["Es parte de Cumbre30 Pro", "Part of Cumbre30 Pro", "Faz parte do Cumbre30 Pro"],
 
   // ---------- Cuenta (antes «Perfil»; el nombre queda reservado para el Perfil Ciclista, fase 1) ----------
   "pf.subDatos": ["Mis datos", "My data", "Meus dados"],
@@ -1711,6 +1703,17 @@ const D: Record<string, E> = {
   "ex.segStatGpx": ["Importados de GPX", "Imported from GPX", "Importados de GPX"],
   "ex.vacioSegmentos": ["Aún no tienes segmentos: trázalos en el mapa entre dos puntos.", "No segments yet: draw them on the map between two points.", "Ainda sem segmentos: trace no mapa entre dois pontos."],
   "ex.trazarSegmento": ["Trazar segmento", "Draw segment", "Traçar segmento"],
+  // Categorías de Segmentos (2026-11-21): los oficiales del cerro
+  // vienen de serie (lib/segments) y lo propio del ciclista vive en Mías.
+  "ex.segCatPre": ["Predefinidas", "Built-in", "Predefinidos"],
+  "ex.segCatMias": ["Mías", "Mine", "Minhas"],
+  "ex.segPreSub": ["Los tramos oficiales del cerro vienen incluidos de serie: revísalos en el mapa y disponte para subirlos.", "The official hill segments come included out of the box: review them on the map and get ready to climb them.", "Os trechos oficiais do morro vêm incluídos de série: revise-os no mapa e prepare-se para subi-los."],
+  "ex.segPreStatOf": ["Tramos oficiales", "Official segments", "Trechos oficiais"],
+  "ex.segPreStatSub": ["Subidas", "Climbs", "Subidas"],
+  "ex.segPreStatBaj": ["Bajadas 30", "30 descents", "Descidas 30"],
+  "ex.segDirSubida": ["Subida", "Climb", "Subida"],
+  "ex.segDirBajada": ["Bajada 30", "30 descent", "Descida 30"],
+  "ex.segPreCrono": ["El cronometraje (récord personal, intentos e historial) corre en Estadísticas · Pro, sobre tus viajes con GPS.", "Timing (personal record, attempts and history) runs under Statistics · Pro, over your GPS rides.", "A cronometragem (recorde pessoal, tentativas e histórico) roda em Estatísticas · Pro, sobre seus passeios com GPS."],
   "ex.mapaSub": ["Tus rutas y segmentos sobre el mapa, con búsqueda, capas y avisos.", "Your routes and segments on the map, with search, layers and alerts.", "Suas rotas e segmentos no mapa, com busca, camadas e alertas."],
   "ex.crearSub": ["Elige cómo quieres construir tu próximo trazado.", "Choose how you want to build your next route.", "Escolha como quer construir seu próximo traçado."],
   "ex.crearDibujar": ["Dibujar en el mapa", "Draw on the map", "Desenhar no mapa"],

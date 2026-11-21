@@ -11,7 +11,9 @@
 //   · Constancias PDF: 3 al mes en FREE (proLicenseCore
 //     FREE_CONSTANCIA_LIMIT + HistoryTab.exportPdf).
 //   · Buscador universal + marcadores: solo Pro (MapView SearchCard).
-//   · Segmentos del cerro: solo Pro (HistoryTab → lib/segments).
+//   · Segmentos del cerro: solo Pro (StatsTab → lib/segments; el
+//     catálogo de los 7 tramos oficiales se ve en Explorar →
+//     Segmentos → Predefinidas, el cronometraje es Pro).
 //   · Export GPX: solo Pro (HistoryTab, lib/gpx).
 //   · Historial: últimos 20 viajes en FREE (history.ts
 //     FREE_RIDE_LIMIT + applyFreeCap); Pro ilimitado.

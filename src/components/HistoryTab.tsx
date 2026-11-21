@@ -1,12 +1,15 @@
 "use client";
 
 // ============================================================
-// Mis viajes (antes "Historial de viajes") - con subsecciones:
-//   · "Viajes": contador de constancias, resumen semanal con
-//     compartir (Instagram), filtros de fecha y modo (demo/GPS)
-//     y la lista de viajes enlazada al correo de la cuenta.
-//   · "Pro": segmentos del cerro - cronometraje de subidas,
-//     solo aplican a viajes GPS (función Cumbre30 Pro).
+// Mis viajes (antes "Historial de viajes") - la lista de viajes de
+// la cuenta: contador de constancias, resumen semanal con
+// compartir (Instagram), filtros de fecha y modo (demo/GPS) y
+// acciones por viaje (enlace público, GPX, constancia PDF).
+// 2026-11-21: la subsección «Pro» (segmentos del cerro) se RETIRA
+// de aquí - repetía la misma pantalla que Estadísticas generales;
+// el cronometraje oficial vive SOLO en Estadísticas → Pro
+// (StatsTab). Los tramos logrados en cada viaje siguen avisándose
+// en la fila del ride (chip con trofeo).
 // ============================================================
 
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
@@ -22,7 +25,6 @@ import {
   Gauge,
   Infinity as InfinityIcon,
   Lock,
-  Mountain,
   Route,
   Share2,
   ShieldAlert,
@@ -44,7 +46,7 @@ import { serverToken } from "@/lib/cloudSync";
 import { shareOrDownloadFile } from "@/lib/shareFile";
 import { buildRideGpxBlob } from "@/lib/gpx";
 import { buildWeekImage, sharePngBlob } from "@/lib/shareAdn";
-import { computeSegmentStats, effortsByRide, SEGMENTS, fmtEffort } from "@/lib/segments";
+import { effortsByRide, SEGMENTS, fmtEffort } from "@/lib/segments";
 import { userSegmentDefs, useTrazas } from "@/lib/trazasUsuario";
 import {
   constanciaCount,
@@ -52,7 +54,6 @@ import {
   incrConstancia,
   useProLicense,
 } from "@/lib/proLicense";
-import { SubTabs } from "@/components/SubTabs";
 import { t, useLang } from "@/lib/i18n";
 
 function fmtDate(iso: string): string {
@@ -105,9 +106,6 @@ export function HistoryTab({
   const [dayISO, setDayISO] = useState(() => new Date().toISOString().slice(0, 10));
   const [mode, setMode] = useState<ModeKey>("all");
 
-  // Subsecciones: Viajes (lista) | Pro (segmentos del cerro)
-  const [sub, setSub] = useState<"viajes" | "pro">("viajes");
-
   // ---- Enlace viaje ↔ cuenta: sin correo solo se ven los locales ----
   const accountEmail = user?.email?.trim().toLowerCase() ?? null;
   const linkedRides = useMemo(
@@ -115,24 +113,21 @@ export function HistoryTab({
     [rides, accountEmail],
   );
 
-  // Segmentos: se calculan solo con Pro (función Pro); para nivel
-  // gratis basta el teaser. Solo viajes de la cuenta activa con GPS
-  // real: los demo no guardan pista, los rides en vehículo no son
-  // pedaleo y otra cuenta no se mezcla.
+  // Segmentos: los intentos que avisa cada fila (trofeo) se calculan
+  // con los oficiales solo si hay Pro; los del usuario siempre. El
+  // listado completo con récords vive en Estadísticas → Pro
+  // (2026-11-21: única sede, sin repetir en Viajes). Solo viajes de
+  // la cuenta activa con GPS real: los demo no guardan pista, los
+  // rides en vehículo no son pedaleo y otra cuenta no se mezcla.
   const bikeRides = useMemo(
     () => linkedRides.filter((r) => r.source === "gps" && !r.motorized),
     [linkedRides],
-  );
-  const segStats = useMemo(
-    () => (pro.active ? computeSegmentStats(bikeRides) : []),
-    [pro.active, bikeRides],
   );
   // v1.13.15: segmentos del usuario (creador de trazados) corren en
   // las estadísticas SIN gate Pro; userDefs se re-lee cuando cambia
   // la lista de trazados (alta/baja en el mapa).
   const trazas = useTrazas();
   const userDefs = useMemo(() => userSegmentDefs(), [trazas]);
-  const userSegStats = useMemo(() => computeSegmentStats(bikeRides, userDefs), [bikeRides, userDefs]);
   const perRideEfforts = useMemo(
     () => effortsByRide(bikeRides, pro.active ? [...SEGMENTS, ...userDefs] : userDefs),
     [pro.active, bikeRides, userDefs],
@@ -355,18 +350,10 @@ export function HistoryTab({
 
   return (
     <div className="flex flex-col gap-4">
-      <SubTabs
-        ariaLabel={t("his.subAria")}
-        value={sub}
-        onChange={(k) => setSub(k as "viajes" | "pro")}
-        tabs={[
-          { key: "viajes", label: t("his.tabViajes") },
-          { key: "pro", label: "Pro", crown: true },
-        ]}
-      />
+      {/* 2026-11-21: sin subsecciones - el cronometraje Pro de los
+          segmentos vive solo en Estadísticas → Pro (StatsTab); aquí
+          queda la lista de viajes con sus acciones. */}
 
-      {sub === "viajes" && (
-      <>
       {/* ---- Contador de historial: palanca freemium 20 / ilimitado ---- */}
       <Card className="bg-card/80 border-border p-4">
         <div className="flex items-center gap-3">
@@ -693,111 +680,6 @@ export function HistoryTab({
         <p className="text-[11px] leading-relaxed text-muted-foreground/80">
           {t("his.localesNota")}
         </p>
-      )}
-      </>
-      )}
-
-      {sub === "pro" && (
-        <>
-          {/* ---- Segmentos del cerro (función Cumbre30 Pro, solo GPS) ---- */}
-          <Card className="bg-card/80 border-border p-4">
-            <div className="flex items-center gap-2">
-              <Mountain className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-              <p className="text-sm font-medium text-foreground">{t("his.segmentosCerro")}</p>
-              {pro.active && (
-                <Badge className="bg-amber-500 font-bold text-zinc-950 text-[10px]">PRO</Badge>
-              )}
-              <Badge variant="outline" className="ml-auto border-border text-[10px] uppercase text-muted-foreground">
-                {t("his.soloGps")}
-              </Badge>
-            </div>
-            {pro.active ? (
-              <>
-                <ul className="mt-2 flex flex-col gap-2">
-                  {segStats.map((s) => (
-                    <li key={s.def.id} className="rounded-lg border border-border bg-background/60 p-3">
-                      <div className="flex items-baseline justify-between gap-2 flex-wrap">
-                        <span className="text-sm font-medium text-foreground">{s.def.name}</span>
-                        {s.pb ? (
-                          <span className="flex items-center gap-1 font-mono text-base font-semibold text-amber-600 dark:text-amber-300">
-                            <Trophy className="h-4 w-4" /> {fmtEffort(s.pb.timeSec)}
-                          </span>
-                        ) : (
-                          <span className="text-[11px] text-muted-foreground">{t("his.aunSinIntentos")}</span>
-                        )}
-                      </div>
-                      <p className="mt-0.5 text-[11px] text-muted-foreground">{s.def.detail}</p>
-                      {s.pb && (
-                        <p className="mt-1 text-[11px] text-muted-foreground">
-                          {t("his.record", fmtDate(s.pb.dateISO), s.pb.avgKmh.toFixed(1), Math.round(s.pb.gainM))}
-                        </p>
-                      )}
-                      {s.count > 0 && s.last && (
-                        <p className="mt-0.5 text-[11px] text-muted-foreground">
-                          {s.count === 1 ? t("his.intento", s.count) : t("his.intentos", s.count)} · {t("his.ultimo", fmtEffort(s.last.timeSec), fmtDate(s.last.dateISO))}
-                        </p>
-                      )}
-                      {s.top.length > 1 && (
-                        <p className="mt-0.5 text-[11px] text-muted-foreground">
-                          {t("his.top", s.top.map((e, i) => `${i + 1}) ${fmtEffort(e.timeSec)}`).join("  "))}
-                        </p>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-                <p className="mt-2 text-[11px] text-muted-foreground">
-                  {t("his.segExplicacion")}
-                </p>
-              </>
-            ) : (
-              <>
-                <p className="mt-1 leading-relaxed text-muted-foreground">
-                  {t("his.proTeaser")}
-                </p>
-                <Button
-                  onClick={onGoPro}
-                  className="mt-3 h-9 bg-amber-500 font-bold text-zinc-950 hover:bg-amber-400"
-                >
-                  <Crown className="mr-2 h-4 w-4" /> {t("his.esPro")}
-                </Button>
-              </>
-            )}
-
-            {/* v1.13.15 - Tus segmentos (creador de trazados): visible en
-                ambos niveles, corren como intentos sobre tus viajes GPS. */}
-            <div className="mt-3 border-t border-border/60 pt-3">
-              <p className="text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground">{t("st.tusSegmentos")}</p>
-              {userSegStats.length ? (
-                <ul className="mt-2 flex flex-col gap-2">
-                  {userSegStats.map((s) => (
-                    <li key={s.def.id} className="rounded-lg border border-border bg-background/60 p-3">
-                      <div className="flex items-baseline justify-between gap-2 flex-wrap">
-                        <span className="text-sm font-medium text-foreground">📏 {s.def.name}</span>
-                        {s.pb ? (
-                          <span className="flex items-center gap-1 font-mono text-base font-semibold text-amber-600 dark:text-amber-300">
-                            <Trophy className="h-4 w-4" /> {fmtEffort(s.pb.timeSec)}
-                          </span>
-                        ) : (
-                          <span className="text-[11px] text-muted-foreground">{t("his.aunSinIntentos")}</span>
-                        )}
-                      </div>
-                      <p className="mt-0.5 text-[11px] text-muted-foreground">{s.def.detail}</p>
-                      {s.count > 0 && s.last && (
-                        <p className="mt-0.5 text-[11px] text-muted-foreground">
-                          {s.count === 1 ? t("his.intento", s.count) : t("his.intentos", s.count)} · {t("his.ultimo", fmtEffort(s.last.timeSec), fmtDate(s.last.dateISO))}
-                        </p>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="mt-1.5 text-[11px] leading-relaxed text-muted-foreground">
-                  {t("st.tusSegmentosVacio")}
-                </p>
-              )}
-            </div>
-          </Card>
-        </>
       )}
     </div>
   );

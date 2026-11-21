@@ -12,6 +12,7 @@
 // ============================================================
 import { readFileSync } from "fs";
 import { setLang, t } from "../src/lib/i18n";
+import { SEGMENTS } from "../src/lib/segments";
 
 let pasos = 0;
 let fallos = 0;
@@ -106,6 +107,36 @@ const PAGE = readFileSync(new URL("../src/app/page.tsx", import.meta.url), "utf8
 ok("ExplorarView montado en screen explorar", PAGE.includes("<ExplorarView"));
 ok("sub controlado desde la app", PAGE.includes("sub={explorarSub}"));
 ok("velocímetro cae en «Explorar mapa»", PAGE.includes('setExplorarSub("mapa")'));
+
+// ------------------------------------------------------------------
+// 2026-11-21 · Segmentos con categorías y Pro sin repetición:
+//   · En «Segmentos», Predefinidas (los oficiales de lib/segments)
+//     es la categoría INICIAL — el ciclista parte con tramos — y
+//     «Mías» conserva los trazados propios con su CTA.
+//   · Mis viajes ya NO repite la subsección «Pro»: el cronometraje
+//     oficial vive solo en Estadísticas → Pro (StatsTab).
+// ------------------------------------------------------------------
+console.log("· segmentos: Predefinidas de serie + Mías (categorías)");
+ok("categoría Predefinidas declarada", VISTA.includes('"ex.segCatPre"'));
+ok("categoría Mías declarada", VISTA.includes('"ex.segCatMias"'));
+ok("Predefinidas es la categoría inicial", VISTA.includes('useState<"pre" | "mias">("pre")'));
+ok("la lista oficial viene de lib/segments", VISTA.includes('from "@/lib/segments"'));
+ok("cada tramo oficial se encuadra con sus geocercas", VISTA.includes("coords: [seg.start, seg.end]"));
+ok("nota honesta: cronometraje vive en Estadísticas · Pro", VISTA.includes('"ex.segPreCrono"'));
+ok("los oficiales son 7", SEGMENTS.length === 7);
+ok("4 subidas + 3 bajadas del control 30", SEGMENTS.filter((s) => s.dir === "bajada").length === 3 && SEGMENTS.filter((s) => s.dir !== "bajada").length === 4);
+ok("cada oficial trae nombre, detalle y geocercas", SEGMENTS.every((s) => s.name && s.detail && s.start && s.end && s.radiusStartM > 0 && s.radiusEndM > 0));
+ok("ids únicos", new Set(SEGMENTS.map((s) => s.id)).size === SEGMENTS.length);
+
+const HISTORIAL = readFileSync(new URL("../src/components/HistoryTab.tsx", import.meta.url), "utf8");
+const STATS = readFileSync(new URL("../src/components/StatsTab.tsx", import.meta.url), "utf8");
+console.log("· Pro sin repetición: Viajes sin subtab, Estadísticas única sede");
+ok("Mis viajes ya no tiene la subsección Pro", !HISTORIAL.includes('sub === "pro"') && !HISTORIAL.includes("<SubTabs"));
+ok("Mis viajes conserva el aviso de tramos logrados por ride", HISTORIAL.includes("perRideEfforts"));
+ok("Estadísticas mantiene la subsección Pro", STATS.includes('sub === "pro"'));
+ok("Estadísticas calcula los oficiales con lib/segments", STATS.includes("computeSegmentStats"));
+ok("Estadísticas conserva los segmentos del usuario sin gate", STATS.includes("userSegmentDefs"));
+ok("i18n: sin claves huérfanas del bloque retirado", !I18N.includes('"his.proTeaser"') && !I18N.includes('"his.tabViajes"') && !I18N.includes('"his.segExplicacion"'));
 
 console.log(`\n${pasos - fallos}/${pasos} OK`);
 if (fallos > 0) process.exit(1);

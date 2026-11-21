@@ -5,8 +5,15 @@
 //   · "General": totales del historial local (FREE) + teaser del
 //     resumen mensual avanzado (PRO).
 //   · "Pro": resumen mes a mes (statsMonthly) y estadísticas por
-//     segmento del cerro (función Pro, validada: HistoryTab ya
-//     las calcula solo con Pro).
+//     segmento del cerro (función Pro, validada: lib/segments
+//     se evalúa solo con viajes GPS reales de la cuenta).
+//
+// 2026-11-21: esta pestaña es la ÚNICA sede del cronometraje de
+// segmentos - Mis viajes retiró su subsección «Pro» porque
+// repetía exactamente esta pantalla (cliente: «dejamos lo pro
+// sólo en estadísticas generales»). Los tramos oficiales también
+// se listan en Explorar → Segmentos → Predefinidas (catálogo,
+// sin cronometraje).
 //
 // Solo viajes con GPS real de la cuenta activa: los de demostración
 // (simulación, sin GPS) no cuentan en ninguna estadística y los de

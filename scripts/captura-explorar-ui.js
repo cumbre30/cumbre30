@@ -50,11 +50,20 @@ function ok(nombre, cond) {
   ok("subnav Mis rutas activa por defecto", (await page.locator('[data-testid="ex-tab-rutas"][aria-selected="true"]').count()) === 1);
   await page.screenshot({ path: "/tmp/render/ex-rutas.png" });
 
-  // 2. Mis segmentos (estado vacío honesto)
+  // 2. Segmentos: Predefinidas (oficiales de serie, categoría por
+  //    defecto) y Mías (trazados propios, con CTA «Trazar segmento»)
   await page.locator('[data-testid="ex-tab-segmentos"]').click();
   await sleep(600);
-  ok("subsección Mis segmentos", await page.locator('[data-testid="ex-contenido-segmentos"]').count() === 1);
-  ok("CTA «Trazar segmento»", await page.locator('[data-testid="ex-trazar-segmento"]').count() === 1);
+  ok("subsección Segmentos", await page.locator('[data-testid="ex-contenido-segmentos"]').count() === 1);
+  ok("categoría Predefinidas activa por defecto", (await page.locator('[data-testid="ex-segcat-pre"][aria-selected="true"]').count()) === 1);
+  ok("los 7 tramos oficiales listados", (await page.locator('[data-testid^="ex-segpre-"]').count()) === 7);
+  ok("chips Subida/Bajada 30", (await page.locator("text=Subida").count()) >= 4 && (await page.locator("text=Bajada 30").count()) >= 3);
+  await page.screenshot({ path: "/tmp/render/ex-segpre.png" });
+  await page.locator('[data-testid="ex-segcat-mias"]').click();
+  await sleep(600);
+  ok("categoría Mías activa", (await page.locator('[data-testid="ex-segcat-mias"][aria-selected="true"]').count()) === 1);
+  ok("CTA «Trazar segmento» en Mías", await page.locator('[data-testid="ex-trazar-segmento"]').count() === 1);
+  await page.screenshot({ path: "/tmp/render/ex-segmias.png" });
 
   // 3. Crear: 3 tarjetas del mockup
   await page.locator('[data-testid="ex-tab-crear"]').click();
