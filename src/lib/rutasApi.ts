@@ -42,12 +42,18 @@ function url(path: string): string | null {
   return `${b}${path}`;
 }
 
-async function fetchRuta(path: string, method: "POST" | "PATCH" | "DELETE", body?: unknown): Promise<RespuestaRuta> {
-  const target = url(path);
-  if (target === null) return { ok: false, error: "Sin backend configurado." };
+/** Headers de sesión: Bearer en el APK, cookie sola en la web. */
+function sessionHeaders(): Record<string, string> {
   const token = serverToken();
   const headers: Record<string, string> = { "Content-Type": "application/json" };
   if (token) headers.Authorization = `Bearer ${token}`;
+  return headers;
+}
+
+async function fetchRuta(path: string, method: "POST" | "PATCH" | "DELETE", body?: unknown): Promise<RespuestaRuta> {
+  const target = url(path);
+  if (target === null) return { ok: false, error: "Sin backend configurado." };
+  const headers = sessionHeaders();
   // En web la cookie httpOnly va sola; en APK el Bearer. Sin token en
   // el APK el servidor responde 401 y la UI pide vincular cuenta.
   try {
@@ -171,6 +177,16 @@ export type RutaDetalle = RutaPublica & {
   ultimaRevisionAt: string | null;
   estadoVigencia: string;
   owner?: { username?: string } | null;
+  /** Fase E — comunidad del detalle (lo mío incluido). */
+  comunidad?: {
+    comentarios: { id: string; body: string; createdAt: string; username: string }[];
+    experiencias: { id: string; fechaRealizacion: string; comentario: string | null; observacion: string | null; condiciones: string[]; username: string }[];
+    valoracionPromedio: number | null;
+    valoracionVotos: number;
+    favoritos: number;
+    miFavorito: boolean;
+    miValoracion: number | null;
+  };
 };
 
 export type RespuestaDetalle =
@@ -214,6 +230,166 @@ export async function recalcularElevacion(id: string): Promise<RespuestaElevacio
     const d = (await res.json().catch(() => ({}))) as Record<string, unknown>;
     if (!res.ok) return { ok: false, error: typeof d.error === "string" ? d.error : `Error ${res.status}.` };
     return { ok: true, ele: d.ele as RespuestaElevacion["ele"] };
+  } catch {
+    return { ok: false, error: "Sin red." };
+  }
+}
+
+// ============================================================
+// Fase E: comunidad (favoritos, valoraciones, comentarios,
+// reportes, experiencias) y moderación por roles.
+// ============================================================
+
+export type RespuestaComunidad = { ok: boolean; error?: string; favorito?: boolean; valor?: number; promedio?: number | null; votos?: number; ocultada?: boolean; loteSospechoso?: boolean; id?: string };
+
+/** Toggle favorito (idempotente por usuario/ruta). */
+export async function toggleFavorito(id: string): Promise<RespuestaComunidad> {
+  const target = url(`/api/routes/${encodeURIComponent(id)}/favorite`);
+  if (target === null) return { ok: false, error: "Sin backend configurado." };
+  const headers = sessionHeaders();
+  try {
+    const res = await fetch(target, { method: "POST", headers, signal: AbortSignal.timeout(15_000) });
+    const d = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+    if (!res.ok) return { ok: false, error: typeof d.error === "string" ? d.error : `Error ${res.status}.` };
+    return { ok: true, favorito: d.favorito === true };
+  } catch {
+    return { ok: false, error: "Sin red." };
+  }
+}
+
+/** Valorar 1-5 (upsert, actualizable — comodidad, no ranking). */
+export async function valorarRuta(id: string, valor: number): Promise<RespuestaComunidad> {
+  const target = url(`/api/routes/${encodeURIComponent(id)}/rating`);
+  if (target === null) return { ok: false, error: "Sin backend configurado." };
+  const headers = sessionHeaders();
+  try {
+    const res = await fetch(target, { method: "POST", headers, body: JSON.stringify({ valor }), signal: AbortSignal.timeout(15_000) });
+    const d = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+    if (!res.ok) return { ok: false, error: typeof d.error === "string" ? d.error : `Error ${res.status}.` };
+    return { ok: true, valor, promedio: typeof d.promedio === "number" ? d.promedio : null, votos: typeof d.votos === "number" ? d.votos : 0 };
+  } catch {
+    return { ok: false, error: "Sin red." };
+  }
+}
+
+/** Comentar (≤1000). */
+export async function comentarRuta(id: string, body: string): Promise<RespuestaComunidad> {
+  const target = url(`/api/routes/${encodeURIComponent(id)}/comments`);
+  if (target === null) return { ok: false, error: "Sin backend configurado." };
+  const headers = sessionHeaders();
+  try {
+    const res = await fetch(target, { method: "POST", headers, body: JSON.stringify({ body }), signal: AbortSignal.timeout(15_000) });
+    const d = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+    if (!res.ok) return { ok: false, error: typeof d.error === "string" ? d.error : `Error ${res.status}.` };
+    return { ok: true, id: typeof d.id === "string" ? d.id : undefined };
+  } catch {
+    return { ok: false, error: "Sin red." };
+  }
+}
+
+/** Borrar tu comentario (soft-delete). */
+export async function borrarComentario(id: string, commentId: string): Promise<RespuestaComunidad> {
+  const target = url(`/api/routes/${encodeURIComponent(id)}/comments?commentId=${encodeURIComponent(commentId)}`);
+  if (target === null) return { ok: false, error: "Sin backend configurado." };
+  const headers = sessionHeaders();
+  try {
+    const res = await fetch(target, { method: "DELETE", headers, signal: AbortSignal.timeout(15_000) });
+    if (!res.ok) {
+      const d = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+      return { ok: false, error: typeof d.error === "string" ? d.error : `Error ${res.status}.` };
+    }
+    return { ok: true };
+  } catch {
+    return { ok: false, error: "Sin red." };
+  }
+}
+
+const MOTIVOS = ["cierre", "peligro", "error_geografico", "spam", "contenido_inapropiado"] as const;
+export type MotivoReporteCli = (typeof MOTIVOS)[number];
+
+/** Reportar (motivo cerrado; el servidor calcula el peso del
+ *  reportante y evalúa el umbral ponderado §7.2). */
+export async function reportarRuta(id: string, motivo: MotivoReporteCli, nota?: string): Promise<RespuestaComunidad> {
+  const target = url(`/api/routes/${encodeURIComponent(id)}/report`);
+  if (target === null) return { ok: false, error: "Sin backend configurado." };
+  const headers = sessionHeaders();
+  try {
+    const res = await fetch(target, { method: "POST", headers, body: JSON.stringify({ motivo, nota }), signal: AbortSignal.timeout(15_000) });
+    const d = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+    if (!res.ok) return { ok: false, error: typeof d.error === "string" ? d.error : `Error ${res.status}.` };
+    return { ok: true, ocultada: d.ocultada === true, loteSospechoso: d.loteSospechoso === true };
+  } catch {
+    return { ok: false, error: "Sin red." };
+  }
+}
+
+/** Registrar experiencia (una por usuario/ruta/fecha). */
+export async function registrarExperiencia(id: string, e: { fechaRealizacion: string; comentario?: string; observacion?: string; condiciones?: string[]; rideId?: string }): Promise<RespuestaComunidad> {
+  const target = url(`/api/routes/${encodeURIComponent(id)}/experience`);
+  if (target === null) return { ok: false, error: "Sin backend configurado." };
+  const headers = sessionHeaders();
+  try {
+    const res = await fetch(target, { method: "POST", headers, body: JSON.stringify(e), signal: AbortSignal.timeout(15_000) });
+    const d = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+    if (!res.ok) return { ok: false, error: typeof d.error === "string" ? d.error : `Error ${res.status}.` };
+    return { ok: true, id: typeof d.id === "string" ? d.id : undefined };
+  } catch {
+    return { ok: false, error: "Sin red." };
+  }
+}
+
+export type RutaFavorita = {
+  id: string; nombre: string; modalidad: string; distKm: number; gainM: number | null;
+  dificultadFisica: number; estadoVigencia: string; creador: string; favoritadoAt: string;
+};
+
+/** Mis favoritas (tab Favoritas de la biblioteca). */
+export async function misFavoritas(): Promise<{ ok: boolean; error?: string; favoritas?: RutaFavorita[] }> {
+  const target = url("/api/routes/favorites");
+  if (target === null) return { ok: false, error: "Sin backend configurado." };
+  const headers = sessionHeaders();
+  try {
+    const res = await fetch(target, { headers, signal: AbortSignal.timeout(15_000) });
+    const d = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+    if (!res.ok) return { ok: false, error: typeof d.error === "string" ? d.error : `Error ${res.status}.` };
+    return { ok: true, favoritas: Array.isArray(d.favoritas) ? (d.favoritas as RutaFavorita[]) : [] };
+  } catch {
+    return { ok: false, error: "Sin red." };
+  }
+}
+
+export type ColaModeracion = {
+  ocultas: { id: string; nombre: string; estadoVigencia: string; updatedAt: string; reports: { id: string; motivo: string; estado: string; clasificacion: string; peso: number }[] }[];
+  sospechosos: { id: string; routeId: string; motivo: string; peso: number }[];
+  logs: { id: string; accion: string; targetType: string; targetId: string; motivo: string | null; createdAt: string }[];
+};
+
+/** Cola de moderación (solo moderadores/admin; 403 para el resto). */
+export async function colaModeracion(): Promise<{ ok: boolean; status?: number; error?: string; cola?: ColaModeracion }> {
+  const target = url("/api/moderation");
+  if (target === null) return { ok: false, error: "Sin backend configurado." };
+  const headers = sessionHeaders();
+  try {
+    const res = await fetch(target, { headers, signal: AbortSignal.timeout(15_000) });
+    if (res.status === 403 || res.status === 401) return { ok: false, status: res.status, error: "Sin permiso." };
+    const d = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+    if (!res.ok) return { ok: false, error: typeof d.error === "string" ? d.error : `Error ${res.status}.` };
+    return { ok: true, cola: d as unknown as ColaModeracion };
+  } catch {
+    return { ok: false, error: "Sin red." };
+  }
+}
+
+/** Acción de moderación (restaurar/retirar/resolver reporte). */
+export async function accionModeracion(a: { accion: string; rutaId?: string; reporteId?: string; nota?: string }): Promise<RespuestaComunidad> {
+  const target = url("/api/moderation");
+  if (target === null) return { ok: false, error: "Sin backend configurado." };
+  const headers = sessionHeaders();
+  try {
+    const res = await fetch(target, { method: "POST", headers, body: JSON.stringify(a), signal: AbortSignal.timeout(15_000) });
+    const d = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+    if (!res.ok) return { ok: false, error: typeof d.error === "string" ? d.error : `Error ${res.status}.` };
+    return { ok: true };
   } catch {
     return { ok: false, error: "Sin red." };
   }

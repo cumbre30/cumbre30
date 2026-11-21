@@ -54,6 +54,24 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       versions: { orderBy: { v: "asc" }, select: { id: true, v: true, publishedAt: true } },
       // Nombre público del creador para la ficha (username es público).
       owner: { select: { username: true } },
+      // Fase E — comunidad (contenido público, sin datos privados):
+      // comentarios y experiencias visibles con su username, agregados
+      // de valoración y favoritos, y LO MÍO del que mira (favorito y
+      // valoración propios) para pintar el estado en la ficha.
+      comments: {
+        where: { removedAt: null },
+        orderBy: { createdAt: "desc" },
+        take: 30,
+        select: { id: true, body: true, createdAt: true, user: { select: { username: true } } },
+      },
+      experiences: {
+        where: { removedAt: null },
+        orderBy: { createdAt: "desc" },
+        take: 20,
+        select: { id: true, fechaRealizacion: true, comentario: true, observacion: true, condiciones: true, rideId: true, routeVersionId: true, createdAt: true, user: { select: { username: true } } },
+      },
+      favorites: { select: { userId: true } },
+      ratings: { select: { userId: true, valor: true } },
     },
   });
   if (!ruta) return NextResponse.json({ error: "Ruta no encontrada." }, { status: 404, headers: cors });
@@ -61,7 +79,18 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     // Oculta/retirada: solo el propietario la ve.
     return NextResponse.json({ error: "Ruta no disponible." }, { status: 404, headers: cors });
   }
-  return NextResponse.json({ route: ruta }, { headers: cors });
+  // Agregados + "lo mío" (el detalle nunca expone otros userIds).
+  const valores = ruta.ratings.map((r) => r.valor);
+  const comunidad = {
+    comentarios: ruta.comments.map((c) => ({ ...c, username: c.user.username, user: undefined })),
+    experiencias: ruta.experiences.map((e) => ({ ...e, username: e.user.username, user: undefined })),
+    valoracionPromedio: valores.length ? Math.round((valores.reduce((a, b) => a + b, 0) / valores.length) * 10) / 10 : null,
+    valoracionVotos: valores.length,
+    favoritos: ruta.favorites.length,
+    miFavorito: ruta.favorites.some((f) => f.userId === me.id),
+    miValoracion: ruta.ratings.find((r) => r.userId === me.id)?.valor ?? null,
+  };
+  return NextResponse.json({ route: { ...ruta, comunidad } }, { headers: cors });
 }
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {

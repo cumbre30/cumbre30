@@ -16,6 +16,7 @@ import { catalogoRutas, detalleRuta, type RutaPublica, type RespuestaDetalle } f
 import { polylineDecode } from "@/lib/routeGeo";
 import { buildRutaGpxBlob } from "@/lib/gpx";
 import { ETIQUETAS_DIFICULTAD } from "@/lib/dificultad";
+import ComunidadTab from "@/components/ComunidadTab";
 import { t, useLang } from "@/lib/i18n";
 
 export type BboxMapa = { n: number; s: number; e: number; o: number };
@@ -38,11 +39,16 @@ export default function CatalogoTab({
   getBbox,
   onVerEnMapa,
   onIrAInicio,
+  fichaExterna,
+  onFichaCerrada,
 }: {
   activo: boolean;
   getBbox?: () => BboxMapa | null;
   onVerEnMapa?: (r: RutaPublica) => void;
   onIrAInicio?: (r: RutaPublica) => void;
+  /** Fase E: el tab Favoritas abre aquí la ficha de una ruta ajena. */
+  fichaExterna?: string | null;
+  onFichaCerrada?: () => void;
 }) {
   useLang();
   const [q, setQ] = useState("");
@@ -96,10 +102,21 @@ export default function CatalogoTab({
     else setFichaError(r.error);
   }, []);
 
-  if (!activo) return null;
+  // Ficha pedida desde otro tab (Favoritas): se abre igual aquí y la
+  // hoja vive en este componente aunque el tab no esté activo. Diferida
+  // al siguiente tick (el efecto no marca estado de forma síncrona).
+  useEffect(() => {
+    if (!fichaExterna || fichaId === fichaExterna) return;
+    const id = setTimeout(() => void abrirFicha(fichaExterna), 0);
+    return () => clearTimeout(id);
+  }, [fichaExterna, fichaId, abrirFicha]);
+  const cerrarFicha = () => { setFichaId(null); onFichaCerrada?.(); };
+
+  if (!activo && !fichaExterna) return null;
 
   return (
     <div data-testid="catalogo-tab">
+      {activo && (<>
       {/* Búsqueda y filtros */}
       <div className="flex flex-wrap items-center gap-1.5">
         <div className="flex min-w-0 flex-1 items-center gap-1.5 rounded-xl border border-border bg-card px-2.5 py-1.5">
@@ -164,10 +181,11 @@ export default function CatalogoTab({
           </li>
         ))}
       </ul>
+      </>)}
 
       {/* Ficha pública (sheet) */}
       {fichaId && (
-        <div className="absolute inset-0 z-[10] flex flex-col justify-end bg-black/40" onClick={() => setFichaId(null)}>
+        <div className="absolute inset-0 z-[10] flex flex-col justify-end bg-black/40" onClick={cerrarFicha}>
           <div className="max-h-[88%] overflow-y-auto rounded-t-2xl border-t border-border bg-background px-4 pb-6 pt-3" onClick={(e) => e.stopPropagation()} data-testid="cat-ficha">
             <div className="mx-auto mb-2 h-1 w-10 rounded bg-border" aria-hidden />
             {fichaError && <p className="text-[11px] text-amber-700 dark:text-amber-300">{fichaError}</p>}
@@ -180,7 +198,7 @@ export default function CatalogoTab({
                       {t("cat.por")} {ficha.creador ?? ""} · v{ficha.version} · {t(`cat.mod.${ficha.modalidad}`)}
                     </p>
                   </div>
-                  <button onClick={() => setFichaId(null)} aria-label={t("bib.cerrar")} className="rounded-lg border border-border px-1.5 py-1 text-muted-foreground hover:border-red-400">✕</button>
+                  <button onClick={cerrarFicha} aria-label={t("bib.cerrar")} className="rounded-lg border border-border px-1.5 py-1 text-muted-foreground hover:border-red-400">✕</button>
                 </div>
                 <p className="mt-1.5 text-[10px] leading-snug text-muted-foreground">{t("cat.geometriaProtegida")}</p>
                 <div className="mt-2 grid grid-cols-3 gap-1.5 text-center">
@@ -246,6 +264,9 @@ export default function CatalogoTab({
                   </button>
                 </div>
                 <p className="mt-1.5 text-[9.5px] text-muted-foreground">{t("cat.gpxNota")}</p>
+                {ficha.comunidad && (
+                  <ComunidadTab rutaId={ficha.id} datos={ficha.comunidad} />
+                )}
               </>
             ) : (
               <p className="py-6 text-center text-xs text-muted-foreground">{t("cat.cargando")}</p>

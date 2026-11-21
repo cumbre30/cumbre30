@@ -20,16 +20,18 @@
 // Textos vía i18n (claves bib.*).
 // ============================================================
 
-import { useMemo, useState, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
-import { Download, MapPin, PencilRuler, Trash2, X, BookOpen, RefreshCw, Eye } from "lucide-react";
+import { Download, Heart, MapPin, PencilRuler, Trash2, X, BookOpen, RefreshCw, Eye } from "lucide-react";
 
 import { rutasStore, type RutaV2 } from "@/lib/rutasStore";
 import { borradores } from "@/lib/rutasBorrador";
 import { buildRutaGpxBlob } from "@/lib/gpx";
 import { estadoVigencia, formatearTiempo, tiempoEstimadoRango, recientes, type EstadoVigencia } from "@/lib/rutasFicha";
 import CatalogoTab, { type BboxMapa } from "@/components/CatalogoTab";
+import ModeracionTab from "@/components/ModeracionTab";
+import { colaModeracion, misFavoritas, type RutaFavorita } from "@/lib/rutasApi";
 import { ETIQUETAS_DIFICULTAD } from "@/lib/dificultad";
 import { t, useLang } from "@/lib/i18n";
 
@@ -45,7 +47,7 @@ function descargarGpx(r: RutaV2): void {
   URL.revokeObjectURL(url);
 }
 
-type Tab = "mias" | "catalogo" | "favoritas" | "recientes";
+type Tab = "mias" | "catalogo" | "favoritas" | "recientes" | "moderacion";
 
 /** Snapshot de servidor ESTABLE (referencia única): un literal nuevo
  *  por llamada de getServerSnapshot dispara el aviso de
@@ -164,7 +166,28 @@ export default function BibliotecaRutas({
   useLang();
   const [tab, setTab] = useState<Tab>("mias");
   const [fichaId, setFichaId] = useState<string | null>(null);
+  // Fase E: favoritas del servidor + ficha pública pedida desde otro
+  // tab (CatalogoTab la resuelve) + rol de moderación.
+  const [favoritas, setFavoritas] = useState<RutaFavorita[] | null>(null);
+  const [favoritasTick, setFavoritasTick] = useState(0);
+  const [fichaExterna, setFichaExterna] = useState<string | null>(null);
+  const [esModerador, setEsModerador] = useState<boolean | null>(null);
   const [recientesTick, setRecientesTick] = useState(0);
+  // Fase E: al abrir la biblioteca se carga la lista de favoritas y se
+  // hace el probe de moderación (403 → tab oculto, sin error ruidoso).
+  // El efecto vive ANTES del early return (regla de hooks).
+  useEffect(() => {
+    if (!abierto) return;
+    const ir = async () => {
+      const r = await misFavoritas();
+      setFavoritas(r.ok && r.favoritas ? r.favoritas : []);
+      const m = await colaModeracion();
+      setEsModerador(m.ok);
+    };
+    const id = setTimeout(() => void ir(), 0);
+    return () => clearTimeout(id);
+  }, [abierto, favoritasTick]);
+
   // Store reactivo (patrón useTrazas): snapshot estable entre escrituras.
   const rutas = useSyncExternalStore(rutasStore.subscribe, () => rutasStore.get(), () => SERVIDOR_VACIO);
   if (!abierto) return null;
@@ -173,6 +196,7 @@ export default function BibliotecaRutas({
   const listaMigradas = rutas.filter((r) => r.status === undefined && r.migradaDe === "c30.trazas");
   const recientesIds = recientes.ver();
   const listaRecientes = recientesTick >= 0 ? recientesIds.map((id) => rutas.find((r) => r.id === id)).filter((r): r is RutaV2 => !!r) : [];
+
 
   const abrirFicha = (id: string) => {
     setFichaId(id);
@@ -184,8 +208,10 @@ export default function BibliotecaRutas({
   const tabs: { id: Tab; label: string; count?: number }[] = [
     { id: "mias", label: t("bib.tabMias"), count: listaBorradores.length + listaMigradas.length },
     { id: "catalogo", label: t("bib.tabCatalogo") },
-    { id: "favoritas", label: t("bib.tabFavoritas") },
+    { id: "favoritas", label: t("bib.tabFavoritas"), count: favoritas?.length },
     { id: "recientes", label: t("bib.tabRecientes"), count: listaRecientes.length },
+    // Moderación: solo con rol (probe silencioso al abrir; 403 → oculto).
+    ...(esModerador === true ? [{ id: "moderacion" as Tab, label: t("mod.titulo") }] : []),
   ];
 
   const filaTestid = (r: RutaV2) => (r.status === "borrador" ? `bib-borrador-${r.id}` : `bib-trazada-${r.id}`);
@@ -253,16 +279,51 @@ export default function BibliotecaRutas({
           </>
         )}
 
-        {tab === "catalogo" && (
-          <CatalogoTab activo onVerEnMapa={(r) => { onVerEnMapa?.(r); onClose(); }} onIrAInicio={(r) => { onIrAInicio?.(r); onClose(); }} getBbox={getBbox} />
-        )}
+        <CatalogoTab
+          activo={tab === "catalogo"}
+          getBbox={getBbox}
+          onVerEnMapa={(r) => { onVerEnMapa?.(r); onClose(); }}
+          onIrAInicio={(r) => { onIrAInicio?.(r); onClose(); }}
+          fichaExterna={fichaExterna}
+          onFichaCerrada={() => setFichaExterna(null)}
+        />
 
         {tab === "favoritas" && (
-          <div className="mt-8 text-center">
-            <p className="text-2xl" aria-hidden>💚</p>
-            <p className="mt-2 text-xs font-bold text-foreground">{t("bib.vacioFavoritas")}</p>
-            <p className="mx-auto mt-1 max-w-xs text-[11px] leading-snug text-muted-foreground">{t("bib.vacioFavoritasSub")}</p>
-          </div>
+          <>
+            {favoritas === null ? (
+              <p className="mt-6 text-center text-xs text-muted-foreground" data-testid="fav-cargando">{t("cat.cargando")}</p>
+            ) : favoritas.length === 0 ? (
+              <div className="mt-8 text-center">
+                <p className="text-2xl" aria-hidden>💚</p>
+                <p className="mt-2 text-xs font-bold text-foreground">{t("bib.vacioFavoritas")}</p>
+                <p className="mx-auto mt-1 max-w-xs text-[11px] leading-snug text-muted-foreground">{t("bib.vacioFavoritasSub")}</p>
+              </div>
+            ) : (
+              <ul className="grid gap-1.5">
+                {favoritas.map((f) => (
+                  <li key={f.id}>
+                    <button
+                      onClick={() => setFichaExterna(f.id)}
+                      className="flex w-full items-center gap-1.5 rounded-lg border border-border bg-card/60 px-2 py-1.5 text-left hover:border-emerald-500"
+                      data-testid={`fav-ruta-${f.id}`}
+                    >
+                      <Heart className="h-3.5 w-3.5 shrink-0 text-rose-500" />
+                      <span className="min-w-0 flex-1">
+                        <span className="truncate text-xs font-semibold text-foreground">{f.nombre}</span>
+                        <span className="block truncate text-[10px] text-muted-foreground">
+                          {f.creador} · {f.distKm.toFixed(1)} km{f.gainM != null ? ` · +${Math.round(f.gainM)} m` : ""}
+                        </span>
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </>
+        )}
+
+        {tab === "moderacion" && (
+          <ModeracionTab activo />
         )}
 
         {tab === "recientes" && (
