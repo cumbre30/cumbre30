@@ -148,6 +148,7 @@ export default function BibliotecaRutas({
   getBbox,
   onVerEnMapa,
   onIrAInicio,
+  tabInicial,
 }: {
   abierto: boolean;
   onClose: () => void;
@@ -165,9 +166,14 @@ export default function BibliotecaRutas({
   onVerEnMapa?: (r: import("@/lib/rutasApi").RutaPublica) => void;
   /** Fase D — «cómo llegar»: destino = inicio aproximado. */
   onIrAInicio?: (r: import("@/lib/rutasApi").RutaPublica) => void;
+  /** Rediseño Explorar: sección con la que se pidió abrir (p. ej.
+   *  «Guardados» abre directo en favoritas). MapView remonta el
+   *  overlay con key={bibliotecaTab} cuando cambia, así que este
+   *  valor es el ESTADO INICIAL — sin efectos de sincronización. */
+  tabInicial?: Tab;
 }) {
   useLang();
-  const [tab, setTab] = useState<Tab>("mias");
+  const [tab, setTab] = useState<Tab>(tabInicial ?? "mias");
   const [fichaId, setFichaId] = useState<string | null>(null);
   // Fase E: favoritas del servidor + ficha pública pedida desde otro
   // tab (CatalogoTab la resuelve) + rol de moderación.

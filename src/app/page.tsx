@@ -44,6 +44,7 @@ import { alerts } from "@/lib/alertEngine";
 import { programarAvisoHorario } from "@/lib/notificaciones";
 import { autoCheckAlAbrir, registrarToqueActualizacion } from "@/lib/actualizacion";
 import { t, useLang } from "@/lib/i18n";
+import type { ExplorarSub } from "@/components/ExplorarView";
 import type { ProLockFeature } from "@/lib/planData";
 
 /** Pantalla de carga de las secciones con import dinámico (i18n-aware). */
@@ -66,7 +67,10 @@ const Wallet = dynamic(() => import("@/components/Wallet"), {
   ),
 });
 
-const MapView = dynamic(() => import("@/components/MapView"), {
+// Rediseño Explorar (2026-11-21): la pestaña ya no ES el mapa — es el
+// módulo «Rutas, segmentos y comunidad» (ExplorarView) y el mapa vive
+// como una subsección más dentro de él.
+const ExplorarView = dynamic(() => import("@/components/ExplorarView"), {
   ssr: false,
   loading: () => (
     <Loading
@@ -155,6 +159,11 @@ export default function Home() {
   const { me } = useMe();
   const { pro } = useProLicense();
   const [screen, setScreen] = useState<Screen>("ride");
+  // Subsección activa del módulo Explorar (rediseño 2026-11-21): el
+  // módulo es controlado desde aquí para que el velocímetro pueda
+  // abrir directo el mapa («Explorar mapa») y la pestaña recuerde
+  // dónde estaba el ciclista.
+  const [explorarSub, setExplorarSub] = useState<ExplorarSub>("rutas");
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [proLock, setProLock] = useState<ProLockFeature | null>(null);
   const [soundOn, setSoundOn] = useState(true);
@@ -374,7 +383,11 @@ export default function Home() {
             heading={heading}
             userPin={me?.user.selectedPin}
             nav={nav}
-            onOpenMap={() => go("explorar")}
+            onOpenMap={() => {
+              // Velocímetro → mapa grande: cae directo en «Explorar mapa».
+              setExplorarSub("mapa");
+              go("explorar");
+            }}
             onStart={startRide}
             onPause={ride.pause}
             onResume={ride.resume}
@@ -383,12 +396,15 @@ export default function Home() {
         )}
 
         {screen === "explorar" && (
-          <MapView
+          <ExplorarView
             {...mapProps}
             navLoading={nav.loading}
             navNote={nav.note}
             onSetDest={nav.setDestination}
             onProLocked={(f) => setProLock(f)}
+            sub={explorarSub}
+            onSub={setExplorarSub}
+            onGoHistorial={() => go("historial")}
           />
         )}
 

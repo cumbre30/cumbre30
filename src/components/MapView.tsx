@@ -96,7 +96,44 @@ type Props = {
   /** FREE tocó una función Pro → abrir modal contextual con el
    *  beneficio real (sin sacarlo del mapa ni bloquear nada básico). */
   onProLocked?: (feature: ProLockFeature) => void;
+  /** Rediseño Explorar (2026-11-21): orden puntual desde el módulo
+   *  (ExplorarView). `n` se incrementa por orden y MapView la aplica
+   *  una sola vez; el mapa sigue siendo el mismo componente con todas
+   *  sus herramientas — ahora responde también al módulo que lo
+   *  hospeda. */
+  orden?: OrdenExplorar;
 };
+
+/** Orden externa del módulo Explorar hacia el mapa embebido. */
+export type OrdenExplorar = {
+  /** Contador incremental: cada orden nueva lleva un n distinto. */
+  n: number;
+  tipo:
+    | "biblioteca" // abrir la biblioteca (tabBiblioteca elige la sección)
+    | "trazar-ruta" // activar el creador de trazados en modo ruta
+    | "trazar-segmento" // activar el creador de trazados en modo segmento
+    | "importar-gpx" // abrir el selector de archivos del editor
+    | "actividades" // abrir capas con «Mis trazados» (crear ruta desde traza)
+    | "ver-ruta" // dibujar la geometría protegida de una ruta pública
+    | "navegar-ruta" // proyectar una copia local (proyector «Navegar»)
+    | "encuadrar" // encuadrar una ruta local en el mapa
+    | "editar-borrador" // abrir el editor con un borrador guardado
+    | "publicar" // abrir la vista previa de publicación de un borrador
+    | "desde-traza" // crear un borrador desde un trazado guardado
+    | "ir-inicio"; // «cómo llegar»: destino = inicio aproximado
+  /** Sección de la biblioteca para el tipo "biblioteca". */
+  tabBiblioteca?: "mias" | "catalogo" | "favoritas" | "recientes";
+  /** Ruta pública para "ver-ruta" e "ir-inicio". */
+  rutaPublica?: RutaPublica;
+  /** Ruta local (borrador/migrada) para "navegar-ruta", "encuadrar",
+   *  "editar-borrador" y "publicar". */
+  rutaLocal?: { id: string; serverId?: string | null; nombre: string; coords: { lat: number; lon: number }[] };
+  /** Trazado guardado para "desde-traza". */
+  traza?: TrazaGuardada;
+};
+
+/** Props públicas de MapView (ExplorarView las reenvía tal cual). */
+export type MapViewProps = Props;
 
 // SIN ubicación automática (cliente, 2026-11-12): el mapa NO se envía
 // solo a la posición del ciclista - perseguía el dedo y no dejaba
@@ -370,6 +407,8 @@ function CapasPanel({
   onCrearRutaTraza,
   onEditarBorrador,
   onAbrirBiblioteca,
+  abierto,
+  onToggleAbierto,
 }: {
   vis: Record<string, boolean>;
   onVer: (id: string) => void;
@@ -387,13 +426,16 @@ function CapasPanel({
   onEditarBorrador?: (id: string) => void;
   /** Fase C: abrir la biblioteca de rutas. */
   onAbrirBiblioteca?: () => void;
+  /** Rediseño Explorar: abierto/onToggle ahora los controla MapView —
+   *  la orden «actividades» del módulo debe expandir «Mis trazados». */
+  abierto: boolean;
+  onToggleAbierto: () => void;
 }) {
-  const [abierto, setAbierto] = useState(true);
   useLang();
   return (
     <div className="rounded-xl border border-border bg-card/95 overflow-hidden shadow-md backdrop-blur" data-testid="capas-panel">
       <button
-        onClick={() => setAbierto((v) => !v)}
+        onClick={onToggleAbierto}
         aria-expanded={abierto}
         className="flex w-full items-center gap-2 px-3 py-2.5 text-left"
       >
@@ -1060,7 +1102,7 @@ function IncidentSheet({
   );
 }
 
-export default function MapView({ track, position, accuracyM, heading, userPin, route, dest, navLoading, navNote, onSetDest, onProLocked }: Props) {
+export default function MapView({ track, position, accuracyM, heading, userPin, route, dest, navLoading, navNote, onSetDest, onProLocked, orden }: Props) {
   const lang = useLang(); // re-render al cambiar el idioma
   // Mapa SIEMPRE claro (pedido del cliente): los tiles OSM se muestran
   // blancos tipo Google Maps aunque el resto de la app esté en tema
@@ -1096,6 +1138,78 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
   const trazas = useTrazas();
   const [verTrazas, setVerTrazas] = useState(true);
   const [trazaSel, setTrazaSel] = useState<string | null>(null);
+  // Rediseño Explorar: sección de la biblioteca pedida desde el módulo
+  // (Mis rutas → «mias», Guardados → «favoritas») y estado del panel
+  // de capas, ahora controlado por MapView para la orden «actividades».
+  const [bibliotecaTab, setBibliotecaTab] = useState<"mias" | "catalogo" | "favoritas" | "recientes">("mias");
+  const [capasAbierto, setCapasAbierto] = useState(true);
+  // Selector de GPX a nivel raíz: la orden «importar-gpx» llega aunque
+  // el panel del editor esté cerrado; el input vive oculto y reutiliza
+  // el importador real del editor (ctrl.importarGpx).
+  const gpxRef = useRef<HTMLInputElement | null>(null);
+  const ordenAplicadaRef = useRef(0);
+  useEffect(() => {
+    if (!orden || orden.n === ordenAplicadaRef.current) return;
+    ordenAplicadaRef.current = orden.n;
+    switch (orden.tipo) {
+      case "biblioteca":
+        setBibliotecaTab(orden.tabBiblioteca ?? "mias");
+        setBibliotecaAbierta(true);
+        break;
+      case "trazar-ruta":
+        trazar.empezar("ruta");
+        break;
+      case "trazar-segmento":
+        trazar.empezar("segmento");
+        break;
+      case "importar-gpx":
+        // El importador exige el editor activo: se abre la sesión y,
+        // en el mismo toque, el diálogo de archivo.
+        editor.empezar();
+        gpxRef.current?.click();
+        break;
+      case "actividades":
+        setCapasAbierto(true);
+        setVerTrazas(true);
+        break;
+      case "ver-ruta":
+        setRutaPublicaSel(orden.rutaPublica ?? null);
+        break;
+      case "navegar-ruta":
+        if (orden.rutaLocal) {
+          // Proyector (fase F): la COPIA LOCAL se proyecta completa —
+          // jamás sale del dispositivo (v2.1 §3/§8).
+          rutaProyectadaStore.set({
+            routeId: orden.rutaLocal.id,
+            serverId: orden.rutaLocal.serverId ?? null,
+            nombre: orden.rutaLocal.nombre,
+            coords: orden.rutaLocal.coords,
+            origen: "local",
+          });
+        }
+        break;
+      case "encuadrar":
+        if (orden.rutaLocal) {
+          setTrazaSel(orden.rutaLocal.id);
+          setFocus({ kind: "ruta", coords: orden.rutaLocal.coords });
+        }
+        break;
+      case "editar-borrador":
+        if (orden.rutaLocal) editor.editarBorrador(orden.rutaLocal.id);
+        break;
+      case "publicar":
+        if (orden.rutaLocal) setPublicarId(orden.rutaLocal.id);
+        break;
+      case "desde-traza":
+        if (orden.traza) editor.desdeActividad(orden.traza);
+        break;
+      case "ir-inicio":
+        if (orden.rutaPublica && orden.rutaPublica.inicioAproxLat != null && orden.rutaPublica.inicioAproxLon != null && onSetDest) {
+          handleSetDest({ name: orden.rutaPublica.nombre, position: { lat: orden.rutaPublica.inicioAproxLat, lon: orden.rutaPublica.inicioAproxLon } });
+        }
+        break;
+    }
+  }, [orden, trazar, editor, onSetDest]);
   // Fase F: ruta proyectada («Navegar» en fichas) — estado global del
   // dispositivo; el ride la vincula (routeRef) al cerrarse.
   const proyectada = useRutaProyectada();
@@ -1555,6 +1669,22 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
 
   return (
     <div className="relative min-h-0 w-full flex-1" data-testid="mapa-explorar">
+      {/* Rediseño Explorar: selector de GPX a nivel raíz — la orden
+          «importar-gpx» del módulo lo abre aunque el editor esté
+          cerrado; el archivo entra por el importador real del editor. */}
+      <input
+        ref={gpxRef}
+        type="file"
+        accept=".gpx"
+        className="hidden"
+        aria-hidden
+        tabIndex={-1}
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) editor.importarGpx(f);
+          e.target.value = "";
+        }}
+      />
       {/* Barra de direcciones flotante (arriba): sólo barra + mensaje Pro */}
       <div className="absolute inset-x-2 top-2 z-[700]">
         <SearchCard
@@ -1581,6 +1711,8 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
           botón de capas se superpone a la información"). */}
       <div className="absolute inset-x-2 bottom-[calc(104px+env(safe-area-inset-bottom))] z-[690]">
         <CapasPanel
+          abierto={capasAbierto}
+          onToggleAbierto={() => setCapasAbierto((v) => !v)}
           vis={capasVis}
           onVer={toggleCapa}
           onFocus={enfocar}
@@ -1596,7 +1728,13 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
           }}
           onCrearRutaTraza={(tz) => editor.desdeActividad(tz)}
           onEditarBorrador={(id) => editor.editarBorrador(id)}
-          onAbrirBiblioteca={() => setBibliotecaAbierta(true)}
+          onAbrirBiblioteca={() => {
+            // Entrada clásica (panel de capas): la biblioteca abre en
+            // «Mis rutas» aunque una orden del módulo la haya dejado
+            // apuntando a otra sección.
+            setBibliotecaTab("mias");
+            setBibliotecaAbierta(true);
+          }}
         />
       </div>
 
@@ -2195,8 +2333,13 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
           de MapView, FUERA del wrapper rotado (portal a body: el ancestro
           del mapa es un stacking context y el chrome pintaba encima). */}
       <BibliotecaRutas
+        // Remontaje por sección pedida (rediseño Explorar): el cambio
+        // de bibliotecaTab reinicia el overlay con el tab inicial —
+        // sin efectos de sincronización dentro del overlay.
+        key={bibliotecaTab}
         abierto={bibliotecaAbierta}
         onClose={() => setBibliotecaAbierta(false)}
+        tabInicial={bibliotecaTab}
         onEditar={(id) => editor.editarBorrador(id)}
         onEncuadrar={encuadrarRuta}
         onPublicar={(id) => setPublicarId(id)}
