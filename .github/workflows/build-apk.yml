@@ -39,6 +39,11 @@ jobs:
           DATABASE_URL=postgresql://postgres@127.0.0.1:5433/cumbre30 npx tsx tests/route-geo.test.ts
           DATABASE_URL=postgresql://postgres@127.0.0.1:5433/cumbre30 npx tsx tests/api-routes.test.ts
 
+      # Rediseño Explorar (v1.19.0): contrato i18n del módulo + bus de
+      # órdenes al mapa + cableado page/biblioteca (sin DB).
+      - name: Pruebas del módulo Explorar
+        run: npx tsx tests/explorar-view.test.ts
+
       - name: Restore debug keystore (SHA-1 estable para Google Sign-In)
         run: |
           mkdir -p ~/.android
