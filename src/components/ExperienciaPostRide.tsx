@@ -38,6 +38,11 @@ const CONDICIONES = [
   { id: "otro", clave: "com.cond.otro" },
 ] as const;
 
+/** Snapshot vacío ESTABLE para getServerSnapshot (patrón
+ *  BibliotecaRutas): una referencia nueva por llamada dispara el
+ *  aviso de useSyncExternalStore y una hidratación inestable. */
+const RUTAS_VACIAS: RutaV2[] = [];
+
 export default function ExperienciaPostRide({ resumen, onCerrar }: { resumen: RideSummary | null; onCerrar: () => void }) {
   useLang(); // re-render al cambiar el idioma
   const [seleccion, setSeleccion] = useState<string[]>([]);
@@ -55,7 +60,6 @@ export default function ExperienciaPostRide({ resumen, onCerrar }: { resumen: Ri
     marcarCompletada(rutasStore, routeRef, resumen.dateISO);
   }, [resumen, routeRef]);
 
-  const RUTAS_VACIAS: RutaV2[] = [];
   const rutas = useSyncExternalStore(rutasStore.subscribe, rutasStore.get, () => RUTAS_VACIAS);
   const marcadaId = useMemo(() => {
     if (!routeRef) return null;

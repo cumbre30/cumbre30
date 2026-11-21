@@ -23,6 +23,8 @@
 // rutasStore / useTrazas: snapshot estable para useSyncExternalStore).
 // ============================================================
 
+import { CONDICIONES_VALIDAS } from "./comunidad";
+
 /** Ruta proyectada sobre el mapa. coords nunca salen del dispositivo:
  *  origen "local" usa tu copia; origen "publica" decodifica la
  *  geometría protegida que el servidor ya entabló (v2.1 §3). */
@@ -179,11 +181,12 @@ export function armarExperienciaDeRide(
   if (!ride || typeof ride.id !== "string" || ride.id.length === 0) return null;
   const fecha = typeof ride.dateISO === "string" && /^\d{4}-\d{2}-\d{2}/.test(ride.dateISO) ? ride.dateISO.slice(0, 10) : null;
   if (!fecha) return null;
-  // Condiciones: dedup + filtro al enumerado cerrado §6 + tope 3.
-  const CONDICIONES = ["camino_ok", "tramo_cerrado", "barro", "mucho_trafico", "sombra", "agua", "otro"];
+  // Condiciones: dedup + filtro al enumerado cerrado §6 (fuente ÚNICA:
+  // CONDICIONES_VALIDAS en comunidad.ts, la misma que valida el
+  // servidor) + tope 3.
   const condiciones: string[] = [];
   for (const c of Array.isArray(seleccion?.condiciones) ? seleccion.condiciones : []) {
-    if (typeof c === "string" && CONDICIONES.includes(c) && !condiciones.includes(c) && condiciones.length < 3) {
+    if (typeof c === "string" && CONDICIONES_VALIDAS.includes(c) && !condiciones.includes(c) && condiciones.length < 3) {
       condiciones.push(c);
     }
   }
