@@ -23,9 +23,30 @@ const TRAZAS_KEY = "c30.trazas"; // SOLO lectura; jamás se escribe aquí.
 const MAX_RUTAS_V2 = 200;
 
 /** Una ruta v2: conserva 1:1 los campos de la traza migrada y
- *  añade los metadatos del módulo (opcionales hasta fase B). */
-export type RutaV2 = TrazaGuardada & {
+ *  añade los metadatos del módulo. Desde la fase B los borradores
+ *  llevan el modelo completo del editor (arquitectura v2.1 §5):
+ *  elevación nullable (jamás 0), dificultad editable con origen,
+ *  atributos recreativos, POIs y waypoints del trazado multi-punto. */
+export type RutaV2 = Omit<TrazaGuardada, "gainM"> & {
+  /** gainM nullable: null = sin datos de elevación (§5.1, jamás 0).
+   *  Las trazas migradas conservan su número; los borradores del
+   *  editor pueden tener null hasta que exista una fuente. */
+  gainM: number | null;
   descripcion?: string;
+  /** Ciclo de vida (tabla 3): undefined = traza migrada (sin módulo). */
+  status?: "borrador" | "publicada" | "oculta" | "retirada";
+  /** Modalidad del entorno (pavimento | mtb); alimenta la sugerencia técnica. */
+  modalidad?: "pavimento" | "mtb";
+  /** Origen de la elevación: gpx (importada), servicio (al publicar, fase D) o null. */
+  eleFuente?: "gpx" | "servicio" | null;
+  /** Dificultad física 1-5 y técnica 1-5 con su origen (§5.2). */
+  dificultadFisica?: 1 | 2 | 3 | 4 | 5;
+  dificultadTecnica?: 1 | 2 | 3 | 4 | 5;
+  dificultadOrigen?: "auto" | "creador";
+  /** Waypoints del trazado multi-punto (A→B→C…): puntos de decisión, no vértices. */
+  waypoints?: { lat: number; lon: number }[];
+  /** POIs sobre la geometría (tabla 4 RoutePoi, lado dispositivo). */
+  pois?: { id: string; orden: number; lat: number; lon: number; tipo: string; nombre: string; nota?: string }[];
   /** Atributos recreativos orientativos (máx 3, enumerado cerrado). */
   attrs?: string[];
   /** Registro de protección aplicada al publicar (v2.1 §3). */

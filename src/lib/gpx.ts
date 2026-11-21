@@ -121,3 +121,48 @@ export function parseGpxLine(xml: string): GpxLinea | null {
   }
   return { pts, distKm: distM / 1000, gainM: Math.round(gain) };
 }
+
+// ============================================================
+// Export GPX de una RUTA (fase B del módulo Rutas y Comunidad):
+// la geometría del borrador/propietario tal cual (es su propio
+// dato local). Sin elevación si no hay fuente — jamás ele 0
+// (§5.1) — y sin metadatos privados: solo nombre y descripción.
+// Compatible GPX 1.1 (trk/trkseg/trkpt) como buildRideGpxBlob.
+// ============================================================
+
+export type GpxRutaEntrada = {
+  nombre: string;
+  descripcion?: string;
+  coords: LatLng[];
+  /** Elevación por punto cuando existe; undefined = sin datos. */
+  eleM?: (number | null)[];
+};
+
+/** Devuelve el GPX 1.1 de la ruta como Blob. */
+export function buildRutaGpxBlob(r: GpxRutaEntrada): Blob {
+  const name = r.nombre || "Ruta Cumbre30";
+  const distM = r.coords.reduce((acc, c, i) => (i === 0 ? 0 : acc + haversineM(r.coords[i - 1], c)), 0);
+  const desc = (r.descripcion || "").slice(0, 2000) || `${(distM / 1000).toFixed(1)} km · Cumbre30`;
+  const pts = r.coords
+    .map((p, i) => {
+      const e = r.eleM?.[i];
+      const eleXml = e != null && Number.isFinite(e) ? `<ele>${e.toFixed(1)}</ele>` : "";
+      return `      <trkpt lat="${p.lat.toFixed(6)}" lon="${p.lon.toFixed(6)}">${eleXml}</trkpt>`;
+    })
+    .join("\n");
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="Cumbre30" xmlns="http://www.topografix.com/GPX/1/1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd">
+  <metadata>
+    <name>${xmlEscape(name)}</name>
+    <desc>${xmlEscape(desc)}</desc>
+  </metadata>
+  <trk>
+    <name>${xmlEscape(name)}</name>
+    <desc>${xmlEscape(desc)}</desc>
+    <trkseg>
+${pts}
+    </trkseg>
+  </trk>
+</gpx>`;
+  return new Blob([xml], { type: "application/gpx+xml" });
+}

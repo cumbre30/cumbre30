@@ -25,7 +25,7 @@ import {
   useMap,
   useMapEvents,
 } from "react-leaflet";
-import { Crosshair, AlertTriangle, Trash2, X, Search, MapPin, Flag, Crown, Lock, Layers, ChevronDown, Eye, Share2, Check, RefreshCw, Route, Milestone, Navigation } from "lucide-react";
+import { Crosshair, AlertTriangle, Trash2, X, Search, MapPin, Flag, Crown, Lock, Layers, ChevronDown, Eye, Share2, Check, RefreshCw, Route, Milestone, Navigation, PencilRuler } from "lucide-react";
 import { apiUrl } from "@/lib/backend";
 import { useCamaraRumbo } from "@/hooks/useCamaraRumbo";
 import { NAV_DESTINATIONS, PARK_POLYGON, RISK_ZONES, type LatLng } from "@/lib/park";
@@ -57,6 +57,8 @@ import { useProLicense } from "@/lib/proLicense";
 import { addMark, removeMark, useMarks, normalizeForSearch } from "@/lib/marks";
 import { useCreadorTrazas } from "@/hooks/useCreadorTrazas";
 import TrazadoOverlay from "@/components/TrazadoOverlay";
+import EditorRutaPanel, { ListaBorradores } from "@/components/EditorRutaPanel";
+import { useEditorRutas } from "@/hooks/useEditorRutas";
 import { useTrazas, removeTraza, type TrazaGuardada } from "@/lib/trazasUsuario";
 import { geocodeAddress, type AddrResult } from "@/lib/geocode";
 import type { CapaRuta } from "@/lib/mapLayers";
@@ -301,6 +303,8 @@ function CapasPanel({
   onEnfocarTraza,
   onNavegarTraza,
   onBorrarTraza,
+  onCrearRutaTraza,
+  onEditarBorrador,
 }: {
   vis: Record<string, boolean>;
   onVer: (id: string) => void;
@@ -312,6 +316,10 @@ function CapasPanel({
   onEnfocarTraza?: (tz: TrazaGuardada) => void;
   onNavegarTraza?: (tz: TrazaGuardada) => void;
   onBorrarTraza?: (tz: TrazaGuardada) => void;
+  /** Fase B: crear una ruta (borrador) desde esta actividad/traza. */
+  onCrearRutaTraza?: (tz: TrazaGuardada) => void;
+  /** Fase B: continuar la edición de un borrador guardado. */
+  onEditarBorrador?: (id: string) => void;
 }) {
   const [abierto, setAbierto] = useState(true);
   useLang();
@@ -633,6 +641,17 @@ function CapasPanel({
                         <Navigation className="h-3.5 w-3.5" />
                       </button>
                     )}
+                    {onCrearRutaTraza && (
+                      <button
+                        onClick={() => onCrearRutaTraza(tz)}
+                        aria-label={t("edi.crearDesdeAria", tz.nombre)}
+                        title={t("edi.crearDesdeTitle")}
+                        className="shrink-0 rounded border border-border px-1.5 py-1 text-muted-foreground hover:border-violet-500 hover:text-violet-600"
+                        data-testid={`crear-ruta-desde-${tz.id}`}
+                      >
+                        <PencilRuler className="h-3.5 w-3.5" />
+                      </button>
+                    )}
                     <button
                       onClick={() => onBorrarTraza?.(tz)}
                       aria-label={t("mapa.eliminar")}
@@ -647,6 +666,8 @@ function CapasPanel({
             )}
           </div>
         </details>
+        {/* Fase B: borradores de ruta del editor (c30.rutas-v2). */}
+        <ListaBorradores onEditar={onEditarBorrador} />
         </div>
       )}
     </div>
@@ -990,6 +1011,9 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
   // v1.13.15: creador de trazados - «Trazar ruta» y «Trazar segmento»
   // (el segmento, además de guardarse, corre en las estadísticas).
   const trazar = useCreadorTrazas();
+  // Fase B: editor de rutas del módulo (multi-waypoint, POIs,
+  // metadatos, borradores y export GPX) — no toca el creador de trazados.
+  const editor = useEditorRutas();
   const trazas = useTrazas();
   const [verTrazas, setVerTrazas] = useState(true);
   const [trazaSel, setTrazaSel] = useState<string | null>(null);
@@ -1488,6 +1512,8 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
             removeTraza(tz.id);
             if (trazaSel === tz.id) setTrazaSel(null);
           }}
+          onCrearRutaTraza={(tz) => editor.desdeActividad(tz)}
+          onEditarBorrador={(id) => editor.editarBorrador(id)}
         />
       </div>
 
@@ -1786,6 +1812,37 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
             />
           ))}
 
+          {/* Fase B - Editor de rutas: línea en construcción (violeta,
+              casing negro), waypoints como puntos y POIs como pins. */}
+          {editor.activo && editor.coords.length > 1 && (
+            <>
+              <Polyline
+                positions={editor.coords.map((p) => [p.lat, p.lon] as [number, number])}
+                pathOptions={{ color: "#05070a", weight: 9, opacity: 0.8 }}
+                interactive={false}
+              />
+              <Polyline
+                positions={editor.coords.map((p) => [p.lat, p.lon] as [number, number])}
+                pathOptions={{ color: "#8b5cf6", weight: 5.5, opacity: 0.98, lineCap: "round", lineJoin: "round" }}
+                interactive={false}
+              />
+            </>
+          )}
+          {editor.activo &&
+            editor.waypoints.map((p, i) => (
+              <CircleMarker
+                key={`wpick-${i}`}
+                center={[p.lat, p.lon]}
+                radius={6}
+                pathOptions={{ color: "#fafafa", weight: 2, fillColor: i === 0 ? "#22c55e" : "#8b5cf6", fillOpacity: 1 }}
+                interactive={false}
+              />
+            ))}
+          {editor.activo &&
+            editor.pois.map((p) => (
+              <Marker key={p.id} position={[p.lat, p.lon]} icon={L.divIcon({ className: "", html: `<div style="font-size:18px;line-height:1">📍</div>`, iconSize: [18, 18], iconAnchor: [9, 16] })} />
+            ))}
+
           {/* v1.13.15 - Mis trazados guardados: rutas (naranja sólido) y
               segmentos (cian punteado, los que corren en estadísticas). */}
           {verTrazas &&
@@ -1873,11 +1930,12 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
           <FocusHandler focus={focus} />
           <LocateHandler target={locateTarget} />
           <ClickHandler
-            enabled={reportMode || trazar.modo !== null}
+            enabled={reportMode || trazar.modo !== null || editor.activo}
             onPick={(p) => {
               // El creador de trazados tiene prioridad sobre el reporte:
               // su botón sigue activo, pero el tap alimenta el trazado.
               if (trazar.modo) trazar.pick(p);
+              else if (editor.activo) editor.pick(p);
               else setPending(p);
             }}
           />
@@ -1957,6 +2015,18 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
           >
             <Milestone className="h-5 w-5" />
           </button>
+          {/* Fase B: editor de rutas (multi-waypoint, POIs, borradores). */}
+          <button
+            onClick={() => editor.empezar()}
+            aria-label={t("edi.btnCrear")}
+            title={t("edi.btnCrear")}
+            data-testid="btn-crear-ruta"
+            className={`h-10 w-10 rounded-lg border flex items-center justify-center shadow-md ${
+              editor.activo ? "bg-violet-500 border-violet-300 text-zinc-950" : "bg-background/90 border-border text-foreground hover:border-violet-400"
+            }`}
+          >
+            <PencilRuler className="h-5 w-5" />
+          </button>
           {(rotado || modoCamara === "rumbo") && (
             <button
               onClick={() => setModoCamara(modoCamara === "rumbo" ? "norte" : "rumbo")}
@@ -2012,6 +2082,8 @@ export default function MapView({ track, position, accuracyM, heading, userPin, 
         {/* v1.13.15: overlay del creador de trazados (opciones, preview
             con minimapa, nombre y guardado). */}
         <TrazadoOverlay ctrl={trazar} position={position} />
+        {/* Fase B: panel del editor de rutas (metadatos, POIs, GPX). */}
+        <EditorRutaPanel ctrl={editor} />
       </div>
     </div>
   );

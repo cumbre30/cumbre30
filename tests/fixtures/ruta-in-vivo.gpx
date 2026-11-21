@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="test" xmlns="http://www.topografix.com/GPX/1/1">
+  <trk><name>San Cristobal In Vivo</name><trkseg>
+    <trkpt lat="-33.4290" lon="-70.6350"><ele>300</ele></trkpt>
+    <trkpt lat="-33.4300" lon="-70.6340"><ele>320</ele></trkpt>
+    <trkpt lat="-33.4312" lon="-70.6330"><ele>355</ele></trkpt>
+    <trkpt lat="-33.4325" lon="-70.6318"><ele>380</ele></trkpt>
+    <trkpt lat="-33.4338" lon="-70.6305"><ele>410</ele></trkpt>
+  </trkseg></trk>
+</gpx>

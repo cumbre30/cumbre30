@@ -581,7 +581,7 @@ const doc = new Document({
           "Producto: Cumbre30 · web cumbregeo.cl + APK Android (Vercel + Neon)",
           "Base auditada: v1.14.3 · code 74 — revisión final sobre la arquitectura v2 del 21-11-2026",
           "Documento: Fase 0 · v2.1 — cambios C1-C9, casos de prueba y confirmaciones",
-          "Estado: pendiente de aprobación — al aprobarse inicia la fase A",
+          "Estado: APROBADO — fase A implementada y aplicada en producción (2026-11-21); fase B en curso",
         ],
         footerLeft: "Cumbre30",
         footerRight: "Uso interno del proyecto",
