@@ -275,8 +275,13 @@ export async function cambiarPasswordServidor(actual: string, nueva: string): Pr
 
 // ---------- outbox ----------
 
-/** Encola una operación de sync y agenda el envío. Fire-and-forget. */
-export async function enqueueOp(kind: "ride" | "achievement" | "profile" | "rideMotorized", payload: Record<string, unknown>): Promise<void> {
+/** Encola una operación de sync y agenda el envío. Fire-and-forget.
+ *  Fase A: ampliado con "route.create" | "route.update" |
+ *  "route.delete" (módulo Rutas y Comunidad). */
+export async function enqueueOp(
+  kind: "ride" | "achievement" | "profile" | "rideMotorized" | "route.create" | "route.update" | "route.delete",
+  payload: Record<string, unknown>
+): Promise<void> {
   if (!isOfflineMode()) return; // la web sube directo con su cookie
   await outboxAdd(kind, payload);
   await refreshPending();
@@ -297,7 +302,7 @@ export function scheduleSync(delayMs = 2_500): void {
 
 // ---------- push (drain del outbox) ----------
 
-function endpointFor(kind: "ride" | "achievement" | "profile" | "rideMotorized"): { path: string; method: "POST" | "PUT" | "PATCH" } {
+function endpointFor(kind: "ride" | "achievement" | "profile" | "rideMotorized" | "route.create" | "route.update" | "route.delete", payload?: Record<string, unknown>): { path: string; method: "POST" | "PUT" | "PATCH" | "DELETE" } {
   switch (kind) {
     case "achievement":
       return { path: "/api/achievements", method: "POST" };
@@ -305,6 +310,13 @@ function endpointFor(kind: "ride" | "achievement" | "profile" | "rideMotorized")
       return { path: "/api/me", method: "PUT" };
     case "rideMotorized":
       return { path: "/api/rides", method: "PATCH" };
+    // Rutas y Comunidad (fase A): el id del servidor viaja en el payload.
+    case "route.create":
+      return { path: "/api/routes", method: "POST" };
+    case "route.update":
+      return { path: `/api/routes/${encodeURIComponent(String(payload?.id ?? ""))}`, method: "PATCH" };
+    case "route.delete":
+      return { path: `/api/routes/${encodeURIComponent(String(payload?.id ?? ""))}`, method: "DELETE" };
     case "ride":
     default:
       return { path: "/api/rides", method: "POST" };
@@ -319,21 +331,23 @@ async function drainOutbox(token: string, base: string): Promise<DrainResult> {
     if (!ops.length) return "ok";
     const op = ops[0];
     if (!op.id) return "error"; // op malformada: no se puede confirmar
-    const { path, method } = endpointFor(op.kind);
+    const { path, method } = endpointFor(op.kind, op.payload);
     let res: Response | null = null;
     try {
       res = await fetch(`${base}${path}`, {
         method,
         headers: AUTH_JSON(token),
-        body: JSON.stringify(op.payload),
+        body: method === "DELETE" ? undefined : JSON.stringify(op.payload),
         signal: AbortSignal.timeout(20_000),
       });
     } catch {
       return "offline"; // sin red: la op queda en la cola
     }
     if (res.status === 401) return "reauth"; // token vencido/inválido
-    // 404 en rideMotorized = ride que nunca subió: nada que corregir.
-    const permanent404 = res.status === 404 && op.kind === "rideMotorized";
+    // 404 permanente = el objetivo ya no existe en el servidor:
+    // nada que corregir (rideMotorized) o la ruta ya se borró
+    // (route.update / route.delete): la op se confirma igual.
+    const permanent404 = res.status === 404 && ["rideMotorized", "route.update", "route.delete"].includes(op.kind);
     if (res.ok || permanent404) {
       await outboxDelete(op.id);
       await refreshPending();

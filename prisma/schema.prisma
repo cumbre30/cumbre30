@@ -40,13 +40,26 @@ model User {
   bikeWeightKg      Float?
   createdAt         DateTime  @default(now())
 
-  sessions       Session[]
-  rides          Ride[]
-  incidents      Incident[]
-  achievements   Achievement[]
-  cyclistProfile CyclistProfile?
-  initiated      Friendship[]  @relation("friendInitiator")
-  received       Friendship[]  @relation("friendReceiver")
+  // Rol para la moderación de contenido comunitario (fase A del módulo
+  // Rutas y Comunidad, v2.1): user | moderador | admin. La transición
+  // inicial se protege con la clave admin timing-safe (lib/adminKey.ts);
+  // el rol autoriza /api/moderation (fase E).
+  role              String    @default("user")
+
+  sessions         Session[]
+  rides            Ride[]
+  incidents        Incident[]
+  achievements     Achievement[]
+  cyclistProfile   CyclistProfile?
+  initiated        Friendship[]  @relation("friendInitiator")
+  received         Friendship[]  @relation("friendReceiver")
+  // Módulo Rutas y Comunidad (fase A): rutas propias y participaciones.
+  routes           Route[]
+  routeComments    RouteComment[]
+  routeRatings     RouteRating[]
+  routeReports     RouteReport[]
+  routeExperiences RouteExperience[]
+  routeFavorites   RouteFavorite[]
 }
 
 model Session {
@@ -276,4 +289,236 @@ model RideShare {
   code      String   @unique
   rideId    String
   createdAt DateTime @default(now())
+}
+
+// ============================================================
+// Rutas y Comunidad (fase A, arquitectura v2.1 del 21-11-2026).
+// ROUTE-ACTIVITY-SEGMENT: la ruta pública vive SOLO con su geometría
+// protegida (el original queda en el dispositivo del creador);
+// los rides y experiencias anclan a RouteVersion para sobrevivir a
+// ediciones; las unicidades de participación son @@unique compuestos
+// (patrón Friendship/Achievement). Consultas geográficas por columnas
+// dedicadas (bbox + cells geohash, índice GIN) — nunca decodificando
+// la polyline (v2.1: cells incluye TODAS las celdas que toca la
+// geometría, con fallback geohash-4 si supera 64).
+// ============================================================
+
+model Route {
+  id            String   @id @default(cuid())
+  ownerId       String
+  owner         User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  nombre        String // ≤ 80, validado en API
+  descripcion   String? // ≤ 2000
+  modalidad     String // urbana | montana | mixta (abierto a futuras)
+  // Geometría pública protegida: polyline codificada (formato de
+  // entrega) + bbox exacto de la geometría (predicado de intersección
+  // corregido v2.1: minLat<=norte AND maxLat>=sur AND minLon<=este AND
+  // maxLon>=oeste) y celdas tocadas (hasSome en la consulta).
+  polyline      String
+  coordsPubVer  Int      @default(1)
+  minLat        Float
+  maxLat        Float
+  minLon        Float
+  maxLon        Float
+  cells         String[]
+  centerLat     Float
+  centerLon     Float
+  distKm        Float
+  // Extremos aproximados (redondeados a ~110 m) y registro de la
+  // protección aplicada por extremo (snap de deriva ≤30 m, solo
+  // recorte, sinSnap). El pin exacto del creador jamás se publica.
+  inicioAproxLat Float?
+  inicioAproxLon Float?
+  finAproxLat    Float?
+  finAproxLon    Float?
+  proteccion     Json?
+  // Elevación: null explícito cuando no hay datos — JAMÁS 0 ficticio.
+  gainM      Float?
+  lossM      Float?
+  minEle     Float?
+  maxEle     Float?
+  eleFuente  String? // gpx | servicio | null
+  // Dificultad física y técnica (1-5) separadas; la auto es sugerencia
+  // orientativa que el creador ajusta (nunca se sobrescribe).
+  dificultadFisica   Int
+  dificultadTecnica  Int
+  dificultadOrigen   String   @default("auto") // auto | creador
+  // Atributos recreativos orientativos (máx 3): escénica, familiar,
+  // recreativa, desafiante, principiantes, miradores, descanso.
+  attrs              String[]
+  // Vigencia informativa (v2.1 §7.4): los reportes NO mutan geometría.
+  ultimaRevisionAt   DateTime?
+  estadoVigencia     String   @default("vigente") // vigente | avisos | sin-revisar | retirada
+  // Ciclo de vida: borrador local nunca llega al servidor; el servidor
+  // conoce publicado | oculta (auto por reportes, reversible) | retirada.
+  status    String    @default("publicado")
+  removedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  versions     RouteVersion[]
+  pois         RoutePoi[]
+  photos       RoutePhoto[]
+  favorites    RouteFavorite[]
+  comments     RouteComment[]
+  ratings      RouteRating[]
+  reports      RouteReport[]
+  experiences  RouteExperience[]
+
+  @@index([cells], type: Gin)
+  @@index([status, createdAt])
+  @@index([ownerId, updatedAt])
+}
+
+// Historial de versiones publicadas: los rides y experiencias antiguos
+// siguen anclados a la versión que recorrieron (id + v).
+model RouteVersion {
+  id               String   @id @default(cuid())
+  routeId          String
+  route            Route    @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  v                Int
+  geometrySnapshot String // polyline protegida de esta versión
+  metaSnapshot     Json
+  eleSnapshot      Json?
+  publishedAt      DateTime @default(now())
+
+  @@unique([routeId, v])
+  @@index([routeId])
+}
+
+model RoutePoi {
+  id      String @id @default(cuid())
+  routeId String
+  route   Route  @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  orden   Int    @default(0)
+  lat     Float
+  lon     Float
+  tipo    String // agua | mirador | descanso | comida | desvio | otro
+  nombre  String
+  nota    String?
+
+  @@index([routeId, orden])
+}
+
+model RoutePhoto {
+  id            String   @id @default(cuid())
+  routeId       String
+  route         Route    @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  url           String
+  orden         Int      @default(0)
+  blobPathname  String? // para el borrado físico del blob (fase E)
+  hash          String?
+  createdAt     DateTime @default(now())
+
+  @@index([routeId, orden])
+}
+
+model RouteFavorite {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  routeId   String
+  route     Route    @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, routeId])
+}
+
+model RouteComment {
+  id        String    @id @default(cuid())
+  routeId   String
+  route     Route     @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  body      String // ≤ 1000
+  removedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([routeId, createdAt])
+}
+
+model RouteRating {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  routeId   String
+  route     Route    @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  valor     Int // 1-5
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, routeId])
+}
+
+// Denuncias tipificadas (v2.1 §7): cierre | peligro | error_geografico |
+// spam | contenido_inapropiado. Dedup por [ruta, reportante, motivo]
+// (@@unique). peso y clasificacion se registran AL CREAR (umbral
+// ponderado ≥2.0 contra denuncias coordinadas; lote sospechoso va
+// siempre a cola).
+model RouteReport {
+  id            String   @id @default(cuid())
+  routeId       String
+  route         Route    @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  reporterId    String
+  reporter      User     @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+  motivo        String
+  estado        String   @default("abierta") // abierta | bajo_revision | confirmada | descartada | apelada
+  peso          Float    @default(1)
+  clasificacion String   @default("normal") // normal | sospechoso
+  nota          String? // ≤ 500
+  createdAt     DateTime @default(now())
+
+  @@unique([routeId, reporterId, motivo])
+  @@index([estado, createdAt])
+}
+
+// Experiencias comunitarias (v2.1 §6): texto + fotos + fecha, ancladas
+// a la versión recorrida. JAMÁS escriben en Route. La pista GPS del
+// ride no se sube: solo los metadatos elegidos.
+model RouteExperience {
+  id               String    @id @default(cuid())
+  routeId          String
+  route            Route     @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  routeVersionId   String
+  userId           String
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rideId           String? // ride que la originó (si vino de uno)
+  fechaRealizacion String // ISO 8601 (fecha elegida o la del ride)
+  comentario       String? // ≤ 2000
+  condiciones      String[] // camino_ok | tramo_cerrado | barro | mucho_trafico | sombra | agua | otro (máx 3)
+  observacion      String? // ≤ 500
+  removedAt        DateTime?
+  createdAt        DateTime  @default(now())
+  photos           ExperiencePhoto[]
+
+  @@unique([userId, routeId, fechaRealizacion])
+  @@index([routeId, createdAt])
+}
+
+model ExperiencePhoto {
+  id            String   @id @default(cuid())
+  experienceId  String
+  experience    RouteExperience @relation(fields: [experienceId], references: [id], onDelete: Cascade)
+  url           String
+  blobPathname  String?
+  createdAt     DateTime @default(now())
+
+  @@index([experienceId])
+}
+
+// Historial inmutable de moderación y apelaciones (v2.1 §7.3): cada
+// acción registra actor, acción, objetivo, motivo y DETALLE (pesos y
+// umbral aplicados) como base trazable de la decisión.
+model ModerationLog {
+  id         String   @id @default(cuid())
+  actorId    String // sin FK: el log sobrevive al borrado de cuentas
+  accion     String // report | autohide | restore | retire | appeal | resolve_appeal | delete_photo | purge
+  targetType String // route | comment | experience | photo | report
+  targetId   String
+  motivo     String?
+  detalle    Json?
+  nota       String?
+  createdAt  DateTime @default(now())
+
+  @@index([targetType, targetId])
+  @@index([createdAt])
 }

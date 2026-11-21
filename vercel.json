@@ -1,6 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "prisma generate && next build",
+  "buildCommand": "prisma generate && bash scripts/migrate-deploy.sh && next build",
   "regions": ["gru1"],
   "rewrites": [
     {

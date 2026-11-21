@@ -18,7 +18,10 @@ const FALLBACK_KEY = "cumbre30-idb-fallback-v1";
 
 export type OutboxOp = {
   id?: number;
-  kind: "ride" | "achievement" | "profile" | "rideMotorized";
+  // "route.*" = módulo Rutas y Comunidad (fase A): publicar, editar y
+  // borrar una ruta propia; el payload lleva clientId (create) o el
+  // id del servidor (update/delete).
+  kind: "ride" | "achievement" | "profile" | "rideMotorized" | "route.create" | "route.update" | "route.delete";
   payload: Record<string, unknown>;
   createdAt: string;
   attempts: number;

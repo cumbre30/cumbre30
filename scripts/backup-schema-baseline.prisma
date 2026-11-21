@@ -1,0 +1,279 @@
+generator client {
+  provider      = "prisma-client-js"
+  // "native" = el motor del sistema donde se genera (dev/sandbox).
+  // "rhel-openssl-3.0.x" = el runtime de las funciones serverless de
+  // Vercel (Amazon Linux 2023). Sin este target el build pasa pero el
+  // login/rides/pagos fallan en producción con "Prisma Client could not
+  // locate the Query Engine for runtime rhel-openssl-3.0.x".
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// Cumbre30 — esquema de datos
+// ============================================================
+
+model User {
+  id                String    @id @default(cuid())
+  email             String    @unique
+  username          String    @unique
+  // Regla: el nombre de usuario se puede cambiar solo 1 vez cada 30 días.
+  // Las estadísticas quedan asociadas al correo/id, no al nombre.
+  usernameChangedAt DateTime?
+  passwordHash      String
+  selectedPin       String    @default("clasico")
+  // Datos de la bicicleta
+  bikeBrand         String?
+  bikeType          String?
+  bikeModel         String?
+  bikeSize          String?
+  bikeColor         String?
+  // Pesos del conjunto (v1.13.17): alimentan la estimación de watts en
+  // subidas >4% que hace el dispositivo al cerrar el ride. La copia en
+  // la cuenta es respaldo por si se cambia de teléfono; el dispositivo
+  // (localStorage) es la fuente de verdad una vez que el usuario guardó.
+  riderWeightKg     Float?
+  bikeWeightKg      Float?
+  createdAt         DateTime  @default(now())
+
+  sessions       Session[]
+  rides          Ride[]
+  incidents      Incident[]
+  achievements   Achievement[]
+  cyclistProfile CyclistProfile?
+  initiated      Friendship[]  @relation("friendInitiator")
+  received       Friendship[]  @relation("friendReceiver")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+// Restablecimiento de contraseña: código de 6 dígitos entregado por
+// soporte (WhatsApp/correo) tras verificar la identidad del ciclista.
+// Sin envío de email automático: no hay SMTP en este despliegue.
+model PasswordReset {
+  id        String   @id @default(cuid())
+  email     String
+  code      String
+  attempts  Int      @default(0)
+  used      Boolean  @default(false)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([email])
+}
+
+// Entrega de códigos Cumbre30 Pro (auto-gestión de la venta web).
+// paymentId único = idempotencia: un pago de Mercado Pago entrega
+// exactamente UN código aunque el webhook o el sync se repitan.
+model ProDelivery {
+  id        String   @id @default(cuid())
+  paymentId String   @unique
+  email     String
+  code      String
+  amount    Int
+  via       String // webhook | sync | manual
+  createdAt DateTime @default(now())
+
+  @@index([email])
+}
+
+model Ride {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dateISO      DateTime
+  source       String // "gps" | "sim"
+  distanceKm   Float
+  maxKmh       Float
+  maxInParkKmh Float?
+  // Kilómetros recorridos DENTRO de la geocerca del parque (null en
+  // rides antiguos o que nunca entraron). Los desafíos del parque usan
+  // este valor, no la distancia total del ride.
+  inParkKm     Float?
+  // True si el ride se registró en vehículo motorizado (sospecha del
+  // motor confirmada por el usuario): no cuenta para desafíos ni stats.
+  motorized    Boolean  @default(false)
+  // id del ride en el dispositivo (summary.id) para poder corregir el
+  // flag motorizado desde el cliente (PATCH /api/rides).
+  clientId     String?
+  avgKmh       Float
+  elapsedSec   Float
+  gainM        Float
+  overLimitSec Float
+  createdAt    DateTime @default(now())
+
+  // Métricas derivadas del track (Perfil Ciclista, v1.13.16): las
+  // calcula el DISPOSITIVO al cerrar el ride (el track crudo nunca
+  // sale del teléfono) y el servidor las guarda 1:1 con el ride.
+  metric RideMetric?
+
+  @@index([userId, dateISO])
+}
+
+// ---------- Perfil Ciclista (fase 1, v1.13.16) ----------
+// Métricas derivadas por ride. Idempotente por rideId (1:1). Un ride
+// sin metric (anteriores a v1.13.16) sigue contando para los ejes que
+// no la necesitan (Resistencia, Constancia y la densidad de desnivel
+// de Escalada, vía Ride.gainM).
+model RideMetric {
+  rideId          String   @id
+  ride            Ride     @relation(fields: [rideId], references: [id], onDelete: Cascade)
+  movingSec       Float
+  // Velocidad: P95 de tramos en llano (|pendiente| ≤ 1.5%) y media
+  // ponderada por km en llano. Denominadores del perfil: 52 / 36 km/h.
+  peak15sKmh      Float?
+  flatAvgKmh      Float?
+  flatKm          Float?
+  // Escalada: metros ganados y segundos en movimiento con pendiente >4%
+  // (grupos ≥3 m con histéresis) → VAM = m·3600/s si hubo ≥60 s subiendo.
+  climbGainM      Float?
+  climbSec        Float?
+  vamMh           Float?
+  // Paradas: grupos a <2.5 km/h por más de 15 s (base del arquetipo URBAN).
+  stopCount       Int?
+  // Antitrampa: tiempo sobre 55 km/h, tramo continuo más largo sobre ese
+  // umbral y media en pendientes >6% (>28 km/h = vehículo → ride inválido).
+  secOver55       Float?
+  over55StreakSec Float?
+  climb6AvgKmh    Float?
+  // v1.13.17: watts estimados en subida >4% (modelo gravedad+rodamiento
+  // +aire con los pesos del conjunto, calculado en el dispositivo) y km
+  // off-road/neto del eje Exploración (superficie según la red de
+  // navegación: path/track = off-road; null = sin medición).
+  estWattsClimb   Float?
+  offRoadKm       Float?
+  netKm           Float?
+  // Marcado false por el motor de perfil si la física no calza con una bici.
+  isValid         Boolean  @default(true)
+  createdAt       DateTime @default(now())
+}
+
+// Perfil materializado del ciclista (lectura rápida para la UI): 6 ejes
+// 0–100 + arquetipo. Se recalcula al guardar cada ride (y al corregir el
+// flag motorizado) con ventana móvil de 90 días y decaimiento exponencial
+// (vida media ~45 días). Archetypes: CALIBRATING, URBAN, CLIMBER,
+// ENDURANCE, TIME_TRIALIST, SPRINTER, EXPLORER, ALL_ROUNDER.
+model CyclistProfile {
+  userId      String   @id
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  archetype   String
+  calibrating Boolean  @default(true)
+  climbing    Float?
+  endurance   Float?
+  speed       Float?
+  power       Float?
+  consistency Float?
+  // v1.13.17: km off-road (Exploración, superficie path/track de la red).
+  explorer    Float?
+  validRides  Int      @default(0)
+  updatedAt   DateTime @updatedAt
+}
+
+// Remote Config de los techos del perfil (v1.13.17): una fila por clave
+// (techoMkm, techoVam, techoEndu, techoLlano, techoPico, techoOffroad).
+// Editable sin release vía PUT /api/profile-config con x-admin-key; el
+// motor mezcla con los defaults de lib/profileConfig al recalcular.
+model ProfileConfig {
+  key       String   @id
+  value     Float
+  updatedAt DateTime @updatedAt
+}
+
+model Incident {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String // pozo | vidrio | perro | cierre | arbol | peaton | otro
+  lat       Float
+  lon       Float
+  note      String?
+  createdAt DateTime @default(now())
+  active    Boolean  @default(true)
+  // Moderación comunitaria (Ola 1): la comunidad confirma frescura o
+  // cierra el reporte; sin confirmaciones en 30 días el feed lo expira.
+  confirmCount  Int       @default(0)
+  resolvedCount Int       @default(0)
+  lastConfirmAt DateTime?
+  // v1.13.14: denuncias de abuso (política UGC de Play); 2 cierran el reporte.
+  reportCount   Int       @default(0)
+
+  @@index([lat, lon])
+}
+
+model Friendship {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation("friendInitiator", fields: [userId], references: [id], onDelete: Cascade)
+  friendId  String
+  friend    User     @relation("friendReceiver", fields: [friendId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, friendId])
+}
+
+model Achievement {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  code       String
+  unlockedAt DateTime @default(now())
+
+  @@unique([userId, code])
+}
+
+// ============================================================
+// Registro en línea de constancias de trayecto (2026-11-14).
+// La app registra cada constancia emitida (POST /api/constancias)
+// y la página pública /verificar consulta por el hash SHA-256 para
+// confirmar que el documento fue emitido por la app ese día.
+// id = hash SHA-256 del contenido (64 hex): idempotente, una misma
+// constancia re-emitida no duplica filas.
+// ============================================================
+model Constancia {
+  id        String   @id // hash SHA-256 del payload (hex 64)
+  rideId    String
+  payload   Json
+  createdAt DateTime @default(now())
+
+  @@index([rideId])
+}
+
+// ============================================================
+// Suscripciones Web Push (Ola 2): avisos del parque en la web
+// (luces, cierres, incidentes). Una fila por endpoint del
+// navegador; userId opcional (cuenta con sesión) para avisos
+// personales (envío de prueba). El endpoint caducado se elimina
+// al enviar (404/410 del servicio de push).
+// ============================================================
+model PushSub {
+  id        String   @id @default(cuid())
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  userId    String?
+  createdAt DateTime @default(now())
+}
+
+// ============================================================
+// Enlaces públicos de ride (Ola 3): código corto compartible
+// (cumbregeo.cl/compartir?c=CÓDIGO) que muestra las estadísticas
+// del viaje. Solo stats: sin GPS del trazado (privacidad) y solo
+// con opt-in del dueño (crea el enlace desde Historial).
+// ============================================================
+model RideShare {
+  id        String   @id @default(cuid())
+  code      String   @unique
+  rideId    String
+  createdAt DateTime @default(now())
+}

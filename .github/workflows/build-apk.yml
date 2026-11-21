@@ -26,6 +26,19 @@ jobs:
       - name: Install deps
         run: npm install
 
+      # CT-M3 (v2.1 §9.1): las migraciones de las fases aditivas del
+      # módulo Rutas y Comunidad no pueden contener DROP TABLE/COLUMN.
+      - name: Chequeo migraciones aditivas
+        run: node scripts/check-migrations-additive.js
+
+      - name: Pruebas de la fase A (store v2, geo, API)
+        run: |
+          bash scripts/setup-postgres-dev.sh
+          DATABASE_URL=postgresql://postgres@127.0.0.1:5433/cumbre30 npx prisma migrate deploy
+          DATABASE_URL=postgresql://postgres@127.0.0.1:5433/cumbre30 npx tsx tests/rutas-store.test.ts
+          DATABASE_URL=postgresql://postgres@127.0.0.1:5433/cumbre30 npx tsx tests/route-geo.test.ts
+          DATABASE_URL=postgresql://postgres@127.0.0.1:5433/cumbre30 npx tsx tests/api-routes.test.ts
+
       - name: Restore debug keystore (SHA-1 estable para Google Sign-In)
         run: |
           mkdir -p ~/.android
