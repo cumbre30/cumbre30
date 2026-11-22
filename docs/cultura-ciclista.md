@@ -192,6 +192,17 @@ tras la migración de idioma (actualiza reseñas es→en e `idioma`) y salta en
 builds futuros. La ingesta
 es opcional y idempotente, con claves solo en variables de entorno del backend.
 
+Los lotes ES/PT (borradores) NO se sembraron en el build: una vez READY el
+despliegue, se sincronizan a mano contra producción. Desde un entorno sin
+acceso directo a Neon (el sandbox no resuelve `*.neon.tech` para Prisma),
+`scripts/sincroniza-borradores-neon.mjs` copia los 14 borradores desde la base
+local a producción fila a fila con `pg` (IPv4 + `options=endpoint`, la misma
+técnica de `scripts/sql-neon.js`), replicando la lógica de upsert de las
+semillas (el update no toca `publicado`, `destacado` ni `proveedor`). La
+verificación end-to-end de la API con sesión real usa
+`scripts/verifica-api-produccion.mjs` (crea un usuario desechable, llama a
+`/api/cultura/recursos` con cada filtro de idioma y borra lo creado).
+
 ## 8. Aceptación del brief — evidencias
 
 | Requisito | Evidencia |
