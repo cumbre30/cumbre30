@@ -20,8 +20,11 @@
 // reescribió al inglés (v4): la reseña va en el idioma de la
 // edición, sin excepciones.
 //
-// Enlaces externos de búsqueda legítima (Open Library / IMDb /
-// TMDB / sitios oficiales): la app nunca simula reproducción.
+// Enlaces externos legítimos (buscar/comprar/acceder): la app nunca
+// simula reproducción. Política v4.2: descubrir no es conseguir
+// gratis — los libros enlazan a Amazon (búsqueda por título+autor,
+// catálogo global + Kindle para las ediciones 'en' del catálogo);
+// IMDb/TMDB cubren películas y documentales.
 // Idempotente: re-corre no duplica (match por titulo+tipo).
 //   DATABASE_URL=postgresql://postgres@127.0.0.1:5433/cumbre30 \
 //   bun scripts/semilla-cultura.mjs [--forzar]
@@ -31,7 +34,10 @@ import { PrismaClient } from "@prisma/client";
 const db = new PrismaClient({ datasources: { db: { url: process.env.DATABASE_URL } } });
 
 const enc = (s) => encodeURIComponent(s);
-const ol = (t, a) => `https://openlibrary.org/search?q=${enc(`${t} ${a}`)}`;
+// Amazon: búsqueda estable por título+autor (formato universal /s?k=,
+// funciona en amazon.com y amazon.com.br); sobrevive a cambios de
+// stock y edición, y ofrece opciones de compra (físico y Kindle).
+const am = (t, a) => `https://www.amazon.com/s?k=${enc(`${t} ${a}`)}`;
 const imdb = (t) => `https://www.imdb.com/find/?q=${enc(t)}&s=tt`;
 const tmdbTv = (t) => `https://www.themoviedb.org/search/tv?query=${enc(t)}`;
 
@@ -191,7 +197,7 @@ async function main() {
   let actualizados = 0;
   for (const r of CATALOGO) {
     const url = r.tipo === "libro"
-      ? ol(r.titulo, r.autor.split(" y ")[0].split(" (")[0])
+      ? am(r.titulo, r.autor.split(" y ")[0].split(" (")[0])
       : r.titulo.includes("Unchained")
         ? tmdbTv("Tour de France Unchained")
         : imdb(r.titulo);

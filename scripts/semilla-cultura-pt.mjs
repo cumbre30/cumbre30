@@ -10,6 +10,10 @@
 //     destacado (el estado editorial es del equipo, no de la
 //     semilla); solo refresca el resto de campos.
 // Idempotente: match por titulo+tipo.
+// Política de enlaces (v4.2): descubrir no es conseguir gratis. Los
+// libros en portugués enlazan a Amazon Brasil (búsqueda por
+// título+autor, catálogo local en BRL); la búsqueda sobrevive a
+// cambios de stock y edición.
 //   DATABASE_URL=postgresql://postgres@127.0.0.1:5433/cumbre30 \
 //   bun scripts/semilla-cultura-pt.mjs
 // ============================================================
@@ -18,7 +22,7 @@ import { PrismaClient } from "@prisma/client";
 const db = new PrismaClient({ datasources: { db: { url: process.env.DATABASE_URL } } });
 
 const enc = (s) => encodeURIComponent(s);
-const ol = (t, a) => `https://openlibrary.org/search?q=${enc(`${t} ${a}`)}`;
+const amBr = (t, a) => `https://www.amazon.com.br/s?k=${enc(`${t} ${a}`)}`;
 
 const LOTE_PT = [
   { titulo: "Pedalando na modernidade", tipo: "libro", categorias: ["historia", "personas"], anio: "2008", autor: "André Maia Schetino", pais: "Brasil", extra: "História do ciclismo · São Paulo",
@@ -44,7 +48,7 @@ async function main() {
       autor: r.autor,
       pais: r.pais ?? null,
       extra: r.extra,
-      urlExterna: ol(r.titulo, r.autor.split(" ")[0]),
+      urlExterna: amBr(r.titulo, r.autor.split(" ")[0]),
       resena: r.resena,
       proveedor: "editorial",
       // destacado NO se toca; publicado solo en CREATE (borrador).

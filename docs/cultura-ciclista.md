@@ -206,3 +206,25 @@ es opcional y idempotente, con claves solo en variables de entorno del backend.
 | 8. Android | Viewport 412×915 en todos los in-vivo; scroll táctil nativo; APK cubierto por `noBackend`/Bearer. |
 | 9. Estados carga/error/vacío | `cu-cargando`, `cu-error` + reintentar, `cu.sinResultados`, `cu.favoritosVacio`, `cu.noBackend`. |
 | 10. Sin regresiones | 13 suites previas OK (explorar-view 61/61, comunidad, fase-f, pro-muro…), tsc en baseline, build OK. |
+
+## 9. Política de enlaces externos (v4.2)
+
+Principio: el módulo ayuda a DESCUBRIR el ciclismo y sus especialidades, pero
+descubrir no es conseguir gratis — cada obra es de pago (libro físico/Kindle,
+cine o streaming) y el enlace de la ficha («Consultar ↗») debe llevar a un
+destino legítimo de búsqueda/compra, nunca a contenido pirata ni a simulación
+de reproducción dentro de la app.
+
+| Segmento | Destino de `urlExterna` | Motivo |
+| --- | --- | --- |
+| Libros `es` | Buscalibre Chile — `https://www.buscalibre.cl/libros/search?q=<titulo+autor>` | Catálogo local en español verificado (p. ej. *Elogio de la bicicleta* en 2 ediciones), precios en CLP y envío nacional; la búsqueda por título+autor sobrevive a cambios de stock y edición. Formato confirmado vía robots.txt propio de Buscalibre y URLs indexadas. |
+| Libros `en` | Amazon — `https://www.amazon.com/s?k=<titulo+autor>` | Catálogo global + Kindle para las ediciones de referencia en inglés (todo el catálogo vigente es `en`); la búsqueda reemplaza a Open Library (préstamo gratuito, contradice el principio). |
+| Libros `pt` | Amazon Brasil — `https://www.amazon.com.br/s?k=<titulo+autor>` | Catálogo local en BRL para las ediciones pt-BR del lote. |
+| Películas / documentales | IMDb find / TMDB search (sin cambios) | Páginas de acceso/buscar donde ver; una mejora futura podría apuntar a JustWatch por país. |
+
+Implementación: helpers `bc()` / `am()` / `amBr()` en las semillas. El catálogo
+publicado (64 obras) se actualiza solo con el guard del build de producción
+(`migrate-deploy.sh` → `semilla-cultura.mjs`, que re-corre UNA vez tras la
+migración de idioma); los lotes ES/PT (borradores) se siembran a mano contra
+`DATABASE_URL` de producción después del despliegue. Open Library sigue como
+fuente de METADATOS y portadas (ingesta), no como destino del enlace.

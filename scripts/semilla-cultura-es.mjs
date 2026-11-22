@@ -9,6 +9,10 @@
 //   · Si el recurso ya existe, la re-corre NO toca publicado ni
 //     destacado (el estado editorial es del equipo, no de la
 //     semilla); solo refresca el resto de campos.
+// Política de enlaces (v4.2): descubrir no es conseguir gratis. Los
+// libros en español enlazan a Buscalibre Chile (libros/search?q=,
+// catálogo local verificado, precios en CLP); la búsqueda por
+// título+autor sobrevive a cambios de stock y edición.
 // Idempotente: match por titulo+tipo.
 //   DATABASE_URL=postgresql://postgres@127.0.0.1:5433/cumbre30 \
 //   bun scripts/semilla-cultura-es.mjs
@@ -18,7 +22,10 @@ import { PrismaClient } from "@prisma/client";
 const db = new PrismaClient({ datasources: { db: { url: process.env.DATABASE_URL } } });
 
 const enc = (s) => encodeURIComponent(s);
-const ol = (t, a) => `https://openlibrary.org/search?q=${enc(`${t} ${a}`)}`;
+// Buscalibre Chile: búsqueda estable por título+autor (formato
+// verificado en el índice: /libros/search?q=…; robots.txt del propio
+// Buscalibre documenta la ruta).
+const bc = (t, a) => `https://www.buscalibre.cl/libros/search?q=${enc(`${t} ${a}`)}`;
 const imdb = (t) => `https://www.imdb.com/find/?q=${enc(t)}&s=tt`;
 
 const LOTE_ES = [
@@ -48,7 +55,7 @@ async function main() {
   let creados = 0;
   let actualizados = 0;
   for (const r of LOTE_ES) {
-    const url = r.tipo === "libro" ? ol(r.titulo, r.autor.split(" (")[0]) : imdb(r.titulo);
+    const url = r.tipo === "libro" ? bc(r.titulo, r.autor.split(" (")[0]) : imdb(r.titulo);
     const data = {
       titulo: r.titulo,
       tipo: r.tipo,
