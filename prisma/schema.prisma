@@ -535,11 +535,19 @@ model ModerationLog {
 model CulturaRecurso {
   id         String   @id @default(cuid())
   titulo     String
-  // Reseña editorial propia (original de Cumbre30, es) — nunca texto
-  // copiado de proveedores.
+  // Reseña editorial propia (original de Cumbre30, escrita en el
+  // idioma de la edición del recurso) — nunca texto copiado de
+  // proveedores.
   resena     String
   // Tipo: libro | pelicula | documental
   tipo       String
+  // Idioma de la EDICIÓN/VERSIÓN DE REFERENCIA del recurso (ISO
+  // 639-1: en | es | pt) — NO el idioma original: las obras con
+  // edición o versión en inglés (traducción publicada, doblaje o
+  // subtítulos) se clasifican en y su idioma original se anota en
+  // `extra`. Migración aditiva (CT-M3) con default 'en', que
+  // clasifica correctamente todo el catálogo vigente.
+  idioma     String   @default("en")
   // Categorías (una o varias): mtb | aventura | historia | ruta |
   // entrenamiento | personas. Etiquetas se resuelven en i18n (cu.cat*).
   categorias String[]

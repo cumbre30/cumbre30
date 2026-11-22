@@ -25,6 +25,9 @@ export async function OPTIONS(req: Request) {
  *     (el recurso pertenece a la categoría si está en su array)
  *   · q:    búsqueda insensible por título y autor
  *   · destacado=1: solo destacados (fila superior del módulo)
+ *   · idioma: es | en | pt — idioma de la EDICIÓN/VERSIÓN DE
+ *     REFERENCIA del recurso (campo idioma; no el idioma original).
+ *     Valores fuera de la lista se ignoran (patrón de los filtros).
  *
  * La respuesta incluye `favoritos` (ids del usuario con sesión) para
  * que el cliente marque los corazones sin una segunda llamada.
@@ -39,11 +42,13 @@ export async function GET(req: Request) {
   const cat = u.searchParams.get("cat");
   const q = (u.searchParams.get("q") ?? "").trim();
   const destacado = u.searchParams.get("destacado");
+  const idioma = u.searchParams.get("idioma");
 
   const where: Record<string, unknown> = { publicado: true };
   if (tipo && ["libro", "pelicula", "documental"].includes(tipo)) where.tipo = tipo;
   if (cat && ["mtb", "aventura", "historia", "ruta", "entrenamiento", "personas"].includes(cat)) where.categorias = { has: cat };
   if (destacado === "1") where.destacado = true;
+  if (idioma && ["es", "en", "pt"].includes(idioma)) where.idioma = idioma;
   if (q) {
     where.OR = [
       { titulo: { contains: q, mode: "insensitive" } },

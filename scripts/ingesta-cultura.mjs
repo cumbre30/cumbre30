@@ -18,6 +18,10 @@
 //      condiciones adicionales → no se usan sus imágenes por defecto.
 //   4. Un proveedor caído NO detiene la ingesta ni afecta al módulo:
 //      el catálogo vive en la base propia (cultura_recursos).
+//   5. Restricción por idioma (v4) según el campo `idioma` del
+//      recurso (edición/versión de referencia): es → language:spa /
+//      langRestrict=es / es-CL · pt → language:por / langRestrict=pt /
+//      pt-BR · en → sin restricción (corpus nativo).
 //
 // Uso (dry-run por defecto):
 //   DATABASE_URL=... bun scripts/ingesta-cultura.mjs
@@ -35,11 +39,14 @@ const PAUSA_MS = 350; // cortesía con los proveedores (rate limit propio)
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 const sinAnio = (a) => a === null || a === undefined || a === "";
+// Restricción de idioma del proveedor según la edición de referencia.
+const qIdiomaOL = (idioma) => (idioma === "es" ? " language:spa" : idioma === "pt" ? " language:por" : "");
+const langTMDB = (idioma) => (idioma === "es" ? "es-CL" : idioma === "pt" ? "pt-BR" : "en-US");
 let cambios = 0;
 let fallos = 0;
 
 async function openLibrary(rec) {
-  const q = encodeURIComponent(`${rec.titulo} ${rec.autor}`);
+  const q = encodeURIComponent(`${rec.titulo} ${rec.autor}${qIdiomaOL(rec.idioma)}`);
   const r = await fetch(`https://openlibrary.org/search.json?q=${q}&limit=3`, {
     headers: { "User-Agent": "Cumbre30/1.21 (catalogo cultura ciclista)" },
   });
@@ -79,7 +86,7 @@ async function tmdb(rec) {
   const esSerie = (rec.extra ?? "").toLowerCase().includes("serie");
   const path = esSerie ? "search/tv" : "search/movie";
   const r = await fetch(
-    `https://api.themoviedb.org/3/${path}?query=${encodeURIComponent(rec.titulo)}&language=es`,
+    `https://api.themoviedb.org/3/${path}?query=${encodeURIComponent(rec.titulo)}&language=${langTMDB(rec.idioma)}`,
     { headers: { Authorization: `Bearer ${TMDB_KEY}` } }, // token v4 (read access)
   );
   if (!r.ok) throw new Error(`tmdb HTTP ${r.status}`);

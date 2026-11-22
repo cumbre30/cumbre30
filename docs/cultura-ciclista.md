@@ -18,9 +18,27 @@ Conforme a la recomendación del cliente:
    editorial original de Cumbre30 y clasificación por categorías. Solo se
    incluyen títulos/autores/años verificables; cuando el año no es seguro se
    deja `null` (nada inventado).
-2. La ingesta (`scripts/ingesta-cultura.mjs`) ENRIQUECE metadatos desde los
+2. **Idioma de la edición de referencia (v4)**: el campo `idioma` (ISO
+   639-1: en|es|pt, migración aditiva `20261122200000_cultura_idioma`,
+   default `en`) clasifica la EDICIÓN/VERSIÓN DE REFERENCIA, no el idioma
+   original: las 11 obras no anglosajonas tienen edición/versión en inglés
+   verificada con fuentes (The Rider: trad. Sam Garrett, Bloomsbury ·
+   Ladri di biciclette: Criterion · Le gamin au vélo: Criterion ·
+   Triplettes: Sony Pictures Classics · Beijing Bicycle: DVD/Blu-ray con
+   subtítulos · Wadjda: Sony Pictures Classics · A Sunday in Hell:
+   narración inglesa de David Saunders · Wonderful Losers: subtítulos ·
+   Unchained: audio inglés en Netflix; Stars and Water Carriers y The
+   Impossible Hour circulan en versión inglesa internacional, URL por
+   confirmar). El idioma original va anotado en `extra` y la reseña se
+   reescribió al inglés en la misma versión (regla v4: la reseña va en el
+   idioma de la edición, sin excepciones). Lotes ES y PT (`semilla-cultura-es.mjs`,
+   `semilla-cultura-pt.mjs`): fichas reales como BORRADORES con reseña
+   nata en su idioma; el equipo publica por oleadas.
+3. La ingesta (`scripts/ingesta-cultura.mjs`) ENRIQUECE metadatos desde los
    proveedores y solo completa campos vacíos; jamás sobreescribe el trabajo
-   editorial (reseña, autor, categorías, enlace).
+   editorial (reseña, autor, categorías, enlace). Restricción por idioma
+   según `idioma`: es → `language:spa`/`es-CL`, pt → `language:por`/`pt-BR`,
+   en → corpus nativo.
 3. Los carruseles se pintan SOLO desde la base propia: si Google Books, TMDB
    u Open Library están caídos, el módulo funciona exactamente igual. No hay
    llamada a proveedores en línea de petición.
@@ -44,14 +62,15 @@ Conforme a la recomendación del cliente:
 sitios oficiales. La app **no simula** reproducción ni compra: el botón de la
 ficha abre la fuente en pestaña nueva (`target="_blank" rel="noopener noreferrer"`).
 
-## 2. Modelo de datos (migración `20261122011856_cultura_ciclista`)
+## 2. Modelo de datos (migraciones `20261122011856_cultura_ciclista` y `20261122200000_cultura_idioma`)
 
 ```prisma
 model CulturaRecurso {          // tabla cultura_recursos
   id         String   @id @default(cuid())
   titulo     String
-  resena     String              // reseña editorial propia (es)
+  resena     String              // reseña editorial propia, en el idioma de la edición (v4)
   tipo       String              // libro | pelicula | documental
+  idioma     String   @default("en")  // edición/versión de referencia: en | es | pt (no el original)
   categorias String[]            // mtb | aventura | historia | ruta | entrenamiento | personas
   portadaUrl String?             // Open Library o null → portada procedural
   anio       String?             // admite "1978", "Serie", "Publicación"
@@ -79,7 +98,7 @@ model CulturaFavorito {         // tabla cultura_favoritos
 
 | Endpoint | Descripción |
 | --- | --- |
-| `GET /api/cultura/recursos` | Catálogo publicado. Filtros combinables: `tipo`, `cat`, `q` (título/autor, insensible), `destacado=1`. Devuelve `{ recursos, favoritos: id[], total }` — los ids favoritos del usuario vienen en la misma respuesta. |
+| `GET /api/cultura/recursos` | Catálogo publicado. Filtros combinables: `tipo`, `cat`, `q` (título/autor, insensible), `destacado=1`, `idioma` (es|en|pt — edición de referencia; valores inválidos se ignoran). Devuelve `{ recursos, favoritos: id[], total }` — los ids favoritos del usuario vienen en la misma respuesta. |
 | `GET /api/cultura/favoritos` | Favoritos del usuario con sesión, con recurso completo. |
 | `POST /api/cultura/favoritos` | `{ recursoId }` → agrega (idempotente, `upsert`). Rate limit 60/min. |
 | `DELETE /api/cultura/favoritos?recursoId=` | Quita (idempotente). |
@@ -105,9 +124,14 @@ Todas exigen sesión (`getSessionUser`), con CORS/Bearer para el APK
 - **Hero** con eyebrow, título del mockup («La cultura también se pedalea.»),
   cuerpo y dos CTA (Explorar la biblioteca / Mis favoritos).
 - **Buscador** (título y autor, client-side sobre el catálogo completo —
-  respuesta instantánea) + **filtros**: chips de tipo (Todo/Libros/Películas/
+  respuesta instantánea) + **filtros**: el SELECTOR DE IDIOMA como PRIMERA
+  fila (Todos · Español · Inglés · Portugués — v4: filtrar por edición de
+  referencia; preajuste al idioma de la interfaz solo si ese idioma tiene
+  recursos publicados, con caída a Todos; la elección explícita persiste en
+  el dispositivo, clave `cultura-idioma`; estado vacío por idioma con CTA
+  «Ver todo el catálogo»), chips de tipo (Todo/Libros/Películas/
   Documentales) y de categoría (Todas/MTB/Aventura/Historia/Ruta/Entrenamiento/
-  Historias humanas), ambos con estado `aria`.
+  Historias humanas), todos con estado `aria`.
 - **Destacados**: tarjetas dobles con reseña truncada y «Conocer más».
 - **Carruseles**: `overflow-x-auto` + `snap-x snap-mandatory` + tarjetas
   `snap-start` (gesto táctil nativo en Android), 6 rails — Libros, Películas,
@@ -120,8 +144,10 @@ Todas exigen sesión (`getSessionUser`), con CORS/Bearer para el APK
   aventura). Falla en silencio y JAMÁS restringe el catálogo completo
   (requisito §6 del brief).
 - **Ficha**: modal (`role="dialog"`) con portada, badge de tipo, título, año ·
-  autor · país, chips de categorías, reseña, dato extra, enlace externo y
-  favorito. Cierra con Escape y con clic en el fondo.
+  autor · país, chip de idioma de la edición (v4) + chips de categorías,
+  reseña, dato extra (donde va anotado el idioma original de las obras
+  traducidas), enlace externo y favorito. Cierra con Escape y con clic en
+  el fondo.
 - **Favoritos**: corazón con actualización optimista y reversión si el
   servidor no confirma; vista «Mis favoritos» con estado vacío honesto.
 - **Estados**: carga (skeleton), error con reintentar, catálogo vacío /
@@ -133,30 +159,37 @@ Todas exigen sesión (`getSessionUser`), con CORS/Bearer para el APK
 
 ## 6. i18n
 
-Bloque `cu.*` (44 claves) + `menu.cultura` + `drawer.culturaHint`, completo en
-es/en/pt. La auditoría de `tests/cultura.test.ts` verifica: toda clave usada
-por CulturaView está declarada ×3 idiomas y no hay huérfanas.
+Bloque `cu.*` (54 claves, incluido el selector de idioma v4: `cu.filtroIdiomaAria`,
+`cu.idioma*`, `cu.fichaIdioma*`, `cu.vacioIdioma*`) + `menu.cultura` +
+`drawer.culturaHint`, completo en es/en/pt. La auditoría de
+`tests/cultura.test.ts` verifica: toda clave usada por CulturaView está
+declarada ×3 idiomas y no hay huérfanas.
 
 ## 7. Cómo correr
 
 ```bash
-# migración (local) y semilla editorial
+# migración (local) y semillas (editorial en + lotes ES/PT como borradores)
 DATABASE_URL=postgresql://postgres@127.0.0.1:5433/cumbre30 bunx prisma migrate deploy
 DATABASE_URL=postgresql://postgres@127.0.0.1:5433/cumbre30 bun scripts/semilla-cultura.mjs
+DATABASE_URL=postgresql://postgres@127.0.0.1:5433/cumbre30 bun scripts/semilla-cultura-es.mjs
+DATABASE_URL=postgresql://postgres@127.0.0.1:5433/cumbre30 bun scripts/semilla-cultura-pt.mjs
 
 # ingesta de metadatos (dry-run / aplicar)
 DATABASE_URL=... [GOOGLE_BOOKS_API_KEY=...] [TMDB_API_KEY=...] bun scripts/ingesta-cultura.mjs [--aplicar]
 
 # pruebas
-DATABASE_URL=... bun tests/cultura.test.ts          # 35 comprobaciones (catálogo, API, favoritos, i18n)
+DATABASE_URL=... bun tests/cultura.test.ts          # 47 comprobaciones (catálogo, idioma v4, API, favoritos, i18n)
 node scripts/invivo-cultura-ui.mjs                  # in-vivo en :3100 (21/21 con sesión real)
 ```
 
 En producción (la base de datos conectada de la app — Neon vía `DATABASE_URL`):
 la migración y la semilla editorial se aplican automáticamente en el build de
 Vercel — `scripts/migrate-deploy.sh` corre `prisma migrate deploy` y luego
-`node scripts/semilla-cultura.mjs` solo cuando el catálogo está incompleto
-(guard idempotente 64/64; `--forzar` para re-sincronizar a mano). La ingesta
+`node scripts/semilla-cultura.mjs` solo cuando el catálogo está incompleto o
+la reescritura v4 no está aplicada (guard con marcador: reseña de The Rider
+en inglés; `--forzar` para re-sincronizar a mano). El guard re-corre UNA vez
+tras la migración de idioma (actualiza reseñas es→en e `idioma`) y salta en
+builds futuros. La ingesta
 es opcional y idempotente, con claves solo en variables de entorno del backend.
 
 ## 8. Aceptación del brief — evidencias

@@ -38,6 +38,9 @@ export type CulturaRecursoCli = {
   titulo: string;
   resena: string;
   tipo: "libro" | "pelicula" | "documental";
+  // Idioma de la EDICIÓN/VERSIÓN DE REFERENCIA (v4): en | es | pt.
+  // Para obras traducidas el idioma original viaja en `extra`.
+  idioma: "es" | "en" | "pt";
   categorias: string[];
   portadaUrl: string | null;
   anio: string | null;
@@ -71,6 +74,23 @@ const TIPO_ICONO: Record<string, typeof BookOpen> = {
   pelicula: Film,
   documental: Clapperboard,
 };
+
+// Idiomas de biblioteca (v4): el selector es la PRIMERA fila de
+// filtros. `idioma` filtra por la edición/versión de referencia, no
+// por el idioma original (que va anotado en `extra` de la ficha).
+const IDIOMAS = ["es", "en", "pt"] as const;
+type IdiomaFiltro = "todos" | (typeof IDIOMAS)[number];
+const IDIOMA_LABEL: Record<(typeof IDIOMAS)[number], string> = {
+  es: "cu.idiomaEs",
+  en: "cu.idiomaEn",
+  pt: "cu.idiomaPt",
+};
+const IDIOMA_FICHA: Record<(typeof IDIOMAS)[number], string> = {
+  es: "cu.fichaIdiomaEs",
+  en: "cu.fichaIdiomaEn",
+  pt: "cu.fichaIdiomaPt",
+};
+const CLAVE_IDIOMA = "cultura-idioma";
 
 // Paletas procedurales (mismo espíritu que las imágenes para
 // compartir): gradiente por hash del id + tipo, sin terceros.
@@ -178,7 +198,7 @@ function Tarjeta({ rec, guardado, onAbrir, onFav }: {
 }
 
 export function CulturaView() {
-  useLang();
+  const lang = useLang();
   const offline = isOfflineMode();
   const url = apiUrl("/api/cultura/recursos");
   const noBackend = url === null;
@@ -195,6 +215,11 @@ export function CulturaView() {
   const [favOnly, setFavOnly] = useState(false);
   const [ficha, setFicha] = useState<CulturaRecursoCli | null>(null);
   const [paraTi, setParaTi] = useState<string[] | null>(null);
+  // Selector de idioma (primera fila): «todos» hasta hidratar; la
+  // elección explícita se guarda en el dispositivo y manda sobre el
+  // preajuste (idioma de la interfaz con recursos publicados).
+  const [idiomaF, setIdiomaF] = useState<IdiomaFiltro>("todos");
+  const eleccionIdiomaRef = useRef(false);
   const catalogoRef = useRef<HTMLDivElement | null>(null);
 
   const headers = useCallback((): Record<string, string> => {
@@ -229,6 +254,28 @@ export function CulturaView() {
   }, [url, headers]);
 
   useEffect(() => { if (hasSession) void cargar(); }, [hasSession, cargar]);
+
+  // Hidratar la elección guardada en el dispositivo (post-mount para
+  // no desincronizar el render de servidor).
+  useEffect(() => {
+    try {
+      const v = localStorage.getItem(CLAVE_IDIOMA);
+      if (v === "es" || v === "en" || v === "pt" || v === "todos") {
+        setIdiomaF(v);
+        eleccionIdiomaRef.current = true;
+      }
+    } catch { /* sin storage: solo estado en memoria */ }
+  }, []);
+
+  // Preajuste inicial (solo sin elección explícita): el idioma de la
+  // interfaz, pero SOLO si ese idioma tiene recursos publicados; si
+  // no, el selector cae a Todos (nunca biblioteca vacía al lanzar).
+  useEffect(() => {
+    if (!recursos || eleccionIdiomaRef.current) return;
+    if ((lang === "es" || lang === "en" || lang === "pt") && recursos.some((r) => r.idioma === lang)) {
+      setIdiomaF(lang);
+    }
+  }, [recursos, lang]);
 
   // Personalización complementaria: arquetipo → categorías sugeridas.
   // Falla en silencio: nunca restringe el acceso al catálogo completo.
@@ -296,15 +343,23 @@ export function CulturaView() {
     if (!recursos) return [];
     const ql = q.trim().toLowerCase();
     return recursos.filter((r) => {
+      if (idiomaF !== "todos" && r.idioma !== idiomaF) return false;
       if (favOnly && !favoritos.has(r.id)) return false;
       if (tipoF && r.tipo !== tipoF) return false;
       if (catF && !r.categorias.includes(catF)) return false;
       if (ql && !(`${r.titulo} ${r.autor}`.toLowerCase().includes(ql))) return false;
       return true;
     });
-  }, [recursos, q, tipoF, catF, favOnly, favoritos]);
+  }, [recursos, q, tipoF, catF, favOnly, favoritos, idiomaF]);
 
-  const filtradoActivo = q.trim() !== "" || tipoF !== null || catF !== null || favOnly;
+  const filtradoActivo = q.trim() !== "" || tipoF !== null || catF !== null || favOnly || idiomaF !== "todos";
+
+  // Elección explícita del selector: persiste en el dispositivo.
+  const elegirIdioma = (id: IdiomaFiltro) => {
+    setIdiomaF(id);
+    eleccionIdiomaRef.current = true;
+    try { localStorage.setItem(CLAVE_IDIOMA, id); } catch { /* sin storage */ }
+  };
 
   const destacados = useMemo(() => (recursos ?? []).filter((r) => r.destacado).slice(0, 2), [recursos]);
   const paraTiRecs = useMemo(() => {
@@ -375,6 +430,14 @@ export function CulturaView() {
             data-testid="cu-buscador"
           />
         </div>
+        <div className="flex gap-1.5 overflow-x-auto pb-1" role="group" aria-label={t("cu.filtroIdiomaAria")} data-testid="cu-filtro-idioma">
+          <button onClick={() => elegirIdioma("todos")} className={chip(idiomaF === "todos")} data-testid="cu-idioma-todos">{t("cu.idiomaTodos")}</button>
+          {IDIOMAS.map((id) => (
+            <button key={id} onClick={() => elegirIdioma(id)} className={chip(idiomaF === id)} data-testid={`cu-idioma-${id}`}>
+              {t(IDIOMA_LABEL[id])}
+            </button>
+          ))}
+        </div>
         <div className="flex gap-1.5 overflow-x-auto pb-1" role="group" aria-label={t("cu.filtroTipoAria")}>
           <button onClick={() => { setTipoF(null); setFavOnly(false); }} className={chip(tipoF === null && !favOnly)}>{t("cu.chipTodo")}</button>
           {TIPOS.map((tp) => (
@@ -422,7 +485,22 @@ export function CulturaView() {
               </h2>
               <p className="mt-0.5 text-[11px] text-muted-foreground">{t("cu.resultadosSub", matches.length)}</p>
               {matches.length === 0 ? (
-                <p className="mt-3 rounded-xl border border-dashed border-border p-5 text-center text-xs text-muted-foreground">{t("cu.sinResultados")}</p>
+                <div className="mt-3 rounded-xl border border-dashed border-border p-5 text-center text-xs text-muted-foreground">
+                  {idiomaF !== "todos" && !favOnly && tipoF === null && catF === null && q.trim() === "" ? (
+                    <>
+                      <p>{t("cu.vacioIdioma")}</p>
+                      <button
+                        onClick={() => elegirIdioma("todos")}
+                        className="mt-2 font-bold text-emerald-600 hover:text-emerald-500 dark:text-emerald-400"
+                        data-testid="cu-idioma-cta-todos"
+                      >
+                        {t("cu.vacioIdiomaCta")} →
+                      </button>
+                    </>
+                  ) : (
+                    t("cu.sinResultados")
+                  )}
+                </div>
               ) : (
                 <div className="mt-2.5 grid grid-cols-3 gap-2.5">
                   {matches.map((rec) => (
@@ -553,6 +631,9 @@ export function CulturaView() {
                 {ficha.anio ? `${ficha.anio} · ` : ""}{ficha.autor}{ficha.pais ? ` · ${ficha.pais}` : ""}
               </p>
               <div className="mt-2.5 flex flex-wrap gap-1.5">
+                <span className="rounded-full border border-border bg-muted/30 px-2.5 py-0.5 text-[10px] font-semibold text-muted-foreground" data-testid="cu-ficha-idioma">
+                  {t(IDIOMA_FICHA[ficha.idioma] ?? "cu.fichaIdiomaEn")}
+                </span>
                 {ficha.categorias.map((c) => (
                   <span key={c} className="rounded-full border border-border bg-muted/30 px-2.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
                     {t(CAT_LABEL[c] ?? "")}

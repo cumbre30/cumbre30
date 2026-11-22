@@ -1831,6 +1831,19 @@ const D: Record<string, E> = {
   "cu.noBackend": ["El catálogo vive en el despliegue web: entra desde la app web para ver Cultura Ciclista.", "The catalog lives on the web deployment: open the web app to see Cycling Culture.", "O catálogo vive no deploy web: abra o app web para ver a Cultura do Ciclismo."],
   "cu.portadaAlt": ["Portada de {0}", "Cover of {0}", "Capa de {0}"],
   "cu.footNota": ["Portadas de libros: Open Library · Los enlaces abren fuentes externas legítimas.", "Book covers: Open Library · Links open legitimate external sources.", "Capas de livros: Open Library · Os links abrem fontes externas legítimas."],
+  // ---- Selector de idioma (v4: primera fila de filtros) ----
+  "cu.filtroIdiomaAria": ["Filtrar la biblioteca por idioma de la edición", "Filter the library by edition language", "Filtrar a biblioteca por idioma da edição"],
+  "cu.idiomaTodos": ["Todos", "All", "Todas"],
+  "cu.idiomaEs": ["Español", "Spanish", "Espanhol"],
+  "cu.idiomaEn": ["Inglés", "English", "Inglês"],
+  "cu.idiomaPt": ["Portugués", "Portuguese", "Português"],
+  // ---- Chip de idioma en la ficha ----
+  "cu.fichaIdiomaEs": ["En español", "In Spanish", "Em espanhol"],
+  "cu.fichaIdiomaEn": ["En inglés", "In English", "Em inglês"],
+  "cu.fichaIdiomaPt": ["En portugués", "In Portuguese", "Em português"],
+  // ---- Estado vacío por idioma ----
+  "cu.vacioIdioma": ["Aún no hay recursos publicados en este idioma.", "No resources published in this language yet.", "Ainda não há recursos publicados neste idioma."],
+  "cu.vacioIdiomaCta": ["Ver todo el catálogo", "See the full catalog", "Ver o catálogo completo"],
 };
 
 /** Texto para el índice activo con fallback al español y a la clave. */

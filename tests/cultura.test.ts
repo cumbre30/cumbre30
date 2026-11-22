@@ -90,6 +90,54 @@ async function main(): Promise<void> {
   const dDest = (await json(resDest)) as { recursos: Array<{ destacado: boolean }> };
   ok("destacados=1 entrega solo destacados", dDest.recursos.length >= 2 && dDest.recursos.every((r) => r.destacado));
 
+  console.log("· idioma de la edición de referencia (v4)");
+  ok("todos los publicados tienen idioma en|es|pt", todos.every((r) => ["es", "en", "pt"].includes(r.idioma)));
+  const ONCE = [
+    "The Rider",
+    "Ladri di biciclette (Ladrón de bicicletas)",
+    "Les Triplettes de Belleville",
+    "Le gamin au vélo (El niño con la bici)",
+    "Beijing Bicycle",
+    "Wadjda",
+    "A Sunday in Hell",
+    "Stars and Water Carriers",
+    "The Impossible Hour",
+    "Wonderful Losers: A Different World",
+    "Tour de France: Unchained",
+  ];
+  const onceDb = await dbPrueba.culturaRecurso.findMany({ where: { titulo: { in: ONCE } } });
+  ok("las 11 obras quedan clasificadas idioma=en en la base (edición de referencia)", onceDb.length === 11 && onceDb.every((r) => r.idioma === "en"));
+  const filaRider = await dbPrueba.culturaRecurso.findFirst({ where: { titulo: "The Rider" } });
+  ok("las reseñas del catálogo vigente están en inglés tras la reescritura (v4)", !!filaRider && /150 kilometres/.test(filaRider.resena) && !/gran novela del ciclismo/i.test(filaRider.resena));
+  ok("el idioma original de las obras traducidas va anotado en extra", !!filaRider && (filaRider.extra ?? "").includes("Original en neerlandés"));
+
+  const resEn = await GET_RECURSOS(req("GET", "/api/cultura/recursos?idioma=en", tokA));
+  const dEn = (await json(resEn)) as { recursos: Array<{ idioma: string; titulo: string }>; total: number };
+  ok("filtro idioma=en entrega solo recursos en", dEn.total === dEn.recursos.length && dEn.recursos.every((r) => r.idioma === "en") && dEn.total === dTodos.total);
+  const titulosEn = new Set(dEn.recursos.map((r) => r.titulo));
+  ok("las 11 obras responden al selector bajo Inglés (ninguna fuera de es/en/pt)", ONCE.every((t) => titulosEn.has(t)));
+  const resEnLibro = await GET_RECURSOS(req("GET", "/api/cultura/recursos?idioma=en&tipo=libro", tokA));
+  const dEnLibro = (await json(resEnLibro)) as { recursos: Array<{ idioma: string; tipo: string }>; total: number };
+  ok("idioma combinable con tipo (en + libro)", dEnLibro.recursos.every((r) => r.idioma === "en" && r.tipo === "libro") && dEnLibro.total >= 30);
+  const resIdiomaInvalido = await GET_RECURSOS(req("GET", "/api/cultura/recursos?idioma=fr", tokA));
+  const dIdiomaInvalido = (await json(resIdiomaInvalido)) as { total: number };
+  ok("idioma inválido (fr) se ignora (patrón de filtros)", dIdiomaInvalido.total === dTodos.total);
+
+  // es/pt: los lotes editoriales entran como BORRADORES
+  // (publicado=false), así que la API pública no los entrega todavía;
+  // se valida el filtro con un recurso de prueba publicado temporal.
+  const esPrueba = await dbPrueba.culturaRecurso.create({ data: { titulo: "Prueba idioma es", tipo: "libro", idioma: "es", categorias: ["ruta"], autor: "Test", resena: "Reseña de prueba en español para validar el filtro idioma de la API.", urlExterna: "https://example.com", publicado: true } });
+  const resEs = await GET_RECURSOS(req("GET", "/api/cultura/recursos?idioma=es", tokA));
+  const dEs = (await json(resEs)) as { recursos: Array<{ idioma: string; titulo: string }>; total: number };
+  ok("filtro idioma=es entrega solo recursos en español", dEs.total === 1 && dEs.recursos[0]?.titulo === "Prueba idioma es" && dEs.recursos[0]?.idioma === "es");
+  const resPt = await GET_RECURSOS(req("GET", "/api/cultura/recursos?idioma=pt", tokA));
+  const dPt = (await json(resPt)) as { total: number };
+  ok("idioma=pt sin lote publicado → catálogo público vacío para pt", dPt.total === 0);
+  await dbPrueba.culturaRecurso.delete({ where: { id: esPrueba.id } });
+
+  const borradoresLote = await dbPrueba.culturaRecurso.count({ where: { publicado: false, idioma: { in: ["es", "pt"] } } });
+  ok(`primeras fichas de los lotes ES/PT esperan revisión como borradores (${borradoresLote} fichas)`, borradoresLote >= 10);
+
   // favorito oculto: publicado=false no aparece nunca
   const oculto = await dbPrueba.culturaRecurso.create({ data: { titulo: "Borrador interno", tipo: "libro", categorias: ["historia"], autor: "Prueba", resena: "Reserva del flujo editorial: borrador no visible.", urlExterna: "https://example.com", publicado: false } });
   const resOculto = await GET_RECURSOS(req("GET", "/api/cultura/recursos", tokA));
@@ -141,13 +189,14 @@ async function main(): Promise<void> {
   ok(`todas las claves cu.* usadas por CulturaView están declaradas (${usadas.size} usadas)${faltantes.length ? ` → faltan: ${faltantes.join(", ")}` : ""}`, faltantes.length === 0);
   ok(`sin claves cu.* huérfanas${huerfanas.length ? ` → sobran: ${huerfanas.join(", ")}` : ""}`, huerfanas.length === 0);
   ok("menu.cultura y drawer.culturaHint declarados en 3 idiomas", I18N.includes('"menu.cultura": ["Cultura Ciclista", "Cycling Culture", "Cultura do Ciclismo"]') && I18N.includes('"drawer.culturaHint"'));
+  ok("claves del selector de idioma declaradas (filtroIdiomaAria, idioma*, vacío)", I18N.includes('"cu.filtroIdiomaAria"') && I18N.includes('"cu.idiomaTodos"') && I18N.includes('"cu.idiomaPt"') && I18N.includes('"cu.fichaIdiomaEn"') && I18N.includes('"cu.vacioIdiomaCta"'));
   let variantesMal = 0;
   for (const k of declaradas) {
     const m = I18N.match(new RegExp(`"${k.replace(/\./g, "\\.")}":\\s*\\[([^\\]]+)\\]`));
     if (!m || m[1].split(",").length < 3) variantesMal++;
   }
   ok("variantes completas es/en/pt en todas las claves cu.*", variantesMal === 0);
-  const MUESTRA = ["cu.heroTitulo", "cu.chipLibros", "cu.fichaConsultar", "cu.sinResultados"];
+  const MUESTRA = ["cu.heroTitulo", "cu.chipLibros", "cu.fichaConsultar", "cu.sinResultados", "cu.idiomaEn", "cu.vacioIdioma"];
   let muestrasMal = 0;
   for (const lang of ["es", "en", "pt"] as const) {
     setLang(lang);
