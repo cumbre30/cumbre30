@@ -7,10 +7,15 @@
 //   2. banda muerta de distancia en reposo
 //   3. coherencia velocidad-distancia-tiempo (señal perdida ≠ tiempo perdido)
 //   4. altitud: nunca 0, última válida retenida, histéresis vs ruido
-//   5. pausa/reanudación automáticas (FSM configurable)
+//   5. pausa/reanudación automáticas (FSM configurable) + tiempos
+//      total/movimiento/pausa (requisito E del cierre)
 //   6. gates dinámicos de salto, precisión y frescura
 //   7. Kalman adaptativo + outliers + extrapolación de frenada
-//   8. RideSimulator determinista (semilla)
+//   8. RideSimulator determinista (semilla) con ruta INYECTADA
+//   9. Haversine del motor ≡ lib/geo (paridad exacta)
+// Cierre de fase única (2026-11-22): la fuente sim se inyecta con
+// una ruta propia de la prueba (sin park.ts) y el simulador recibe
+// su ruta por parámetro.
 // ============================================================
 import assert from "node:assert/strict";
 import { MotorGPS } from "../src/motor/nucleo";
@@ -18,8 +23,10 @@ import { almacenEnMemoria } from "../src/motor/persistencia";
 import { resolverMotorConfig } from "../src/motor/config";
 import { KalmanVelocidad } from "../src/motor/kalman";
 import { ProcesadorPosicion } from "../src/motor/procesamiento";
-import { crearFuenteSim } from "../src/motor/fuente";
-import { RideSimulator } from "../src/lib/simulation";
+import { haversineM as haversineMmotor } from "../src/motor/geo";
+import { haversineM as haversineMapp } from "../src/lib/geo";
+import { crearFuenteSim } from "../src/lib/fuentes-motor";
+import { RideSimulator, type PuntoRutaSim } from "../src/lib/simulation";
 import type { CheckpointMotor, EventoMotor, FixBruto, FuenteUbicacion } from "../src/motor/tipos";
 
 let pasos = 0;
@@ -31,19 +38,27 @@ function ok(nombre: string): void {
 // ---------- utilidades de simulación determinista ----------
 
 /** Fuente de prueba: entrega los fixes que la prueba inyecta. */
-function fuenteDePrueba() {
+function fuenteDePrueba(): FuenteUbicacion & { tipo: "nativa"; emitir: (f: FixBruto) => void } {
   const fuente: FuenteUbicacion & { tipo: "nativa"; emitir: (f: FixBruto) => void } = {
     tipo: "nativa",
-    iniciar(entregar, _error) {
+    emitir: () => undefined,
+    iniciar(entregar) {
       fuente.emitir = (f) => entregar(f);
     },
     detener() {
       fuente.emitir = () => undefined;
     },
   };
-  fuente.emitir = () => undefined;
   return fuente;
 }
+
+/** Ruta sintética de las PRUEBAS (no park.ts): el simulador
+ *  desacoplado recibe su ruta por parámetro. */
+const RUTA_PRUEBA: PuntoRutaSim[] = [
+  { lat: -33.42, lon: -70.6, kmh: 12, alt: 800 },
+  { lat: -33.4, lon: -70.6, kmh: 18, alt: 830 },
+  { lat: -33.38, lon: -70.6, kmh: 9, alt: 810 },
+];
 
 /** Reloj controlado (ms). */
 function reloj(inicio = 1_000_000) {
@@ -263,7 +278,12 @@ async function main(): Promise<void> {
     assert.equal(motor.estado, "corriendo", "FSM → corriendo al pedalear ≥3 km/h");
     const distTotal = motor.snapshot()!.metricas.distanciaM;
     assert.ok(distTotal < (20 / 3.6) * 30 + (12 / 3.6) * 10 + 30, "sin distancia fantasma del tiempo detenido");
+    // requisito E del cierre: separar total / movimiento / pausa
+    const mE = motor.snapshot()!.metricas;
+    assert.ok(mE.secAutoPausa >= 20 && mE.secAutoPausa <= 45, `secAutoPausa=${mE.secAutoPausa.toFixed(0)} s registra la auto-pausa`);
+    assert.ok(Math.abs(mE.secPausa - mE.secAutoPausa) < 0.5, "secPausa total = auto-pausa (sin pausa manual aquí)");
     ok("auto-reanudación al pedalear + sin distancia fantasma");
+    ok(`tiempos separados: elapsed ${mE.elapsedSec.toFixed(0)} s, pausa ${mE.secPausa.toFixed(0)} s (auto ${mE.secAutoPausa.toFixed(0)} s)`);
     motor.detener();
   }
   {
@@ -432,34 +452,56 @@ async function main(): Promise<void> {
     relojR.avanza(1000); lat += (20 / 3.6) / 111_320;
     const r = motor.snapshot();
     assert.equal(motor.estado, "corriendo", "reanudado");
+    // requisito E: la pausa MANUAL suma a secPausa pero NO a secAutoPausa
+    const mM = motor.snapshot()!.metricas;
+    assert.equal(mM.secAutoPausa, 0, "sin auto-pausa aquí");
+    assert.ok(mM.secPausa > 120, `secPausa=${mM.secPausa.toFixed(0)} s incluye la pausa manual (~130 s)`);
     ok("pausa manual: elapsed congelado, reanudación limpia");
+    ok(`tiempo pausado diferenciado: manual ${mM.secPausa.toFixed(0)} s (auto 0 s)`);
     motor.detener();
   }
 
-  // ---------- 10) RideSimulator determinista (semilla) ----------
+  // ---------- 10) RideSimulator determinista (semilla) con ruta inyectada ----------
   {
-    const s1 = new RideSimulator(6, true, 2026);
-    const s2 = new RideSimulator(6, true, 2026);
+    const s1 = new RideSimulator({ ruta: RUTA_PRUEBA, speedScale: 6, loop: true, semilla: 2026 });
+    const s2 = new RideSimulator({ ruta: RUTA_PRUEBA, speedScale: 6, loop: true, semilla: 2026 });
     for (let i = 0; i < 10; i++) {
       const a = s1.tick(0.5);
       const b = s2.tick(0.5);
       assert.equal(a.lat, b.lat, "misma lat");
       assert.equal(a.speedKmh, b.speedKmh, "misma velocidad");
     }
+    assert.ok(s1.totalKm > 0 && s1.totalKm < 10, `ruta propia del proyecto: ${s1.totalKm.toFixed(2)} km (sin park.ts)`);
     ok("RideSimulator con semilla: secuencias idénticas (tests reproducibles)");
+    ok("RideSimulator desacoplado: ruta INYECTADA, sin depender del parque");
   }
 
   // ---------- 11) fuente sim entrega al motor (integración) ----------
   {
     const relojR = reloj();
     const motor = new MotorGPS({ almacen: almacenEnMemoria(), ahora: relojR.get });
-    motor.iniciar(crearFuenteSim({ speedScale: 12, tickMs: 20, semilla: 5 }));
+    motor.iniciar(crearFuenteSim({ ruta: RUTA_PRUEBA, speedScale: 12, tickMs: 20, semilla: 5 }));
     await new Promise((r) => setTimeout(r, 400));
     const snap = motor.snapshot();
     motor.detener();
     assert.ok(snap && snap.metricas.fixes > 3, `fuente sim alimenta el núcleo (${snap?.metricas.fixes} fixes)`);
     assert.ok(snap!.metricas.distanciaM > 0, "distancia acumulada en sim");
     ok(`integración fuente sim → núcleo: ${snap!.metricas.fixes} fixes, ${(snap!.metricas.distanciaM / 1000).toFixed(2)} km`);
+  }
+
+  // ---------- 12) Haversine del motor ≡ lib/geo (paridad exacta) ----------
+  {
+    const puntos: Array<[number, number]> = [
+      [-33.4, -70.65], [-33.43, -70.63], [-18.0, -70.2], [0, 0], [51.5, -0.12], [-45.57, -72.07],
+    ];
+    let maxDelta = 0;
+    for (let i = 0; i < puntos.length - 1; i++) {
+      const a = { lat: puntos[i][0], lon: puntos[i][1] };
+      const b = { lat: puntos[i + 1][0], lon: puntos[i + 1][1] };
+      maxDelta = Math.max(maxDelta, Math.abs(haversineMmotor(a, b) - haversineMapp(a, b)));
+    }
+    assert.ok(maxDelta < 1e-9, `paridad Haversine: delta máx ${maxDelta.toExponential(2)} m (R=6371000 ambas)`);
+    ok(`Haversine extraída al motor: paridad exacta con lib/geo (Δ máx ${maxDelta.toExponential(2)} m)`);
   }
 
   console.log(`\nMOTOR GPS: ${pasos} verificaciones OK\n`);

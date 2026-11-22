@@ -1,20 +1,25 @@
 // ============================================================
-// src/motor/fuente.ts - Location Source: adaptadores que entregan
-// FixBruto al núcleo. Tres fábricas:
+// src/lib/fuentes-motor.ts - Location Source: adaptadores que
+// entregan FixBruto al núcleo del MotorGPS. CIERRE DE FASE ÚNICA:
+// vivían en src/motor/fuente.ts y se MOVIERON a la capa de la
+// app — el núcleo (src/motor/*) ya no conoce rideNative, park ni
+// simulation: solo el contrato FuenteUbicacion de tipos.ts.
+// Tres fábricas:
 //   · crearFuenteNativa(): FGS Android vía RideNativePlugin
 //     (LocationManager.GPS_PROVIDER a 1 Hz; GNSS del dispositivo;
 //     A-GNSS solo asiste la adquisición de satélites — jamás se usa
 //     Wi-Fi/red celular como fuente de posición, ver docs/motor-gps.md).
 //   · crearFuenteWeb(): navigator.geolocation.watchPosition (respaldo
 //     y desarrollo en navegador).
-//   · crearFuenteSim(): RideSimulator determinista (semilla opcional)
-//     para demo y pruebas.
+//   · crearFuenteSim(): RideSimulator con ruta inyectable (defecto:
+//     la ruta de demo del parque San Cristóbal, SIM_ROUTE).
 // La selección se hace en el consumidor; el núcleo acepta cualquiera.
 // ============================================================
 
-import type { FixBruto, FuenteUbicacion } from "./tipos";
-import { RideNative, isNativeApp, type PluginListenerHandleLike } from "../lib/rideNative";
-import { RideSimulator, type SimFix } from "../lib/simulation";
+import type { FixBruto, FuenteUbicacion } from "@/motor/tipos";
+import { RideNative, isNativeApp, type PluginListenerHandleLike } from "@/lib/rideNative";
+import { RideSimulator, type PuntoRutaSim, type SimFix } from "@/lib/simulation";
+import { SIM_ROUTE } from "@/lib/park";
 
 /** Prueba de fix nativo (payload del evento "gpsfix"). */
 export type NativeFixCrudo = {
@@ -116,13 +121,22 @@ export function crearFuenteWeb(opts: { enableHighAccuracy?: boolean } = {}): Fue
   };
 }
 
-/** Fuente simulada (demo/pruebas). Con semilla: recorridos deterministas. */
-export function crearFuenteSim(opciones: { speedScale?: number; loop?: boolean; semilla?: number; tickMs?: number } = {}): FuenteUbicacion & { tipo: "sim" } {
+/** Fuente simulada (demo/pruebas). Con semilla: recorridos deterministas.
+ *  La ruta se INYECTA: sin `ruta`, Cumbre30 usa su ruta de demo del
+ *  parque (SIM_ROUTE); otro proyecto pasa la suya. */
+export function crearFuenteSim(
+  opciones: { ruta?: PuntoRutaSim[]; speedScale?: number; loop?: boolean; semilla?: number; tickMs?: number } = {}
+): FuenteUbicacion & { tipo: "sim" } {
   let timer: ReturnType<typeof setInterval> | null = null;
   return {
     tipo: "sim",
     iniciar(entregar) {
-      const sim = new RideSimulator(opciones.speedScale ?? 6, opciones.loop ?? true, opciones.semilla);
+      const sim = new RideSimulator({
+        ruta: opciones.ruta ?? SIM_ROUTE,
+        speedScale: opciones.speedScale ?? 6,
+        loop: opciones.loop ?? true,
+        semilla: opciones.semilla,
+      });
       const tickMs = opciones.tickMs ?? 500;
       timer = setInterval(() => {
         const f: SimFix = sim.tick(tickMs / 1000);

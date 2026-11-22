@@ -18,8 +18,7 @@
 import type { FixBruto, ResultadoFix } from "./tipos";
 import type { MotorConfig } from "./config";
 import { KalmanVelocidad } from "./kalman";
-import { haversineM } from "../lib/geo";
-import type { LatLng } from "../lib/park";
+import { haversineM } from "./geo";
 
 const KM_H = 3.6;
 
@@ -55,7 +54,7 @@ export class ProcesadorPosicion {
     const dtBruto = this.ultimoTsAceptado === null ? 1 : (fix.t - this.ultimoTsAceptado) / 1000;
     const dtSec = Math.min(10, Math.max(0.15, dtBruto));
     if (this.ultimo) {
-      const d = haversineM(this.ultimo as LatLng, fix as LatLng);
+      const d = haversineM(this.ultimo, fix);
       const velKmhPrev = this.velFiltradaMps * KM_H;
       const dMax = Math.max(this.cfg.saltoBaseM, (velKmhPrev / KM_H) * dtBruto * this.cfg.saltoMargenVel);
       if (d > dMax) {
@@ -67,7 +66,7 @@ export class ProcesadorPosicion {
     if (medidoMps === null || !Number.isFinite(medidoMps)) {
       medidoMps =
         this.ultimo && fix.accuracyM < this.cfg.gateAccuracyM
-          ? (haversineM(this.ultimo as LatLng, fix as LatLng) / dtSec) || NaN
+          ? (haversineM(this.ultimo, fix) / dtSec) || NaN
           : NaN;
     }
     const filtrado = this.kalman.update(medidoMps ?? NaN, dtSec, fix.accuracyM);

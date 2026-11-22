@@ -22,6 +22,7 @@
 
 import type { FixBruto, MetricasMotor, PuntoTrack } from "./tipos";
 import type { MotorConfig } from "./config";
+import { haversineM } from "./geo";
 
 const KM_H = 3.6;
 
@@ -35,7 +36,11 @@ export class MotorMetricas {
 
   distanciaM = 0;
   movingSec = 0;
+  /** Segundos de AUTO-pausa ya cerrados (fase única, requisito E:
+   *  diferenciar tiempo total / en movimiento / pausado). */
   secAutoPausa = 0;
+  /** ¿La pausa abierta actual es una auto-pausa? (false = manual). */
+  abiertaAuto = false;
   velMaxKmh = 0;
   gainM = 0;
   lossM = 0;
@@ -65,6 +70,34 @@ export class MotorMetricas {
   elapsedSec(ahoraTs: number): number {
     const abierta = this.pausaAbiertaTs === null ? 0 : Math.max(0, ahoraTs - this.pausaAbiertaTs);
     return Math.max(0, (ahoraTs - this.inicioTs - this.pausasMs - abierta) / 1000);
+  }
+
+  /** Segundos totales de pausa (manual + auto), incluida la pausa
+   *  abierta en curso. total = elapsed + pausa + moviendo se cuadra
+   *  contra el reloj de pared. */
+  secPausa(ahoraTs: number): number {
+    const abierta = this.pausaAbiertaTs === null ? 0 : Math.max(0, ahoraTs - this.pausaAbiertaTs);
+    return (this.pausasMs + abierta) / 1000;
+  }
+
+  /** Abre el span de pausa (auto=true cuando la FSM auto-pausó).
+   *  Si ya había un span abierto no duplica: el llamador debe cerrar
+   *  antes (el núcleo cierra y abre al sustituir auto por manual). */
+  abrirPausa(ahoraTs: number, auto: boolean): void {
+    if (this.pausaAbiertaTs !== null) return;
+    this.pausaAbiertaTs = ahoraTs;
+    this.abiertaAuto = auto;
+  }
+
+  /** Cierra el span de pausa abierto: suma el tramo a pausasMs y, si
+   *  era auto-pausa, también a secAutoPausa. Idempotente. */
+  cerrarPausa(ahoraTs: number): void {
+    if (this.pausaAbiertaTs === null) return;
+    const span = Math.max(0, ahoraTs - this.pausaAbiertaTs);
+    this.pausasMs += span;
+    if (this.abiertaAuto) this.secAutoPausa += span / 1000;
+    this.pausaAbiertaTs = null;
+    this.abiertaAuto = false;
   }
 
   /** Procesa un fix YA VALIDADO (aceptado por Position Processing).
@@ -150,14 +183,8 @@ export class MotorMetricas {
   }
 
   private distanciaDesdeTrack(prev: PuntoTrack, fix: FixBruto): number {
-    // haversine local (evita depender del tipo LatLng de park)
-    const R = 6371000;
-    const rad = Math.PI / 180;
-    const dLat = (fix.lat - prev[0]) * rad;
-    const dLon = (fix.lon - prev[1]) * rad;
-    const s =
-      Math.sin(dLat / 2) ** 2 + Math.cos(prev[0] * rad) * Math.cos(fix.lat * rad) * Math.sin(dLon / 2) ** 2;
-    return 2 * R * Math.asin(Math.sqrt(s));
+    // Haversine compartida del motor (motor/geo.ts)
+    return haversineM({ lat: prev[0], lon: prev[1] }, fix);
   }
 
   /** Snapshot de métricas para eventos y resumen. */
@@ -167,6 +194,7 @@ export class MotorMetricas {
       movingSec: this.movingSec,
       elapsedSec: this.elapsedSec(ahoraTs),
       secAutoPausa: this.secAutoPausa,
+      secPausa: this.secPausa(ahoraTs),
       velKmh,
       velMaxKmh: this.velMaxKmh,
       gainM: this.gainM,
@@ -188,6 +216,7 @@ export class MotorMetricas {
       distanciaM: this.distanciaM,
       movingSec: this.movingSec,
       secAutoPausa: this.secAutoPausa,
+      abiertaAuto: this.abiertaAuto,
       velMaxKmh: this.velMaxKmh,
       gainM: this.gainM,
       lossM: this.lossM,
@@ -215,6 +244,7 @@ export class MotorMetricas {
     this.distanciaM = s.distanciaM;
     this.movingSec = s.movingSec;
     this.secAutoPausa = s.secAutoPausa;
+    this.abiertaAuto = s.abiertaAuto ?? false;
     this.velMaxKmh = s.velMaxKmh;
     this.gainM = s.gainM;
     this.lossM = s.lossM;

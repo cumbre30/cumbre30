@@ -45,7 +45,12 @@ export type MetricasMotor = {
   distanciaM: number;
   movingSec: number;
   elapsedSec: number;
+  /** Segundos de AUTO-pausa cerrados (fase única). */
   secAutoPausa: number;
+  /** Segundos totales de pausa (manual + auto), incluida la abierta
+   *  en curso. elapsedSec + secPausa = tiempo de pared transcurrido
+   *  desde el inicio (requisito E: separar total/movimiento/pausa). */
+  secPausa: number;
   velKmh: number;
   velMaxKmh: number;
   gainM: number;

@@ -14,21 +14,27 @@
 
 import type { AlmacenCheckpoint, CheckpointMotor } from "./tipos";
 
-const KEY = "cumbre30-motor-checkpoint-v1";
+const CLAVE_CHECKPOINT = "cumbre30-motor-checkpoint-v1";
+
+/** Clave de localStorage usada por el almacén por defecto del
+ *  núcleo. La capa duradera de la app (src/lib/almacenDuradero.ts)
+ *  comparte ESTA MISMA clave para que los checkpoints del build
+ *  anterior sigan siendo recuperables. */
+export const CLAVE_CHECKPOINT_LS = CLAVE_CHECKPOINT;
 
 /** Almacén localStorage (app real). */
 export function almacenLocalStorage(): AlmacenCheckpoint {
   return {
     guardar(cp: CheckpointMotor): void {
       try {
-        window.localStorage.setItem(KEY, JSON.stringify(cp));
+        window.localStorage.setItem(CLAVE_CHECKPOINT, JSON.stringify(cp));
       } catch {
         // sin almacenamiento disponible: el checkpoint simplemente no se persiste
       }
     },
     leer(): CheckpointMotor | null {
       try {
-        const raw = window.localStorage.getItem(KEY);
+        const raw = window.localStorage.getItem(CLAVE_CHECKPOINT);
         if (!raw) return null;
         const cp = JSON.parse(raw) as CheckpointMotor;
         return cp && cp.version === 1 && typeof cp.inicioTs === "number" ? cp : null;
@@ -38,7 +44,7 @@ export function almacenLocalStorage(): AlmacenCheckpoint {
     },
     borrar(): void {
       try {
-        window.localStorage.removeItem(KEY);
+        window.localStorage.removeItem(CLAVE_CHECKPOINT);
       } catch {
         // nada que borrar
       }

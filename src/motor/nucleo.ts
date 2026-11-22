@@ -19,6 +19,7 @@ import { resolverMotorConfig, type MotorConfig } from "./config";
 import { ProcesadorPosicion } from "./procesamiento";
 import { MotorMetricas } from "./metricas";
 import { MotorActividad } from "./actividad";
+import { haversineM } from "./geo";
 import { almacenLocalStorage, esCheckpointValido } from "./persistencia";
 import type {
   AlmacenCheckpoint,
@@ -120,10 +121,8 @@ export class MotorGPS {
     const ok = this.actividad.pausar(ahora);
     if (!ok) return false;
     // cierra el span abierto (auto-pausa o nada) y abre el de pausa manual
-    if (this.metricas.pausaAbiertaTs !== null) {
-      this.metricas.pausasMs += Math.max(0, ahora - this.metricas.pausaAbiertaTs);
-    }
-    this.metricas.pausaAbiertaTs = ahora;
+    this.metricas.cerrarPausa(ahora);
+    this.metricas.abrirPausa(ahora, false);
     this.emitir({ tipo: "estado", antes: "corriendo", ahora: "pausada", motivo: "manual" });
     this.guardarCheckpoint(this.ahora(), true);
     return true;
@@ -134,10 +133,7 @@ export class MotorGPS {
     const ahora = this.ahora();
     const ok = this.actividad.reanudar(ahora);
     if (!ok) return false;
-    if (this.metricas.pausaAbiertaTs !== null) {
-      this.metricas.pausasMs += Math.max(0, ahora - this.metricas.pausaAbiertaTs);
-      this.metricas.pausaAbiertaTs = null;
-    }
+    this.metricas.cerrarPausa(ahora);
     // Reset de filtros (igual que el motor histórico al reanudar): la
     // velocidad y la posición previa quedan nulas para que ni la
     // velocidad ni la distancia salten con el tiempo de pausa.
@@ -176,15 +172,14 @@ export class MotorGPS {
     const previo = this.procesador.fixPrevio;
     const r = this.procesador.procesar(fix);
     if (!r.aceptado) return;
-    const dM = previo ? this.distanciaEntre(previo, r.fix) : 0;
+    const dM = previo ? haversineM(previo, r.fix) : 0;
     // FSM de actividad con la velocidad filtrada
     const transicion = this.actividad.onFix(r.velKmh, this.ahora());
     if (transicion) {
       if (transicion.ahora === "autoPausada" && this.metricas.pausaAbiertaTs === null) {
-        this.metricas.pausaAbiertaTs = this.ahora();
+        this.metricas.abrirPausa(this.ahora(), true);
       } else if (transicion.motivo === "auto-reanudada" && this.metricas.pausaAbiertaTs !== null) {
-        this.metricas.pausasMs += Math.max(0, this.ahora() - this.metricas.pausaAbiertaTs);
-        this.metricas.pausaAbiertaTs = null;
+        this.metricas.cerrarPausa(this.ahora());
       }
       this.emitir({ tipo: "estado", ...transicion });
     }
@@ -203,16 +198,6 @@ export class MotorGPS {
     if (ahora - this.ultimoCheckpointTs >= this.cfg.checkpointCadaSec * 1000) {
       this.guardarCheckpoint(ahora, false);
     }
-  }
-
-  /** Haversine local entre fixes (fórmula pura, sin importar la app). */
-  private distanciaEntre(a: FixBruto, b: FixBruto): number {
-    const R = 6371000;
-    const rad = Math.PI / 180;
-    const dLat = (b.lat - a.lat) * rad;
-    const dLon = (b.lon - a.lon) * rad;
-    const s = Math.sin(dLat / 2) ** 2 + Math.cos(a.lat * rad) * Math.cos(b.lat * rad) * Math.sin(dLon / 2) ** 2;
-    return 2 * R * Math.asin(Math.sqrt(s));
   }
 
   // ---------- checkpoint / recuperación ----------

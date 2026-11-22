@@ -10,6 +10,11 @@
 //     desnivel calibrada contra ruido GNSS vertical; antes sin
 //     histéresis y con la misma EMA rápida de la pendiente).
 //   · autoPausa activada por defecto (nueva funcionalidad).
+//
+// Cierre de fase única (2026-11-22): este módulo es PURAMENTE la
+// configuración del motor. La persistencia del perfil del
+// CONSUMIDOR (claves de la app, localStorage del producto) vive
+// en la capa de la aplicación — en Cumbre30, src/lib/motorPerfil.ts.
 // ============================================================
 
 export type MotorConfig = {
@@ -145,41 +150,8 @@ export function resolverMotorConfig(parcial?: Partial<MotorConfig>): MotorConfig
   };
 }
 
-// ---------- perfil persistente de la app (consumidor) ----------
-// El MotorConfig puro vive en memoria; Cumbre30 persiste sus
-// preferencias de perfil en localStorage y las inyecta al crear el
-// motor. Otra aplicación puede tener su propia capa de persistencia.
-
-export const LS_MOTOR_CFG = "cumbre30-motor-cfg-v1";
-
-/** Lee la config parcial persistida de la app (o vacía si no hay). */
-export function leerConfigMotor(): Partial<MotorConfig> {
-  try {
-    if (typeof window === "undefined" || !window.localStorage) return {};
-    const raw = window.localStorage.getItem(LS_MOTOR_CFG);
-    return raw ? (JSON.parse(raw) as Partial<MotorConfig>) : {};
-  } catch {
-    return {};
-  }
-}
-
-/** ¿Auto-pausa activada? (perfil persistido; defecto: sí). */
-export function autoPausaActivada(): boolean {
-  const cfg = leerConfigMotor();
-  return cfg.autoPausa ? cfg.autoPausa.activada !== false : true;
-}
-
-/** Cambia la auto-pausa del perfil persistido. */
-export function setAutoPausaActivada(on: boolean): void {
-  try {
-    if (typeof window === "undefined" || !window.localStorage) return;
-    const cfg = leerConfigMotor();
-    const merged: Partial<MotorConfig> = {
-      ...cfg,
-      autoPausa: { ...MOTOR_CONFIG_DEFECTO.autoPausa, ...(cfg.autoPausa ?? {}), activada: on },
-    };
-    window.localStorage.setItem(LS_MOTOR_CFG, JSON.stringify(merged));
-  } catch {
-    // sin almacenamiento: la preferencia vive solo en esta sesión
-  }
-}
+// NOTA (cierre de fase única): las funciones leerConfigMotor /
+// autoPausaActivada / setAutoPausaActivada y la clave
+// LS_MOTOR_CFG="cumbre30-motor-cfg-v1" se MOVIERON a
+// src/lib/motorPerfil.ts (capa de la app): MotorConfig queda
+// independiente del producto, como exige la modularización.

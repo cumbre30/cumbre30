@@ -1,45 +1,66 @@
-import { SIM_ROUTE, type LatLng } from "./park";
-import { haversineM } from "./geo";
+// ============================================================
+// src/lib/simulation.ts - RideSimulator: simulador de recorridos
+// para demo y pruebas. CIERRE DE FASE ÚNICA: la RUTA se INYECTA
+// por parámetro y el simulador solo depende del NÚCLEO del motor
+// (haversine de src/motor/geo.ts) — ya no importa park.ts ni
+// lib/geo de la app. Cualquier proyecto construye sus propios
+// waypoints; Cumbre30 le pasa SIM_ROUTE desde sus adaptadores
+// (src/lib/fuentes-motor.ts).
+// ============================================================
 
-export type SimFix = LatLng & {
-  speedKmh: number;
-  alt: number;
-  accuracyM: number;
-  t: number;
+import { haversineM } from "../motor/geo";
+
+/** Waypoint de la ruta simulada: posición, velocidad objetivo del
+ *  tramo (km/h) y altitud (m). */
+export type PuntoRutaSim = { lat: number; lon: number; kmh: number; alt: number };
+
+/** Fix que entrega el simulador (velocidad ya en km/h del tramo). */
+export type SimFix = { lat: number; lon: number; speedKmh: number; alt: number; accuracyM: number; t: number };
+
+export type OpcionesSimulador = {
+  ruta: PuntoRutaSim[];
+  speedScale?: number;
+  loop?: boolean;
+  semilla?: number;
 };
 
 /**
- * Simulador de un recorrido real: subida por Pío Nono hasta
- * Plaza México y bajada por Antilén hasta la salida Pedro de Valdivia.
- * Reproduce las velocidades típicas de cada tramo (incluido el
- * pico sobre 30 km/h en la bajada) para probar todas las alertas
- * sin necesitar GPS. Avanza `speedScale` veces el tiempo real.
+ * Simulador determinista de un recorrido: interpola posición y
+ * velocidad a lo largo de la ruta inyectada. Avanza `speedScale`
+ * veces el tiempo real. Con `semilla`, las "corridas" son
+ * reproducibles (tests motor-gps y proyecto independiente).
  */
 export class RideSimulator {
+  private ruta: PuntoRutaSim[];
   private cumulative: number[] = [];
   private totalDist = 0;
   private traveled = 0; // metros recorridos
   private simTime: number;
   private readonly speedScale: number;
+  private loop: boolean;
   private rnd: () => number;
 
-  constructor(speedScale = 6, loop = true, semilla?: number) {
-    this.speedScale = speedScale;
-    this.loop = loop;
+  constructor(opciones: OpcionesSimulador) {
+    this.ruta = opciones.ruta;
+    if (!Array.isArray(this.ruta) || this.ruta.length < 2) {
+      // ruta trivial de 2 puntos en línea: el simulador nunca lanza
+      this.ruta = [
+        { lat: 0, lon: 0, kmh: 10, alt: 0 },
+        { lat: 0, lon: 0.0001, kmh: 10, alt: 0 },
+      ];
+    }
+    this.speedScale = opciones.speedScale ?? 6;
+    this.loop = opciones.loop ?? true;
     this.simTime = Date.now();
-    // PRNG determinista opcional (fase única 2026-11-22): con semilla,
-    // las "corridas" de prueba son reproducibles (tests motor-gps).
-    this.rnd = semilla === undefined ? Math.random : mulberry32(semilla);
+    this.rnd = opciones.semilla === undefined ? Math.random : mulberry32(opciones.semilla);
     let acc = 0;
     this.cumulative.push(0);
-    for (let i = 1; i < SIM_ROUTE.length; i++) {
-      acc += haversineM(SIM_ROUTE[i - 1], SIM_ROUTE[i]);
+    for (let i = 1; i < this.ruta.length; i++) {
+      acc += haversineM(this.ruta[i - 1], this.ruta[i]);
       this.cumulative.push(acc);
     }
     this.totalDist = acc;
   }
-
-  private loop: boolean;
 
   reset(): void {
     this.traveled = 0;
@@ -54,8 +75,8 @@ export class RideSimulator {
     const d0 = this.cumulative[i - 1];
     const d1 = this.cumulative[i];
     const f = d1 > d0 ? (clamped - d0) / (d1 - d0) : 0;
-    const a = SIM_ROUTE[i - 1];
-    const b = SIM_ROUTE[i];
+    const a = this.ruta[i - 1];
+    const b = this.ruta[i];
     return {
       lat: a.lat + (b.lat - a.lat) * f,
       lon: a.lon + (b.lon - a.lon) * f,

@@ -49,8 +49,9 @@ import { isMotorizedRide, VEH_LIMIT_KMH, VEH_STREAK_SEC, VEH_TOTAL_SEC } from "@
 import { syncRideAfterSave, markRideAsBike } from "@/lib/sync";
 import { rutaProyectadaStore, conRouteRef } from "@/lib/rutaProyectada";
 import { MotorGPS } from "@/motor/nucleo";
-import { crearFuenteNativa, crearFuenteWeb, crearFuenteSim } from "@/motor/fuente";
-import { autoPausaActivada, leerConfigMotor } from "@/motor/config";
+import { crearFuenteNativa, crearFuenteWeb, crearFuenteSim } from "@/lib/fuentes-motor";
+import { autoPausaActivada, leerConfigMotor } from "@/lib/motorPerfil";
+import { crearAlmacenDuradero, type AlmacenDuradero } from "@/lib/almacenDuradero";
 import type { EventoMotor, FixBruto } from "@/motor/tipos";
 
 export type SpeedState = "ok" | "caution" | "over";
@@ -175,11 +176,19 @@ export function useRideEngine() {
   // --- motor (núcleo reutilizable) ---
   const motorRef = useRef<MotorGPS | null>(null);
   const fuenteRef = useRef<{ tipo: "nativa" | "web" | "sim" } | null>(null);
+  // Almacén DURADERO del checkpoint (localStorage + espejo nativo por
+  // Filesystem). Cierre de fase única: la app INYECTA su persistencia
+  // al motor — el contrato AlmacenCheckpoint no cambia.
+  const almacenRef = useRef<AlmacenDuradero | null>(null);
+  function getAlmacen(): AlmacenDuradero {
+    if (!almacenRef.current) almacenRef.current = crearAlmacenDuradero();
+    return almacenRef.current;
+  }
   function getMotor(): MotorGPS {
     if (!motorRef.current) {
       // Perfil de actividad del consumidor (Cumbre30) inyectado como
       // config parcial; defectos = comportamiento histórico del motor.
-      motorRef.current = new MotorGPS({ config: leerConfigMotor() });
+      motorRef.current = new MotorGPS({ config: leerConfigMotor(), almacen: getAlmacen() });
       motorRef.current.on((e) => eventoRef.current(e));
     }
     return motorRef.current;
@@ -691,17 +700,28 @@ export function useRideEngine() {
     logEvent("info", t("log.recupDescartado"));
   }, [logEvent]);
 
-  // Recuperación pendiente al abrir la app
+  // Recuperación pendiente al abrir la app. Primero PRECARGA el espejo
+  // nativo duradero (archivo en Directory.Data) y recién entonces
+  // pregunta por el ride interrumpido: la capa nativa puede contener
+  // un checkpoint más reciente que el localStorage del WebView.
   useEffect(() => {
-    const cp = getMotor().leerRecuperacion();
-    if (cp) {
-      setRecuperacion({
-        fecha: cp.ultimoGuardadoTs,
-        distanciaKm: cp.metricas.distanciaM / 1000,
-        elapsedMin: cp.metricas.elapsedSec / 60,
-        fuente: cp.fuente,
-      });
-    }
+    let cancelado = false;
+    void (async () => {
+      await getAlmacen().precargar();
+      if (cancelado) return;
+      const cp = getMotor().leerRecuperacion();
+      if (cp) {
+        setRecuperacion({
+          fecha: cp.ultimoGuardadoTs,
+          distanciaKm: cp.metricas.distanciaM / 1000,
+          elapsedMin: cp.metricas.elapsedSec / 60,
+          fuente: cp.fuente,
+        });
+      }
+    })();
+    return () => {
+      cancelado = true;
+    };
   }, []);
 
   const pause = useCallback(() => {

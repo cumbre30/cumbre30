@@ -30,7 +30,7 @@ import { SubTabs } from "@/components/SubTabs";
 import { ThemeIconButton } from "@/components/ThemeToggle";
 import { APP_VERSION, APP_VERSION_CODE } from "@/lib/appVersion";
 import { fallConfigOn, setFallConfigOn, fallConfirmSegs, setFallConfirmSegs, type FallConfirmSegs } from "@/lib/fallDetect";
-import { autoPausaActivada, setAutoPausaActivada } from "@/motor/config";
+import { autoPausaActivada, setAutoPausaActivada } from "@/lib/motorPerfil";
 import {
   ICE_MAX,
   getIceConfig,
