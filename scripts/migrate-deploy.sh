@@ -29,6 +29,10 @@ if [ "$ENV" = "production" ]; then
   echo "[migrate-deploy] producción: aplicando migraciones (migrate deploy)…"
   if npx prisma migrate deploy > /tmp/migrate-deploy.log 2>&1; then
     echo "[migrate-deploy] migraciones aplicadas."
+    # Cultura Ciclista (2026-11-22): semilla editorial idempotente en el
+    # build de producción — solo llena si el catálogo está incompleto
+    # (el guard interno salta si ya están los recursos).
+    node scripts/semilla-cultura.mjs || echo "[migrate-deploy] aviso: semilla de Cultura omitida (no bloquea el deploy)."
   elif grep -q "database schema is not empty" /tmp/migrate-deploy.log; then
     # Primer deploy sobre la base histórica (creada con db push: tiene
     # tablas pero sin historial de migraciones). Baselining automático

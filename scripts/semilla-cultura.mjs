@@ -155,6 +155,11 @@ const CATALOGO = [
 ];
 
 async function main() {
+  const previos = await db.culturaRecurso.count();
+  if (previos >= CATALOGO.length && !process.argv.includes("--forzar")) {
+    console.log(`Catálogo completo (${previos}/${CATALOGO.length}): nada que sembrar (usa --forzar para re-sincronizar).`);
+    return;
+  }
   let creados = 0;
   let actualizados = 0;
   for (const r of CATALOGO) {
