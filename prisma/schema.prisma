@@ -60,6 +60,7 @@ model User {
   routeReports     RouteReport[]
   routeExperiences RouteExperience[]
   routeFavorites   RouteFavorite[]
+  culturaFavoritos CulturaFavorito[]
 }
 
 model Session {
@@ -521,4 +522,67 @@ model ModerationLog {
 
   @@index([targetType, targetId])
   @@index([createdAt])
+}
+
+// ============================================================
+// Cultura Ciclista (módulo del menú lateral, 2026-11-22): catálogo
+// editorial propio de libros, películas y documentales ciclistas.
+// El catálogo vive en esta base (no en APIs externas): las
+// integraciones (Google Books / TMDB / Open Library) solo ENRIQUECEN
+// metadatos vía scripts/ingesta-cultura.mjs con claves en el backend;
+// los carruseles jamás dependen de un servicio externo para pintarse.
+// ============================================================
+model CulturaRecurso {
+  id         String   @id @default(cuid())
+  titulo     String
+  // Reseña editorial propia (original de Cumbre30, es) — nunca texto
+  // copiado de proveedores.
+  resena     String
+  // Tipo: libro | pelicula | documental
+  tipo       String
+  // Categorías (una o varias): mtb | aventura | historia | ruta |
+  // entrenamiento | personas. Etiquetas se resuelven en i18n (cu.cat*).
+  categorias String[]
+  // Portada: hoy null → el cliente pinta portada procedural (paleta
+  // determinista por recurso, sin hotlink ni dependencia de licencias
+  // de terceros). La ingesta llena esta URL solo de fuentes cuyo uso
+  // está permitido (p. ej. covers.openlibrary.org).
+  portadaUrl String?
+  // Año (string: admite "1978", "2023", "Serie", "Publicación").
+  anio       String?
+  // Autor, director o estudio/productora.
+  autor      String
+  // Dato extra disponible: duración, páginas, formato, etc.
+  extra      String?
+  pais       String?
+  // Enlace legítimo externo (buscar/comprar/acceder): sin simulación
+  // de reproducción ni compra dentro de la app.
+  urlExterna String
+  // Proveedor del metadato: editorial (semilla curada) | open_library |
+  // google_books | tmdb.
+  proveedor  String   @default("editorial")
+  // Flujo editorial: borrador (false) → revisión → publicado (true).
+  publicado  Boolean  @default(false)
+  // Indicador de destacado: alimenta la fila superior del módulo.
+  destacado  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  favoritos CulturaFavorito[]
+
+  @@index([tipo])
+  @@index([publicado, destacado])
+  @@map("cultura_recursos")
+}
+
+model CulturaFavorito {
+  id        String         @id @default(cuid())
+  userId    String
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  recursoId String
+  recurso   CulturaRecurso @relation(fields: [recursoId], references: [id], onDelete: Cascade)
+  createdAt DateTime       @default(now())
+
+  @@unique([userId, recursoId])
+  @@map("cultura_favoritos")
 }

@@ -14,6 +14,7 @@ import { useEffect, useMemo } from "react";
 import { useSyncExternalStore } from "react";
 import {
   Bike,
+  BookOpen,
   ChartLine,
   ChevronRight,
   Crown,
@@ -33,6 +34,7 @@ import { t, useLang } from "@/lib/i18n";
 export type MenuScreen =
   | "historial"
   | "stats"
+  | "cultura"
   | "educacion"
   | "perfil"
   | "config"
@@ -159,6 +161,9 @@ export function AppDrawer({
           <p className="px-1 pb-1 pt-2 text-[10.5px] font-extrabold uppercase tracking-widest text-muted-foreground/70">{t("drawer.zonaActividad")}</p>
           <MenuItem icon={<History className="h-5 w-5" />} label={t("menu.historial")} onClick={() => go("historial")} />
           <MenuItem icon={<ChartLine className="h-5 w-5" />} label={t("menu.stats")} onClick={() => go("stats")} />
+          {/* Cultura Ciclista (2026-11-22): catálogo editorial propio —
+              libros, películas y documentales del ciclismo. */}
+          <MenuItem icon={<BookOpen className="h-5 w-5" />} label={t("menu.cultura")} hint={t("drawer.culturaHint")} onClick={() => go("cultura")} />
           {/* Desafíos y recompensas: sección del Perfil Ciclista desde v1.14.0; Amigos vive en Comunidad → Siguiendo (2026-11-22) */}
         </div>
 

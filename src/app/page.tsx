@@ -26,6 +26,7 @@ import { BannerPedalea } from "@/components/BannerPedalea";
 import { PlanPill, ProContextModal } from "@/components/ProUI";
 import { PlanesTab } from "@/components/PlanesTab";
 import { StatsTab } from "@/components/StatsTab";
+import { CulturaView } from "@/components/CulturaView";
 import { ConfigTab } from "@/components/ConfigTab";
 import { HelpTab } from "@/components/HelpTab";
 import { FallOverlay } from "@/components/FallOverlay";
@@ -122,6 +123,7 @@ type Screen = TabScreen | SubScreen;
 const SUB_KEYS: Record<SubScreen, string> = {
   historial: "menu.historial",
   stats: "menu.stats",
+  cultura: "menu.cultura",
   educacion: "menu.educacion",
   perfil: "menu.perfil",
   config: "menu.config",
@@ -466,6 +468,8 @@ export default function Home() {
               />
             )}
             {screen === "stats" && <StatsTab onGoPro={() => go("planes")} />}
+            {/* Cultura Ciclista (2026-11-22): catálogo editorial en la base propia. */}
+            {screen === "cultura" && <CulturaView />}
             {/* Desafíos y recompensas: sección del Perfil Ciclista (v1.14.0); Amigos vive en Comunidad → Siguiendo desde 2026-11-22 */}
             {screen === "perfil" && <ProfileTab />}
             {screen === "config" && (

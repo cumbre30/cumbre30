@@ -1,0 +1,171 @@
+# Cultura Ciclista — documentación técnica (2026-11-22)
+
+Módulo del menú lateral (AppDrawer → Zona 2 «Mi actividad») que incorpora a
+Cumbre30 una biblioteca multimedia de libros, películas y documentales del
+ciclismo, con la identidad visual de la app (emerald sobre dark) y la
+estructura del mockup del cliente (`upload/cumbre30_cultura_ciclista_mockup.html`):
+hero, buscador, filtros por tipo y categoría, destacados, carruseles
+horizontales, ficha individual y favoritos.
+
+## 1. Decisiones de arquitectura
+
+**El catálogo vive en la base de datos propia (Supabase Postgres vía Prisma),
+no en APIs externas.** Conforme a la recomendación del cliente:
+
+1. Semilla editorial curada a mano (`scripts/semilla-cultura.mjs`): 64
+   recursos reales (33 libros · 10 películas · 21 documentales), con reseña
+   editorial original de Cumbre30 y clasificación por categorías. Solo se
+   incluyen títulos/autores/años verificables; cuando el año no es seguro se
+   deja `null` (nada inventado).
+2. La ingesta (`scripts/ingesta-cultura.mjs`) ENRIQUECE metadatos desde los
+   proveedores y solo completa campos vacíos; jamás sobreescribe el trabajo
+   editorial (reseña, autor, categorías, enlace).
+3. Los carruseles se pintan SOLO desde la base propia: si Google Books, TMDB
+   u Open Library están caídos, el módulo funciona exactamente igual. No hay
+   llamada a proveedores en línea de petición.
+
+### Portadas
+
+- **Open Library covers** (`covers.openlibrary.org`): uso permitido por sus
+  términos con atribución — la atribución vive en la nota al pie del módulo
+  (`cu.footNota`). 22 libros quedaron con portada real tras la ingesta.
+- **Respaldo procedural**: todo recurso pinta siempre una portada procedural
+  (gradiente determinista por hash del id + icono del tipo + título), visible
+  cuando no hay `portadaUrl`, cuando la imagen tarda o si la imagen falla
+  (`onError`). Cero riesgo de licencia y funciona offline en el APK.
+- TMDB y Google Books exigen condiciones de atribución adicionales para sus
+  imágenes: por defecto NO se usan sus portadas (la ingesta las deja `null`;
+  activarlas es una decisión editorial documentada en el script).
+
+### Enlaces externos
+
+`urlExterna` apunta a búsquedas legítimas (Open Library / IMDb / TMDB) o a
+sitios oficiales. La app **no simula** reproducción ni compra: el botón de la
+ficha abre la fuente en pestaña nueva (`target="_blank" rel="noopener noreferrer"`).
+
+## 2. Modelo de datos (migración `20261122011856_cultura_ciclista`)
+
+```prisma
+model CulturaRecurso {          // tabla cultura_recursos
+  id         String   @id @default(cuid())
+  titulo     String
+  resena     String              // reseña editorial propia (es)
+  tipo       String              // libro | pelicula | documental
+  categorias String[]            // mtb | aventura | historia | ruta | entrenamiento | personas
+  portadaUrl String?             // Open Library o null → portada procedural
+  anio       String?             // admite "1978", "Serie", "Publicación"
+  autor      String              // autor, director o productora
+  extra      String?             // duración, páginas, formato…
+  pais       String?
+  urlExterna String
+  proveedor  String  @default("editorial")  // editorial | …+open_library | +google_books | +tmdb
+  publicado  Boolean @default(false)        // flujo editorial: borrador → publicado
+  destacado  Boolean @default(false)        // fila «Para empezar»
+  createdAt / updatedAt
+  favoritos  CulturaFavorito[]
+}
+
+model CulturaFavorito {         // tabla cultura_favoritos
+  id, userId → User (cascade), recursoId → CulturaRecurso (cascade)
+  @@unique([userId, recursoId])  // un favorito por usuario y recurso
+}
+```
+
+Índices: `tipo` y `(publicado, destacado)` para las consultas del módulo.
+`User.culturaFavoritos` completa la relación.
+
+## 3. API (backend propio; claves de proveedores nunca en el cliente)
+
+| Endpoint | Descripción |
+| --- | --- |
+| `GET /api/cultura/recursos` | Catálogo publicado. Filtros combinables: `tipo`, `cat`, `q` (título/autor, insensible), `destacado=1`. Devuelve `{ recursos, favoritos: id[], total }` — los ids favoritos del usuario vienen en la misma respuesta. |
+| `GET /api/cultura/favoritos` | Favoritos del usuario con sesión, con recurso completo. |
+| `POST /api/cultura/favoritos` | `{ recursoId }` → agrega (idempotente, `upsert`). Rate limit 60/min. |
+| `DELETE /api/cultura/favoritos?recursoId=` | Quita (idempotente). |
+
+Todas exigen sesión (`getSessionUser`), con CORS/Bearer para el APK
+(`apiCors`), el mismo patrón de `/api/friends`. Sin sesión → 401 honesto.
+
+## 4. Ingesta de proveedores (`scripts/ingesta-cultura.mjs`)
+
+- **Open Library** (sin clave): año de primera publicación, número de páginas
+  y portada para libros. `User-Agent` propio y pausa de 350 ms por request.
+- **Google Books** (`GOOGLE_BOOKS_API_KEY`, opcional): año y páginas de libros.
+- **TMDB** (`TMDB_API_KEY`, Bearer v4): año, duración y país de películas y
+  documentales (series vía `/search/tv`).
+- Dry-run por defecto; `--aplicar` escribe. Un proveedor caído se registra y
+  continúa (`0 fallos` en la corrida aplicada del 2026-11-22: 24
+  enriquecimientos, 22 portadas).
+- Reglas: solo completa `anio`/`pais`/`extra`/`portadaUrl` vacíos; `proveedor`
+  queda trazable (`editorial+open_library`); nunca toca reseña/autor/categorías/enlace.
+
+## 5. Frontend (`src/components/CulturaView.tsx`)
+
+- **Hero** con eyebrow, título del mockup («La cultura también se pedalea.»),
+  cuerpo y dos CTA (Explorar la biblioteca / Mis favoritos).
+- **Buscador** (título y autor, client-side sobre el catálogo completo —
+  respuesta instantánea) + **filtros**: chips de tipo (Todo/Libros/Películas/
+  Documentales) y de categoría (Todas/MTB/Aventura/Historia/Ruta/Entrenamiento/
+  Historias humanas), ambos con estado `aria`.
+- **Destacados**: tarjetas dobles con reseña truncada y «Conocer más».
+- **Carruseles**: `overflow-x-auto` + `snap-x snap-mandatory` + tarjetas
+  `snap-start` (gesto táctil nativo en Android), 6 rails — Libros, Películas,
+  Documentales, MTB y Downhill, Aventura y Bikepacking, Historia y Cultura —
+  cada uno con «Ver colección →» que activa el filtro correspondiente. Un
+  recurso puede aparecer en varios rails (pertenece a varias categorías).
+- **«Para tu perfil»**: carrusel complementario que mapea el arquetipo del
+  Perfil Ciclista (`/api/profile`) a categorías (CLIMBER→ruta/mtb, EXPLORER→
+  aventura/mtb, URBAN→historia/personas, etc., + eje exploración ≥70 →
+  aventura). Falla en silencio y JAMÁS restringe el catálogo completo
+  (requisito §6 del brief).
+- **Ficha**: modal (`role="dialog"`) con portada, badge de tipo, título, año ·
+  autor · país, chips de categorías, reseña, dato extra, enlace externo y
+  favorito. Cierra con Escape y con clic en el fondo.
+- **Favoritos**: corazón con actualización optimista y reversión si el
+  servidor no confirma; vista «Mis favoritos» con estado vacío honesto.
+- **Estados**: carga (skeleton), error con reintentar, catálogo vacío /
+  búsqueda sin resultados (`cu.sinResultados`), y modo sin backend en el APK
+  estático (`cu.noBackend`, patrón AmigosTab).
+- **Política de invitados**: la pantalla `cultura` exige sesión como el resto
+  de las sub-pantallas del menú (historial/stats): sin sesión se muestra
+  `PanelSesionRequerida` y no se llama al servidor.
+
+## 6. i18n
+
+Bloque `cu.*` (44 claves) + `menu.cultura` + `drawer.culturaHint`, completo en
+es/en/pt. La auditoría de `tests/cultura.test.ts` verifica: toda clave usada
+por CulturaView está declarada ×3 idiomas y no hay huérfanas.
+
+## 7. Cómo correr
+
+```bash
+# migración (local) y semilla editorial
+DATABASE_URL=postgresql://postgres@127.0.0.1:5433/cumbre30 bunx prisma migrate deploy
+DATABASE_URL=postgresql://postgres@127.0.0.1:5433/cumbre30 bun scripts/semilla-cultura.mjs
+
+# ingesta de metadatos (dry-run / aplicar)
+DATABASE_URL=... [GOOGLE_BOOKS_API_KEY=...] [TMDB_API_KEY=...] bun scripts/ingesta-cultura.mjs [--aplicar]
+
+# pruebas
+DATABASE_URL=... bun tests/cultura.test.ts          # 35 comprobaciones (catálogo, API, favoritos, i18n)
+node scripts/invivo-cultura-ui.mjs                  # in-vivo en :3100 (21/21 con sesión real)
+```
+
+En producción (Supabase): aplicar la migración con `prisma migrate deploy`
+(CI) y correr la semilla una vez contra la base de producción; la ingesta es
+opcional y idempotente.
+
+## 8. Aceptación del brief — evidencias
+
+| Requisito | Evidencia |
+| --- | --- |
+| 1. Integrado en la app | Menú lateral → pantalla `cultura` (`page.tsx`, `AppDrawer`). |
+| 2. Carruseles funcionales | In-vivo: 6 rails, scroll táctil verificado (0 → 316 px). |
+| 3. Búsqueda y filtros correctos | Tests 14-20 de `cultura.test.ts` + in-vivo («krabbé» → The Rider; filtro Películas). |
+| 4. Fichas completas | In-vivo ficha con portada, reseña, meta, extra, categorías. |
+| 5. Enlaces externos | `https://` verificado en los 64 recursos (test) + enlace en ficha. |
+| 6. Favoritos por usuario | Tests de aislamiento A/B, idempotencia y persistencia + in-vivo. |
+| 7. Fuente persistente | 64 recursos en `cultura_recursos`; el módulo no llama a APIs externas. |
+| 8. Android | Viewport 412×915 en todos los in-vivo; scroll táctil nativo; APK cubierto por `noBackend`/Bearer. |
+| 9. Estados carga/error/vacío | `cu-cargando`, `cu-error` + reintentar, `cu.sinResultados`, `cu.favoritosVacio`, `cu.noBackend`. |
+| 10. Sin regresiones | 13 suites previas OK (explorar-view 61/61, comunidad, fase-f, pro-muro…), tsc en baseline, build OK. |
