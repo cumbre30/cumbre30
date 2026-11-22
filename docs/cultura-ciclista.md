@@ -9,8 +9,9 @@ horizontales, ficha individual y favoritos.
 
 ## 1. Decisiones de arquitectura
 
-**El catálogo vive en la base de datos propia (Supabase Postgres vía Prisma),
-no en APIs externas.** Conforme a la recomendación del cliente:
+**El catálogo vive en la base de datos conectada de la app (Postgres gestionado
+en Neon, vía `DATABASE_URL`, a través de Prisma) — no en APIs externas.**
+Conforme a la recomendación del cliente:
 
 1. Semilla editorial curada a mano (`scripts/semilla-cultura.mjs`): 64
    recursos reales (33 libros · 10 películas · 21 documentales), con reseña
@@ -151,9 +152,12 @@ DATABASE_URL=... bun tests/cultura.test.ts          # 35 comprobaciones (catálo
 node scripts/invivo-cultura-ui.mjs                  # in-vivo en :3100 (21/21 con sesión real)
 ```
 
-En producción (Supabase): aplicar la migración con `prisma migrate deploy`
-(CI) y correr la semilla una vez contra la base de producción; la ingesta es
-opcional y idempotente.
+En producción (la base de datos conectada de la app — Neon vía `DATABASE_URL`):
+la migración y la semilla editorial se aplican automáticamente en el build de
+Vercel — `scripts/migrate-deploy.sh` corre `prisma migrate deploy` y luego
+`node scripts/semilla-cultura.mjs` solo cuando el catálogo está incompleto
+(guard idempotente 64/64; `--forzar` para re-sincronizar a mano). La ingesta
+es opcional y idempotente, con claves solo en variables de entorno del backend.
 
 ## 8. Aceptación del brief — evidencias
 

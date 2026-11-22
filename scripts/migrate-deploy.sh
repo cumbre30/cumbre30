@@ -33,6 +33,11 @@ if [ "$ENV" = "production" ]; then
     # build de producción — solo llena si el catálogo está incompleto
     # (el guard interno salta si ya están los recursos).
     node scripts/semilla-cultura.mjs || echo "[migrate-deploy] aviso: semilla de Cultura omitida (no bloquea el deploy)."
+    # Ingesta de metadatos (Open Library sin clave; TMDB/Google Books solo si
+    # hay claves en el entorno): completa campos vacíos y portadas permitidas.
+    # Idempotente y tolerante a fallos — nunca bloquea el deploy ni afecta al
+    # módulo (los carruseles leen solo de la base propia).
+    node scripts/ingesta-cultura.mjs --aplicar || echo "[migrate-deploy] aviso: ingesta de Cultura omitida (no bloquea el deploy)."
   elif grep -q "database schema is not empty" /tmp/migrate-deploy.log; then
     # Primer deploy sobre la base histórica (creada con db push: tiene
     # tablas pero sin historial de migraciones). Baselining automático
