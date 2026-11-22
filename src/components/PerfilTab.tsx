@@ -2,15 +2,17 @@
 
 /**
  * PerfilTab - Perfil Ciclista (v1.13.16, reorganizado en v1.14.0):
- * 4ª pestaña de la barra inferior con TRES secciones (SubTabs):
+ * 4ª pestaña de la barra inferior con DOS secciones (SubTabs):
  *   · ADN - todo lo del perfil de pedaleo: arquetipo con su "por qué",
  *     radar de los 6 ejes, medidas de los últimos 90 días y los rides
  *     que lo alimentan. Al principio: las tarjetas "Tu progreso" y
  *     "Tus niveles" (trasladadas desde Desafíos y recompensas).
  *   · Desafíos y recompensas - rachas (trasladada desde Estadísticas
  *     generales) + desafíos del cerro, con fecha, retos y pines.
- *   · Amigos - el listado y la invitación por enlace (trasladado del
- *     menú lateral).
+ *
+ * Amigos ya no vive aquí (2026-11-22): estaba duplicado con Comunidad
+ * → Siguiendo (el mismo AmigosTab); quedó solo allí, junto al resto
+ * del módulo comunitario.
  *
  * El cálculo vive en el servidor (lib/profileServer): esta pantalla
  * solo consume GET /api/profile. Sin sesión, la ADN muestra la
@@ -28,7 +30,6 @@ import { sharePngBlob, buildAdnImage } from "@/lib/shareAdn";
 import type { PerfilSummary } from "@/lib/profileServer";
 import { SubTabs } from "@/components/SubTabs";
 import { DesafiosYRecompensas, ProgresoYNivel } from "@/components/ChallengesTab";
-import { AmigosTab } from "@/components/AmigosTab";
 
 type Data = {
   perfil: PerfilSummary;
@@ -36,7 +37,7 @@ type Data = {
   ventanaDias: number;
 };
 
-type Seccion = "adn" | "desafios" | "amigos";
+type Seccion = "adn" | "desafios";
 
 const EMOJI: Record<string, string> = {
   CALIBRATING: "🧭",
@@ -121,11 +122,9 @@ function Radar({ scores }: { scores: PerfilSummary["scores"] }) {
 export function PerfilTab({
   onGoCuenta,
   onGoPro,
-  invitado,
 }: {
   onGoCuenta?: () => void;
   onGoPro?: () => void;
-  invitado?: string | null;
 }) {
   useLang();
   const { me } = useMe();
@@ -144,11 +143,9 @@ export function PerfilTab({
   const [shareMsg, setShareMsg] = useState<string | null>(null);
 
   // Secciones del Perfil (v1.14.0). La invitación por enlace de amigo
-  // (/geo?agregar=usuario) aterriza directo en Amigos.
-  const [seccion, setSeccion] = useState<Seccion>(invitado ? "amigos" : "adn");
-  useEffect(() => {
-    if (invitado) setSeccion("amigos");
-  }, [invitado]);
+  // (/geo?agregar=usuario) ya NO aterriza aquí: va a Comunidad →
+  // Siguiendo (AmigosTab, 2026-11-22).
+  const [seccion, setSeccion] = useState<Seccion>("adn");
 
   const cargar = useCallback(async () => {
     if (url === null || !hasSession) {
@@ -249,7 +246,8 @@ export function PerfilTab({
 
   return (
     <div className="flex flex-col gap-3">
-      {/* Tres secciones (v1.14.0): ADN · Desafíos y recompensas · Amigos */}
+      {/* Dos secciones (v1.14.0; Amigos pasó a Comunidad → Siguiendo en
+          2026-11-22, estaba duplicado con el mismo AmigosTab) */}
       <SubTabs
         ariaLabel={t("pc.seccionesAria")}
         value={seccion}
@@ -257,13 +255,11 @@ export function PerfilTab({
         tabs={[
           { key: "adn", label: t("pc.secAdn") },
           { key: "desafios", label: t("menu.premios") },
-          { key: "amigos", label: t("menu.amigos") },
         ]}
       />
 
       {seccion === "adn" && adn}
       {seccion === "desafios" && <DesafiosYRecompensas onGoPerfil={onGoCuenta} onGoPro={onGoPro} />}
-      {seccion === "amigos" && <AmigosTab onGoPerfil={onGoCuenta} invitado={invitado} />}
     </div>
   );
 }

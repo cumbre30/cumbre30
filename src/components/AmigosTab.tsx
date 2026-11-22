@@ -158,6 +158,11 @@ export function AmigosTab({ onGoPerfil, invitado }: { onGoPerfil?: () => void; i
       <Card className="bg-card/80 border-border p-6 text-center">
         <Users className="mx-auto mb-2 h-6 w-6 text-muted-foreground" />
         <p className="text-sm font-medium text-foreground">{t("am.titulo")}</p>
+        {invitado && (
+          <p className="mt-2 text-xs font-medium text-emerald-700 dark:text-emerald-300">
+            {t("am.invitado", invitado)}
+          </p>
+        )}
         <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">
           {t("am.loginCta")}
         </p>

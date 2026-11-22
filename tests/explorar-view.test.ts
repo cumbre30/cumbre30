@@ -109,34 +109,42 @@ ok("sub controlado desde la app", PAGE.includes("sub={explorarSub}"));
 ok("velocímetro cae en «Explorar mapa»", PAGE.includes('setExplorarSub("mapa")'));
 
 // ------------------------------------------------------------------
-// 2026-11-21 · Segmentos con categorías y Pro sin repetición:
-//   · En «Segmentos», Predefinidas (los oficiales de lib/segments)
-//     es la categoría INICIAL — el ciclista parte con tramos — y
-//     «Mías» conserva los trazados propios con su CTA.
-//   · Mis viajes ya NO repite la subsección «Pro»: el cronometraje
-//     oficial vive solo en Estadísticas → Pro (StatsTab).
+// 2026-11-22 · Segmentos sin Predefinidas y Amigos solo en Comunidad:
+//   · En «Segmentos» ya NO hay categorías: solo «Mías» (trazados
+//     propios). Los 7 oficiales del cerro se listan únicamente en
+//     Estadísticas → Pro (única sede del cronometraje).
+//   · Amigos fuera del Perfil Ciclista: el mismo AmigosTab vive en
+//     Comunidad → Siguiendo (única sede) y la invitación por enlace
+//     (/geo?agregar=usuario) aterriza allí; queda libre para
+//     invitados porque AmigosTab no llama al servidor sin sesión.
 // ------------------------------------------------------------------
-console.log("· segmentos: Predefinidas de serie + Mías (categorías)");
-ok("categoría Predefinidas declarada", VISTA.includes('"ex.segCatPre"'));
-ok("categoría Mías declarada", VISTA.includes('"ex.segCatMias"'));
-ok("Predefinidas es la categoría inicial", VISTA.includes('useState<"pre" | "mias">("pre")'));
-ok("la lista oficial viene de lib/segments", VISTA.includes('from "@/lib/segments"'));
-ok("cada tramo oficial se encuadra con sus geocercas", VISTA.includes("coords: [seg.start, seg.end]"));
-ok("nota honesta: cronometraje vive en Estadísticas · Pro", VISTA.includes('"ex.segPreCrono"'));
+console.log("· segmentos: solo «Mías», sin categoría Predefinidas");
+const STATS = readFileSync(new URL("../src/components/StatsTab.tsx", import.meta.url), "utf8");
+ok("sin categorías de segmentos", !VISTA.includes("segCat") && !VISTA.includes('"ex.segCatPre"') && !VISTA.includes('"ex.segCatMias"'));
+ok("la lista oficial de lib/segments ya no se pinta en Explorar", !VISTA.includes('from "@/lib/segments"') && !VISTA.includes("coords: [seg.start, seg.end]"));
+ok("los 7 oficiales siguen en Estadísticas → Pro", STATS.includes("computeSegmentStats"));
 ok("los oficiales son 7", SEGMENTS.length === 7);
 ok("4 subidas + 3 bajadas del control 30", SEGMENTS.filter((s) => s.dir === "bajada").length === 3 && SEGMENTS.filter((s) => s.dir !== "bajada").length === 4);
 ok("cada oficial trae nombre, detalle y geocercas", SEGMENTS.every((s) => s.name && s.detail && s.start && s.end && s.radiusStartM > 0 && s.radiusEndM > 0));
 ok("ids únicos", new Set(SEGMENTS.map((s) => s.id)).size === SEGMENTS.length);
 
+console.log("· amigos: única sede en Comunidad → Siguiendo");
+const PERFIL = readFileSync(new URL("../src/components/PerfilTab.tsx", import.meta.url), "utf8");
+ok("Perfil ya no monta AmigosTab", !PERFIL.includes('import { AmigosTab }') && !PERFIL.includes("<AmigosTab"));
+ok("Perfil sin la sección/sección inicial amigos", !PERFIL.includes('"amigos"') && !PERFIL.includes('invitado'));
+ok("AmigosTab vive en Comunidad → Siguiendo", VISTA.includes('<AmigosTab invitado={invitado} />'));
+ok("la invitación /geo?agregar=usuario aterriza en Siguiendo", PAGE.includes('setExplorarSub("siguiendo")') && PAGE.includes("invitado={invitado}"));
+ok("con invitado el conmutador arranca en Comunidad", VISTA.includes('useState<Seccion>(invitado ? "comunidad" : "rutas")'));
+ok("Siguiendo queda libre para invitados (sin llamada al servidor)", PAGE.includes("!enSiguiendo"));
+
 const HISTORIAL = readFileSync(new URL("../src/components/HistoryTab.tsx", import.meta.url), "utf8");
-const STATS = readFileSync(new URL("../src/components/StatsTab.tsx", import.meta.url), "utf8");
 console.log("· Pro sin repetición: Viajes sin subtab, Estadísticas única sede");
 ok("Mis viajes ya no tiene la subsección Pro", !HISTORIAL.includes('sub === "pro"') && !HISTORIAL.includes("<SubTabs"));
 ok("Mis viajes conserva el aviso de tramos logrados por ride", HISTORIAL.includes("perRideEfforts"));
 ok("Estadísticas mantiene la subsección Pro", STATS.includes('sub === "pro"'));
 ok("Estadísticas calcula los oficiales con lib/segments", STATS.includes("computeSegmentStats"));
 ok("Estadísticas conserva los segmentos del usuario sin gate", STATS.includes("userSegmentDefs"));
-ok("i18n: sin claves huérfanas del bloque retirado", !I18N.includes('"his.proTeaser"') && !I18N.includes('"his.tabViajes"') && !I18N.includes('"his.segExplicacion"'));
+ok("i18n: sin claves huérfanas de los bloques retirados", !I18N.includes('"his.proTeaser"') && !I18N.includes('"his.tabViajes"') && !I18N.includes('"his.segExplicacion"') && !I18N.includes('"ex.segCatPre"') && !I18N.includes('"menu.amigos"'));
 
 console.log(`\n${pasos - fallos}/${pasos} OK`);
 if (fallos > 0) process.exit(1);

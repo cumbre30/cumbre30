@@ -206,15 +206,16 @@ export default function Home() {
     registrarToqueActualizacion();
     void autoCheckAlAbrir();
   }, []);
-  // Invitación de amigo (Ola 2): /geo?agregar=usuario abre el Perfil
-  // Ciclista en su sección Amigos con el nombre prellenado (después del
-  // montaje, sin romper la hidratación).
+  // Invitación de amigo (Ola 2): /geo?agregar=usuario abre Comunidad →
+  // Siguiendo (AmigosTab, única sede desde 2026-11-22) con el nombre
+  // prellenado (después del montaje, sin romper la hidratación).
   const [invitado, setInvitado] = useState<string | null>(null);
   useEffect(() => {
     const quien = new URLSearchParams(window.location.search).get("agregar");
     if (quien) {
       setInvitado(quien);
-      setScreen("ciclista");
+      setScreen("explorar");
+      setExplorarSub("siguiendo");
     }
   }, []);
   // Enlace viaje ↔ cuenta: rides nuevos y antiguos quedan asociados al
@@ -229,8 +230,11 @@ export default function Home() {
   // el contenido se pinta normal: sin muro parpadeante.
   const esInvitado = ready && !userEmail;
   const enMapaLibre = screen === "explorar" && explorarSub === "mapa";
+  // Siguiendo (AmigosTab) también queda libre para invitados: es la
+  // sede de la invitación por enlace y NO llama al servidor sin sesión.
+  const enSiguiendo = screen === "explorar" && explorarSub === "siguiendo";
   const sesionRequerida =
-    esInvitado && screen !== "ride" && screen !== "perfil" && screen !== "config" && !enMapaLibre;
+    esInvitado && screen !== "ride" && screen !== "perfil" && screen !== "config" && !enMapaLibre && !enSiguiendo;
   useEffect(() => {
     setRideOwner(userEmail);
     if (userEmail) linkRidesToAccount(userEmail);
@@ -430,6 +434,7 @@ export default function Home() {
             onProLocked={(f) => setProLock(f)}
             sub={explorarSub}
             onSub={setExplorarSub}
+            invitado={invitado}
             onGoHistorial={() => go("historial")}
           />
         )}
@@ -442,7 +447,6 @@ export default function Home() {
           <PerfilTab
             onGoCuenta={() => go("perfil")}
             onGoPro={() => go("planes")} // desafíos Pro → comparación FREE/PRO
-            invitado={invitado}
           />
         )}
 
@@ -462,7 +466,7 @@ export default function Home() {
               />
             )}
             {screen === "stats" && <StatsTab onGoPro={() => go("planes")} />}
-            {/* Desafíos y recompensas + Amigos: secciones del Perfil Ciclista (v1.14.0) */}
+            {/* Desafíos y recompensas: sección del Perfil Ciclista (v1.14.0); Amigos vive en Comunidad → Siguiendo desde 2026-11-22 */}
             {screen === "perfil" && <ProfileTab />}
             {screen === "config" && (
               <ConfigTab

@@ -110,7 +110,6 @@ const D: Record<string, E> = {
   "menu.historial": ["Mis viajes", "My rides", "Meus passeios"],
   "menu.stats": ["Estadísticas generales", "Overall statistics", "Estatísticas gerais"],
   "menu.premios": ["Desafíos y recompensas", "Challenges and rewards", "Desafios e recompensas"],
-  "menu.amigos": ["Amigos", "Friends", "Amigos"],
   "menu.perfil": ["Cuenta", "Account", "Conta"],
   "menu.config": ["Configuración", "Settings", "Configurações"],
   "menu.ayuda": ["Ayuda y contacto", "Help and contact", "Ajuda e contato"],
@@ -1705,15 +1704,6 @@ const D: Record<string, E> = {
   "ex.trazarSegmento": ["Trazar segmento", "Draw segment", "Traçar segmento"],
   // Categorías de Segmentos (2026-11-21): los oficiales del cerro
   // vienen de serie (lib/segments) y lo propio del ciclista vive en Mías.
-  "ex.segCatPre": ["Predefinidas", "Built-in", "Predefinidos"],
-  "ex.segCatMias": ["Mías", "Mine", "Minhas"],
-  "ex.segPreSub": ["Los tramos oficiales del cerro vienen incluidos de serie: revísalos en el mapa y disponte para subirlos.", "The official hill segments come included out of the box: review them on the map and get ready to climb them.", "Os trechos oficiais do morro vêm incluídos de série: revise-os no mapa e prepare-se para subi-los."],
-  "ex.segPreStatOf": ["Tramos oficiales", "Official segments", "Trechos oficiais"],
-  "ex.segPreStatSub": ["Subidas", "Climbs", "Subidas"],
-  "ex.segPreStatBaj": ["Bajadas 30", "30 descents", "Descidas 30"],
-  "ex.segDirSubida": ["Subida", "Climb", "Subida"],
-  "ex.segDirBajada": ["Bajada 30", "30 descent", "Descida 30"],
-  "ex.segPreCrono": ["El cronometraje (récord personal, intentos e historial) corre en Estadísticas · Pro, sobre tus viajes con GPS.", "Timing (personal record, attempts and history) runs under Statistics · Pro, over your GPS rides.", "A cronometragem (recorde pessoal, tentativas e histórico) roda em Estatísticas · Pro, sobre seus passeios com GPS."],
   "ex.mapaSub": ["Tus rutas y segmentos sobre el mapa, con búsqueda, capas y avisos.", "Your routes and segments on the map, with search, layers and alerts.", "Suas rotas e segmentos no mapa, com busca, camadas e alertas."],
   "ex.crearSub": ["Elige cómo quieres construir tu próximo trazado.", "Choose how you want to build your next route.", "Escolha como quer construir seu próximo traçado."],
   "ex.crearDibujar": ["Dibujar en el mapa", "Draw on the map", "Desenhar no mapa"],

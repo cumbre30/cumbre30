@@ -159,7 +159,7 @@ export function AppDrawer({
           <p className="px-1 pb-1 pt-2 text-[10.5px] font-extrabold uppercase tracking-widest text-muted-foreground/70">{t("drawer.zonaActividad")}</p>
           <MenuItem icon={<History className="h-5 w-5" />} label={t("menu.historial")} onClick={() => go("historial")} />
           <MenuItem icon={<ChartLine className="h-5 w-5" />} label={t("menu.stats")} onClick={() => go("stats")} />
-          {/* Desafíos y recompensas + Amigos: secciones del Perfil Ciclista desde v1.14.0 */}
+          {/* Desafíos y recompensas: sección del Perfil Ciclista desde v1.14.0; Amigos vive en Comunidad → Siguiendo (2026-11-22) */}
         </div>
 
         {/* Zona 3: Aprende - Centro de Educación Ciclista */}

@@ -8,7 +8,7 @@ const { chromium } = require("/opt/zcode/rt/runtime/node_modules/playwright-core
 const EXE = "/home/z/.cache/ms-playwright/chromium-1200/chrome-linux64/chrome";
 const GEO = { latitude: -33.43721, longitude: -70.64180 };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-const BASE = "http://localhost:3000/?gps=1";
+const BASE = (process.env.VIVO_BASE ?? "http://localhost:3000") + "/?gps=1";
 let pasos = 0;
 let fallos = 0;
 function ok(nombre, cond) {
@@ -38,7 +38,24 @@ function ok(nombre, cond) {
   });
 
   await page.goto(BASE, { waitUntil: "domcontentloaded", timeout: 45000 });
-  await sleep(6000);
+  await sleep(4000);
+  // Sesión real opcional (VIVO_EMAIL/VIVO_PASS): las subsecciones de
+  // Rutas y Comunidad exigen cuenta (política de invitado v1.20.0 —
+  // libre solo el mapa y, desde 2026-11-22, Comunidad → Siguiendo).
+  if (process.env.VIVO_EMAIL) {
+    const estado = await page.evaluate(async ({ email, password }) => {
+      const r = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+        credentials: "include",
+      });
+      return r.status;
+    }, { email: process.env.VIVO_EMAIL, password: process.env.VIVO_PASS ?? "" });
+    ok(`login de prueba (${process.env.VIVO_EMAIL})`, estado === 200);
+    await page.goto(BASE, { waitUntil: "domcontentloaded", timeout: 45000 });
+    await sleep(6000);
+  }
 
   // 1. Ride → pestaña Explorar (bottom nav, 3er botón: Ride·Explorar·Credencial·Perfil)
   await page.getByRole("button", { name: /Explorar/ }).first().click();
@@ -50,19 +67,14 @@ function ok(nombre, cond) {
   ok("subnav Mis rutas activa por defecto", (await page.locator('[data-testid="ex-tab-rutas"][aria-selected="true"]').count()) === 1);
   await page.screenshot({ path: "/tmp/render/ex-rutas.png" });
 
-  // 2. Segmentos: Predefinidas (oficiales de serie, categoría por
-  //    defecto) y Mías (trazados propios, con CTA «Trazar segmento»)
+  // 2. Segmentos: solo «Mías» (categoría Predefinidas retirada,
+  //    2026-11-22; los oficiales viven en Estadísticas → Pro)
   await page.locator('[data-testid="ex-tab-segmentos"]').click();
   await sleep(600);
   ok("subsección Segmentos", await page.locator('[data-testid="ex-contenido-segmentos"]').count() === 1);
-  ok("categoría Predefinidas activa por defecto", (await page.locator('[data-testid="ex-segcat-pre"][aria-selected="true"]').count()) === 1);
-  ok("los 7 tramos oficiales listados", (await page.locator('[data-testid^="ex-segpre-"]').count()) === 7);
-  ok("chips Subida/Bajada 30", (await page.locator("text=Subida").count()) >= 4 && (await page.locator("text=Bajada 30").count()) >= 3);
-  await page.screenshot({ path: "/tmp/render/ex-segpre.png" });
-  await page.locator('[data-testid="ex-segcat-mias"]').click();
-  await sleep(600);
-  ok("categoría Mías activa", (await page.locator('[data-testid="ex-segcat-mias"][aria-selected="true"]').count()) === 1);
-  ok("CTA «Trazar segmento» en Mías", await page.locator('[data-testid="ex-trazar-segmento"]').count() === 1);
+  ok("sin píldoras de categoría", (await page.locator('[data-testid^="ex-segcat-"]').count()) === 0);
+  ok("sin los 7 oficiales del cerro", (await page.locator('[data-testid^="ex-segpre-"]').count()) === 0);
+  ok("CTA «Trazar segmento»", await page.locator('[data-testid="ex-trazar-segmento"]').count() === 1);
   await page.screenshot({ path: "/tmp/render/ex-segmias.png" });
 
   // 3. Crear: 3 tarjetas del mockup

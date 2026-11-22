@@ -1,12 +1,14 @@
 // ============================================================
-// Verificación in-vivo UI (2026-11-21): segmentos Predefinidas de
-// serie + Pro sin repetición. Contra el standalone :3100:
-//   1. Explorar → Segmentos: «Predefinidas» es la categoría
-//      inicial con los 7 tramos oficiales (4 Subida + 3 Bajada 30);
-//      «Mías» conserva el CTA «Trazar segmento».
+// Verificación in-vivo UI (2026-11-22): segmentos solo «Mías»
+// (categoría Predefinidas retirada por el cliente) + Amigos solo en
+// Comunidad. Contra el standalone :3100:
+//   1. Explorar → Segmentos: SIN categorías ni oficiales del cerro;
+//      los trazados propios con su CTA «Trazar segmento».
 //   2. Mis viajes: SIN subtab «Pro» (la repetición se retiró).
 //   3. Estadísticas → Pro: única sede — «Segmentos del cerro» con
 //      los 7 oficiales (FREE los ve listados/bloqueados).
+//   4. Perfil Ciclista: SIN sección Amigos (el mismo AmigosTab vive
+//      en Comunidad → Siguiendo).
 //   node scripts/invivo-segmentos-ui.mjs
 // ============================================================
 import { createRequire } from "node:module";
@@ -55,31 +57,17 @@ function ok(nombre, cond) {
   await page.goto(BASE, { waitUntil: "domcontentloaded", timeout: 30000 });
   await sleep(6000); // hidratación + carga del mapa
 
-  // ---------- 1. Explorar → Segmentos con categorías ----------
+  // ---------- 1. Explorar → Segmentos: solo «Mías» ----------
   await page.getByRole("button", { name: /Explorar/ }).first().click();
   await sleep(1500);
   await page.locator('[data-testid="ex-tab-segmentos"]').click();
   await sleep(700);
-  console.log("· Explorar → Segmentos");
-  ok("categoría Predefinidas activa por defecto", (await page.locator('[data-testid="ex-segcat-pre"][aria-selected="true"]').count()) === 1);
-  ok("los 7 tramos oficiales listados", (await page.locator('[data-testid^="ex-segpre-"]').count()) === 7);
-  ok("chips Subida (≥4) y Bajada 30 (≥3)", (await page.getByText("Subida", { exact: true }).count()) >= 4 && (await page.getByText("Bajada 30", { exact: true }).count()) >= 3);
-  ok("botón Ver en el mapa en cada oficial", (await page.getByRole("button", { name: "Ver en el mapa" }).count()) === 7);
-  await page.screenshot({ path: "/tmp/render/inv-segpre.png" });
-
-  // Encuadre de un oficial: «Ver en el mapa» debe llevar al mapa del módulo
-  await page.getByRole("button", { name: "Ver en el mapa" }).first().click();
-  await sleep(5000);
-  ok("«Ver en mapa» abre el mapa del módulo", await page.locator('[data-testid="ex-contenido-mapa"]').count() === 1);
-  await page.screenshot({ path: "/tmp/render/inv-segpre-mapa.png" });
-
-  await page.locator('[data-testid="ex-tabmapa-segmentos"]').click();
-  await sleep(700);
-  await page.locator('[data-testid="ex-segcat-mias"]').click();
-  await sleep(600);
-  console.log("· Explorar → Segmentos → Mías");
-  ok("categoría Mías activa", (await page.locator('[data-testid="ex-segcat-mias"][aria-selected="true"]').count()) === 1);
-  ok("CTA «Trazar segmento» vive en Mías", await page.locator('[data-testid="ex-trazar-segmento"]').count() === 1);
+  console.log("· Explorar → Segmentos (solo Mías)");
+  ok("sin píldoras de categoría (Predefinidas retirada)", (await page.locator('[data-testid^="ex-segcat-"]').count()) === 0);
+  ok("sin los 7 oficiales del cerro", (await page.locator('[data-testid^="ex-segpre-"]').count()) === 0);
+  ok("CTA «Trazar segmento» presente", await page.locator('[data-testid="ex-trazar-segmento"]').count() === 1);
+  ok("tarjeta «Segmentos guardados»", (await page.getByText("Segmentos guardados", { exact: true }).count()) >= 1);
+  await page.screenshot({ path: "/tmp/render/inv-segmias.png" });
 
   // ---------- 2. Mis viajes sin subtab Pro ----------
   await page.click('button[aria-label="Abrir menú"]', { timeout: 8000 });
@@ -100,9 +88,27 @@ function ok(nombre, cond) {
   await page.locator('button:text-is("Pro")').first().click();
   await sleep(800);
   ok("«Segmentos del cerro» visible", (await page.getByText("Segmentos del cerro").count()) >= 1);
-  // FREE ve los 7 oficiales bloqueados (misma lista que Predefinidas)
+  // FREE ve los 7 oficiales bloqueados (única lista que queda de ellos)
   ok("los 7 oficiales listados en Estadísticas · Pro", (await page.getByText("Plaza México", { exact: false }).count()) >= 4);
   await page.screenshot({ path: "/tmp/render/inv-stats-pro.png" });
+
+  // ---------- 4. Perfil sin Amigos; única sede en Comunidad → Siguiendo ----------
+  await page.getByRole("button", { name: "Perfil", exact: true }).click(); // barra inferior (el drawer dice «Cuenta»)
+  await sleep(1200);
+  console.log("· Perfil Ciclista");
+  ok("sin pestaña «Amigos»", (await page.locator('button:text-is("Amigos")').count()) === 0);
+  ok("ADN y Desafíos siguen en el Perfil", (await page.getByText("ADN", { exact: true }).count()) >= 1 && (await page.getByText("Desafíos y recompensas", { exact: true }).count()) >= 1);
+  await page.screenshot({ path: "/tmp/render/inv-perfil-sin-amigos.png" });
+
+  await page.getByRole("button", { name: /Explorar/ }).first().click();
+  await sleep(1200);
+  await page.locator('[data-testid="ex-switch-comunidad"]').click();
+  await sleep(600);
+  await page.locator('[data-testid="ex-tab-siguiendo"]').click();
+  await sleep(900);
+  console.log("· Comunidad → Siguiendo");
+  ok("AmigosTab montado en Siguiendo", await page.locator('[data-testid="ex-contenido-siguiendo"]').count() === 1);
+  await page.screenshot({ path: "/tmp/render/inv-siguiendo.png" });
 
   await browser.close();
   console.log(`\n${pasos - fallos}/${pasos} OK`);
