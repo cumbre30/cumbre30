@@ -332,6 +332,16 @@ const D: Record<string, E> = {
   "log.caidaDetectada": ["Posible caída detectada - revisa cómo estás", "Possible fall detected - check how you are", "Possível queda detectada - verifique como você está"],
   "log.caidaBien": ["Marcaste: estoy bien", "You marked: I'm fine", "Você marcou: estou bem"],
   "log.caidaAyuda": ["Alerta de caída: pediste ayuda", "Fall alert: you requested help", "Alerta de queda: você pediu ajuda"],
+  // Fase única (motor GPS): pausa automática y recuperación de ride
+  "log.autoPausa": ["Pausa automática: detectamos que estás detenido", "Auto-pause: we detected you stopped", "Pausa automática: detectamos que você parou"],
+  "log.autoReanudado": ["Reanudado automáticamente: volviste a pedalear", "Auto-resumed: you started pedaling again", "Retomado automaticamente: você voltou a pedalar"],
+  "log.rideRetomado": ["Ride interrumpido retomado desde el último guardado", "Interrupted ride resumed from the last checkpoint", "Pedal interrompido retomado do último salvamento"],
+  "log.recupDescartado": ["Ride interrumpido descartado", "Interrupted ride discarded", "Pedal interrompido descartado"],
+  "motor.recupTitulo": ["¿Retomar el ride interrumpido?", "Resume the interrupted ride?", "Retomar o pedal interrompido?"],
+  "motor.recupTexto": ["Detectamos un ride que se cortó inesperadamente: {0} km · {1} min · guardado {2}. Puedes retomarlo desde ahí o descartarlo.", "We detected a ride that ended unexpectedly: {0} km · {1} min · checkpoint saved {2}. You can resume it or discard it.", "Detectamos um pedal que terminou inesperadamente: {0} km · {1} min · salvo {2}. Você pode retomá-lo ou descartá-lo."],
+  "motor.recupRetomar": ["Retomar ride", "Resume ride", "Retomar pedal"],
+  "motor.recupDescartar": ["Descartar", "Discard", "Descartar"],
+  "ride.autoPausaChip": ["Pausa automática", "Auto-pause", "Pausa automática"],
 
   // ---------- zonas de riesgo (voz) ----------
   "zona.anahuac": ["Atención, curva cerrada de la Casa Anáhuac. Reduce velocidad.", "Attention, sharp curve at Casa Anáhuac. Slow down.", "Atenção, curva fechada da Casa Anáhuac. Reduza a velocidade."],
@@ -347,6 +357,9 @@ const D: Record<string, E> = {
   "cfg.avisosVozSub": ["Zonas de riesgo, geocercas, bajadas 30, horario y excesos", "Risk zones, geofences, 30 descents, schedule and speeding", "Zonas de risco, cercas virtuais, descidas 30, horário e excessos"],
   "cfg.tema": ["Modo oscuro/claro", "Dark/light mode", "Modo escuro/claro"],
   "cfg.temaSub": ["Recomendado: oscuro, legible bajo el sol del cerro", "Recommended: dark, readable under the hill sun", "Recomendado: escuro, legível sob o sol do morro"],
+  // Fase única (motor GPS): pausa automática configurable
+  "cfg.autoPausa": ["Pausa automática del ride", "Ride auto-pause", "Pausa automática do pedal"],
+  "cfg.autoPausaSub": ["Pausa sola al detenerse ~15 s y reanuda al pedalear (2-3 km/h)", "Pauses by itself after ~15 s stopped and resumes when you pedal (2-3 km/h)", "Pausa sozinha após ~15 s parado e retoma ao pedalar (2-3 km/h)"],
   // Secciones de Configuración (v1.12.1: reorganización por categorías)
   "cfg.grGeneral": ["General", "General", "Geral"],
   "cfg.grAcerca": ["Acerca de", "About", "Acerca de"],

@@ -68,7 +68,19 @@ class RideNativePlugin : Plugin() {
             data.put("speed", if (loc.hasSpeed()) loc.speed.toDouble() else -1.0)
             data.put("accuracy", if (loc.hasAccuracy()) loc.accuracy.toDouble() else 9999.0)
             data.put("bearing", if (loc.hasBearing()) loc.bearing.toDouble() else -1.0)
-            data.put("alt", if (loc.hasAltitude()) loc.altitude else 0.0)
+            // Fase única (2026-11-22): altitud honesta. hasAlt=false cuando
+            // el proveedor no entregó altitud (el motor conserva la última
+            // válida; JAMÁS la interpreta como 0 m) y valt es la accuracy
+            // vertical (getVerticalAccuracyMeters, API 26+) para que el
+            // motor rechace el ruido GNSS vertical de mala calidad.
+            data.put("hasAlt", loc.hasAltitude())
+            data.put("alt", loc.altitude)
+            data.put(
+                "valt",
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && loc.hasVerticalAccuracy())
+                    loc.verticalAccuracyMeters.toDouble()
+                else -1.0
+            )
             data.put("t", loc.time.toDouble())
             notifyListeners("gpsfix", data)
         }

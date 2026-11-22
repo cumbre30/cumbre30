@@ -63,6 +63,9 @@ type Props = {
   accuracyM: number | null;
   events: RideEvent[];
   status: RideStatus;
+  /** Pausa automática activa (fase única): el ride corre pero la FSM
+   *  del motor lo marcó detenido; muestra el chip en la pantalla. */
+  autoPausada?: boolean;
   source: Source;
   position: LatLng | null;
   /** Posición de pantalla (snapped a la calzada + anti-saltos, v1.12.8)
@@ -423,6 +426,18 @@ export function RideView(p: Props) {
           {chip.icon}
           <span className="truncate">{chip.text}</span>
         </span>
+        {/* Pausa automática (fase única): chip informativo mientras la
+            FSM del motor tiene el ride detenido; no bloquea la UI. */}
+        {p.autoPausada && running && (
+          <span
+            className="inline-flex shrink-0 items-center gap-1 rounded-full border border-amber-700/70 bg-amber-950/50 px-2.5 py-1.5 text-[10.5px] font-bold text-amber-300"
+            role="status"
+            aria-live="polite"
+          >
+            <Pause className="h-3.5 w-3.5" />
+            {t("ride.autoPausaChip")}
+          </span>
+        )}
         <button
           onClick={() => setAvisosOpen((v) => !v)}
           className={`relative inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border ${avisoIconoCls} ${avisosOpen ? "ring-2 ring-current/40" : ""}`}

@@ -13,6 +13,15 @@ package cl.cumbre30.app
 //     FusedLocationProvider aporta principalmente fallback de
 //     sensores en cañones urbanos; en el cerro el GPS puro a
 //     1 Hz es equivalente y funciona en TODOS los dispositivos.
+//   • PROVEEDOR Y FUENTE DE POSICIÓN (fase única 2026-11-22):
+//     GPS_PROVIDER entrega posición GNSS del chip del dispositivo
+//     (GPS/GLONASS/Galileo/BeiDou según el hardware). La asistencia
+//     A-GNSS (efemérides por red) solo ACELERA la primera adquisición
+//     de satélites: la posición resultante sigue siendo un cálculo
+//     de rango GNSS, NO una triangulación Wi-Fi/celular (eso sería
+//     NETWORK_PROVIDER, que esta app no usa jamás para el ride).
+//     Verificación de la fuente: loc.getProvider() == "gps" en cada
+//     fix; detalle en docs/motor-gps.md.
 //   • Cada fix se entrega al WebView vía RideNativePlugin
 //     (evento "gpsfix"); speed negativo = señal inválida.
 // ============================================================

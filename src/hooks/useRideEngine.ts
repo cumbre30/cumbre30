@@ -1,5 +1,28 @@
 "use client";
 
+// ============================================================
+// useRideEngine - adaptador del MOTOR GPS al producto Cumbre30.
+// ------------------------------------------------------------
+// Fase única (2026-11-22): el núcleo de captura, procesamiento,
+// métricas y sesión vive en src/motor/* (agnóstico de React y del
+// parque, reutilizable). Este hook es el CONSUMIDOR:
+//   · inyecta la fuente (nativa/web/sim) y el modo ahorro;
+//   · aplica las reglas del parque San Cristóbal sobre los eventos
+//     del motor (geocercia, accesos, zonas, corredores, bajadas 30,
+//     horario, fiscalización 30 km/h, caída, vehículo);
+//   · publica el estado a la UI de React.
+// El motor ya no contiene reglas del producto ni del parque.
+//
+// Correcciones de la auditoría integradas en el núcleo:
+//   P0-1 checkpoint + recuperación de ride (motor/persistencia),
+//   P0-2 banda muerta de distancia (motor/metricas),
+//   P0-3 altitud nunca 0 + calidad vertical (fuente + metricas),
+//   P0-4 histéresis de desnivel (motor/metricas),
+//   P0-5 tiempos por reloj (motor/metricas + actividad),
+//   P1-1 pausa/reanudación automáticas (motor/actividad),
+//   P1-9 Kalman adaptativo + extrapolación de frenada (motor/kalman).
+// ============================================================
+
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   CAUTION_KMH,
@@ -9,7 +32,7 @@ import {
   RISK_ZONES,
   type LatLng,
 } from "@/lib/park";
-import { Ema, SpeedKalman, haversineM, bearingDeg, pointInPolygon, distToPolygonM } from "@/lib/geo";
+import { haversineM, bearingDeg, pointInPolygon, distToPolygonM } from "@/lib/geo";
 import { PARK_HOURS } from "@/lib/park";
 import { estadoParque, minutosParaCierre, cierraHoraTexto } from "@/lib/horario";
 import { GATE_PIO_NONO, PUENTE_TUPAHUE_CUMBRE, enCorredorPioNono } from "@/lib/reglasParque";
@@ -17,8 +40,7 @@ import { alerts } from "@/lib/alertEngine";
 import { FallDetector, fallConfigOn } from "@/lib/fallDetect";
 import { saltarFix, wakeLockSuspendido } from "@/lib/rideBateria";
 import { t, vozHoraCierre, vozHoras } from "@/lib/i18n";
-import { RideNative, isNativeApp, type PluginListenerHandleLike } from "@/lib/rideNative";
-import { RideSimulator } from "@/lib/simulation";
+import { RideNative, isNativeApp } from "@/lib/rideNative";
 import { saveRide, type RideSummary, type TrackPt } from "@/lib/history";
 import { computeRideMetrics } from "@/lib/rideMetrics";
 import { getRideWeights } from "@/lib/rideWeights";
@@ -26,6 +48,10 @@ import { augmentRideOffRoad } from "@/lib/rideOffroad";
 import { isMotorizedRide, VEH_LIMIT_KMH, VEH_STREAK_SEC, VEH_TOTAL_SEC } from "@/lib/vehicleDetect";
 import { syncRideAfterSave, markRideAsBike } from "@/lib/sync";
 import { rutaProyectadaStore, conRouteRef } from "@/lib/rutaProyectada";
+import { MotorGPS } from "@/motor/nucleo";
+import { crearFuenteNativa, crearFuenteWeb, crearFuenteSim } from "@/motor/fuente";
+import { autoPausaActivada, leerConfigMotor } from "@/motor/config";
+import type { EventoMotor, FixBruto } from "@/motor/tipos";
 
 export type SpeedState = "ok" | "caution" | "over";
 export type RideStatus = "idle" | "running" | "paused";
@@ -38,6 +64,15 @@ export type RideEvent = {
 };
 
 export type GpsStatus = "idle" | "requesting" | "active" | "denied" | "error";
+
+/** Ride interrumpido (checkpoint) que puede retomarse tras un cierre
+ *  inesperado del WebView o del proceso Android. */
+export type RecuperacionPendiente = {
+  fecha: number;
+  distanciaKm: number;
+  elapsedMin: number;
+  fuente: "nativa" | "web" | "sim";
+};
 
 const TICK_MS = 500;
 
@@ -52,6 +87,18 @@ const ZONA_KEY: Record<string, string> = {
   "jardin-japones": "zona.jardinJapones",
   "salida-pv": "zona.salidaPv",
   "zoologico": "zona.zoologico",
+};
+
+/** Contadores del CONSUMIDOR (reglas del parque) que viajan en el
+ *  checkpoint del motor para sobrevivir a una recuperación. */
+type ExtrasParque = {
+  overSec: number;
+  maxInParkKmh: number | null;
+  parkDistanceM: number;
+  vehSec: number;
+  vehStreakMax: number;
+  limiteEstado: SpeedState;
+  dentro: boolean;
 };
 
 export function useRideEngine() {
@@ -74,6 +121,9 @@ export function useRideEngine() {
   const [events, setEvents] = useState<RideEvent[]>([]);
   const [track, setTrack] = useState<LatLng[]>([]);
   const [position, setPosition] = useState<LatLng | null>(null);
+  // Auto-pausa (fase única): el ride sigue "running" pero la FSM del
+  // motor lo marcó detenido; la UI muestra el chip correspondiente.
+  const [autoPausada, setAutoPausada] = useState(false);
   // Ride sospechoso de vehículo esperando la confirmación del usuario
   // ("¿fuiste en bici?"). Ya está guardado (con el flag) y sincronizado:
   // esta confirmación solo corrige el flag si fue falso positivo.
@@ -81,53 +131,30 @@ export function useRideEngine() {
   const pendingRef = useRef<RideSummary | null>(null);
   useEffect(() => { pendingRef.current = pendingConfirm; }, [pendingConfirm]);
   // Detección de caída: alerta viva para el overlay "¿Estás bien?"
-  // (se renderiza a nivel de app en page.tsx). Las callbacks viven
-  // más abajo, tras la declaración de logEvent.
+  // (se renderiza a nivel de app en page.tsx).
   const [fallAlert, setFallAlert] = useState<{ at: number; help: boolean } | null>(null);
   // Fase F (v2.1 §8): resumen del ride recién cerrado — con routeRef
   // cuando había una ruta proyectada al cerrar. Solo alimenta el
   // prompt de experiencia post-ride; el ride mismo no cambia.
   const [resumenCerrado, setResumenCerrado] = useState<RideSummary | null>(null);
+  // Recuperación de ride interrumpido (checkpoint del motor).
+  const [recuperacion, setRecuperacion] = useState<RecuperacionPendiente | null>(null);
 
-  // --- refs del motor ---
-  const engine = useRef({
-    kalman: new SpeedKalman(),
-    altEma: new Ema(0.3),
-    slopeEma: new Ema(0.22),
-    lastFix: null as (LatLng & { speedKmh: number; alt: number; t: number; accuracyM: number }) | null,
-    prevSpeed: null as number | null,
-    prevAltS: null as number | null,
-    startRealTime: 0,
-    distanceM: 0,
-    parkDistanceM: 0, // km dentro de la geocerca (desafíos del parque)
-    movingSec: 0,
-    elapsed: 0,
-    gain: 0,
+  // --- refs del consumidor (reglas del parque) ---
+  const park = useRef({
+    lastFix: null as FixBruto | null, // fix aceptado previo (deltas del parque)
+    parkDistanceM: 0,
     overSec: 0,
     inside: false,
     state: "ok" as SpeedState,
     zoneLastTrigger: {} as Record<string, number>,
     gateLastTrigger: {} as Record<string, number>,
-    sim: null as RideSimulator | null,
-    paused: false,
-    watchId: null as number | null,
-    nativeSub: null as PluginListenerHandleLike | null,
-    tickTimer: null as ReturnType<typeof setInterval> | null,
-    lastTick: 0,
-    // Pista muestreada para export GPX: [lat, lon, eleM, tsSec]
-    trackPts: [] as TrackPt[],
-    trackEveryMs: 5000,
-    // Huella de vehículo motorizado: segundos sobre 45 km/h (total y
-    // tramo continuo más largo). Con GPS a 1 Hz es la señal que separa
-    // un auto de una bici (que solo toca puntas en bajada). Ver
-    // lib/vehicleDetect: la decisión final la confirma el usuario.
+    // Huella de vehículo motorizado: ver lib/vehicleDetect.
     vehSec: 0,
     vehStreakSec: 0,
     vehStreakMax: 0,
     vehNotified: false,
-    // Reglas direccionales del cliente (2026-11-12): detección de
-    // BAJADA por el corredor Pío Nono (sólo subida) y de SUBIDA a la
-    // cumbre por el puente de Tupahue fuera de horario (FDS ≥ 13:30).
+    // Reglas direccionales del cliente (2026-11-12).
     pioPrevD: null as number | null,
     pioStreak: 0,
     pioStreakD: null as number | null,
@@ -136,18 +163,27 @@ export function useRideEngine() {
     puenteStreak: 0,
     puenteStreakD: null as number | null,
     puenteLastTrigger: 0,
-    // Avisos nuevos del cliente (2026-11-13): bajadas fiscalizadas del
-    // control 30 km/h (voz al entrar a descender por un corredor rojo)
-    // y horario al límite (cierre próximo / parque cerrado). El módulo
-    // de corredores se carga con import() dinámico en start(): el
-    // trazado (~5.000 pares) NO va en el bundle principal.
+    // Bajadas fiscalizadas + horario al límite (2026-11-13).
     b30Mod: null as typeof import("@/lib/bajadas30") | null,
     b30LastTrigger: {} as Record<string, number>,
     horarioLastCheck: 0,
     horarioVoiceLast: {} as Record<string, number>,
-    // Detección de caída (GPS): golpe + inmovilidad, ver fallDetect.ts.
+    // Detección de caída (GPS).
     fall: new FallDetector(),
   });
+
+  // --- motor (núcleo reutilizable) ---
+  const motorRef = useRef<MotorGPS | null>(null);
+  const fuenteRef = useRef<{ tipo: "nativa" | "web" | "sim" } | null>(null);
+  function getMotor(): MotorGPS {
+    if (!motorRef.current) {
+      // Perfil de actividad del consumidor (Cumbre30) inyectado como
+      // config parcial; defectos = comportamiento histórico del motor.
+      motorRef.current = new MotorGPS({ config: leerConfigMotor() });
+      motorRef.current.on((e) => eventoRef.current(e));
+    }
+    return motorRef.current;
+  }
 
   const logEvent = useCallback((kind: RideEvent["kind"], text: string) => {
     setEvents((prev) => pushEvent(prev, { t: Date.now(), kind, text }));
@@ -162,769 +198,687 @@ export function useRideEngine() {
     logEvent("danger", t("log.caidaAyuda"));
   }, [logEvent]);
 
-  /** Procesa un fix (GPS real o simulado) con el mismo pipeline. */
-  const processFix = useCallback(
-    (fix: LatLng & { speedKmh: number; speedFromDelta?: boolean; alt: number; accuracyM: number; t: number; course?: number | null }) => {
-      const e = engine.current;
-      // Rumbo nativo (v1.12.8): course del GPS Doppler si hay avance real
-      // (≥4 km/h); detenido no es confiable y se deja a courseHeading/última orientación.
-      setCourse(fix.course ?? null);
-      const dt = e.lastFix ? Math.min(10, Math.max(0.15, (fix.t - e.lastFix.t) / 1000)) : 1;
+  /** Contadores del parque actuales (para el checkpoint del motor). */
+  const extrasParque = useCallback((): ExtrasParque => {
+    const p = park.current;
+    return {
+      overSec: p.overSec,
+      maxInParkKmh: maxInParkRef.current,
+      parkDistanceM: p.parkDistanceM,
+      vehSec: p.vehSec,
+      vehStreakMax: p.vehStreakMax,
+      limiteEstado: p.state,
+      dentro: p.inside,
+    };
+  }, []);
 
-      // 0) PAUSA: el GPS sigue vivo (el mapa no se congela) pero no se
-      //    acumula nada: ni tiempo, ni distancia, ni alertas. Solo se
-      //    publica posición/precisión y se actualiza lastFix para que
-      //    al reanudar no haya salto de distancia.
-      if (e.paused) {
-        setAccuracyM(fix.accuracyM);
-        setPosition(fix);
-        e.lastFix = { ...fix };
-        e.prevSpeed = null;
-        return;
-      }
+  /** Reglas del PARQUE sobre un fix validado del motor. Todo lo que
+   *  depende del producto vive aquí; el núcleo no sabe nada de esto. */
+  const reglasParque = useCallback((fix: FixBruto, velKmh: number, dtSec: number, pendientePct: number) => {
+    const p = park.current;
+    const e = getMotor();
 
-      // 1) Velocidad: GPS (Doppler) → filtro de Kalman + micro-predicción.
-      //    Los sensores (Bluetooth y acelerómetro) se retiraron: el WebView
-      //    de Capacitor no entrega datos fiables de ellos; el GPS nativo a
-      //    1 Hz es la única fuente y basta para fiscalizar los 30 km/h.
-      //    v1.12.14c: si la velocidad vino de delta de posición (sin
-      //    Doppler) y la precisión es mala (≥60 m), el delta es ruido de
-      //    posición, no velocidad real: NaN hace que el Kalman devuelva
-      //    su estado sin corromperse.
-      const vMeasured = fix.speedFromDelta && fix.accuracyM >= 60 ? NaN : fix.speedKmh / 3.6; // m/s
-      const vKf = e.kalman.update(vMeasured, dt);
-      let accel = 0;
-      if (e.prevSpeed !== null && dt > 0) accel = (vKf - e.prevSpeed) / dt;
-      accel = Math.max(-3, Math.min(3, accel));
-      e.prevSpeed = vKf;
-      const vPred = Math.max(0, vKf + accel * 0.4); // extrapola 400 ms
-      const vKmh = vPred * 3.6;
+    // Rumbo (v1.12.8): bearing nativo con avance ≥4 km/h; en web,
+    // derivado por delta con avance real (≥4 km/h y ≥3 m).
+    const previo = p.lastFix;
+    let course: number | null = null;
+    if (fix.bearing !== null && velKmh >= 4) course = fix.bearing;
+    else if (!fix.bearing && previo && velKmh >= 4) {
+      const dd = haversineM(previo, fix);
+      if (dd >= 3) course = bearingDeg(previo, fix);
+    }
+    setCourse(course);
 
-      // 2) Distancia (rechaza teleportes > 100 m o baja precisión)
-      let dValid = 0; // metros válidos de este paso (se reutilizan para el parque)
-      if (e.lastFix) {
-        const d = haversineM(e.lastFix, fix);
-        if (d < 100 && fix.accuracyM < 60) {
-          e.distanceM += d;
-          dValid = d;
-        }
-      }
-
-      // 3) Desnivel y pendiente (sobre altitud suavizada)
-      const altS = e.altEma.update(fix.alt);
-      if (e.lastFix) {
-        const dHoriz = haversineM(e.lastFix, fix);
-        if (dHoriz > 4) {
-          const raw = ((fix.alt - e.lastFix.alt) / dHoriz) * 100;
-          e.slopeEma.update(Math.max(-35, Math.min(35, raw)));
-        }
-        if (dHoriz > 3 && e.prevAltS !== null) {
-          e.gain += Math.max(0, altS - e.prevAltS);
-        }
-      }
-      e.prevAltS = altS;
-
-      // 4) Tiempos
-      e.elapsed += dt;
-      if (vKmh > 1.5) e.movingSec += dt;
-
-      // 4b) Huella de vehículo motorizado: tiempo sobre el umbral que una
-      //     bici no sostiene. La decisión (isMotorizedRide) se toma al
-      //     guardar y el usuario la confirma; aquí solo se mide.
-      if (vKmh > VEH_LIMIT_KMH) {
-        e.vehSec += dt;
-        e.vehStreakSec += dt;
-        if (e.vehStreakSec > e.vehStreakMax) e.vehStreakMax = e.vehStreakSec;
-        if (!e.vehNotified && (e.vehStreakMax >= VEH_STREAK_SEC || e.vehSec >= VEH_TOTAL_SEC)) {
-          e.vehNotified = true;
-          logEvent("warn", t("log.vehiculo"));
-        }
-      } else {
-        e.vehStreakSec = 0;
-      }
-
-      // 5) Geofence del parque (con HISTERÉSIS anti-parpadeo).
-      //    La frontera corre pegada a caminos reales (Av. El Cerro,
-      //    Canal El Carmen, Av. La Montaña) y las porterías caen casi
-      //    exactamente sobre la línea: con el ruido del GPS (±10-15 m)
-      //    el estado dentro/fuera alternaba en cada fix y la bitácora
-      //    se llenaba de «Ingresando/Saliendo» fantasma. Ahora para
-      //    cambiar de lado hay que superar 18 m de profundidad real
-      //    hacia el nuevo lado (distancia a la frontera del polígono).
-      const rawInside = pointInPolygon(fix, PARK_POLYGON);
-      const dFront = distToPolygonM(fix, PARK_POLYGON);
-      const GEO_HISTERESIS_M = 18;
-      const inside = e.inside
-        ? rawInside || dFront > GEO_HISTERESIS_M // seguir dentro salvo 18 m reales afuera
-        : rawInside && dFront > GEO_HISTERESIS_M; // entrar solo 18 m reales adentro
-      if (inside !== e.inside) {
-        e.inside = inside;
-        if (inside) {
-          logEvent("info", t("log.ingresoParque"));
-          alerts.speak("park-in", t("voz.ingresandoParque"), 4);
-        } else {
-          logEvent("info", t("log.salidaParque"));
-          alerts.speak("park-out", t("voz.saliendoParque"), 4);
-        }
-      }
-      // Km efectivamente pedaleados DENTRO de la geocerca: es la base de
-      // los desafíos del parque (un ride de ruta que roza el borde no cuenta).
-      if (inside) e.parkDistanceM += dValid;
-
-      // 6) Accesos (cercanía < 80 m). Indicación según la normativa
-      //    vigente (actualización Parquemet nov 2026): la credencial QR
-      //    ya NO se pide en los accesos (solo rige para los senderos de
-      //    enduro desde dic 2026). Ahora se informa si el acceso es o no
-      //    de los 4 exclusivos ciclistas y, fuera de horario, el cierre.
-      for (const gate of GATES) {
-        const d = haversineM(fix, gate.position);
-        const last = e.gateLastTrigger[gate.id] ?? 0;
-        if (d < 80 && fix.t - last > 120_000) {
-          e.gateLastTrigger[gate.id] = fix.t;
-          const cerrado = !estadoParque(new Date(fix.t)).abierto;
-          if (cerrado) {
-            logEvent("gate", t("log.cercaGateCerrado", gate.name));
-            alerts.speak(`gate-${gate.id}`, t("voz.parqueCerrado"), 60);
-          } else if (gate.ciclistas) {
-            logEvent("gate", t("log.cercaGateCiclistas", gate.name));
-            alerts.speak(`gate-${gate.id}`, t("voz.accesoExclusivo"), 60);
-          } else {
-            logEvent("gate", t("log.cercaGateNoBici", gate.name));
-            alerts.speak(`gate-${gate.id}`, t("voz.accesoNoBici"), 60);
-          }
-        }
-      }
-
-      // 7) Zonas de riesgo
-      for (const zone of RISK_ZONES) {
-        const d = haversineM(fix, zone.position);
-        const last = e.zoneLastTrigger[zone.id] ?? 0;
-        // Pre-aviso: 100 m antes de la zona (voz, sin detener el pedaleo)
-        if (d >= zone.radiusM && d < zone.radiusM + 100 && fix.t - last > 150_000) {
-          e.zoneLastTrigger[zone.id] = fix.t;
-          logEvent("zone", t("log.zona100", zone.name));
-          alerts.speak(`zone-approach-${zone.id}`, t("voz.zona100", zone.name), 30);
-        }
-        if (d < zone.radiusM && fix.t - last > 150_000) {
-          e.zoneLastTrigger[zone.id] = fix.t;
-          logEvent("zone", t("log.zonaRiesgo", zone.name));
-          const zk = ZONA_KEY[zone.id];
-          alerts.speak(`zone-${zone.id}`, zk ? t(zk) : zone.voice, 10);
-          alerts.beepTriple();
-        }
-      }
-
-      // 7b) Reglas direccionales del cliente (2026-11-12):
-      //     · Bajada por el corredor Pío Nono BLOQUEADA (sólo subida,
-      //       24/7): si el ciclista desciende hacia el acceso dentro del
-      //       corredor, advertencia de voz («no es accesible para bajar
-      //       si se subió por los otros 3 accesos»).
-      //     · Subida a la cumbre por el puente de Tupahue FUERA DE
-      //       HORARIO (fines de semana y festivos desde las 13:30):
-      //       advertencia al acercarse al puente con la restricción
-      //       activa y alternativas según la posición.
-      if (inside && vKmh > 1.5) {
-        // - bajada Pío Nono: acercándose al acceso DENTRO del corredor -
-        const dPio = haversineM(fix, GATE_PIO_NONO);
-        const dPioPrev = e.pioPrevD;
-        if (enCorredorPioNono(fix.lat, fix.lon) && dPio < 2100) {
-          if (dPioPrev !== null && dPio < dPioPrev - 1) {
-            e.pioStreak += 1;
-            const dPioStart = e.pioStreakD ?? dPioPrev;
-            // 3 fixes acercándose (≥ 15 m netos) en el tramo final del
-            // corredor: es una bajada real, no ruido del GPS.
-            if (
-              e.pioStreak >= 3 &&
-              dPioStart - dPio >= 15 &&
-              dPio < 1500 &&
-              fix.t - e.pioLastTrigger > 180_000
-            ) {
-              e.pioLastTrigger = fix.t;
-              e.pioStreak = 0;
-              e.pioStreakD = null;
-              logEvent("warn", t("log.pioBajada"));
-              alerts.speak("pio-bajada", t("voz.pioBajada"), 30);
-            }
-          } else if (dPioPrev !== null && dPio > dPioPrev + 1) {
-            e.pioStreak = 0;
-            e.pioStreakD = null;
-          }
-          e.pioPrevD = dPio;
-        } else {
-          e.pioPrevD = null;
-          e.pioStreak = 0;
-          e.pioStreakD = null;
-        }
-        // - corte horario cumbre (Tupahue → Cumbre) -
-        if (estadoParque(new Date(fix.t)).nivel === "tupa") {
-          const dPuen = haversineM(fix, PUENTE_TUPAHUE_CUMBRE);
-          const dPuenPrev = e.puentePrevD;
-          if (dPuen < 500) {
-            if (dPuenPrev !== null && dPuen < dPuenPrev - 1) {
-              e.puenteStreak += 1;
-              const dPuenStart = e.puenteStreakD ?? dPuenPrev;
-              if (
-                e.puenteStreak >= 3 &&
-                dPuenStart - dPuen >= 12 &&
-                fix.t - e.puenteLastTrigger > 180_000
-              ) {
-                e.puenteLastTrigger = fix.t;
-                e.puenteStreak = 0;
-                e.puenteStreakD = null;
-                logEvent("warn", t("log.corteCumbre"));
-                alerts.speak(
-                  "corte-cumbre",
-                  `${t("aviso.msgTupahue")} ${t("voz.corteCumbreAlt")}`,
-                  30
-                );
-              }
-            } else if (dPuenPrev !== null && dPuen > dPuenPrev + 1) {
-              e.puenteStreak = 0;
-              e.puenteStreakD = null;
-            }
-            e.puentePrevD = dPuen;
-          } else {
-            e.puentePrevD = null;
-            e.puenteStreak = 0;
-            e.puenteStreakD = null;
-          }
-        } else {
-          e.puentePrevD = null;
-          e.puenteStreak = 0;
-          e.puenteStreakD = null;
-        }
-      } else {
-        e.pioPrevD = null;
-        e.pioStreak = 0;
-        e.pioStreakD = null;
-        e.puentePrevD = null;
-        e.puenteStreak = 0;
-        e.puenteStreakD = null;
-      }
-
-      // 7c) Bajadas fiscalizadas del control 30 km/h (cliente
-      //     2026-11-13: «aviso por voz cuando se esté bajando por una
-      //     ruta de 30 km»): al entrar a DESCENDER por uno de los 3
-      //     corredores rojos (capa Normativa y Seguridad), voz de
-      //     recordatorio del límite. Requiere pendiente de bajada real
-      //     (≤ -0,8 %) y movimiento: pedalear plano junto al corredor
-      //     no avisa. Cooldown 4 min por corredor.
-      if (inside && vKmh > 3 && e.slopeEma.value < -0.8 && e.b30Mod) {
-        const hit = e.b30Mod.enBajada30(fix.lat, fix.lon);
-        if (hit && fix.t - (e.b30LastTrigger[hit.id] ?? 0) > 240_000) {
-          e.b30LastTrigger[hit.id] = fix.t;
-          logEvent("warn", t("log.bajada30", hit.nombre));
-          alerts.speak(
-            `b30-${hit.id}`,
-            t("voz.bajada30"),
-            30
-          );
-        }
-      }
-
-      // 7d) Horario al límite (cliente 2026-11-13: «avisos de
-      //     ingreso/cierre si se está al límite en el horario»):
-      //     dentro del parque, cierre próximo (≤ 30 min) o parque ya
-      //     cerrado (desde las 20:30), con voz cada 10 min mientras
-      //     dure la condición. El aviso de INGRESO fuera de horario
-      //     vive en start().
-      if (inside && fix.t - e.horarioLastCheck > 30_000) {
-        e.horarioLastCheck = fix.t;
-        const mC = minutosParaCierre(new Date(fix.t));
-        if (mC <= 0) {
-          if (fix.t - (e.horarioVoiceLast["cerrado"] ?? 0) > 600_000) {
-            e.horarioVoiceLast["cerrado"] = fix.t;
-            logEvent("danger", t("log.parqueCerrado", cierraHoraTexto()));
-            alerts.speak(
-              "horario-cerrado",
-              t("voz.parqueYaCerro", vozHoraCierre()),
-              60
-            );
-          }
-        } else if (mC <= 30) {
-          if (fix.t - (e.horarioVoiceLast["proximo"] ?? 0) > 600_000) {
-            e.horarioVoiceLast["proximo"] = fix.t;
-            const min5 = Math.max(5, Math.round(mC / 5) * 5);
-            logEvent("warn", t("log.horarioLimite", cierraHoraTexto(), mC));
-            alerts.speak(
-              "horario-proximo",
-              t("voz.cierreProximo", vozHoraCierre(), min5),
-              60
-            );
-          }
-        }
-      }
-
-      // 7e) Detección de caída (2026-11-14, GPS puro): golpe + inmovilidad
-      //     dentro del parque. El detector decide con el antiruido de
-      //     fallDetect.ts; aquí solo disparamos el overlay y la voz.
-      if (fallConfigOn()) {
-        const trig = e.fall.update({ lat: fix.lat, lon: fix.lon, speedKmh: vKmh, t: fix.t });
-        if (trig) {
-          setFallAlert({ at: Date.now(), help: false });
-          logEvent("danger", t("log.caidaDetectada"));
-          alerts.speak("fall", t("voz.posibleCaida"), 3);
-          if (isNativeApp()) {
-            void RideNative.vibrate({ pattern: [0, 400, 200, 400, 200, 400], repeat: 0 }).catch(() =>
-              navigator.vibrate?.([400, 200, 400])
-            );
-          } else {
-            navigator.vibrate?.([400, 200, 400, 200, 400]);
-          }
-        }
-      }
-
-      // 8) Máquina de estados de velocidad (solo dentro del parque)
-      let nextState: SpeedState = "ok";
-      if (e.inside) {
-        switch (e.state) {
-          case "ok":
-            nextState = vKmh >= LIMIT_KMH ? "over" : vKmh >= CAUTION_KMH ? "caution" : "ok";
-            break;
-          case "caution":
-            if (vKmh >= LIMIT_KMH) nextState = "over";
-            else if (vKmh < CAUTION_KMH - 0.6) nextState = "ok";
-            else nextState = "caution";
-            break;
-          case "over":
-            if (vKmh < LIMIT_KMH - 0.6) nextState = vKmh >= CAUTION_KMH ? "caution" : "ok";
-            else nextState = "over";
-            break;
-        }
-      }
-      if (e.inside && vKmh >= LIMIT_KMH) e.overSec += dt;
-      // Hápticos progresivos por velocidad (25 corto / 28 doble / 30+ continuo)
-      alerts.updateHaptics(e.inside ? vKmh : null);
-
-      if (nextState !== e.state) {
-        if (nextState === "caution") {
-          alerts.startCaution();
-          alerts.speak("caution", t("voz.precaucion", Math.round(vKmh)), 10);
-          logEvent("warn", t("log.precaucion", Math.round(vKmh)));
-        } else if (nextState === "over") {
-          alerts.startOver();
-          alerts.speak("over", t("voz.exceso"), 6);
-          logEvent("danger", t("log.exceso", Math.round(vKmh)));
-        } else {
-          alerts.stopAll();
-          if (e.state !== "ok") logEvent("info", t("log.velocidadOk"));
-        }
-        e.state = nextState;
-      }
-
-      // 9) Publicar estado a la UI
-      setSpeedKmh(vKmh);
-      setMaxKmh((m) => Math.max(m, vKmh));
-      if (e.inside) setMaxInParkKmh((m) => Math.max(m ?? 0, vKmh));
-      setAvgKmh(e.movingSec > 2 ? (e.distanceM / e.movingSec) * 3.6 : 0);
-      setDistanceKm(e.distanceM / 1000);
-      setElapsedSec(e.elapsed);
-      setGainM(e.gain);
-      setSlopePct(e.slopeEma.value);
-      setInsidePark(e.inside);
-      setSpeedState(e.state);
-      setOverLimitSec(e.overSec);
+    // PAUSA (manual o auto): el GPS sigue vivo pero no se acumula ni
+    // se avisa. Solo posición/precisión y continuidad del fix previo.
+    if (e.estado === "pausada") {
       setAccuracyM(fix.accuracyM);
       setPosition(fix);
-      // Track y pista GPX solo con precisión decente (v1.12.14c): un fix
-      // ≥60 m ya se rechaza para la distancia; si entrara igual, dibujaría
-      // un salto falso en el recorrido y metería un punto inventado al GPX.
-      if (fix.accuracyM < 60) {
-        setTrack((tr) => (tr.length && haversineM(tr[tr.length - 1], fix) < 2 ? tr : [...tr.slice(-6000), fix]));
-        // Pista para GPX: ~1 punto cada 5 s, máx 600 (si se llena, se
-        // adelgaza a la mitad y se duplica el intervalo - ~21 KB por ride).
-        if (!e.trackPts.length || fix.t - e.trackPts[e.trackPts.length - 1][3] * 1000 >= e.trackEveryMs) {
-          if (e.trackPts.length >= 600) {
-            e.trackPts = e.trackPts.filter((_, i) => i % 2 === 0);
-            e.trackEveryMs *= 2;
+      p.lastFix = fix;
+      return;
+    }
+
+    const dt = dtSec;
+
+    // Vehículo motorizado (huella, decisión al guardar)
+    if (velKmh > VEH_LIMIT_KMH) {
+      p.vehSec += dt;
+      p.vehStreakSec += dt;
+      if (p.vehStreakSec > p.vehStreakMax) p.vehStreakMax = p.vehStreakSec;
+      if (!p.vehNotified && (p.vehStreakMax >= VEH_STREAK_SEC || p.vehSec >= VEH_TOTAL_SEC)) {
+        p.vehNotified = true;
+        logEvent("warn", t("log.vehiculo"));
+      }
+    } else {
+      p.vehStreakSec = 0;
+    }
+
+    // Geofence del parque con HISTERÉSIS (18 m al borde)
+    const rawInside = pointInPolygon(fix, PARK_POLYGON);
+    const dFront = distToPolygonM(fix, PARK_POLYGON);
+    const GEO_HISTERESIS_M = 18;
+    const inside = p.inside
+      ? rawInside || dFront > GEO_HISTERESIS_M
+      : rawInside && dFront > GEO_HISTERESIS_M;
+    if (inside !== p.inside) {
+      p.inside = inside;
+      setInsidePark(inside);
+      if (inside) {
+        logEvent("info", t("log.ingresoParque"));
+        alerts.speak("park-in", t("voz.ingresandoParque"), 4);
+      } else {
+        logEvent("info", t("log.salidaParque"));
+        alerts.speak("park-out", t("voz.saliendoParque"), 4);
+      }
+    }
+    if (inside && previo) {
+      const dValid = haversineM(previo, fix);
+      // km del parque con el mismo criterio de movimiento unificado del
+      // motor (2.5 km/h): en reposo la deriva no suma km del parque.
+      if (dValid < 100 && fix.accuracyM < 60 && velKmh > 2.5) {
+        p.parkDistanceM += dValid;
+      }
+    }
+
+    // Accesos (< 80 m) con cooldown
+    for (const gate of GATES) {
+      const dg = haversineM(fix, gate.position);
+      const last = p.gateLastTrigger[gate.id] ?? 0;
+      if (dg < 80 && fix.t - last > 120_000) {
+        p.gateLastTrigger[gate.id] = fix.t;
+        const cerrado = !estadoParque(new Date(fix.t)).abierto;
+        if (cerrado) {
+          logEvent("gate", t("log.cercaGateCerrado", gate.name));
+          alerts.speak(`gate-${gate.id}`, t("voz.parqueCerrado"), 60);
+        } else if (gate.ciclistas) {
+          logEvent("gate", t("log.cercaGateCiclistas", gate.name));
+          alerts.speak(`gate-${gate.id}`, t("voz.accesoExclusivo"), 60);
+        } else {
+          logEvent("gate", t("log.cercaGateNoBici", gate.name));
+          alerts.speak(`gate-${gate.id}`, t("voz.accesoNoBici"), 60);
+        }
+      }
+    }
+
+    // Zonas de riesgo
+    for (const zone of RISK_ZONES) {
+      const dz = haversineM(fix, zone.position);
+      const last = p.zoneLastTrigger[zone.id] ?? 0;
+      if (dz >= zone.radiusM && dz < zone.radiusM + 100 && fix.t - last > 150_000) {
+        p.zoneLastTrigger[zone.id] = fix.t;
+        logEvent("zone", t("log.zona100", zone.name));
+        alerts.speak(`zone-approach-${zone.id}`, t("voz.zona100", zone.name), 30);
+      }
+      if (dz < zone.radiusM && fix.t - last > 150_000) {
+        p.zoneLastTrigger[zone.id] = fix.t;
+        logEvent("zone", t("log.zonaRiesgo", zone.name));
+        const zk = ZONA_KEY[zone.id];
+        alerts.speak(`zone-${zone.id}`, zk ? t(zk) : zone.voice, 10);
+        alerts.beepTriple();
+      }
+    }
+
+    // Reglas direccionales (Pío Nono bajada / puente Tupahue)
+    if (inside && velKmh > 1.5) {
+      const dPio = haversineM(fix, GATE_PIO_NONO);
+      const dPioPrev = p.pioPrevD;
+      if (enCorredorPioNono(fix.lat, fix.lon) && dPio < 2100) {
+        if (dPioPrev !== null && dPio < dPioPrev - 1) {
+          p.pioStreak += 1;
+          const dPioStart = p.pioStreakD ?? dPioPrev;
+          if (p.pioStreak >= 3 && dPioStart - dPio >= 15 && dPio < 1500 && fix.t - p.pioLastTrigger > 180_000) {
+            p.pioLastTrigger = fix.t;
+            p.pioStreak = 0;
+            p.pioStreakD = null;
+            logEvent("warn", t("log.pioBajada"));
+            alerts.speak("pio-bajada", t("voz.pioBajada"), 30);
           }
-          e.trackPts.push([fix.lat, fix.lon, fix.alt, Math.round(fix.t / 1000)]);
+        } else if (dPioPrev !== null && dPio > dPioPrev + 1) {
+          p.pioStreak = 0;
+          p.pioStreakD = null;
+        }
+        p.pioPrevD = dPio;
+      } else {
+        p.pioPrevD = null;
+        p.pioStreak = 0;
+        p.pioStreakD = null;
+      }
+      if (estadoParque(new Date(fix.t)).nivel === "tupa") {
+        const dPuen = haversineM(fix, PUENTE_TUPAHUE_CUMBRE);
+        const dPuenPrev = p.puentePrevD;
+        if (dPuen < 500) {
+          if (dPuenPrev !== null && dPuen < dPuenPrev - 1) {
+            p.puenteStreak += 1;
+            const dPuenStart = p.puenteStreakD ?? dPuenPrev;
+            if (p.puenteStreak >= 3 && dPuenStart - dPuen >= 12 && fix.t - p.puenteLastTrigger > 180_000) {
+              p.puenteLastTrigger = fix.t;
+              p.puenteStreak = 0;
+              p.puenteStreakD = null;
+              logEvent("warn", t("log.corteCumbre"));
+              alerts.speak("corte-cumbre", `${t("aviso.msgTupahue")} ${t("voz.corteCumbreAlt")}`, 30);
+            }
+          } else if (dPuenPrev !== null && dPuen > dPuenPrev + 1) {
+            p.puenteStreak = 0;
+            p.puenteStreakD = null;
+          }
+          p.puentePrevD = dPuen;
+        } else {
+          p.puentePrevD = null;
+          p.puenteStreak = 0;
+          p.puenteStreakD = null;
+        }
+      } else {
+        p.puentePrevD = null;
+        p.puenteStreak = 0;
+        p.puenteStreakD = null;
+      }
+    } else {
+      p.pioPrevD = null;
+      p.pioStreak = 0;
+      p.pioStreakD = null;
+      p.puentePrevD = null;
+      p.puenteStreak = 0;
+      p.puenteStreakD = null;
+    }
+
+    // Bajadas fiscalizadas (30 km/h) con pendiente del MOTOR
+    if (inside && velKmh > 3 && pendientePct < -0.8 && p.b30Mod) {
+      const hit = p.b30Mod.enBajada30(fix.lat, fix.lon);
+      if (hit && fix.t - (p.b30LastTrigger[hit.id] ?? 0) > 240_000) {
+        p.b30LastTrigger[hit.id] = fix.t;
+        logEvent("warn", t("log.bajada30", hit.nombre));
+        alerts.speak(`b30-${hit.id}`, t("voz.bajada30"), 30);
+      }
+    }
+
+    // Horario al límite
+    if (inside && fix.t - p.horarioLastCheck > 30_000) {
+      p.horarioLastCheck = fix.t;
+      const mC = minutosParaCierre(new Date(fix.t));
+      if (mC <= 0) {
+        if (fix.t - (p.horarioVoiceLast["cerrado"] ?? 0) > 600_000) {
+          p.horarioVoiceLast["cerrado"] = fix.t;
+          logEvent("danger", t("log.parqueCerrado", cierraHoraTexto()));
+          alerts.speak("horario-cerrado", t("voz.parqueYaCerro", vozHoraCierre()), 60);
+        }
+      } else if (mC <= 30) {
+        if (fix.t - (p.horarioVoiceLast["proximo"] ?? 0) > 600_000) {
+          p.horarioVoiceLast["proximo"] = fix.t;
+          const min5 = Math.max(5, Math.round(mC / 5) * 5);
+          logEvent("warn", t("log.horarioLimite", cierraHoraTexto(), mC));
+          alerts.speak("horario-proximo", t("voz.cierreProximo", vozHoraCierre(), min5), 60);
         }
       }
-      e.lastFix = { ...fix };
-    },
-    [logEvent]
-  );
-
-  // --- Fuente GPS web (navigator.geolocation, fallback del WebView) ---
-  const startWebGps = useCallback(() => {
-    if (!("geolocation" in navigator)) {
-      setGpsStatus("error");
-      logEvent("danger", t("log.sinGeoloc"));
-      return;
     }
-    setGpsStatus("requesting");
-    const id = navigator.geolocation.watchPosition(
-      (pos) => {
-        setGpsStatus("active");
-        // Modo ahorro: procesa 1 fix de cada 2 (≈0,5 Hz efectivo).
-        if (saltarFix(pos.timestamp)) return;
-        const c = pos.coords;
-        const e = engine.current;
-        // Velocidad GPS (Doppler) si existe; si no, por delta de posición.
-        const doppler = c.speed !== null && c.speed >= 0 && isFinite(c.speed);
-        let kmh: number;
-        let course: number | null = null;
-        if (doppler) {
-          kmh = c.speed * 3.6;
+
+    // Detección de caída (GPS puro): corre en corriendo Y autoPausada
+    // (la inmovilidad post-golpe también pausa el motor), no en pausa manual.
+    if (fallConfigOn()) {
+      const trig = p.fall.update({ lat: fix.lat, lon: fix.lon, speedKmh: velKmh, t: fix.t });
+      if (trig) {
+        setFallAlert({ at: Date.now(), help: false });
+        logEvent("danger", t("log.caidaDetectada"));
+        alerts.speak("fall", t("voz.posibleCaida"), 3);
+        if (isNativeApp()) {
+          void RideNative.vibrate({ pattern: [0, 400, 200, 400, 200, 400], repeat: 0 }).catch(() =>
+            navigator.vibrate?.([400, 200, 400])
+          );
         } else {
-          const dM = e.lastFix ? haversineM(e.lastFix, { lat: c.latitude, lon: c.longitude }) : 0;
-          kmh = e.lastFix ? (dM / Math.max(0.2, (pos.timestamp - e.lastFix.t) / 1000)) * 3.6 : 0;
-          // Course derivado por delta (v1.12.14c): la web no entrega
-          // bearing - mismo criterio que el nativo, solo con avance real
-          // (≥4 km/h y desplazamiento ≥3 m para no rotar con ruido).
-          if (e.lastFix && kmh >= 4 && dM >= 3) course = bearingDeg(e.lastFix, { lat: c.latitude, lon: c.longitude });
+          navigator.vibrate?.([400, 200, 400, 200, 400]);
         }
-        engine.current.lastTick = performance.now();
-        processFix({
-          lat: c.latitude,
-          lon: c.longitude,
-          speedKmh: kmh,
-          speedFromDelta: !doppler,
-          alt: c.altitude ?? 0,
-          accuracyM: c.accuracy ?? 20,
-          t: pos.timestamp,
-          course,
-        });
-      },
-      (err) => {
-        if (err.code === err.PERMISSION_DENIED) {
-          setGpsStatus("denied");
-          logEvent("danger", t("log.permisoDenegado"));
-        } else {
-          setGpsStatus("error");
-          logEvent("warn", t("log.gpsError", err.message));
-        }
-      },
-      { enableHighAccuracy: true, maximumAge: 0, timeout: 15000 }
-    );
-    engine.current.watchId = id;
-  }, [logEvent, processFix]);
-
-  // --- Fuente GPS nativa: FGS tipo LOCATION a 1 Hz vía plugin RideNative.
-  // Sigue entregando fixes con la pantalla bloqueada o cambiando de app.
-  const startNativeGps = useCallback(async () => {
-    try {
-      const sub = await RideNative.addListener("gpsfix", (f) => {
-        setGpsStatus("active");
-        // Modo ahorro: procesa 1 fix de cada 2 (≈0,5 Hz efectivo).
-        if (saltarFix(f.t)) return;
-        const eng = engine.current;
-        // speed negativo o no finito = Doppler inválido → delta de posición
-        const speedKmh =
-          f.speed >= 0 && isFinite(f.speed)
-            ? f.speed * 3.6
-            : eng.lastFix
-              ? (haversineM(eng.lastFix, { lat: f.lat, lon: f.lng }) / Math.max(0.2, (f.t - eng.lastFix.t) / 1000)) * 3.6
-              : 0;
-        eng.lastTick = performance.now();
-        // bearing nativo → course solo con avance (≥4 km/h); -1 = sin bearing
-        const course = f.bearing >= 0 && isFinite(f.bearing) && speedKmh >= 4 ? f.bearing : null;
-        processFix({
-          lat: f.lat,
-          lon: f.lng,
-          speedKmh,
-          speedFromDelta: !(f.speed >= 0 && isFinite(f.speed)),
-          alt: f.alt,
-          accuracyM: f.accuracy,
-          t: f.t,
-          course,
-        });
-      });
-      engine.current.nativeSub = sub;
-      await RideNative.startLocation();
-      logEvent("info", t("log.gpsNativo"));
-    } catch {
-      logEvent("warn", t("log.gpsNativoFallback"));
-      startWebGps();
-    }
-  }, [logEvent, processFix, startWebGps]);
-
-  const startGps = useCallback(() => {
-    if (isNativeApp()) {
-      void startNativeGps();
-      return;
-    }
-    startWebGps();
-  }, [startNativeGps, startWebGps]);
-
-  // --- Fuente simulación ---
-  const startSim = useCallback(() => {
-    engine.current.sim = new RideSimulator(12, true);
-    engine.current.lastTick = performance.now();
-    engine.current.tickTimer = setInterval(() => {
-      const e = engine.current;
-      if (!e.sim) return;
-      const now = performance.now();
-      const dt = (now - e.lastTick) / 1000;
-      e.lastTick = now;
-      const fix = e.sim.tick(dt);
-      processFix(fix);
-    }, TICK_MS);
-    logEvent("info", t("log.demoActivo"));
-  }, [logEvent, processFix]);
-
-  const start = useCallback(
-    (src: Source) => {
-      alerts.unlock();
-      const e = engine.current;
-      e.kalman.reset();
-      e.altEma.reset();
-      e.slopeEma.reset();
-      e.lastFix = null;
-      e.prevSpeed = null;
-      e.distanceM = 0;
-      e.parkDistanceM = 0;
-      e.movingSec = 0;
-      e.elapsed = 0;
-      e.gain = 0;
-      e.overSec = 0;
-      e.inside = false;
-      e.state = "ok";
-      e.zoneLastTrigger = {};
-      e.gateLastTrigger = {};
-      e.trackPts = [];
-      e.trackEveryMs = 5000;
-      e.vehSec = 0;
-      e.vehStreakSec = 0;
-      e.vehStreakMax = 0;
-      e.vehNotified = false;
-      e.pioPrevD = null;
-      e.pioStreak = 0;
-      e.pioStreakD = null;
-      e.pioLastTrigger = 0;
-      e.puentePrevD = null;
-      e.puenteStreak = 0;
-      e.puenteStreakD = null;
-      e.puenteLastTrigger = 0;
-      e.b30Mod = null;
-      e.b30LastTrigger = {};
-      e.horarioLastCheck = 0;
-      e.horarioVoiceLast = {};
-      e.fall.reset();
-      e.paused = false;
-      setSource(src);
-      setEvents([]);
-      setTrack([]);
-      setSpeedKmh(0);
-      setMaxKmh(0);
-      setAvgKmh(0);
-      setDistanceKm(0);
-      setElapsedSec(0);
-      setGainM(0);
-      setSlopePct(0);
-      setInsidePark(false);
-      setSpeedState("ok");
-      setOverLimitSec(0);
-      setMaxInParkKmh(null);
-      setAccuracyM(null);
-      setPosition(null);
-      setFallAlert(null);
-      setResumenCerrado(null);
-      setStatus("running");
-      logEvent("info", src === "gps" ? t("log.rideGps") : t("log.rideDemo"));
-      // Corredores de las bajadas 30: carga perezosa (import dinámico,
-      // el trazado no viaja en el bundle principal).
-      void import("@/lib/bajadas30")
-        .then((m) => { engine.current.b30Mod = m; })
-        .catch(() => { /* sin detección de bajadas esta sesión */ });
-      // Aviso de horario al INICIAR (ingreso fuera de horario o al
-      // límite del cierre).
-      const mInicio = minutosParaCierre();
-      if (mInicio <= 0) {
-        logEvent("warn", t("log.fueraHorario", t("aviso.msgCierre")));
-        alerts.speak(
-          "horario-inicio",
-          t("voz.fueraHorario", vozHoras().abre, vozHoraCierre()),
-          4
-        );
-      } else if (mInicio <= 30) {
-        logEvent("warn", t("log.horarioInicio", cierraHoraTexto(), mInicio));
-        alerts.speak(
-          "horario-inicio",
-          t("voz.cierreProximo", vozHoraCierre(), Math.max(5, Math.round(mInicio / 5) * 5)),
-          4
-        );
       }
-      // Modo ahorro de batería (Ola 1): pantalla apagable - no se
-      // solicita wake lock; la guía sigue por voz.
-      if (!wakeLockSuspendido()) void alerts.requestWakeLock();
-      if (src === "gps") startGps();
-      else startSim();
-    },
-    [logEvent, startGps, startSim]
-  );
+    }
 
-  /** Pausa: congela cronómetro/estadísticas sin soltar el GPS.
-   *  El estado de velocidad vuelve a "ok" en silencio para que, al
-   *  reanudar, los avisos de caution/over se vuelvan a disparar si
-   *  corresponde (no se pierde la fiscalización). */
-  const pause = useCallback(() => {
-    if (status !== "running") return;
-    const e = engine.current;
-    e.paused = true;
-    e.state = "ok";
-    e.fall.reset(); // pausa esperada: no confundir con inmovilidad de caída
-    alerts.stopAll();
-    setStatus("paused");
-    setSpeedState("ok");
-    setSpeedKmh(0);
-    logEvent("info", t("log.pausa"));
-  }, [status, logEvent]);
+    // Máquina de estados de velocidad (fiscalización 30 km/h)
+    let nextState: SpeedState = "ok";
+    if (p.inside) {
+      switch (p.state) {
+        case "ok":
+          nextState = velKmh >= LIMIT_KMH ? "over" : velKmh >= CAUTION_KMH ? "caution" : "ok";
+          break;
+        case "caution":
+          if (velKmh >= LIMIT_KMH) nextState = "over";
+          else if (velKmh < CAUTION_KMH - 0.6) nextState = "ok";
+          else nextState = "caution";
+          break;
+        case "over":
+          if (velKmh < LIMIT_KMH - 0.6) nextState = velKmh >= CAUTION_KMH ? "caution" : "ok";
+          else nextState = "over";
+          break;
+      }
+    }
+    if (p.inside && velKmh >= LIMIT_KMH) p.overSec += dt;
+    alerts.updateHaptics(p.inside && e.estado === "corriendo" ? velKmh : null);
 
-  /** Reanuda: resetea los filtros (Kalman/último fix) para que ni la
-   *  velocidad ni la distancia salten con el tiempo de pausa. */
-  const resume = useCallback(() => {
-    if (status !== "paused") return;
-    const e = engine.current;
-    e.paused = false;
-    e.lastFix = null;
-    e.prevSpeed = null;
-    e.kalman.reset();
-    e.fall.reset(); // re-arma desde cero tras la pausa
-    setStatus("running");
-    logEvent("info", t("log.reanudado"));
-  }, [status, logEvent]);
+    if (nextState !== p.state) {
+      if (nextState === "caution") {
+        alerts.startCaution();
+        alerts.speak("caution", t("voz.precaucion", Math.round(velKmh)), 10);
+        logEvent("warn", t("log.precaucion", Math.round(velKmh)));
+      } else if (nextState === "over") {
+        alerts.startOver();
+        alerts.speak("over", t("voz.exceso"), 6);
+        logEvent("danger", t("log.exceso", Math.round(velKmh)));
+      } else {
+        alerts.stopAll();
+        if (p.state !== "ok") logEvent("info", t("log.velocidadOk"));
+      }
+      p.state = nextState;
+      setSpeedState(nextState);
+    }
 
-  // Refs espejo para leer los máximos al guardar
+    // Publicar estado de UI derivado del parque + contadores
+    setOverLimitSec(p.overSec);
+    if (p.inside) setMaxInParkKmh((m) => Math.max(m ?? 0, velKmh));
+    // contadores del consumidor al checkpoint del motor
+    e.setExtra(extrasParque());
+    p.lastFix = fix;
+  }, [logEvent, extrasParque]);
+
+  /** Publicación de UI del estado del MOTOR (fixes, métricas, track). */
+  const publicarMotor = useCallback((fix: FixBruto, velKmh: number, m: {
+    distanciaM: number; movingSec: number; elapsedSec: number; velMaxKmh: number;
+    gainM: number; pendientePct: number;
+  }) => {
+    setSpeedKmh(velKmh);
+    setMaxKmh((mx) => Math.max(mx, velKmh));
+    setAvgKmh(m.movingSec > 2 ? (m.distanciaM / m.movingSec) * 3.6 : 0);
+    setDistanceKm(m.distanciaM / 1000);
+    setElapsedSec(m.elapsedSec);
+    setGainM(m.gainM);
+    setSlopePct(m.pendientePct);
+    setAccuracyM(fix.accuracyM);
+    setPosition(fix);
+    // Recorrido de UI (más denso que el track GPX; el GPX sale del motor)
+    if (fix.accuracyM < 60) {
+      setTrack((tr) => (tr.length && haversineM(tr[tr.length - 1], fix) < 2 ? tr : [...tr.slice(-6000), fix]));
+    }
+  }, []);
+
+  /** Despachador de eventos del motor (referencia mutable: sin cierres
+   *  obsoletos entre renders). */
+  const eventoRef = useRef<(e: EventoMotor) => void>(() => undefined);
+  eventoRef.current = (e: EventoMotor) => {
+    switch (e.tipo) {
+      case "fix": {
+        publicarMotor(e.fix, e.velKmh, {
+          distanciaM: e.metricas.distanciaM,
+          movingSec: e.metricas.movingSec,
+          elapsedSec: e.metricas.elapsedSec,
+          velMaxKmh: e.metricas.velMaxKmh,
+          gainM: e.metricas.gainM,
+          pendientePct: e.metricas.pendientePct,
+        });
+        reglasParque(e.fix, e.velKmh, e.dtSec, e.metricas.pendientePct);
+        break;
+      }
+      case "estado": {
+        if (e.motivo === "auto-parada") {
+          setAutoPausada(true);
+          logEvent("info", t("log.autoPausa"));
+        } else if (e.motivo === "auto-reanudada") {
+          setAutoPausada(false);
+          logEvent("info", t("log.autoReanudado"));
+        }
+        break;
+      }
+      case "alerta": {
+        if (e.codigo === "senal-obsoleta") {
+          setGpsStatus((s) => (s === "active" ? s : s));
+        }
+        break;
+      }
+    }
+  };
+
+  // Refs espejo para leer los máximos al guardar y al checkpointear
   const maxRef = useRef(0);
   const maxInParkRef = useRef<number | null>(null);
   useEffect(() => { maxRef.current = maxKmh; }, [maxKmh]);
   useEffect(() => { maxInParkRef.current = maxInParkKmh; }, [maxInParkKmh]);
 
+  const resetParque = useCallback(() => {
+    const p = park.current;
+    p.lastFix = null;
+    p.parkDistanceM = 0;
+    p.overSec = 0;
+    p.inside = false;
+    p.state = "ok";
+    p.zoneLastTrigger = {};
+    p.gateLastTrigger = {};
+    p.vehSec = 0;
+    p.vehStreakSec = 0;
+    p.vehStreakMax = 0;
+    p.vehNotified = false;
+    p.pioPrevD = null;
+    p.pioStreak = 0;
+    p.pioStreakD = null;
+    p.pioLastTrigger = 0;
+    p.puentePrevD = null;
+    p.puenteStreak = 0;
+    p.puenteStreakD = null;
+    p.puenteLastTrigger = 0;
+    p.b30Mod = null;
+    p.b30LastTrigger = {};
+    p.horarioLastCheck = 0;
+    p.horarioVoiceLast = {};
+    p.fall.reset();
+  }, []);
+
+  /** Fuente según origen, envuelta con el modo ahorro: el consumidor
+   *  decide saltar fixes (1 de cada 2 con ahorro activo; el motor no
+   *  sabe nada de batería). saltarFix consulta el estado en VIVO, así
+   *  que activar/desactivar el ahorro en marcha funciona igual que
+   *  antes. elapsed y distancia no se pierden: el núcleo usa el
+   *  último fix aceptado como referencia del delta. */
+  const crearFuente = useCallback((src: Source) => {
+    const base =
+      src === "sim"
+        ? crearFuenteSim({ speedScale: 12, tickMs: TICK_MS })
+        : isNativeApp()
+          ? crearFuenteNativa()
+          : crearFuenteWeb();
+    fuenteRef.current = { tipo: base.tipo };
+    return {
+      tipo: base.tipo,
+      iniciar: (entregar: (f: FixBruto) => void, err: (m: string) => void) =>
+        base.iniciar((f) => {
+          if (saltarFix(f.t)) return;
+          entregar(f);
+        }, err),
+      detener: () => base.detener(),
+    };
+  }, []);
+
+  const start = useCallback((src: Source) => {
+    alerts.unlock();
+    resetParque();
+    const e = getMotor();
+    // sesión previa (si la hubiese) se cierra sin guardar
+    e.detener();
+    setSource(src);
+    setEvents([]);
+    setTrack([]);
+    setSpeedKmh(0);
+    setMaxKmh(0);
+    setAvgKmh(0);
+    setDistanceKm(0);
+    setElapsedSec(0);
+    setGainM(0);
+    setSlopePct(0);
+    setInsidePark(false);
+    setSpeedState("ok");
+    setOverLimitSec(0);
+    setMaxInParkKmh(null);
+    setAccuracyM(null);
+    setPosition(null);
+    setFallAlert(null);
+    setResumenCerrado(null);
+    setAutoPausada(false);
+    setStatus("running");
+    setRecuperacion(null);
+    logEvent("info", src === "gps" ? t("log.rideGps") : t("log.rideDemo"));
+    // Corredores de las bajadas 30: carga perezosa
+    void import("@/lib/bajadas30")
+      .then((m) => { park.current.b30Mod = m; })
+      .catch(() => { /* sin detección de bajadas esta sesión */ });
+    // Aviso de horario al INICIAR
+    const mInicio = minutosParaCierre();
+    if (mInicio <= 0) {
+      logEvent("warn", t("log.fueraHorario", t("aviso.msgCierre")));
+      alerts.speak("horario-inicio", t("voz.fueraHorario", vozHoras().abre, vozHoraCierre()), 4);
+    } else if (mInicio <= 30) {
+      logEvent("warn", t("log.horarioInicio", cierraHoraTexto(), mInicio));
+      alerts.speak("horario-inicio", t("voz.cierreProximo", vozHoraCierre(), Math.max(5, Math.round(mInicio / 5) * 5)), 4);
+    }
+    if (!wakeLockSuspendido()) void alerts.requestWakeLock();
+    e.setExtra(extrasParque());
+    e.iniciar(crearFuente(src));
+  }, [logEvent, resetParque, extrasParque, crearFuente]);
+
+  /** Retoma un ride interrumpido desde el checkpoint del motor. */
+  const retomarRide = useCallback(() => {
+    const e = getMotor();
+    const cp = e.leerRecuperacion();
+    if (!cp) return;
+    resetParque();
+    // restaura contadores del parque guardados en el checkpoint
+    const ex = (cp.extra ?? {}) as Partial<ExtrasParque>;
+    const maxInParkRest = typeof ex.maxInParkKmh === "number" ? ex.maxInParkKmh : null;
+    park.current.overSec = typeof ex.overSec === "number" ? ex.overSec : 0;
+    park.current.parkDistanceM = typeof ex.parkDistanceM === "number" ? ex.parkDistanceM : 0;
+    park.current.vehSec = typeof ex.vehSec === "number" ? ex.vehSec : 0;
+    park.current.vehStreakMax = typeof ex.vehStreakMax === "number" ? ex.vehStreakMax : 0;
+    park.current.state = ex.limiteEstado === "caution" || ex.limiteEstado === "over" ? ex.limiteEstado : "ok";
+    park.current.inside = ex.dentro === true;
+    maxInParkRef.current = maxInParkRest;
+    const src: Source = cp.fuente === "sim" ? "sim" : "gps";
+    setSource(src);
+    setEvents([]);
+    setTrack([]);
+    setSpeedKmh(0);
+    setMaxKmh(cp.metricas.velMaxKmh);
+    setAvgKmh(0);
+    setDistanceKm(cp.metricas.distanciaM / 1000);
+    setElapsedSec(cp.metricas.elapsedSec);
+    setGainM(cp.metricas.gainM);
+    setSlopePct(cp.metricas.pendientePct);
+    setInsidePark(ex.dentro === true);
+    setSpeedState(park.current.state);
+    setOverLimitSec(park.current.overSec);
+    setMaxInParkKmh(maxInParkRest);
+    setAccuracyM(null);
+    setPosition(null);
+    setFallAlert(null);
+    setResumenCerrado(null);
+    setAutoPausada(cp.estado === "autoPausada");
+    setStatus("running");
+    setRecuperacion(null);
+    logEvent("info", t("log.rideRetomado"));
+    void import("@/lib/bajadas30")
+      .then((m) => { park.current.b30Mod = m; })
+      .catch(() => undefined);
+    if (!wakeLockSuspendido()) void alerts.requestWakeLock();
+    // track de UI desde el checkpoint
+    for (const pt of cp.track) setTrack((tr) => [...tr.slice(-6000), { lat: pt[0], lon: pt[1] }]);
+    e.retomar(cp, crearFuente(src));
+  }, [logEvent, resetParque, crearFuente]);
+
+  /** Descarta un ride interrumpido (borra el checkpoint). */
+  const descartarRecuperacion = useCallback(() => {
+    getMotor().descartarRecuperacion();
+    setRecuperacion(null);
+    logEvent("info", t("log.recupDescartado"));
+  }, [logEvent]);
+
+  // Recuperación pendiente al abrir la app
+  useEffect(() => {
+    const cp = getMotor().leerRecuperacion();
+    if (cp) {
+      setRecuperacion({
+        fecha: cp.ultimoGuardadoTs,
+        distanciaKm: cp.metricas.distanciaM / 1000,
+        elapsedMin: cp.metricas.elapsedSec / 60,
+        fuente: cp.fuente,
+      });
+    }
+  }, []);
+
+  const pause = useCallback(() => {
+    const e = getMotor();
+    if (e.estado !== "corriendo" && e.estado !== "autoPausada") return;
+    e.pausar();
+    park.current.state = "ok";
+    park.current.fall.reset(); // pausa esperada: no confundir con caída
+    alerts.stopAll();
+    setStatus("paused");
+    setSpeedState("ok");
+    setSpeedKmh(0);
+    setAutoPausada(false);
+    logEvent("info", t("log.pausa"));
+  }, [logEvent]);
+
+  const resume = useCallback(() => {
+    const e = getMotor();
+    if (e.estado !== "pausada" && e.estado !== "autoPausada") return;
+    e.reanudar();
+    park.current.fall.reset(); // re-arma desde cero tras la pausa
+    setStatus("running");
+    setAutoPausada(false);
+    logEvent("info", t("log.reanudado"));
+  }, [logEvent]);
+
   const stop = useCallback(() => {
-    const e = engine.current;
-    if (e.watchId !== null) {
-      navigator.geolocation.clearWatch(e.watchId);
-      e.watchId = null;
-    }
-    if (e.nativeSub) {
-      void e.nativeSub.remove();
-      e.nativeSub = null;
-      void RideNative.stopLocation().catch(() => { /* ya detenido */ });
-    }
-    if (e.tickTimer) {
-      clearInterval(e.tickTimer);
-      e.tickTimer = null;
-    }
-    e.sim = null;
-    e.fall.reset();
+    const e = getMotor();
+    const snap = e.detener();
     setFallAlert(null);
     alerts.stopAll();
     alerts.releaseWakeLock();
+    const p = park.current;
     // Un ride pausado también se guarda: la pausa no borra lo pedaleado.
-    if ((status === "running" || status === "paused") && (e.distanceM > 50 || e.elapsed > 10)) {
-      // Detección de vehículo motorizado: solo rides con GPS real (el
-      // demo corre a su propia velocidad y no cuenta para nada). Si es
-      // sospechoso se marca motorizado de inmediato (nunca se pierde el
-      // ride) y la app pregunta: "¿fuiste en bici?" para corregirlo.
-      const movingAvg = e.movingSec > 2 ? (e.distanceM / e.movingSec) * 3.6 : 0;
+    const m = snap?.metricas;
+    if (m && (m.distanciaM > 50 || m.elapsedSec > 10)) {
+      const movingAvg = m.movingSec > 2 ? (m.distanciaM / m.movingSec) * 3.6 : 0;
       const vehicleSuspect =
         source === "gps" &&
         isMotorizedRide({
-          vehSec: e.vehSec,
-          vehStreakSec: e.vehStreakMax,
+          vehSec: p.vehSec,
+          vehStreakSec: p.vehStreakMax,
           avgKmh: movingAvg,
-          movingSec: e.movingSec,
-          maxKmh: maxRef.current,
+          movingSec: m.movingSec,
+          maxKmh: m.velMaxKmh,
         });
-      // Perfil Ciclista (v1.13.16): métricas derivadas del track, calculadas
-      // aquí en el dispositivo (el track crudo nunca sale del teléfono).
-      // Los rides demo no generan métricas: no cuentan para el perfil.
-      // v1.13.17: los pesos del conjunto (rideWeights) alimentan los
-      // watts estimados en subida >4%.
+      const trackPts: TrackPt[] = (snap?.track ?? []).map((pt) => [
+        pt[0],
+        pt[1],
+        pt[2] ?? m.altMinM ?? 0,
+        pt[3],
+      ]);
       const metrics =
-        source === "gps" && e.trackPts.length > 2 ? computeRideMetrics(e.trackPts, getRideWeights()) : null;
+        source === "gps" && trackPts.length > 2 ? computeRideMetrics(trackPts, getRideWeights()) : null;
       const summary: RideSummary = conRouteRef({
         id: crypto.randomUUID(),
         dateISO: new Date().toISOString(),
         source: source,
-        distanceKm: e.distanceM / 1000,
-        maxKmh: maxRef.current,
+        distanceKm: m.distanciaM / 1000,
+        maxKmh: m.velMaxKmh,
         maxInParkKmh: maxInParkRef.current,
-        inParkKm: Number((e.parkDistanceM / 1000).toFixed(2)),
+        inParkKm: Number((p.parkDistanceM / 1000).toFixed(2)),
         avgKmh: movingAvg,
-        elapsedSec: e.elapsed,
-        gainM: e.gain,
-        overLimitSec: e.overSec,
+        elapsedSec: m.elapsedSec,
+        gainM: m.gainM,
+        overLimitSec: p.overSec,
         motorized: vehicleSuspect || undefined,
         metrics: metrics ?? undefined,
-        // Solo los viajes GPS guardan pista (los demo no exportan GPX).
-        track: source === "gps" && e.trackPts.length > 1 ? e.trackPts : undefined,
+        track: source === "gps" && trackPts.length > 1 ? trackPts : undefined,
       }, rutaProyectadaStore.get());
       saveRide(summary);
-      setResumenCerrado(summary); // fase F: habilita la experiencia post-ride
+      setResumenCerrado(summary);
       logEvent("info", t("log.guardado"));
-      void syncRideAfterSave(summary); // sube al servidor + logros si hay sesión
-      // Exploración (v1.13.17): km off-road contra la red de navegación.
-      // Corre en segundo plano y re-sube el resumen (POST idempotente por
-      // clientId): las métricas quedan completadas en servidor sin que el
-      // track crudo salga del teléfono.
+      void syncRideAfterSave(summary);
       if (metrics) void augmentRideOffRoad(summary, (s) => void syncRideAfterSave(s));
       if (vehicleSuspect) setPendingConfirm(summary);
     }
-    e.paused = false;
+    resetParque();
     setStatus("idle");
     setGpsStatus("idle");
     setSpeedState("ok");
     setSpeedKmh(0);
-  }, [logEvent, source, status]);
+    setAutoPausada(false);
+  }, [logEvent, source, resetParque]);
 
-  /** Respuesta al diálogo "¿fuiste en bici?": si fue bici, corrige el
-   *  flag del ride (local + servidor) y re-evalúa logros; si fue
-   *  vehículo, el flag ya quedó puesto al guardar. */
   const confirmVehicle = useCallback((wasBike: boolean) => {
     const s = pendingRef.current;
     pendingRef.current = null;
     setPendingConfirm(null);
     if (!s) return;
-    if (!wasBike) return; // ya quedó guardado como vehículo
+    if (!wasBike) return;
     void markRideAsBike(s);
   }, []);
 
-  /** Fase F: descartar el prompt de experiencia post-ride (el ride
-   *  ya está guardado con su routeRef; solo se cierra el diálogo). */
   const descartarResumenCerrado = useCallback(() => setResumenCerrado(null), []);
 
-  // Re-adquirir Wake Lock al volver a la app
+  // Re-adquirir Wake Lock al volver a la app + checkpoint al ocultar
   useEffect(() => {
-    const onVis = () => { if (status === "running") void alerts.reacquireIfVisible(); };
+    const onVis = () => {
+      if (document.visibilityState === "hidden") {
+        // checkpoint de emergencia al salir de primer plano
+        getMotor().forzarCheckpoint();
+      } else if (status === "running") {
+        void alerts.reacquireIfVisible();
+      }
+    };
+    const onHide = () => getMotor().forzarCheckpoint();
     document.addEventListener("visibilitychange", onVis);
-    return () => document.removeEventListener("visibilitychange", onVis);
+    window.addEventListener("pagehide", onHide);
+    return () => {
+      document.removeEventListener("visibilitychange", onVis);
+      window.removeEventListener("pagehide", onHide);
+    };
   }, [status]);
 
-  // --- GPS ambiental (app cargada, sin ride activo): publica la
-  // posición del usuario apenas abre la app para que el mapa y la
-  // navegación partan en TU ubicación y no en el centro del parque.
-  // No toca estadísticas ni recorrido: solo position/accuracy. ---
+  // Tic de reloj: el tiempo transcurrido y el promedio siguen vivos
+  // aunque la señal falle (elapsed es por reloj, no por fixes).
+  useEffect(() => {
+    if (status !== "running") return;
+    const iv = setInterval(() => {
+      const e = getMotor();
+      // el perfil (auto-pausa) puede cambiar en Ajustes en vivo
+      e.setAutoPausa(autoPausaActivada());
+      const snap = e.snapshot();
+      if (!snap) return;
+      setElapsedSec(snap.metricas.elapsedSec);
+      setAvgKmh(snap.metricas.movingSec > 2 ? (snap.metricas.distanciaM / snap.metricas.movingSec) * 3.6 : 0);
+    }, TICK_MS);
+    return () => clearInterval(iv);
+  }, [status]);
+
+  // --- GPS ambiental (app cargada, sin ride activo): mapa y navegación
+  // parten en TU ubicación. No toca estadísticas. Fase única (A.8): se
+  // DETIENE con la app oculta o bloqueada — el chip GNSS no queda vivo
+  // sin actividad (auditoría R7); al volver, se reabre. ---
+  const ambientRef = useRef<number | null>(null);
+  const stopAmbiente = useCallback(() => {
+    if (ambientRef.current !== null && typeof navigator !== "undefined" && navigator.geolocation) {
+      navigator.geolocation.clearWatch(ambientRef.current);
+      ambientRef.current = null;
+    }
+  }, []);
   useEffect(() => {
     if (status !== "idle") return; // durante el ride el GPS del ride manda
     if (typeof navigator === "undefined" || !("geolocation" in navigator)) return;
-    setGpsStatus((s) => (s === "idle" || s === "error" ? "requesting" : s));
-    const id = navigator.geolocation.watchPosition(
-      (pos) => {
-        setGpsStatus("active");
-        setAccuracyM(pos.coords.accuracy ?? null);
-        setPosition({ lat: pos.coords.latitude, lon: pos.coords.longitude });
-      },
-      (err) => {
-        if (err.code === err.PERMISSION_DENIED) {
-          setGpsStatus("denied");
-        } else {
-          setGpsStatus((s) => (s === "requesting" ? "error" : s));
-        }
-      },
-      { enableHighAccuracy: true, maximumAge: 5000, timeout: 20000 }
-    );
-    return () => navigator.geolocation.clearWatch(id);
-  }, [status]);
+    const abrir = () => {
+      if (ambientRef.current !== null || document.visibilityState !== "visible") return;
+      setGpsStatus((s) => (s === "idle" || s === "error" ? "requesting" : s));
+      ambientRef.current = navigator.geolocation.watchPosition(
+        (pos) => {
+          setGpsStatus("active");
+          setAccuracyM(pos.coords.accuracy ?? null);
+          setPosition({ lat: pos.coords.latitude, lon: pos.coords.longitude });
+        },
+        (err) => {
+          if (err.code === err.PERMISSION_DENIED) setGpsStatus("denied");
+          else setGpsStatus((s) => (s === "requesting" ? "error" : s));
+        },
+        { enableHighAccuracy: true, maximumAge: 5000, timeout: 20000 }
+      );
+    };
+    abrir();
+    const onVis = () => {
+      if (document.visibilityState === "hidden") stopAmbiente();
+      else abrir();
+    };
+    document.addEventListener("visibilitychange", onVis);
+    return () => {
+      document.removeEventListener("visibilitychange", onVis);
+      stopAmbiente();
+    };
+  }, [status, stopAmbiente]);
 
   // Limpieza al desmontar
   useEffect(() => () => {
-    const e = engine.current;
-    if (e.watchId !== null) navigator.geolocation.clearWatch(e.watchId);
-    if (e.tickTimer) clearInterval(e.tickTimer);
-    if (e.nativeSub) void e.nativeSub.remove();
+    getMotor().forzarCheckpoint();
+    motorRef.current?.detener();
     alerts.stopAll();
   }, []);
 
@@ -932,10 +886,12 @@ export function useRideEngine() {
     status, source, gpsStatus, accuracyM,
     speedKmh, maxKmh, avgKmh, distanceKm, elapsedSec, gainM, slopePct,
     insidePark, speedState, overLimitSec, maxInParkKmh,
+    autoPausada,
     events, track, position, course,
     pendingConfirm, confirmVehicle,
     resumenCerrado, descartarResumenCerrado,
     fallAlert, dismissFall, requestFallHelp,
+    recuperacion, retomarRide, descartarRecuperacion,
     start, pause, resume, stop,
   };
 }

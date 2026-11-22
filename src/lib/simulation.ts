@@ -21,11 +21,15 @@ export class RideSimulator {
   private traveled = 0; // metros recorridos
   private simTime: number;
   private readonly speedScale: number;
+  private rnd: () => number;
 
-  constructor(speedScale = 6, loop = true) {
+  constructor(speedScale = 6, loop = true, semilla?: number) {
     this.speedScale = speedScale;
     this.loop = loop;
     this.simTime = Date.now();
+    // PRNG determinista opcional (fase única 2026-11-22): con semilla,
+    // las "corridas" de prueba son reproducibles (tests motor-gps).
+    this.rnd = semilla === undefined ? Math.random : mulberry32(semilla);
     let acc = 0;
     this.cumulative.push(0);
     for (let i = 1; i < SIM_ROUTE.length; i++) {
@@ -72,13 +76,13 @@ export class RideSimulator {
     }
     this.simTime += dtSim * 1000;
     const now = this.at(this.traveled);
-    const noise = (Math.random() - 0.5) * 0.9; // ±0.45 km/h
+    const noise = (this.rnd() - 0.5) * 0.9; // ±0.45 km/h
     return {
-      lat: now.lat + (Math.random() - 0.5) * 0.00004,
-      lon: now.lon + (Math.random() - 0.5) * 0.00004,
+      lat: now.lat + (this.rnd() - 0.5) * 0.00004,
+      lon: now.lon + (this.rnd() - 0.5) * 0.00004,
       speedKmh: Math.max(0, now.kmh + noise),
-      alt: now.alt + (Math.random() - 0.5) * 0.8,
-      accuracyM: 4 + Math.random() * 3,
+      alt: now.alt + (this.rnd() - 0.5) * 0.8,
+      accuracyM: 4 + this.rnd() * 3,
       t: this.simTime,
     };
   }
@@ -90,4 +94,16 @@ export class RideSimulator {
   get totalKm(): number {
     return this.totalDist / 1000;
   }
+}
+
+/** PRNG mulberry32: pequeño, rápido y reproducible por semilla. */
+function mulberry32(semilla: number): () => number {
+  let a = semilla >>> 0;
+  return () => {
+    a += 0x6d2b79f5;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
 }

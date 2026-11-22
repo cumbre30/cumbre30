@@ -408,6 +408,7 @@ export default function Home() {
             accuracyM={ride.accuracyM}
             events={ride.events}
             status={status}
+            autoPausada={ride.autoPausada}
             source={source}
             position={ride.position}
             posDisplay={posDisplay}
@@ -525,6 +526,17 @@ export default function Home() {
       {/* ¿Fuiste en bici?: corrección del flag de vehículo detectado */}
       <VehicleConfirmModal pending={ride.pendingConfirm} onAnswer={ride.confirmVehicle} />
 
+      {/* Fase única (motor GPS): ride interrumpido recuperable desde el
+          checkpoint del motor — crasheo del WebView o muerte del proceso.
+          Retomar continúa el ride; Descartar borra el checkpoint. */}
+      {ride.recuperacion && (
+        <DialogoRecuperarRide
+          rec={ride.recuperacion}
+          onRetomar={ride.retomarRide}
+          onDescartar={ride.descartarRecuperacion}
+        />
+      )}
+
       {/* Fase F (v2.1 §6/§8): experiencia post-ride — solo rides GPS con
           ruta proyectada (routeRef). Al abrirse marca la copia local
           COMPLETADA (binaria) y ofrece registrar la experiencia con la
@@ -557,5 +569,49 @@ function BottomTab({ icon, label, on, onClick }: { icon: React.ReactNode; label:
       <span className={`flex items-center justify-center rounded-full px-4 py-0.5 ${on ? "bg-emerald-600/15" : ""}`}>{icon}</span>
       {label}
     </button>
+  );
+}
+
+/** Fase única: diálogo de recuperación de ride interrumpido. Minimal,
+ *  coherente con los modales de la app (fondo oscuro fijo, borde,
+ *  dos acciones). El texto lleva la fecha del checkpoint formateada. */
+function DialogoRecuperarRide({
+  rec,
+  onRetomar,
+  onDescartar,
+}: {
+  rec: { fecha: number; distanciaKm: number; elapsedMin: number };
+  onRetomar: () => void;
+  onDescartar: () => void;
+}) {
+  useLang();
+  const fecha = new Date(rec.fecha);
+  const hh = String(fecha.getHours()).padStart(2, "0");
+  const mm = String(fecha.getMinutes()).padStart(2, "0");
+  const texto = t("motor.recupTexto")
+    .replace("{0}", rec.distanciaKm.toFixed(1))
+    .replace("{1}", Math.round(rec.elapsedMin).toString())
+    .replace("{2}", `${hh}:${mm}`);
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-5" role="dialog" aria-modal="true" aria-label={t("motor.recupTitulo")}>
+      <div className="w-full max-w-sm rounded-2xl border border-border bg-card p-5 shadow-xl">
+        <h2 className="text-base font-bold tracking-tight">{t("motor.recupTitulo")}</h2>
+        <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{texto}</p>
+        <div className="mt-4 flex gap-2">
+          <button
+            onClick={onRetomar}
+            className="flex-1 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-bold text-white active:scale-[0.98]"
+          >
+            {t("motor.recupRetomar")}
+          </button>
+          <button
+            onClick={onDescartar}
+            className="rounded-xl border border-border px-4 py-2.5 text-sm font-bold text-muted-foreground active:scale-[0.98]"
+          >
+            {t("motor.recupDescartar")}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }

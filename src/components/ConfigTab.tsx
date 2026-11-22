@@ -22,7 +22,7 @@
 // ============================================================
 
 import { useEffect, useState } from "react";
-import { Volume2, VolumeX, Mic, MicOff, Info, Mail, Moon, Palette, Lock, Languages, Siren, ShieldAlert, UserPlus, UserRound, BellRing, HeartPulse, RefreshCw, Download, ChevronRight, ArrowLeft, Gauge, Map } from "lucide-react";
+import { Volume2, VolumeX, Mic, MicOff, Info, Mail, Moon, Palette, Lock, Languages, Siren, ShieldAlert, UserPlus, UserRound, BellRing, HeartPulse, RefreshCw, Download, ChevronRight, ArrowLeft, Gauge, Map, Timer } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Speedometer } from "@/components/Speedometer";
 import { MinimapPreview } from "@/components/MinimapPreview";
@@ -30,6 +30,7 @@ import { SubTabs } from "@/components/SubTabs";
 import { ThemeIconButton } from "@/components/ThemeToggle";
 import { APP_VERSION, APP_VERSION_CODE } from "@/lib/appVersion";
 import { fallConfigOn, setFallConfigOn, fallConfirmSegs, setFallConfirmSegs, type FallConfirmSegs } from "@/lib/fallDetect";
+import { autoPausaActivada, setAutoPausaActivada } from "@/motor/config";
 import {
   ICE_MAX,
   getIceConfig,
@@ -171,6 +172,15 @@ export function ConfigTab({
     const v = !fallOn;
     setFallOn(v);
     setFallConfigOn(v);
+  };
+  // Pausa automática del motor GPS (fase única 2026-11-22): perfil
+  // persistido en motor/config; el ride pausa solo al detenerse y
+  // reanuda al pedalear. Aplica al ride en curso también (en vivo).
+  const [autoPausaOn, setAutoPausaOn] = useState(autoPausaActivada());
+  const toggleAutoPausa = () => {
+    const v = !autoPausaOn;
+    setAutoPausaOn(v);
+    setAutoPausaActivada(v);
   };
   // Confirmación de estado (v1.12.1): ventana 15/30/60 s del overlay
   // "¿Estás bien?" antes de la ayuda automática. Default 30 s.
@@ -439,6 +449,9 @@ export function ConfigTab({
           <Card className="p-0">
             <Row icon={<Siren className="h-5 w-5" />} title={t("cfg.caida")} sub={t("cfg.caidaSub")}>
               <Toggle on={fallOn} onChange={toggleFall} label={t("cfg.caida")} />
+            </Row>
+            <Row icon={<Timer className="h-5 w-5" />} title={t("cfg.autoPausa")} sub={t("cfg.autoPausaSub")}>
+              <Toggle on={autoPausaOn} onChange={toggleAutoPausa} label={t("cfg.autoPausa")} />
             </Row>
             <Row icon={<ShieldAlert className="h-5 w-5" />} title={t("cfg.confirmEstado")} sub={t("cfg.confirmEstadoSub")}>
               <span />

@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --text: #111827; --text-sub: #6B7280; --bg: #FFFFFF;
+    --border: #E5E7EB; --connector: #94A3B8;
+  }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); -webkit-font-smoothing: antialiased; }
+  #root { width: fit-content; min-width: 1080px; margin: 0 auto; padding: 44px 48px; background: #FFFFFF; }
+  .titulo { font-size: 23px; font-weight: 700; text-align: center; }
+  .subtitulo { font-size: 13px; color: var(--text-sub); text-align: center; margin-top: 6px; margin-bottom: 34px; }
+
+  .fase { border-radius: 12px; padding: 20px 22px 18px; position: relative; margin: 0 auto; }
+  .fase .etiqueta { display: inline-block; font-size: 11.5px; font-weight: 700; letter-spacing: 0.06em; color: #475569; background: #FFFFFF; border: 1px solid #CBD5E1; border-radius: 999px; padding: 3px 12px; margin-bottom: 14px; }
+  .fase .resp { font-size: 11.5px; color: var(--text-sub); margin: -6px 0 14px 2px; }
+  .caja-fila { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+  .nodo { background: #F8FAFC; border: 2px solid #94A3B8; border-radius: 10px; padding: 12px 16px; min-width: 190px; max-width: 300px; flex: 0 1 240px; text-align: left; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+  .nodo .n-titulo { font-size: 13.5px; font-weight: 700; line-height: 1.35; color: #1F2937; }
+  .nodo .n-desc { font-size: 11px; color: var(--text-sub); margin-top: 4px; line-height: 1.45; }
+  .nodo.archivo { font-size: 10px; color: #64748B; margin-top: 6px; font-family: 'SFMono-Regular', Consolas, monospace; }
+
+  /* Fases: progresión mismo tono (azul-gris) */
+  .f1 { background: #F0F4F8; border-left: 4px solid #64748B; }
+  .f2 { background: #E8EDF2; border-left: 4px solid #5B7A99; }
+  .f3 { background: #DFE7EE; border-left: 4px solid #4E6F8E; }
+  .f4 { background: #D6E0EA; border-left: 4px solid #426483; }
+
+  .nodo.nucleo { background: #EFF6FF; border-color: #3B82F6; }
+  .nodo.nucleo .n-titulo { color: #1E40AF; }
+  .nodo.eventos { background: #FFF7ED; border-color: #F59E0B; }
+  .nodo.eventos .n-titulo { color: #92400E; }
+  .nodo.consumidor { background: #F0FDF4; border-color: #10B981; }
+  .nodo.consumidor .n-titulo { color: #065F46; }
+  .nodo.persist { background: #F5F3FF; border-color: #8B5CF6; }
+  .nodo.persist .n-titulo { color: #5B21B6; }
+
+  .flecha { display: flex; align-items: center; justify-content: center; margin: 10px 0; }
+  .flecha .linea { width: 2px; height: 22px; background: var(--connector); position: relative; }
+  .flecha .linea::after { content: ""; position: absolute; bottom: -1px; left: -4px; border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 7px solid var(--connector); }
+  .flecha .etq { font-size: 11px; color: var(--text-sub); margin-left: 10px; }
+
+  .nota { margin-top: 30px; display: flex; gap: 22px; justify-content: center; padding: 14px 22px; background: #F9FAFB; border: 1px solid #E5E7EB; border-radius: 8px; flex-wrap: wrap; }
+  .nota .item { display: flex; align-items: center; gap: 7px; font-size: 12px; color: #4B5563; }
+  .nota .dot { width: 12px; height: 12px; border-radius: 3px; border: 2px solid; }
+</style>
+</head>
+<body>
+<div id="root">
+  <div class="titulo">Motor GPS de Cumbre30 — arquitectura modular (fase única 2026-11-22)</div>
+  <div class="subtitulo">Captura GNSS → procesamiento → métricas → sesión → eventos tipados → consumidor (reglas del producto) → persistencia</div>
+
+  <div class="fase f1">
+    <span class="etiqueta">FASE 1 · CAPTURA — GPS CORE (ANDROID, SIN PLAY SERVICES)</span>
+    <div class="resp">Responsabilidad: entregar fixes GNSS crudos del chip del dispositivo a 1 Hz</div>
+    <div class="caja-fila">
+      <div class="nodo"><div class="n-titulo">RideLocationService.kt</div><div class="n-desc">FGS tipo location · LocationManager.GPS_PROVIDER · 1 Hz · START_STICKY</div><div class="archivo">android/…/RideLocationService.kt</div></div>
+      <div class="nodo"><div class="n-titulo">RideNativePlugin.kt</div><div class="n-desc">Puente Capacitor · evento «gpsfix» · hasAlt + valt (fase única)</div><div class="archivo">android/…/RideNativePlugin.kt</div></div>
+      <div class="nodo"><div class="n-titulo">FuenteUbicacion (interfaz)</div><div class="n-desc">nativa / web / sim — desacoplada del núcleo</div><div class="archivo">src/motor/fuente.ts</div></div>
+    </div>
+  </div>
+  <div class="flecha"><div class="linea"></div><span class="etq">FixBruto (lat, lon, Doppler, accuracy, alt, valt, t)</span></div>
+
+  <div class="fase f2">
+    <span class="etiqueta">FASE 2 · NÚCLEO REUTILIZABLE — SIN REACT, SIN REGLAS DEL PARQUE</span>
+    <div class="resp">Responsabilidad: validar, filtrar, medir y decidir el estado de la sesión</div>
+    <div class="caja-fila">
+      <div class="nodo nucleo"><div class="n-titulo">ProcesadorPosicion</div><div class="n-desc">frescura · accuracy · salto dinámico · Kalman R-adaptativo · extrapolación de frenada</div><div class="archivo">src/motor/procesamiento.ts · kalman.ts</div></div>
+      <div class="nodo nucleo"><div class="n-titulo">MotorMetricas</div><div class="n-desc">distancia (Doppler-gated) · altitud honesta · histéresis de desnivel · tiempos por reloj · track</div><div class="archivo">src/motor/metricas.ts</div></div>
+      <div class="nodo nucleo"><div class="n-titulo">MotorActividad (FSM)</div><div class="n-desc">idle/corriendo/pausada/autoPausada · auto-pausa configurable</div><div class="archivo">src/motor/actividad.ts</div></div>
+      <div class="nodo nucleo"><div class="n-titulo">MotorGPS (integrador)</div><div class="n-desc">pipeline por fix · checkpoint 15 s · eventos tipados · retomar()</div><div class="archivo">src/motor/nucleo.ts</div></div>
+      <div class="nodo eventos"><div class="n-titulo">MotorConfig (perfiles)</div><div class="n-desc">umbrales, gates, auto-pausa, energía — validado e inyectable</div><div class="archivo">src/motor/config.ts</div></div>
+    </div>
+  </div>
+  <div class="flecha"><div class="linea"></div><span class="etq">EventoMotor: «fix» · «estado» · «alerta» (Integration API)</span></div>
+
+  <div class="fase f3">
+    <span class="etiqueta">FASE 3 · CONSUMIDOR — REGLAS Y PRODUCTO CUMBRE30</span>
+    <div class="resp">Responsabilidad: reglas del parque, voz, UI. El núcleo no las conoce</div>
+    <div class="caja-fila">
+      <div class="nodo consumidor"><div class="n-titulo">useRideEngine (adaptador)</div><div class="n-desc">suscribe eventos · fuente + modo ahorro · contadores del parque al checkpoint</div><div class="archivo">src/hooks/useRideEngine.ts</div></div>
+      <div class="nodo consumidor"><div class="n-titulo">Reglas del parque</div><div class="n-desc">geocercia 18 m · accesos · zonas · corredores · bajadas 30 · horario · fiscalización · caída · vehículo</div><div class="archivo">park.ts · reglasParque · bajadas30 · horario · fallDetect · vehicleDetect</div></div>
+      <div class="nodo consumidor"><div class="n-titulo">UI (RideView · page)</div><div class="n-desc">velocímetro · chip auto-pausa · diálogo «¿retomar ride?» · overlay caída</div><div class="archivo">RideView.tsx · page.tsx</div></div>
+    </div>
+  </div>
+  <div class="flecha"><div class="linea"></div><span class="etq">ride cerrado · summary + track</span></div>
+
+  <div class="fase f4">
+    <span class="etiqueta">FASE 4 · PERSISTENCIA Y SALIDA</span>
+    <div class="resp">Responsabilidad: sobrevivir al crasheo, guardar, sincronizar y exportar</div>
+    <div class="caja-fila">
+      <div class="nodo persist"><div class="n-titulo">Checkpoint (Persistence Layer)</div><div class="n-desc">cada 15 s + hitos (pausa, pagehide) · validación · retomar/descartar</div><div class="archivo">src/motor/persistencia.ts · localStorage</div></div>
+      <div class="nodo persist"><div class="n-titulo">Historial</div><div class="n-desc">saveRide → localStorage · pista → IndexedDB · cap freemium</div><div class="archivo">src/lib/history.ts · idb.ts</div></div>
+      <div class="nodo persist"><div class="n-titulo">Sync y export</div><div class="n-desc">resumen sin pista al servidor · outbox con reintentos · GPX 1.1 (Pro)</div><div class="archivo">src/lib/sync.ts · cloudSync.ts · gpx.ts</div></div>
+    </div>
+  </div>
+
+  <div class="nota">
+    <div class="item"><span class="dot" style="border-color:#3B82F6;background:#EFF6FF"></span>Núcleo reutilizable (paquete TS futuro)</div>
+    <div class="item"><span class="dot" style="border-color:#F59E0B;background:#FFF7ED"></span>Configuración inyectable</div>
+    <div class="item"><span class="dot" style="border-color:#10B981;background:#F0FDF4"></span>Específico de Cumbre30</div>
+    <div class="item"><span class="dot" style="border-color:#8B5CF6;background:#F5F3FF"></span>Persistencia</div>
+  </div>
+</div>
+</body>
+</html>
