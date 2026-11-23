@@ -239,21 +239,24 @@ console.log(`lote listo: ${lote.length} registros (${lote.filter(x => x.idioma =
 // export para los entregables de revisión editorial (CSV/informe)
 fs.writeFileSync(new URL("./data/lote-ciclismo-final.json", import.meta.url), JSON.stringify(lote, null, 1));
 
-// ---------- conexión (local o Neon con reescritura IPv4+endpoint) ----------
-function reescritaNeon(url) {
-  const limpio = url.replace("&channel_binding=require", "").replace(/sslmode=[^&]+&?/, "").replace(/\?$/, "");
-  const u = new URL(limpio);
-  u.hostname = "__IP__";
-  u.searchParams.set("endpoint", u.username.split("~")[0]);
-  return u.toString();
-}
+// ---------- conexión (local o Neon: el sandbox no enruta IPv6 de
+// *.neon.tech, así que resolvemos A del host y conectamos por IPv4
+// fijando servername para el SNI; TLS sin verificación de nombre) ----------
 async function conectar() {
   if (process.argv.includes("--neon")) {
     const orig = process.env.DATABASE_URL_NEON;
     if (!orig) throw new Error("DATABASE_URL_NEON no definida");
-    const cadena = reescritaNeon(orig);
-    const addrs = await dns.resolve4(new URL(orig).hostname);
-    const c = new Client({ connectionString: cadena.replace("__IP__", addrs[0].address) });
+    const limpio = orig.replace("&channel_binding=require", "").replace(/sslmode=[^&]+&?/, "").replace(/\?$/, "");
+    const hostname = new URL(limpio).hostname;
+    // lookup (no resolve4): el DNS del sandbox solo resuelve getaddrinfo
+    // para *.neon.tech; la consulta A pura vuelve vacía.
+    const addrs = await dns.lookup(hostname, { all: true, family: 4 });
+    if (!addrs.length) throw new Error(`Sin IPv4 para ${hostname}`);
+    const c = new Client({
+      connectionString: limpio.replace(hostname, addrs[0].address),
+      ssl: { rejectUnauthorized: false, checkServerIdentity: () => undefined, servername: hostname },
+      connectionTimeoutMillis: 30000,
+    });
     await c.connect();
     return c;
   }
