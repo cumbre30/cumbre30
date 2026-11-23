@@ -136,6 +136,12 @@ export function PerfilTab({
   // (Mismo patrón que AmigosTab: la suscripción a syncStore reacciona al
   // token que llega después de montar, p. ej. tras el login por Google.)
   const sync = useSyncExternalStore(syncStore.subscribe, syncStore.get, syncStore.getServer);
+  // Sesión LOCAL del teléfono (espejo): el usuario ya está dentro aunque
+  // falte el token de sync (cuenta pendiente de vincular: contraseña
+  // distinta o Google sin contraseña). El perfil se construye en el
+  // servidor con las rutas sincronizadas, así que sin token no hay ADN
+  // todavía — pero la guía correcta es vincular, no "iniciar sesión".
+  const sesionLocal = offline ? !!me?.user : false;
   const hasSession = offline ? !!serverToken() || sync.phase === "ok" : !!me;
   const [data, setData] = useState<Data | null>(null);
   const [cargando, setCargando] = useState(true);
@@ -201,7 +207,22 @@ export function PerfilTab({
 
   // ---------- ADN: contenido según estado de sesión/datos ----------
   let adn: ReactNode;
-  if (!hasSession) {
+  if (!hasSession && sesionLocal) {
+    // Con sesión en el teléfono pero sin token de sync: el perfil se
+    // construye con las rutas del servidor, así que primero hay que
+    // vincular (Cuenta › Gestionar › Sincronización con la nube).
+    adn = (
+      <section aria-label={t("pc.titulo")} className="rounded-xl border border-border bg-card p-5">
+        <h2 className="text-base font-bold text-foreground">{t("pc.titulo")}</h2>
+        <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{t("pc.faltaVincular")}</p>
+        {onGoCuenta && (
+          <Button size="sm" variant="outline" className="mt-4" onClick={onGoCuenta}>
+            {t("pc.irVincular")}
+          </Button>
+        )}
+      </section>
+    );
+  } else if (!hasSession) {
     // Sin sesión utilizable: invitación a Cuenta - el perfil no se inventa datos.
     adn = (
       <section aria-label={t("pc.titulo")} className="rounded-xl border border-border bg-card p-5">

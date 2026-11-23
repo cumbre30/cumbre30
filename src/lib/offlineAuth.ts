@@ -208,6 +208,25 @@ export async function offlineForgotReset(payload: {
   return null;
 }
 
+/**
+ * Actualiza la contraseña del ESPEJO local de una cuenta que ya existe
+ * en el teléfono. Se usa tras un reset CONFIRMADO por el servidor
+ * (código de 6 dígitos del correo): el servidor ya cambió y el espejo
+ * debe quedar igual para que ambas contraseñas coincidan y el sync
+ * se vincule. Devuelve error o null.
+ */
+export async function offlineActualizarEspejoPassword(email: string, newPassword: string): Promise<string | null> {
+  const em = email.trim().toLowerCase();
+  if (newPassword.length < 8) return "La contraseña debe tener al menos 8 caracteres.";
+  const users = readUsers();
+  const user = users[em];
+  if (!user) return "No hay una cuenta con ese correo en este dispositivo.";
+  user.passwordHash = await hashPassword(newPassword);
+  users[em] = user;
+  writeJSON(USERS_KEY, users);
+  return null;
+}
+
 // ---------- registro / login / logout ----------
 
 export async function offlineRegister(payload: { email?: string; username?: string; password?: string }): Promise<string | null> {

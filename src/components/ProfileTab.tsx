@@ -472,6 +472,38 @@ export default function ProfileTab() {
     setTimeout(() => setUserMsg(null), 8000);
   };
 
+  // ---------- Reparación de la vinculación de sync (contraseña
+  // divergente teléfono/web): reset por código de correo DENTRO de la
+  // tarjeta — al terminar, el token del reset vincula el progreso. ----------
+  const [syncReset, setSyncReset] = useState<"idle" | "codigo">("idle");
+  const [syncCode, setSyncCode] = useState("");
+  const [syncPass, setSyncPass] = useState("");
+  const [syncMsg, setSyncMsg] = useState<string | null>(null);
+  const [syncBusy, setSyncBusy] = useState(false);
+
+  const enviarCodigoSync = async () => {
+    setSyncBusy(true);
+    setSyncMsg(null);
+    const err = await forgotPassword(me?.user?.email ?? "");
+    setSyncBusy(false);
+    if (err) {
+      setSyncMsg(err);
+      return;
+    }
+    setSyncReset("codigo");
+    setSyncMsg(t("pf.syncCodigoEnviado"));
+  };
+
+  const vincularConReset = async () => {
+    setSyncBusy(true);
+    setSyncMsg(null);
+    const err = await resetPassword({ email: me?.user?.email ?? "", code: syncCode, newPassword: syncPass });
+    setSyncBusy(false);
+    // Sin error, el token del reset dejó la sync en "ok": la tarjeta
+    // cambia sola de estado (y el espejo quedó con la contraseña nueva).
+    if (err) setSyncMsg(err);
+  };
+
   // ---------- Sin sesión: login en "Mis datos" ----------
   if (ready && !me) {
     return (
@@ -1055,7 +1087,11 @@ export default function ProfileTab() {
                     : sync.phase === "offline"
                       ? t("pf.syncOffline", sync.pending)
                       : sync.phase === "unlinked"
-                        ? t("pf.syncUnlinked")
+                        ? sync.linkReason === "sinPass"
+                          ? t("pf.syncSinPass")
+                          : sync.linkReason === "passDistinta"
+                            ? t("pf.syncPassDistinta")
+                            : t("pf.syncUnlinked")
                         : sync.phase === "error"
                           ? t("pf.syncError")
                           : t("pf.syncEntra")}
@@ -1063,6 +1099,35 @@ export default function ProfileTab() {
                   ? t("pf.ultimaSync", new Date(sync.lastSyncAt).toLocaleString("es-CL", { dateStyle: "short", timeStyle: "short" }))
                   : ""}
               </p>
+              {sync.phase === "unlinked" && sync.linkReason === "passDistinta" && (
+                /* Contraseña del teléfono ≠ web: reset por código de
+                   correo aquí mismo; al terminar, el token del reset
+                   vincula el progreso (la tarjeta pasa a «ok» sola). */
+                <div className="mt-2 grid gap-2">
+                  {syncReset === "idle" && (
+                    <Button size="sm" variant="outline" className="h-7 justify-start px-2 text-[11px] text-muted-foreground" disabled={syncBusy} onClick={() => void enviarCodigoSync()}>
+                      {syncBusy ? t("pf.conectando") : t("pf.syncRestablecer")}
+                    </Button>
+                  )}
+                  {syncReset === "codigo" && (
+                    <>
+                      <Input inputMode="numeric" autoComplete="one-time-code" className="h-8 bg-card border-border text-sm" placeholder={t("pf.syncCodigo")} value={syncCode} onChange={(e) => setSyncCode(e.target.value)} />
+                      <Input type="password" autoComplete="new-password" className="h-8 bg-card border-border text-sm" placeholder={t("pf.syncNuevaPass")} value={syncPass} onChange={(e) => setSyncPass(e.target.value)} />
+                      <Button size="sm" className="h-7 justify-start bg-emerald-600 hover:bg-emerald-500 text-(--c30-on-accent) font-bold" disabled={syncBusy || syncCode.trim().length !== 6 || syncPass.length < 8} onClick={() => void vincularConReset()}>
+                        {syncBusy ? t("pf.conectando") : t("pf.syncVincular")}
+                      </Button>
+                    </>
+                  )}
+                  {syncMsg && <p className="text-[11px] text-muted-foreground">{syncMsg}</p>}
+                </div>
+              )}
+              {sync.phase === "unlinked" && sync.linkReason === "sinPass" && (
+                /* Cuenta Google sin contraseña en la nube: entrar con
+                   Google la vincula al instante (linkGoogle → token). */
+                <Button size="sm" variant="outline" className="mt-2 h-7 justify-start px-2 text-[11px] text-muted-foreground" disabled={busyGoogle} onClick={() => void signInGoogle()}>
+                  {busyGoogle ? t("pf.conectando") : t("pf.syncEntrarGoogle")}
+                </Button>
+              )}
             </div>
             {sync.phase !== "syncing" && (
               <Button

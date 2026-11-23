@@ -42,6 +42,9 @@ const AUTH_JSON = (token: string) => ({
 
 export type SyncPhase = "off" | "unlinked" | "ok" | "syncing" | "offline" | "error";
 
+/** Por qué quedó sin vincular (guía la UI de la tarjeta de sync). */
+export type LinkReason = "passDistinta" | "sinPass" | null;
+
 export type SyncStatus = {
   phase: SyncPhase;
   /** Operaciones esperando subir. */
@@ -50,13 +53,16 @@ export type SyncStatus = {
   lastSyncAt: string | null;
   /** Correo de la cuenta vinculada al servidor (o null). */
   email: string | null;
+  /** Motivo del "unlinked": contraseña distinta en el servidor o cuenta
+   *  de Google sin contraseña. null en las demás fases. */
+  linkReason: LinkReason;
 };
 
-let status: SyncStatus = { phase: "off", pending: 0, lastSyncAt: null, email: null };
+let status: SyncStatus = { phase: "off", pending: 0, lastSyncAt: null, email: null, linkReason: null };
 const listeners = new Set<() => void>();
 
 // Snapshot estable para SSR/hidratación (React exige una referencia fija).
-const SERVER_SNAPSHOT: SyncStatus = { phase: "off", pending: 0, lastSyncAt: null, email: null };
+const SERVER_SNAPSHOT: SyncStatus = { phase: "off", pending: 0, lastSyncAt: null, email: null, linkReason: null };
 
 function setStatus(patch: Partial<SyncStatus>): void {
   status = { ...status, ...patch };
@@ -119,7 +125,7 @@ function setToken(t: SyncToken): void {
   } catch {
     // sin almacenamiento: el sync solo vivirá en esta carga
   }
-  setStatus({ phase: "ok", email: t.email });
+  setStatus({ phase: "ok", email: t.email, linkReason: null });
 }
 
 export function forgetToken(): void {
@@ -130,7 +136,7 @@ export function forgetToken(): void {
       // sin almacenamiento
     }
   }
-  setStatus({ phase: "off", email: null });
+  setStatus({ phase: "off", email: null, linkReason: null });
 }
 
 /**
@@ -178,16 +184,19 @@ export async function linkPassword(email: string, password: string): Promise<voi
       signal: AbortSignal.timeout(12_000),
     });
     if (!r.ok) {
-      // Contraseña distinta en el servidor (o cuenta inexistente):
-      // queda "unlinked" y la UI lo explica; el progreso local sigue.
-      setStatus({ phase: "unlinked" });
+      // Contraseña distinta en el servidor o cuenta sin contraseña
+      // (Google): queda "unlinked" con el motivo para que la UI guíe
+      // la reparación (restablecer por correo / entrar con Google);
+      // el progreso local sigue.
+      const d = (await r.json().catch(() => ({}))) as { sinContrasena?: boolean };
+      setStatus({ phase: "unlinked", linkReason: r.status === 409 || d.sinContrasena ? "sinPass" : "passDistinta" });
       return;
     }
     const d = (await r.json()) as { token: string; expiresAt: string; email: string };
     setToken({ token: d.token, email: d.email, expiresAt: d.expiresAt });
     void syncNow();
   } catch {
-    setStatus({ phase: "offline" });
+    setStatus({ phase: "offline", linkReason: null });
   }
 }
 
@@ -528,6 +537,7 @@ export async function syncNow(): Promise<void> {
     pending,
     email: t.email,
     lastSyncAt: result === "ok" ? new Date().toISOString() : status.lastSyncAt,
+    linkReason: null,
   });
 }
 

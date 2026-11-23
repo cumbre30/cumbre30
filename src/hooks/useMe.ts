@@ -5,8 +5,8 @@
 // En el APK (export estático) todo va por offlineAuth (localStorage).
 
 import { useSyncExternalStore } from "react";
-import { isOfflineMode, offlineCambiarPassword, offlineChangeUsername, offlineDeleteAccount, offlineForgotReset, offlineGoogleSignIn, offlineImportWebAccount, offlineLogin, offlineLogout, offlineMe, offlineRegister, offlineSetPasswordNueva } from "@/lib/offlineAuth";
-import { cambiarPasswordServidor, passwordInicialServidor, serverToken, forgetToken } from "@/lib/cloudSync";
+import { isOfflineMode, offlineActualizarEspejoPassword, offlineCambiarPassword, offlineChangeUsername, offlineDeleteAccount, offlineForgotReset, offlineGoogleSignIn, offlineImportWebAccount, offlineLogin, offlineLogout, offlineMe, offlineRegister, offlineSetPasswordNueva } from "@/lib/offlineAuth";
+import { cambiarPasswordServidor, passwordInicialServidor, serverToken, forgetToken, setServerToken, syncNow } from "@/lib/cloudSync";
 import { apiUrl } from "@/lib/backend";
 import { notificarBienvenida } from "@/lib/notificaciones";
 import { t } from "@/lib/i18n";
@@ -325,12 +325,24 @@ export async function resetPassword(payload: { email: string; code: string; newP
         body: JSON.stringify({ email: payload.email, code, newPassword: payload.newPassword }),
         signal: AbortSignal.timeout(15_000),
       });
-      const d = (await r.json().catch(() => ({}))) as { error?: string };
+      const d = (await r.json().catch(() => ({}))) as { error?: string; token?: string; expiresAt?: string };
       if (!r.ok) return d.error ?? t("me.errReset");
       if (isOfflineMode()) {
         // Espejo local con la contraseña nueva + token de sync: el
         // teléfono queda capaz de entrar sin internet desde ya.
-        await offlineImportWebAccount({ email: payload.email, password: payload.newPassword });
+        const importado = await offlineImportWebAccount({ email: payload.email, password: payload.newPassword });
+        if (!importado.ok) {
+          // El espejo ya existía (contraseñas divergentes: el caso que
+          // dejaba la sync "unlinked" sin salida): alinea el espejo con
+          // la contraseña nueva y toma el token de auto-login que el
+          // reset devuelve para vincular el progreso de inmediato.
+          const errEspejo = await offlineActualizarEspejoPassword(payload.email, payload.newPassword);
+          if (errEspejo) return errEspejo;
+        }
+        if (typeof d.token === "string" && d.token) {
+          setServerToken(d.token, payload.email.trim().toLowerCase(), d.expiresAt);
+          void syncNow();
+        }
       }
       await refreshMe(); // el reset dejó la sesión iniciada
       return null;
