@@ -1,9 +1,9 @@
 // Verificación END-TO-END de la API de Cultura en producción (cumbregeo.cl):
 // 1. Crea un usuario de verificación DESECHABLE + sesión en Neon (pg Client
 //    con la reescritura IPv4+endpoint; Prisma no conecta desde el sandbox).
-// 2. Llama a /api/cultura/recursos con Bearer y comprueba: total por
-//    idioma (en→64 publicados, es/pt→0 públicos hasta revisión editorial),
-//    dominios de urlExterna (0 openlibrary) y la ficha de The Rider.
+// 2. Llama a /api/cultura/recursos con Bearer y reporta: total por idioma y
+//    dominios de urlExterna (los números esperados dependen del estado
+//    editorial del momento; ver el informe de cosecha en download/).
 // 3. Borra usuario y sesión (onDelete: Cascade cubre la sesión vía FK, y
 //    por si acaso se borra primero la sesión explícitamente).
 // Uso: DATABASE_URL_NEON=$(cat /tmp/neonurl) node scripts/verifica-api-produccion.mjs
