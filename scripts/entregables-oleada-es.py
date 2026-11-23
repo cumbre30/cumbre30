@@ -59,12 +59,31 @@ Descartados: 12 autoeditados/CreatedSpace (serie Mariana Correa, «Cuánto sabes
 
 **Bloques temáticos:** crónica e historia (Libros De Ruta ×9, Geoplaneta, Lince, Almuzara, Experimenta), entrenamiento y salud (Paidotribo ×3, Tutor ×2, Hispano Europea), territorio y ciudadanía (Desnivel, Cep i la Nansa, UniAndes, Formación Alcalá, Kairós, Libsa).
 
+## Delta 1 — pegado página 1/3 (22-11): +1 borrador
+
+De los 32 fichas visibles, 30 ya estaban procesadas. Nuevas: **Ciclismo. Entrenamiento avanzado** (Hunter Allen, Tutor 2013 — edición española de *Cutting-Edge Cycling*; nota de prensa Tutor 24-04-2013 y Amazon/biblio lo confirman) → sembrado como borrador.
+
+**Incidente de colisión y reparación:** «Ciclismo para niños» (Iván Libreros, Ediciones JC) YA estaba en el catálogo como registro publicado (lote anterior). La semilla lo actualizó y sobrescribió campos editoriales. Reparado: se restauraron resena/extra/categorías originales (fuentes: `lote-ciclismo-final.json`); se conservaron tres mejoras objetivas (enlace de ficha real en lugar del `/libros/search` roto, portada verificada HTTP —la de OL daba 404—, y año 2021 confirmado por OL). La semilla ahora **omite cualquier registro publicado** (guardia «SKIP (publicado en producción)») y el título salió del lote canonical para que ningún re-run lo toque.
+
+## Delta 2 — PDF export (DOC-20261123-WA0000.pdf): +3 borradores
+
+Validación del PDF (30 págs. A2, impreso desde Chrome): contiene **tres fragmentos** — export página 1/3 (truncado en «ciclismo todo terreno»), pegado WhatsApp con página 2/3 (truncado en «121 CONSEJOS…») y pegado WhatsApp con página 3/3 (solo 6 fichas). Unión: **66 fichas únicas de las 106 reportadas** → faltan ~39. Parser tolerante a artefactos de pdftotext (`scripts/valida-pdf-export.py`): un guion perdido en wrap se reconstruyó («ciclismoguia» → «ciclismo-guia»).
+
+De las 18 fichas nuevas del PDF: 13 descartadas por política v4 (serie Mariana Correa ×6 Createspace, Independently Published ×2, Editorial Académica Española y otras vanity ×3, Palibrio, Círculo Rojo); «Ciclismo para niños» ya publicada; **3 incorporadas** (verificadas por Open Library/web):
+
+1. **Atlas ilustrado de ciclismo épico** — Susaeta (OL exacto, 2006) → [historia, ruta]
+2. **El placer del ciclismo** — Louis Chauvet Urquidi, Trillas (OL exacto, 2001) → [personas, aventura]
+3. **Ciclismo. Science of Cycling** — David Bailey, DK 2027 — edición española anunciada del original DK (13-01-2026) → [entrenamiento]
+
+Portadas: 29/29 verificadas HTTP (image-search; las de OL para Atlas y Placer daban vacías). Nota: la ficha de «El placer del ciclismo» tiene el slug reconstruido — comprobar el enlace al revisar.
+
 ## Pendientes para el equipo editorial
 
 1. Revisar los {n} borradores y publicar por oleadas (igual que el lote ciclismo anterior).
 2. 4 borradores del lote anterior siguen sin ficha en Buscalibre.cl («Bicicleta: salud y ejercicio», «Desde Monterrey en bicicleta», «La bicicleta de Katmandú», «Navarra en Bicicleta») — decidir si se enlazan a otro proveedor o se retiran.
 3. Las portadas se resolvieron por búsqueda de imágenes con verificación HTTP; conviene ojo humano rápido sobre las {con_portada} antes de publicar (que la portada corresponde a la edición ES).
-4. 40 fichas del JSON del usuario no entraron (páginas 2-3 del export truncadas cubren ~106 resultados): si el usuario exporta las páginas completas, puede sumarse un segundo lote ES.
+4. **Faltan ~39 fichas del listado Buscalibre (106 reportadas, 66 en los fragmentos)**: el PDF trae las 3 páginas pero cada una llega truncada al final. Para completar el barrido, exportar/copiar cada página completa (o hacer capturas de las páginas 2 y 3 del sitio); lo pendiente es sobre todo la página 3 (6 de ~34) y el tramo final de las páginas 1-2.
+5. Sin ficha no ingesta: «Ciclismo en carretera. Test de valoración» (José Ramón Abad Culebras, Wanceulen) aparece en el PDF sin enlace — candidato legítimo cuando se tenga su ficha.
 """
 (DL / "informe-oleada-es-fichas.md").write_text(md, encoding="utf-8")
 print(f"CSV: {DL/'lote-oleada-es-fichas.csv'} ({n} filas)")

@@ -42,8 +42,14 @@ function nuevoId() {
   const db = await conectar();
   let creados = 0, actualizados = 0;
   for (const r of lote) {
-    const prev = await db.query(`SELECT id FROM cultura_recursos WHERE titulo = $1 AND tipo = $2 LIMIT 1`, [r.titulo, r.tipo]);
+    const prev = await db.query(`SELECT id, publicado FROM cultura_recursos WHERE titulo = $1 AND tipo = $2 LIMIT 1`, [r.titulo, r.tipo]);
     if (prev.rowCount) {
+      if (prev.rows[0].publicado) {
+        // GUARDIA: nunca sobrescribir registros publicados (colisión «Ciclismo
+        // para niños» aprendida). Los publicados se gestionan a mano.
+        console.log(`⚠ SKIP (publicado en producción): ${r.titulo}`);
+        continue;
+      }
       await db.query(
         `UPDATE cultura_recursos SET resena=$1, idioma=$2, categorias=$3, anio=$4, autor=$5, pais=$6, extra=$7,
          "urlExterna"=$8, "portadaUrl"=$9, proveedor=$10, "updatedAt"=now() WHERE id=$11`,

@@ -49,7 +49,9 @@ def url_ok(url):
     return code == 200 and size > 4000 and ct.startswith("image/")
 
 n_ok = 0
-for i, l in enumerate(lote, 1):
+pendientes = [l for l in lote if not l["portada"]]
+print(f"sin portada: {len(pendientes)} de {len(lote)}")
+for i, l in enumerate(pendientes, 1):
     res = buscar_portada(l["titulo"], l["autor"])
     elegida = None
     for x in (res or [])[:4]:
@@ -59,8 +61,8 @@ for i, l in enumerate(lote, 1):
             break
     l["portada"] = elegida
     n_ok += bool(elegida)
-    print(f"{i:2d}/25 {'✓' if elegida else '✗'} {l['titulo'][:56]}")
+    print(f"{i:2d}/{len(pendientes)} {'✓' if elegida else '✗'} {l['titulo'][:56]}")
     time.sleep(1)
 
 F.write_text(json.dumps(lote, ensure_ascii=False, indent=1))
-print(f"\nportadas resueltas: {n_ok}/25 · guardado {F}")
+print(f"\nportadas resueltas: {n_ok}/{len(pendientes)} · guardado {F}")

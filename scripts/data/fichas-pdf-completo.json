@@ -1,0 +1,764 @@
+{
+ "total_reportado": 106,
+ "fichas_en_pdf": 66,
+ "nuevas": [
+  {
+   "titulo": "Ciclismo Para Niños",
+   "autores": "Iván Libreros",
+   "editorial": "Ediciones Jc",
+   "anio_edicion": 2021,
+   "isbn": "9788415448525",
+   "pid": "53325523",
+   "enlace_ficha": "https://www.buscalibre.cl/libro-ciclismo-para-ninos/9788415448525/p/53325523"
+  },
+  {
+   "titulo": "Iniciacion Al Ciclismo: Lo Que Tienes Que Saber",
+   "autores": "Fernandez Valladares, Fernando",
+   "editorial": "Independently Published",
+   "anio_edicion": null,
+   "isbn": "9798394787935",
+   "pid": "61216925",
+   "enlace_ficha": "https://www.buscalibre.cl/libro-iniciacion-al-ciclismo-lo-que-tienes-que-saber/9798394787935/p/61216925"
+  },
+  {
+   "titulo": "Ciclismo (Science of Cycling)",
+   "autores": "David Bailey",
+   "editorial": "DK",
+   "anio_edicion": 2027,
+   "isbn": "9798217496693",
+   "pid": "68933252",
+   "enlace_ficha": "https://www.buscalibre.cl/libro-ciclismo-science-of-cycling/9798217496693/p/68933252"
+  },
+  {
+   "titulo": "3 meses para transformarte en un ciclista maximo guia integral de entrenamiento de alto rendimiento en ciclismo",
+   "autores": "Correa, Mariana",
+   "editorial": "Createspace",
+   "anio_edicion": null,
+   "isbn": "9781533480040",
+   "pid": "60669807",
+   "enlace_ficha": "https://www.buscalibre.cl/libro-3-meses-para-transformarte-en-un-ciclista-maximo-guia-integral-de-entrenamiento-de-alto-rendimiento-en-ciclismo/9781533480040/p/60669807"
+  },
+  {
+   "titulo": "el placer del ciclismoguia practica para principiantes",
+   "autores": "Louis Chauvet Urquidi",
+   "editorial": "Trillas",
+   "anio_edicion": 2001,
+   "isbn": "9789682463525",
+   "pid": "980782",
+   "enlace_ficha": "https://www.buscalibre.cl/libro-el-placer-del-ciclismoguia-practica-para-principiantes/9789682463525/p/980782"
+  },
+  {
+   "titulo": "Txente - Historia del Ciclismo en Tafalla",
+   "autores": "Miguel Zubiri Luna",
+   "editorial": "Altaffaylla Editorial",
+   "anio_edicion": 2012,
+   "isbn": "9788493752293",
+   "pid": "54158767",
+   "enlace_ficha": "https://www.buscalibre.cl/libro-txente-historia-del-ciclismo-en-tafalla/9788493752293/p/54158767"
+  },
+  {
+   "titulo": "100 entrenamientos de ciclismo y comidas veganas segunda edicion haga ciclismo mas rapido y saludable con el mejor programa y alimentacion vegana",
+   "autores": "Correa, Mariana",
+   "editorial": "Createspace",
+   "anio_edicion": null,
+   "isbn": "9781724444981",
+   "pid": "58077935",
+   "enlace_ficha": "https://www.buscalibre.cl/libro-100-entrenamientos-de-ciclismo-y-comidas-veganas-segunda-edicion-haga-ciclismo-mas-rapido-y-saludable-con-el-mejor-programa-y-alimentacion-vegana/9781724444981/p/58077935"
+  },
+  {
+   "titulo": "50 recetas con proteinas para ciclismo pedalea a tu mejor ritmo con alimentos ricos en proteinas spanish edition",
+   "autores": "Correa, Mariana",
+   "editorial": "Createspace",
+   "anio_edicion": 2016,
+   "isbn": "9781537785066",
+   "pid": "52299981",
+   "enlace_ficha": "https://www.buscalibre.cl/libro-50-recetas-con-proteinas-para-ciclismo-pedalea-a-tu-mejor-ritmo-con-alimentos-ricos-en-proteinas-spanish-edition/9781537785066/p/52299981"
+  },
+  {
+   "titulo": "recordando mis programas de entrenamiento carrera ciclismo triatlon natacion",
+   "autores": "Gpe Mauricio Carre Campos",
+   "editorial": "Palibrio",
+   "anio_edicion": 2012,
+   "isbn": "9781463327279",
+   "pid": "8966990",
+   "enlace_ficha": "https://www.buscalibre.cl/libro-recordando-mis-programas-de-entrenamiento-carrera-ciclismo-triatlon-natacion/9781463327279/p/8966990"
+  },
+  {
+   "titulo": "manual del director deportivo en el ciclismo de tecnificacion",
+   "autores": "César Castro Martínez",
+   "editorial": "Círculo Rojo",
+   "anio_edicion": 2026,
+   "isbn": "9791370460280",
+   "pid": "66882368",
+   "enlace_ficha": "https://www.buscalibre.cl/libro-manual-del-director-deportivo-en-el-ciclismo-de-tecnificacion/9791370460280/p/66882368"
+  },
+  {
+   "titulo": "Ciclismo urbano y sostenibilidad",
+   "autores": "Taru Uusinoka",
+   "editorial": "null",
+   "anio_edicion": 2021,
+   "isbn": "9786202753678",
+   "pid": "65189228",
+   "enlace_ficha": "https://www.buscalibre.cl/libro-ciclismo-urbano-y-sostenibilidad/9786202753678/p/65189228"
+  },
+  {
+   "titulo": "de average a asombroso ciclismo una guia completa para obtener mejores resultados",
+   "autores": "Correa, Mariana",
+   "editorial": "Createspace",
+   "anio_edicion": null,
+   "isbn": "9781505252071",
+   "pid": "57887886",
+   "enlace_ficha": "https://www.buscalibre.cl/libro-de-average-a-asombroso-ciclismo-una-guia-completa-para-obtener-mejores-resultados/9781505252071/p/57887886"
+  },
+  {
+   "titulo": "atlas ilustrado de ciclismo épico",
+   "autores": "Varios Autores",
+   "editorial": "Editorial Susaeta",
+   "anio_edicion": null,
+   "isbn": "9788430558346",
+   "pid": "4197433",
+   "enlace_ficha": "https://www.buscalibre.cl/libro-atlas-ilustrado-de-ciclismo-epico/9788430558346/p/4197433"
+  },
+  {
+   "titulo": "Relatos desde el Col del Agonistic: Selección de artículos sobre\nciclismo y cicloturismo",
+   "autores": "Sánchez-Beaskoetxea, Javier",
+   "editorial": "Independently Published",
+   "anio_edicion": null,
+   "isbn": "9781791870294",
+   "pid": "59917705",
+   "enlace_ficha": "https://www.buscalibre.cl/libro-relatos-desde-el-col-del-agonistic-seleccion-de-articulos-sobre-ciclismo-y-cicloturismo/9781791870294/p/59917705"
+  },
+  {
+   "titulo": "prototipo de protesis transradial unilateral para ciclismo diseno y construccion por fabricacion aditiva",
+   "autores": "JosÉ Vargas",
+   "editorial": "Editorial Académica Española",
+   "anio_edicion": 2021,
+   "isbn": "9786203879858",
+   "pid": "65617311",
+   "enlace_ficha": "https://www.buscalibre.cl/libro-prototipo-de-protesis-transradial-unilateral-para-ciclismo-diseno-y-construccion-por-fabricacion-aditiva/9786203879858/p/65617311"
+  },
+  {
+   "titulo": "ciclismo mas rapido mas sano y mas fuerte guia de 30 dias de fuerza y nutricion para transformar a cualquier ciclista en el ciclista definitivo",
+   "autores": "Correa, Mariana",
+   "editorial": "Createspace",
+   "anio_edicion": null,
+   "isbn": "9781533480033",
+   "pid": "60669804",
+   "enlace_ficha": "https://www.buscalibre.cl/libro-ciclismo-mas-rapido-mas-sano-y-mas-fuerte-guia-de-30-dias-de-fuerza-y-nutricion-para-transformar-a-cualquier-ciclista-en-el-ciclista-definitivo/9781533480033/p/60669804"
+  },
+  {
+   "titulo": "la influencia del ciclismo en un corredor de maraton que se entrena para una competicionde 21 km",
+   "autores": "Javier Pérez",
+   "editorial": "null",
+   "anio_edicion": 2024,
+   "isbn": "9786207863976",
+   "pid": "65141591",
+   "enlace_ficha": "https://www.buscalibre.cl/libro-la-influencia-del-ciclismo-en-un-corredor-de-maraton-que-se-entrena-para-una-competicionde-21-km/9786207863976/p/65141591"
+  },
+  {
+   "titulo": "90 dias de entrenamientos intensos de ciclismo y comidas paleo conviertase en un ciclistamas rapido y en forma con entrenamientos personalizados y p",
+   "autores": "Correa, Mariana",
+   "editorial": "Createspace",
+   "anio_edicion": null,
+   "isbn": "9781533479907",
+   "pid": "60669747",
+   "enlace_ficha": "https://www.buscalibre.cl/libro-90-dias-de-entrenamientos-intensos-de-ciclismo-y-comidas-paleo-conviertase-en-un-ciclistamas-rapido-y-en-forma-con-entrenamientos-personalizados-y-p/9781533479907/p/60669747"
+  }
+ ],
+ "todas": [
+  {
+   "titulo": "DEPORTE CON CIENCIA. CICLISMO",
+   "autores": "Catapulta Editores",
+   "editorial": "Catapulta",
+   "anio_edicion": 2018,
+   "isbn": "9780857628169",
+   "pid": "50543960",
+   "enlace_ficha": "https://www.buscalibre.cl/libro-deporte-con-ciencia-ciclismo/9780857628169/p/50543960"
+  },
+  {
+   "titulo": "Ciclismo. Entrenamiento Avanzado",
+   "autores": "Hunter Allen",
+   "editorial": "Tutor",
+   "anio_edicion": 2013,
+   "isbn": "9788479029463",
+   "pid": "28099786",
+   "enlace_ficha": "https://www.buscalibre.cl/libro-ciclismo-entrenamiento-avanzado/9788479029463/p/28099786"
+  },
+  {
+   "titulo": "Ciclismo y Rendimiento",
+   "autores": "Yago Alcalde Gordillo",
+   "editorial": "Tutor",
+   "anio_edicion": 2011,
+   "isbn": "9788479028695",
+   "pid": "4270272",
+   "enlace_ficha": "https://www.buscalibre.cl/libro-ciclismo-y-rendimiento/9788479028695/p/4270272"
+  },
+  {
+   "titulo": "La Etapa Decimocuarta: 71 Historias de Ciclismo",
+   "autores": "Tim Krabbé",
+   "editorial": "Libros De Ruta",
+   "anio_edicion": 2017,
+   "isbn": "9788494565137",
+   "pid": "48407647",
+   "enlace_ficha": "https://www.buscalibre.cl/libro-la-etapa-decimocuarta-71-historias-de-ciclismo/9788494565137/p/48407647"
+  },
+  {
+   "titulo": "Ciclismo Policial: Una noble función especial. Vol. 1",
+   "autores": "Marcelo Andres Rivera",
+   "editorial": "Editorial Autores De Argentina",
+   "anio_edicion": 2025,
+   "isbn": "68767667",
+   "pid": "68767667",
+   "enlace_ficha": "https://www.buscalibre.cl/libro-ciclismo-policialuna-noble-funcion-especial-vol-1/68767667/p/68767667"
+  },
+  {
+   "titulo": "medicina del ciclismo",
+   "autores": "Arnie Baker",
+   "editorial": "Paidotribo",
+   "anio_edicion": null,
+   "isbn": "9788480195867",
+   "pid": "1024814",
+   "enlace_ficha": "https://www.buscalibre.cl/libro-medicina-del-ciclismo/9788480195867/p/1024814"
+  },
+  {
+   "titulo": "Correr y Competir en Ciclismo",
+   "autores": "R. Van Der Plas",
+   "editorial": "Hispano Europea Editorial S.A.",
+   "anio_edicion": 1988,
+   "isbn": "9788425507915",
+   "pid": "1363804",
+   "enlace_ficha": "https://www.buscalibre.cl/libro-correr-y-competir-en-ciclismo/9788425507915/p/1363804"
+  },
+  {
+   "titulo": "Arriva Italia: Gloria y Miseria de la Nación que Soñó Ciclismo",
+   "autores": "Marcos Pereda Herrera",
+   "editorial": "Libros De Ruta",
+   "anio_edicion": 2021,
+   "isbn": "9788412277661",
+   "pid": "53452985",
+   "enlace_ficha": "https://www.buscalibre.cl/libro-arriva-italia-gloria-y-miseria-de-la-nacion-que-sono-ciclismo/9788412277661/p/53452985"
+  },
+  {
+   "titulo": "Ciclismo Indoor",
+   "autores": "Jose Maria Muyor Rodriguez",
+   "editorial": "Inde",
+   "anio_edicion": 2010,
+   "isbn": null,
+   "pid": null,
+   "enlace_ficha": ""
+  },
+  {
+   "titulo": "Bici Zen: Ciclismo Urbano Como Meditación",
+   "autores": "Kreimer, Juan Carlos",
+   "editorial": "Editorial Kairos",
+   "anio_edicion": 2016,
+   "isbn": "9788499884837",
+   "pid": "47256291",
+   "enlace_ficha": "https://www.buscalibre.cl/libro-bici-zen-ciclismo-urbano-como-meditacion/9788499884837/p/47256291"
+  },
+  {
+   "titulo": "Ciclismo: Salud y ejercicio",
+   "autores": "Ed Pavelka",
+   "editorial": "Ediciones Tutor",
+   "anio_edicion": null,
+   "isbn": "9788479024451",
+   "pid": "3069403",
+   "enlace_ficha": "https://www.buscalibre.cl/libro-ciclismo-salud-y-ejercicio/9788479024451/p/3069403"
+  },
+  {
+   "titulo": "la posicion correcta sobre la bicicleta biomecanica del ciclismo",
+   "autores": "Juliane Neub",
+   "editorial": "Tutor",
+   "anio_edicion": 2012,
+   "isbn": "9788479029043",
+   "pid": "6152675",
+   "enlace_ficha": "https://www.buscalibre.cl/libro-la-posicion-correcta-sobre-la-bicicleta-biomecanica-del-ciclismo/9788479029043/p/6152675"
+  },
+  {
+   "titulo": "Ciclismo Para Niños",
+   "autores": "Iván Libreros",
+   "editorial": "Ediciones Jc",
+   "anio_edicion": 2021,
+   "isbn": "9788415448525",
+   "pid": "53325523",
+   "enlace_ficha": "https://www.buscalibre.cl/libro-ciclismo-para-ninos/9788415448525/p/53325523"
+  },
+  {
+   "titulo": "101 Curiosidades Ciclismo: Hechos Increíbles y Sorprendentes",
+   "autores": "Brothers, VC",
+   "editorial": "Independently Published",
+   "anio_edicion": null,
+   "isbn": "9798373282789",
+   "pid": "56815725",
+   "enlace_ficha": "https://www.buscalibre.cl/libro-101-curiosidades-ciclismo-hechos-increibles-y-sorprendentes/9798373282789/p/56815725"
+  },
+  {
+   "titulo": "Arriva Italia. Gloria y miseria de la nación que soñó ciclismo",
+   "autores": "Marcos Pereda",
+   "editorial": "Libros De Ruta",
+   "anio_edicion": 2021,
+   "isbn": "68698688",
+   "pid": "68698688",
+   "enlace_ficha": "https://www.buscalibre.cl/libro-arriva-italia-gloria-y-miseria-de-la-nacion-que-sono-ciclismo/68698688/p/68698688"
+  },
+  {
+   "titulo": "Niebla en el Mont Ventoux. y otras historias de ciclismo",
+   "autores": "[\"Wilfried De Jong\"",
+   "editorial": "Lince",
+   "anio_edicion": 2017,
+   "isbn": "68732547",
+   "pid": "68732547",
+   "enlace_ficha": "https://www.buscalibre.cl/libro-niebla-en-el-mont-ventoux-y-otras-historias-de-ciclismo/68732547/p/68732547"
+  },
+  {
+   "titulo": "ciclismo y triatlon losmejores consejos para su entrenamiento",
+   "autores": "Chris Carmichael",
+   "editorial": "Tutor",
+   "anio_edicion": 2004,
+   "isbn": "9788479024390",
+   "pid": "2847783",
+   "enlace_ficha": "https://www.buscalibre.cl/libro-ciclismo-y-triatlon-losmejores-consejos-para-su-entrenamiento/9788479024390/p/2847783"
+  },
+  {
+   "titulo": "Inventando el Ciclismo",
+   "autores": "[\"Baudry De Saunier Louis\"",
+   "editorial": "Cultura Ciclista",
+   "anio_edicion": null,
+   "isbn": "9788494927867",
+   "pid": "55756778",
+   "enlace_ficha": "https://www.buscalibre.cl/libro-inventando-el-ciclismo/9788494927867/p/55756778"
+  },
+  {
+   "titulo": "Ciclismo con Mucho Humor: Una Guía Ilustrada de la Vida Sobre\ndos Ruedas",
+   "autores": "Dave Walker",
+   "editorial": "Libsa",
+   "anio_edicion": 2017,
+   "isbn": "9788466237604",
+   "pid": "49026707",
+   "enlace_ficha": "https://www.buscalibre.cl/libro-ciclismo-con-mucho-humor-una-guia-ilustrada-de-la-vida-sobre-dos-ruedas/9788466237604/p/49026707"
+  },
+  {
+   "titulo": "Una Dura Carrera: Por los Entresijos del Ciclismo, a Rueda de un\nCiclista Profesional",
+   "autores": "Paul Kimmage",
+   "editorial": "Libros De Ruta",
+   "anio_edicion": 2016,
+   "isbn": "9788494128790",
+   "pid": "47456279",
+   "enlace_ficha": "https://www.buscalibre.cl/libro-una-dura-carrera-por-los-entresijos-del-ciclismo-a-rueda-de-un-ciclista-profesional/9788494128790/p/47456279"
+  },
+  {
+   "titulo": "lorono simbolo del ciclismo vasco bizkaiko gaiak temas vizcai",
+   "autores": "Jose Antonio Diaz",
+   "editorial": "Bilbao Bizkaia Kutxa",
+   "anio_edicion": 1998,
+   "isbn": "9788480561723",
+   "pid": "54160836",
+   "enlace_ficha": "https://www.buscalibre.cl/libro-lorono-simbolo-del-ciclismo-vasco-bizkaiko-gaiak-temas-vizcai/9788480561723/p/54160836"
+  },
+  {
+   "titulo": "la historia del ciclismo en 80 dias 80 grandes historias ilustradas",
+   "autores": "Giles Belbin",
+   "editorial": "Libros De Ruta",
+   "anio_edicion": 2017,
+   "isbn": "9788494565175",
+   "pid": "48876425",
+   "enlace_ficha": "https://www.buscalibre.cl/libro-la-historia-del-ciclismo-en-80-dias-80-grandes-historias-ilustradas/9788494565175/p/48876425"
+  },
+  {
+   "titulo": "El secreto del ciclismo (Bicolor)",
+   "autores": "[\"Hans Van Dijk\"",
+   "editorial": "Paidotribo",
+   "anio_edicion": 2019,
+   "isbn": "68735008",
+   "pid": "68735008",
+   "enlace_ficha": "https://www.buscalibre.cl/libro-el-secreto-del-ciclismo-bicolor/68735008/p/68735008"
+  },
+  {
+   "titulo": "ciclismo en carretera (coi)",
+   "autores": "[\"R. Gregor\"",
+   "editorial": "Hispano Europea",
+   "anio_edicion": 2012,
+   "isbn": "9788425516146",
+   "pid": "3345426",
+   "enlace_ficha": "https://www.buscalibre.cl/libro-ciclismo-en-carretera-coi/9788425516146/p/3345426"
+  },
+  {
+   "titulo": "La etapa decimocuarta. 71 historias de ciclismo",
+   "autores": "[\"Tim Krabbé\"",
+   "editorial": "Libros De Ruta",
+   "anio_edicion": 2017,
+   "isbn": "68732340",
+   "pid": "68732340",
+   "enlace_ficha": "https://www.buscalibre.cl/libro-la-etapa-decimocuarta-71-historias-de-ciclismo/68732340/p/68732340"
+  },
+  {
+   "titulo": "Ciclismo en carretera. Técnica y táctica",
+   "autores": "Daniel Clement",
+   "editorial": "Hispano Europea",
+   "anio_edicion": 1988,
+   "isbn": "9788425505010",
+   "pid": "1371930",
+   "enlace_ficha": "https://www.buscalibre.cl/libro-ciclismo-en-carretera-tecnica-y-tactica/9788425505010/p/1371930"
+  },
+  {
+   "titulo": "convivir con el trastorno mental ciclismo y musica dos grandes aliados",
+   "autores": "[\"Antonio Chaves Lechuga\"",
+   "editorial": "Laertes",
+   "anio_edicion": 2011,
+   "isbn": "68728375",
+   "pid": "68728375",
+   "enlace_ficha": "https://www.buscalibre.cl/libro-convivir-con-el-trastorno-mental-ciclismo-y-musica-dos-grandes-aliados/68728375/p/68728375"
+  },
+  {
+   "titulo": "Dios ha muerto. Apogeo y decadencia de Frank Vandenbroucke\n, el talento más desaprovechado del ciclismo",
+   "autores": "Andy McGrath",
+   "editorial": "Libros De Ruta",
+   "anio_edicion": 2022,
+   "isbn": "68698823",
+   "pid": "68698823",
+   "enlace_ficha": "https://www.buscalibre.cl/libro-dios-ha-muerto-apogeo-y-decadencia-de-frank-vandenbroucke-el-talento-mas-desaprovechado-del-ciclismo/68698823/p/68698823"
+  },
+  {
+   "titulo": "Eso No Estaba En Mi Libro de Historia del Ciclismo",
+   "autores": "Pereda Herrera, Marcos",
+   "editorial": "Almuzara",
+   "anio_edicion": null,
+   "isbn": "9788411319416",
+   "pid": "55905979",
+   "enlace_ficha": "https://www.buscalibre.cl/libro-eso-no-estaba-en-mi-libro-de-historia-del-ciclismo/9788411319416/p/55905979"
+  },
+  {
+   "titulo": "escapadas cincuenta nombres que definieron el ciclismo de carretera",
+   "autores": "Euan Ferguson",
+   "editorial": "Libros De Ruta",
+   "anio_edicion": 2019,
+   "isbn": "9788494911194",
+   "pid": "52009108",
+   "enlace_ficha": "https://www.buscalibre.cl/libro-escapadas-cincuenta-nombres-que-definieron-el-ciclismo-de-carretera/9788494911194/p/52009108"
+  },
+  {
+   "titulo": "El Tao del ciclismo indoor",
+   "autores": "Andrés Carlos Muñoz López",
+   "editorial": "Editorial Club Universitario",
+   "anio_edicion": null,
+   "isbn": "9788484547075",
+   "pid": "3441080",
+   "enlace_ficha": "https://www.buscalibre.cl/libro-el-tao-del-ciclismo-indoor/9788484547075/p/3441080"
+  },
+  {
+   "titulo": "Se rueda. El ciclismo y las bicicletas en el cine",
+   "autores": "Jordi Rodríguez Ruiz",
+   "editorial": "Libros De Ruta",
+   "anio_edicion": 2026,
+   "isbn": "9791387955472",
+   "pid": "69056918",
+   "enlace_ficha": "https://www.buscalibre.cl/libro-se-rueda-el-ciclismo-y-las-bicicletas-en-el-cine/9791387955472/p/69056918"
+  },
+  {
+   "titulo": "ciclismo saludable fisiologia del esfuerzo entrenamiento y nutricion",
+   "autores": "Ricardo Palacios Fuente",
+   "editorial": "Club Universitario",
+   "anio_edicion": null,
+   "isbn": "9788412566635",
+   "pid": "54957237",
+   "enlace_ficha": "https://www.buscalibre.cl/libro-ciclismo-saludable-fisiologia-del-esfuerzo-entrenamiento-y-nutricion/9788412566635/p/54957237"
+  },
+  {
+   "titulo": "100 entrenamientos de ciclismo y comidas veganas haga ciclismo mas rapido y mas saludable con el mejor programa y alimentacion vegana",
+   "autores": "Correa, Mariana",
+   "editorial": "Createspace",
+   "anio_edicion": null,
+   "isbn": "9781979391023",
+   "pid": "60144013",
+   "enlace_ficha": "https://www.buscalibre.cl/libro-100-entrenamientos-de-ciclismo-y-comidas-veganas-haga-ciclismo-mas-rapido-y-mas-saludable-con-el-mejor-programa-y-alimentacion-vegana/9781979391023/p/60144013"
+  },
+  {
+   "titulo": "Mi Querida Bicicleta. Relatos de Ciclismo de Holanda y España",
+   "autores": "Varios Autores",
+   "editorial": "Experimenta.",
+   "anio_edicion": null,
+   "isbn": "9788493064198",
+   "pid": "50752175",
+   "enlace_ficha": "https://www.buscalibre.cl/libro-mi-querida-bicicleta-relatos-de-ciclismo-de-holanda-y-espana/9788493064198/p/50752175"
+  },
+  {
+   "titulo": "Ciclismo Adaptado",
+   "autores": "JUAN TOMAS GIMENEZ CASES",
+   "editorial": "FORMACION ALCALA",
+   "anio_edicion": 2014,
+   "isbn": "9788490880036",
+   "pid": "46304853",
+   "enlace_ficha": "https://www.buscalibre.cl/libro-ciclismo-adaptado/9788490880036/p/46304853"
+  },
+  {
+   "titulo": "Ciclismo. guia buena practica deporte",
+   "autores": "A. Garcia Rodriguez",
+   "editorial": "Olalla",
+   "anio_edicion": null,
+   "isbn": "9788488876423",
+   "pid": "3007618",
+   "enlace_ficha": "https://www.buscalibre.cl/libro-ciclismo-guia-buena-practica-deporte/9788488876423/p/3007618"
+  },
+  {
+   "titulo": "Entrenamiento Intervalado Para Ciclismo: Desde el Laboratorio\na la Competición de Facundo Ahumada(Independently Published)",
+   "autores": "[\"Ahumada Facundo\"",
+   "editorial": "Independently Published",
+   "anio_edicion": null,
+   "isbn": "9798326799067",
+   "pid": "62928522",
+   "enlace_ficha": "https://www.buscalibre.cl/libro-entrenamiento-intervalado-para-ciclismo-desde-el-laboratorio-a-la-competicion-de-facundo-ahumada-independently-published/9798326799067/p/62928522"
+  },
+  {
+   "titulo": "Cuánto sabes de... Ciclismo en Pista",
+   "autores": "Notebook, Wanceulen",
+   "editorial": "Createspace",
+   "anio_edicion": null,
+   "isbn": "9781981475735",
+   "pid": "60316574",
+   "enlace_ficha": "https://www.buscalibre.cl/libro-cuanto-sabes-de-ciclismo-en-pista/9781981475735/p/60316574"
+  },
+  {
+   "titulo": "solo de movimiento fue su alma la bicicleta y el ciclismo en yucatan 1876 1961",
+   "autores": "Gabriel Zapata Bello",
+   "editorial": "Ibukku, Llc",
+   "anio_edicion": 2019,
+   "isbn": "9781640863781",
+   "pid": "52440828",
+   "enlace_ficha": "https://www.buscalibre.cl/libro-solo-de-movimiento-fue-su-alma-la-bicicleta-y-el-ciclismo-en-yucatan-1876-1961/9781640863781/p/52440828"
+  },
+  {
+   "titulo": "DIETA PALEO Para CICLISMO: Forme de su cuerpo una Maquina\npara Ciclismo",
+   "autores": "Correa, Mariana",
+   "editorial": "Createspace",
+   "anio_edicion": null,
+   "isbn": "9781508694670",
+   "pid": "58314708",
+   "enlace_ficha": "https://www.buscalibre.cl/libro-dieta-paleo-para-ciclismo-forme-de-su-cuerpo-una-maquina-para-ciclismo/9781508694670/p/58314708"
+  },
+  {
+   "titulo": "Manual Ilustrado de Ciclismo Urbano del Gato Peraltez",
+   "autores": "Juan Garcia Alberdi",
+   "editorial": "Autor-Editor",
+   "anio_edicion": null,
+   "isbn": "9788460891604",
+   "pid": "50756401",
+   "enlace_ficha": "https://www.buscalibre.cl/libro-manual-ilustrado-de-ciclismo-urbano-del-gato-peraltez/9788460891604/p/50756401"
+  },
+  {
+   "titulo": "nutricion paleo para ciclismo segunda edicion haz de tu cuerpo una maquina de ciclismo definitiva",
+   "autores": "Correa, Mariana",
+   "editorial": "Createspace",
+   "anio_edicion": null,
+   "isbn": "9781987485561",
+   "pid": "60665765",
+   "enlace_ficha": "https://www.buscalibre.cl/libro-nutricion-paleo-para-ciclismo-segunda-edicion-haz-de-tu-cuerpo-una-maquina-de-ciclismo-definitiva/9781987485561/p/60665765"
+  },
+  {
+   "titulo": "Cuánto sabes de... Ciclismo en Ruta",
+   "autores": "Notebook, Wanceulen",
+   "editorial": "Createspace",
+   "anio_edicion": null,
+   "isbn": "9781981475728",
+   "pid": "60316566",
+   "enlace_ficha": "https://www.buscalibre.cl/libro-cuanto-sabes-de-ciclismo-en-ruta/9781981475728/p/60316566"
+  },
+  {
+   "titulo": "Cuánto sabes de... BTT Ciclismo de Montaña",
+   "autores": "Notebook, Wanceulen",
+   "editorial": "Createspace",
+   "anio_edicion": null,
+   "isbn": "9781981417483",
+   "pid": "60308867",
+   "enlace_ficha": "https://www.buscalibre.cl/libro-cuanto-sabes-de-btt-ciclismo-de-montana/9781981417483/p/60308867"
+  },
+  {
+   "titulo": "DICCIONARIO SENTIMENTAL DEL CICLISMO",
+   "autores": "JUANMA TRUEBA FAJARDO",
+   "editorial": "GEOPLANETA",
+   "anio_edicion": 2023,
+   "isbn": "9788408269366",
+   "pid": "54892084",
+   "enlace_ficha": "https://www.buscalibre.cl/libro-diccionario-sentimental-del-ciclismo/9788408269366/p/54892084"
+  },
+  {
+   "titulo": "increibles ejercicios de calistenia para ciclismo los mejores ejercicios de calistenia para pedalear hacia tus nuevas marcas personales",
+   "autores": "Mariana Correa",
+   "editorial": "Createspace",
+   "anio_edicion": 2016,
+   "isbn": "9781539078180",
+   "pid": "53440219",
+   "enlace_ficha": "https://www.buscalibre.cl/libro-increibles-ejercicios-de-calistenia-para-ciclismo-los-mejores-ejercicios-de-calistenia-para-pedalear-hacia-tus-nuevas-marcas-personales/9781539078180/p/53440219"
+  },
+  {
+   "titulo": "Iniciacion Al Ciclismo: Lo Que Tienes Que Saber",
+   "autores": "Fernandez Valladares, Fernando",
+   "editorial": "Independently Published",
+   "anio_edicion": null,
+   "isbn": "9798394787935",
+   "pid": "61216925",
+   "enlace_ficha": "https://www.buscalibre.cl/libro-iniciacion-al-ciclismo-lo-que-tienes-que-saber/9798394787935/p/61216925"
+  },
+  {
+   "titulo": "Ciclismo (Science of Cycling)",
+   "autores": "David Bailey",
+   "editorial": "DK",
+   "anio_edicion": 2027,
+   "isbn": "9798217496693",
+   "pid": "68933252",
+   "enlace_ficha": "https://www.buscalibre.cl/libro-ciclismo-science-of-cycling/9798217496693/p/68933252"
+  },
+  {
+   "titulo": "3 meses para transformarte en un ciclista maximo guia integral de entrenamiento de alto rendimiento en ciclismo",
+   "autores": "Correa, Mariana",
+   "editorial": "Createspace",
+   "anio_edicion": null,
+   "isbn": "9781533480040",
+   "pid": "60669807",
+   "enlace_ficha": "https://www.buscalibre.cl/libro-3-meses-para-transformarte-en-un-ciclista-maximo-guia-integral-de-entrenamiento-de-alto-rendimiento-en-ciclismo/9781533480040/p/60669807"
+  },
+  {
+   "titulo": "el placer del ciclismoguia practica para principiantes",
+   "autores": "Louis Chauvet Urquidi",
+   "editorial": "Trillas",
+   "anio_edicion": 2001,
+   "isbn": "9789682463525",
+   "pid": "980782",
+   "enlace_ficha": "https://www.buscalibre.cl/libro-el-placer-del-ciclismoguia-practica-para-principiantes/9789682463525/p/980782"
+  },
+  {
+   "titulo": "Txente - Historia del Ciclismo en Tafalla",
+   "autores": "Miguel Zubiri Luna",
+   "editorial": "Altaffaylla Editorial",
+   "anio_edicion": 2012,
+   "isbn": "9788493752293",
+   "pid": "54158767",
+   "enlace_ficha": "https://www.buscalibre.cl/libro-txente-historia-del-ciclismo-en-tafalla/9788493752293/p/54158767"
+  },
+  {
+   "titulo": "100 entrenamientos de ciclismo y comidas veganas segunda edicion haga ciclismo mas rapido y saludable con el mejor programa y alimentacion vegana",
+   "autores": "Correa, Mariana",
+   "editorial": "Createspace",
+   "anio_edicion": null,
+   "isbn": "9781724444981",
+   "pid": "58077935",
+   "enlace_ficha": "https://www.buscalibre.cl/libro-100-entrenamientos-de-ciclismo-y-comidas-veganas-segunda-edicion-haga-ciclismo-mas-rapido-y-saludable-con-el-mejor-programa-y-alimentacion-vegana/9781724444981/p/58077935"
+  },
+  {
+   "titulo": "50 recetas con proteinas para ciclismo pedalea a tu mejor ritmo con alimentos ricos en proteinas spanish edition",
+   "autores": "Correa, Mariana",
+   "editorial": "Createspace",
+   "anio_edicion": 2016,
+   "isbn": "9781537785066",
+   "pid": "52299981",
+   "enlace_ficha": "https://www.buscalibre.cl/libro-50-recetas-con-proteinas-para-ciclismo-pedalea-a-tu-mejor-ritmo-con-alimentos-ricos-en-proteinas-spanish-edition/9781537785066/p/52299981"
+  },
+  {
+   "titulo": "recordando mis programas de entrenamiento carrera ciclismo triatlon natacion",
+   "autores": "Gpe Mauricio Carre Campos",
+   "editorial": "Palibrio",
+   "anio_edicion": 2012,
+   "isbn": "9781463327279",
+   "pid": "8966990",
+   "enlace_ficha": "https://www.buscalibre.cl/libro-recordando-mis-programas-de-entrenamiento-carrera-ciclismo-triatlon-natacion/9781463327279/p/8966990"
+  },
+  {
+   "titulo": "manual del director deportivo en el ciclismo de tecnificacion",
+   "autores": "César Castro Martínez",
+   "editorial": "Círculo Rojo",
+   "anio_edicion": 2026,
+   "isbn": "9791370460280",
+   "pid": "66882368",
+   "enlace_ficha": "https://www.buscalibre.cl/libro-manual-del-director-deportivo-en-el-ciclismo-de-tecnificacion/9791370460280/p/66882368"
+  },
+  {
+   "titulo": "Ciclismo urbano y sostenibilidad",
+   "autores": "Taru Uusinoka",
+   "editorial": "null",
+   "anio_edicion": 2021,
+   "isbn": "9786202753678",
+   "pid": "65189228",
+   "enlace_ficha": "https://www.buscalibre.cl/libro-ciclismo-urbano-y-sostenibilidad/9786202753678/p/65189228"
+  },
+  {
+   "titulo": "de average a asombroso ciclismo una guia completa para obtener mejores resultados",
+   "autores": "Correa, Mariana",
+   "editorial": "Createspace",
+   "anio_edicion": null,
+   "isbn": "9781505252071",
+   "pid": "57887886",
+   "enlace_ficha": "https://www.buscalibre.cl/libro-de-average-a-asombroso-ciclismo-una-guia-completa-para-obtener-mejores-resultados/9781505252071/p/57887886"
+  },
+  {
+   "titulo": "atlas ilustrado de ciclismo épico",
+   "autores": "Varios Autores",
+   "editorial": "Editorial Susaeta",
+   "anio_edicion": null,
+   "isbn": "9788430558346",
+   "pid": "4197433",
+   "enlace_ficha": "https://www.buscalibre.cl/libro-atlas-ilustrado-de-ciclismo-epico/9788430558346/p/4197433"
+  },
+  {
+   "titulo": "Relatos desde el Col del Agonistic: Selección de artículos sobre\nciclismo y cicloturismo",
+   "autores": "Sánchez-Beaskoetxea, Javier",
+   "editorial": "Independently Published",
+   "anio_edicion": null,
+   "isbn": "9781791870294",
+   "pid": "59917705",
+   "enlace_ficha": "https://www.buscalibre.cl/libro-relatos-desde-el-col-del-agonistic-seleccion-de-articulos-sobre-ciclismo-y-cicloturismo/9781791870294/p/59917705"
+  },
+  {
+   "titulo": "entrenamiento vegano para ciclistas segunda edicion 60 dias para lograr su mejor ciclismocon ejercicios unicos y un plan de comidas veganas",
+   "autores": "Correa, Mariana",
+   "editorial": "Createspace",
+   "anio_edicion": null,
+   "isbn": "9781724444974",
+   "pid": "58077926",
+   "enlace_ficha": "https://www.buscalibre.cl/libro-entrenamiento-vegano-para-ciclistas-segunda-edicion-60-dias-para-lograr-su-mejor-ciclismocon-ejercicios-unicos-y-un-plan-de-comidas-veganas/9781724444974/p/58077926"
+  },
+  {
+   "titulo": "en bicicleta por los puertos un relato con las caracteristicas basicas de los principales puertos de montana del mundo del ciclismo",
+   "autores": "Frederic Ràfols Barrufet",
+   "editorial": "El Cep I La Nansa Edicions",
+   "anio_edicion": 2007,
+   "isbn": "9788496349544",
+   "pid": "51084260",
+   "enlace_ficha": "https://www.buscalibre.cl/libro-en-bicicleta-por-los-puertos-un-relato-con-las-caracteristicas-basicas-de-los-principales-puertos-de-montana-del-mundo-del-ciclismo/9788496349544/p/51084260"
+  },
+  {
+   "titulo": "prototipo de protesis transradial unilateral para ciclismo diseno y construccion por fabricacion aditiva",
+   "autores": "JosÉ Vargas",
+   "editorial": "Editorial Académica Española",
+   "anio_edicion": 2021,
+   "isbn": "9786203879858",
+   "pid": "65617311",
+   "enlace_ficha": "https://www.buscalibre.cl/libro-prototipo-de-protesis-transradial-unilateral-para-ciclismo-diseno-y-construccion-por-fabricacion-aditiva/9786203879858/p/65617311"
+  },
+  {
+   "titulo": "ciclismo mas rapido mas sano y mas fuerte guia de 30 dias de fuerza y nutricion para transformar a cualquier ciclista en el ciclista definitivo",
+   "autores": "Correa, Mariana",
+   "editorial": "Createspace",
+   "anio_edicion": null,
+   "isbn": "9781533480033",
+   "pid": "60669804",
+   "enlace_ficha": "https://www.buscalibre.cl/libro-ciclismo-mas-rapido-mas-sano-y-mas-fuerte-guia-de-30-dias-de-fuerza-y-nutricion-para-transformar-a-cualquier-ciclista-en-el-ciclista-definitivo/9781533480033/p/60669804"
+  },
+  {
+   "titulo": "la influencia del ciclismo en un corredor de maraton que se entrena para una competicionde 21 km",
+   "autores": "Javier Pérez",
+   "editorial": "null",
+   "anio_edicion": 2024,
+   "isbn": "9786207863976",
+   "pid": "65141591",
+   "enlace_ficha": "https://www.buscalibre.cl/libro-la-influencia-del-ciclismo-en-un-corredor-de-maraton-que-se-entrena-para-una-competicionde-21-km/9786207863976/p/65141591"
+  },
+  {
+   "titulo": "90 dias de entrenamientos intensos de ciclismo y comidas paleo conviertase en un ciclistamas rapido y en forma con entrenamientos personalizados y p",
+   "autores": "Correa, Mariana",
+   "editorial": "Createspace",
+   "anio_edicion": null,
+   "isbn": "9781533479907",
+   "pid": "60669747",
+   "enlace_ficha": "https://www.buscalibre.cl/libro-90-dias-de-entrenamientos-intensos-de-ciclismo-y-comidas-paleo-conviertase-en-un-ciclistamas-rapido-y-en-forma-con-entrenamientos-personalizados-y-p/9781533479907/p/60669747"
+  }
+ ]
+}

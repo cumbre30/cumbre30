@@ -459,5 +459,75 @@
   "proveedor": "buscalibre.cl",
   "portada": "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/3ae0ff2e0122.jpg",
   "isbn": "9788490880036"
+ },
+ {
+  "titulo": "Ciclismo. Entrenamiento avanzado",
+  "tipo": "libro",
+  "idioma": "es",
+  "categorias": [
+   "entrenamiento"
+  ],
+  "anio": 2013,
+  "autor": "Hunter Allen",
+  "pais": "Estados Unidos",
+  "extra": "Con Stephen Cheung · Edición española de Cutting-Edge Cycling · Editorial Tutor",
+  "urlExterna": "https://www.buscalibre.cl/libro-ciclismo-entrenamiento-avanzado/9788479029463/p/28099786",
+  "resena": "Hunter Allen —entrenador de referencia del ciclismo de potencia, cofundador de TrainingPeaks y coautor de Training and Racing with a Power Meter— y el fisiólogo Stephen Cheung traducen aquí la investigación más reciente a práctica ciclista: potencia, aerodinámica, calor, altitud y manejo de la fatiga. El puente entre el laboratorio y el entrenamiento diario del ciclista competitivo.",
+  "proveedor": "buscalibre.cl",
+  "portada": "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/244e21a0eedc.jpg",
+  "isbn": "9788479029463"
+ },
+ {
+  "titulo": "Atlas ilustrado de ciclismo épico",
+  "tipo": "libro",
+  "idioma": "es",
+  "categorias": [
+   "historia",
+   "ruta"
+  ],
+  "anio": 2006,
+  "autor": "Varios autores",
+  "pais": null,
+  "extra": "Atlas ilustrado · Editorial Susaeta (año confirmado por Open Library)",
+  "urlExterna": "https://www.buscalibre.cl/libro-atlas-ilustrado-de-ciclismo-epico/9788430558346/p/4197433",
+  "resena": "Un atlas ilustrado de las gestas y paisajes legendarios del ciclismo mundial: puertos míticos, vueltas y héroes a color, para devorar en la mesa antes que en la bici. El libro de regalo perfecto para el ciclista curioso.",
+  "proveedor": "buscalibre.cl",
+  "portada": "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/48bba8e19ac3.jpg",
+  "isbn": "9788430558346"
+ },
+ {
+  "titulo": "El placer del ciclismo",
+  "tipo": "libro",
+  "idioma": "es",
+  "categorias": [
+   "personas",
+   "aventura"
+  ],
+  "anio": 2001,
+  "autor": "Louis Chauvet Urquidi",
+  "pais": null,
+  "extra": "Guía práctica para principiantes · Editorial Trillas (México)",
+  "urlExterna": "https://www.buscalibre.cl/libro-el-placer-del-ciclismo-guia-practica-para-principiantes/9789682463525/p/980782",
+  "resena": "Guía práctica para quienes empiezan a pedalear, con el disfrute como centro: técnica básica, equipo y hábito. Introducción amable publicada por Trillas; el principiante de hoy tiene las mismas dudas que el de entonces.",
+  "proveedor": "buscalibre.cl",
+  "portada": "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/0e5496a1721c.jpeg",
+  "isbn": "9789682463525"
+ },
+ {
+  "titulo": "Ciclismo. Science of Cycling",
+  "tipo": "libro",
+  "idioma": "es",
+  "categorias": [
+   "entrenamiento"
+  ],
+  "anio": 2027,
+  "autor": "David Bailey",
+  "pais": null,
+  "extra": "Edición española anunciada del original DK (2026) · Editorial DK",
+  "urlExterna": "https://www.buscalibre.cl/libro-ciclismo-science-of-cycling/9798217496693/p/68933252",
+  "resena": "La ciencia del ciclismo al estilo DK: la fisiología, la potencia y el entrenamiento que sostienen el rendimiento, explicados con el formato visual que hace digestible cualquier densidad de datos. Del autor del original Science of Cycling.",
+  "proveedor": "buscalibre.cl",
+  "portada": "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/1100dff155a8.jpeg",
+  "isbn": "9798217496693"
  }
 ]
