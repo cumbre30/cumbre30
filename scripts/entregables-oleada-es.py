@@ -96,13 +96,13 @@ Portadas: 33/33 verificadas HTTP. Años null para Ward/Dorleta/Abad (no verifica
 4. Con el export completo (105 fichas) el barrido Buscalibre queda **cubierto**: ya no faltan páginas. El universo de 106 = 76 fichas ya procesadas + 24 autoeditadas descartadas + 1 edición duplicada; no quedan títulos legítimos sin procesar.
 5. Sin ficha no ingesta: «Ciclismo en carretera. Test de valoración» aparecía truncado en el PDF del 23-11 — resuelto con el export completo (ficha 9788498230727).
 
-## Sincronización COMPLETADA (23-11 tarde)
+## Publicación COMPLETADA (23-11 tarde): 33/33 públicos en producción
 
-**Los 4 borradores del delta 3 están en Neon y PUBLICADOS para revisión** (decisión del usuario: los INSERTs nuevos nacen `publicado=true` — flag `--publicar` añadido a la semilla; los re-runs nunca tocan `publicado/destacado/proveedor`). Resultado: `creados 4 · actualizados 29` — los 29 borradores ES previos siguen intactos como borradores.
+Tras la siembra, el usuario aprobó el lote completo: **los 29 borradores ES quedaron PUBLICADOS** (`publica-borradores-lote-es.mjs`: UPDATE solo para títulos del lote con `publicado=false`; los 10 borradores es de oleadas anteriores siguen ocultos sin aprobación). Estado final de Neon: en → 89 publicados · **es → 43 publicados** (lote 33/33) + 10 borradores pendientes de decisión · pt → 4 borradores · destacado=0 · 0 enlaces `/libros/search` · 33/33 con portada.
 
-**Estado de Neon tras la siembra:** en → 89 publicados · es → **14 publicados** (10 previos + 4 nuevos) + 39 borradores · pt → 4 borradores · destacado=0 en todo el catálogo · 0 enlaces `/libros/search` · lote 33/33 con portada.
+**E2E en producción (sesión desechable creada y eliminada):** sin filtro → 132 · `?idioma=es` → **43** (todos buscalibre.cl) · `?idioma=en` → 89 · `?idioma=pt` → 0 · `q=krabbé` → 1.
 
-**E2E en producción (cumbregeo.cl, con sesión desechable creada y eliminada):** sin filtro → 103 registros · `?idioma=es` → **14** (todos buscalibre.cl) · `?idioma=en` → 89 · `?idioma=pt` → 0 · `q=krabbé` → 1. Los 4 nuevos son visibles ya en el módulo Cultura (idioma es) para el ojo editorial.
+**Incidente reportado por el usuario («no me cargan en la app») — diagnóstico: el servidor está sano.** Se reprodujo el flujo EXACTO del cliente (`CulturaView` llama sin filtros): HTTP 200 · 103 recursos en el momento del test · los 4 nuevos presentes con todas las claves · la UI es null-safe con `anio` (10 es lo tienen null y el render lo tolera: `rec.anio ? … : ""`) · 21 sesiones en la base, 0 vencidas · 33/33 portadas verificadas HTTP. Conclusión: el bloqueo es de estado de sesión/sync en el cliente (la vista solo llama a la API si `hasSession`: en el APK modo offline exige token de servidor o sync OK — sin eso se queda cargando, sin mensaje de error). Solución: cerrar y abrir la app / iniciar sesión de nuevo; en el APK, completar un sync con conexión.
 
 **Infraestructura de conexión restaurada** (tras el reciclaje del sandbox): clave de API de Neon (`.env.neon`) + org_id (`org-broad-cloud-28449650`, `.env.neon.org`) → `scripts/deriva-uri-neon.py` deriva el URI vía API v2 (`/projects?org_id=` → `/connection_uri?branch_id=&database_name=neondb&role_name=neondb_owner`) → `.env.neon.uri`. Todo chmod 600 fuera de git. La vía Vercel (`DATABASE_URL`) no aplica: la variable es *sensitive* (no legible por API). La semilla corre contra el endpoint pooled (pgbouncer) con resolución IPv4+SNI propia.
 """
