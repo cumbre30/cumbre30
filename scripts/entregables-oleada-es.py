@@ -96,9 +96,13 @@ Portadas: 33/33 verificadas HTTP. Años null para Ward/Dorleta/Abad (no verifica
 4. Con el export completo (105 fichas) el barrido Buscalibre queda **cubierto**: ya no faltan páginas. El universo de 106 = 76 fichas ya procesadas + 24 autoeditadas descartadas + 1 edición duplicada; no quedan títulos legítimos sin procesar.
 5. Sin ficha no ingesta: «Ciclismo en carretera. Test de valoración» aparecía truncado en el PDF del 23-11 — resuelto con el export completo (ficha 9788498230727).
 
-## Bloqueo de sincronización (23-11 tarde)
+## Estado de sincronización (23-11 tarde, tras restaurar credenciales)
 
-Los 4 borradores del delta 3 están curados en el lote (33 total) pero **NO sincronizados a Neon**: el reciclaje del sandbox borró `.env.neon` y `.env.neon.uri` (clave de API de Neon y URI derivado; ambos fuera de git por diseño, commit 353b494). Se necesita que el usuario re-entregue la clave de la API de Neon (o el URI `postgresql://…neon.tech…`) para correr `semilla-lote-es-fichas.mjs --neon` (idempotente, con guardia de registros publicados). Los registros de los deltas 1 y 2 SÍ están en Neon (39 borradores ES verificados en producción antes del reciclaje).
+Los 4 borradores del delta 3 están curados en el lote (33 total). Push a GitHub completado (c381469 → a13f0e3). Credenciales restauradas y guardadas fuera de git (chmod 600): clave de API de Neon (`.env.neon`), token de GitHub y token de Vercel.
+
+**La siembra en Neon queda a la espera del org_id**: la clave de Neon es org-scoped y la API exige `org_id` para listar proyectos («org_id is required, you can find it on your organization settings page»). La vía de recuperar el URI desde Vercel tampoco aplica: `DATABASE_URL` está marcada como *sensitive* (write-only, no legible por API ni por `env pull`). Con el org_id (una línea: consola de Neon → Organization settings → el identificador `org-…` de la URL) corre `scripts/deriva-uri-neon.py` → `.env.neon.uri`, y luego `semilla-lote-es-fichas.mjs --publicar`.
+
+**Modo de siembra acordado con el usuario**: los INSERTS NUEVOS nacen con `publicado=true` (flag `--publicar`, añadido a la semilla) para revisarlos directo en el módulo Cultura; los re-runs NUNCA tocan `publicado/destacado/proveedor`, así los 29 borradores ES previos y los publicados quedan intactos. Resultado esperado tras siembra: 14 públicos es (10 actuales + 4 nuevos), destacado=0.
 """
 (DL / "informe-oleada-es-fichas.md").write_text(md, encoding="utf-8")
 print(f"CSV: {DL/'lote-oleada-es-fichas.csv'} ({n} filas)")

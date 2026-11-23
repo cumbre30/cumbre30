@@ -5,10 +5,13 @@
 //   · urlExterna = FICHA real de Buscalibre (nunca /libros/search)
 //   · autor/año del listado de origen; OL para confirmar años
 //   · reseñas propias Cumbre30 en español; categorías v4
-//   · BORRADORES (publicado=false, destacado=false)
+//   · BORRADORES por defecto (publicado=false, destacado=false)
+//   · --publicar: los INSERTS NUEVOS nacen publicado=true (para
+//     revisión en el módulo Cultura); los re-runs (UPDATE) NUNCA
+//     tocan publicado/destacado/proveedor
 //   · Idempotente: match por titulo+tipo; re-run NO toca
 //     publicado/destacado/proveedor
-// Uso: node scripts/semilla-lote-es-fichas.mjs --neon
+// Uso: node scripts/semilla-lote-es-fichas.mjs --neon [--publicar]
 // ============================================================
 import { Client } from "pg";
 import dns from "node:dns/promises";
@@ -16,6 +19,7 @@ import fs from "node:fs";
 import { randomBytes } from "node:crypto";
 
 const URI = fs.readFileSync("/home/z/my-project/.env.neon.uri", "utf8").trim();
+const PUBLICAR = process.argv.includes("--publicar"); // INSERTs nuevos nacen publicado=true
 const lote = JSON.parse(fs.readFileSync(new URL("./data/lote-es-fichas-final.json", import.meta.url)));
 
 async function conectar() {
@@ -60,9 +64,9 @@ function nuevoId() {
       await db.query(
         `INSERT INTO cultura_recursos (id, titulo, resena, tipo, idioma, categorias, anio, autor, pais, extra,
           "urlExterna", "portadaUrl", proveedor, publicado, destacado, "createdAt", "updatedAt")
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,false,false,now(),now())`,
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,false,now(),now())`,
         [nuevoId(), r.titulo, r.resena, r.tipo, r.idioma, r.categorias, r.anio, r.autor, r.pais, r.extra,
-         r.urlExterna, r.portada, r.proveedor]);
+         r.urlExterna, r.portada, r.proveedor, PUBLICAR]);
       creados++;
     }
   }
