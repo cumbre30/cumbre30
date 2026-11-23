@@ -166,6 +166,7 @@ async function mintJwt() {
   // 10. login con la nueva contraseña
   r = await prod("/api/auth/login", { origin: ORIGIN_APK, body: { email: EMAIL1, password: PASS2 } });
   check("10. login con la nueva contraseña → 200", r.status === 200 && typeof r.d.token === "string", `status ${r.status}`);
+  const tokenFinal = r.d.token ?? ""; // el reset cerró las sesiones previas (seguridad)
 
   // 11. cuenta estilo Google: INSERT con passwordHash vacío
   const ins = await api("/User", { method: "POST", body: { id: `e2e${TS}b`, email: EMAIL2, username: "verg" + (TS % 1e7), usernameChangedAt: null, passwordHash: "", selectedPin: "clasico", bikeBrand: null, bikeType: null, bikeModel: null, bikeSize: null, bikeColor: null, createdAt: new Date().toISOString(), riderWeightKg: null, bikeWeightKg: null, role: "user" } });
@@ -207,14 +208,16 @@ async function mintJwt() {
   for (let i = 0; i < 11; i++) ultimo = (await prod("/api/auth/existe", { body: { email: EMAIL2 } })).status;
   check("17. existe: rate limit → 429", ultimo === 429, `último ${ultimo}`);
 
-  // 18. limpieza total
-  r = await prod("/api/auth/account", { method: "DELETE", token: token1 });
+  // 18. limpieza total (con el token vivo: el reset cerró las sesiones previas)
+  r = await prod("/api/auth/account", { method: "DELETE", token: tokenFinal });
   const baja1 = r.status >= 200 && r.status < 300;
+  // EMAIL2 (insertada a mano en DB) no tiene sesión: baja directa por Data API.
+  const delU2 = await api(`/User?email=eq.${encodeURIComponent(EMAIL2)}`, { method: "DELETE" });
   db = await api(`/User?email=in.(${encodeURIComponent(EMAIL1)},${encodeURIComponent(EMAIL2)})&select=email`);
   const quedan = Array.isArray(db.d) ? db.d.length : -1;
   const del1 = await api(`/PasswordReset?email=eq.${encodeURIComponent(EMAIL1)}`, { method: "DELETE" });
   const del2 = await api(`/PasswordReset?email=eq.${encodeURIComponent(EMAIL2)}`, { method: "DELETE" });
-  check("18. limpieza: baja API + DELETE DB (Users sin filas, resets fuera)", baja1 && quedan === 0 && del1.status >= 200 && del1.status < 300 && del2.status >= 200 && del2.status < 300, `baja ${r.status} · Users restantes ${quedan}`);
+  check("18. limpieza: baja API + DELETE DB (Users sin filas, resets fuera)", baja1 && delU2.status >= 200 && delU2.status < 300 && quedan === 0 && del1.status >= 200 && del1.status < 300 && del2.status >= 200 && del2.status < 300, `baja ${r.status} · delU2 ${delU2.status} · Users restantes ${quedan}`);
 
   console.log(fallos === 0 ? "\nTODO OK ✓ (18 comprobaciones)" : `\nCON ${fallos} FALLO(S) ✗`);
   process.exit(fallos === 0 ? 0 : 1);
