@@ -1,0 +1,567 @@
+{
+ "total": 105,
+ "nuevos": [
+  {
+   "title": "Ciclismo",
+   "authors": [
+    "Ashley Gish"
+   ],
+   "publisher": "Creative Paperbacks",
+   "year": null,
+   "edition": null,
+   "binding": "Tapa Blanda",
+   "condition": "Nuevo",
+   "availability": "Stock Disponible - Nuevo",
+   "original_price_clp": 35360,
+   "price_clp": 17680,
+   "discount": "50% dcto.",
+   "used_option": null,
+   "url": "https://www.buscalibre.cl/libro-ciclismo/9781682774786/p/55983612",
+   "isbn": "9781682774786",
+   "pid": "55983612"
+  },
+  {
+   "title": "Ciclismo en carretera test valoracion",
+   "authors": [
+    "José Ramón Abad Culebras"
+   ],
+   "publisher": "WANCEULEN",
+   "year": null,
+   "edition": null,
+   "binding": "Tapa Blanda",
+   "condition": "Nuevo",
+   "availability": "Stock Disponible - Nuevo",
+   "original_price_clp": 63740,
+   "price_clp": 31870,
+   "discount": "50% dcto.",
+   "used_option": {
+    "condition": "Usado en Buen Estado",
+    "shipping": "envío en 1 día",
+    "price_clp": 28890
+   },
+   "url": "https://www.buscalibre.cl/libro-ciclismo-en-carretera-test-valoracion/9788498230727/p/4210033",
+   "isbn": "9788498230727",
+   "pid": "4210033"
+  },
+  {
+   "title": "Ciclismo de precision (Biblioteca Polar Pulsometro)",
+   "authors": [
+    "Edmund Burker"
+   ],
+   "publisher": "Dorleta S.A.",
+   "year": null,
+   "edition": null,
+   "binding": "Tapa Blanda",
+   "condition": "Usado",
+   "availability": "Stock Disponible - Usado",
+   "original_price_clp": 145590,
+   "price_clp": 72800,
+   "discount": "50% dcto.",
+   "used_option": null,
+   "url": "https://www.buscalibre.cl/libro-ciclismo-de-precision-biblioteca-polar-pulsometro/9788487812156/p/3312320",
+   "isbn": "9788487812156",
+   "pid": "3312320"
+  },
+  {
+   "title": "121 CONSEJOS GENIALES Para CICLISMO: TIPS ACTUALES y EXCELENTES PARA CONVERTIRTE EN UN CICLISTA BRILLANTE",
+   "authors": [
+    "Correa, Mariana"
+   ],
+   "publisher": "Createspace",
+   "year": null,
+   "edition": null,
+   "binding": "Tapa Blanda",
+   "condition": "Nuevo",
+   "availability": "Stock Disponible - Nuevo",
+   "original_price_clp": 53450,
+   "price_clp": 26730,
+   "discount": "50% dcto.",
+   "used_option": null,
+   "url": "https://www.buscalibre.cl/libro-121-consejos-geniales-para-ciclismo-tips-actuales-y-excelentes-para-convertirte-en-un-ciclista-brillante/9781979637190/p/60172865",
+   "isbn": "9781979637190",
+   "pid": "60172865"
+  },
+  {
+   "title": "Ciclismo para señoras (El deporte en femenino)",
+   "authors": [
+    "Maria E. Ward",
+    "Bravas Literatas",
+    "Carmen Cabrejas Almena"
+   ],
+   "publisher": null,
+   "year": null,
+   "edition": null,
+   "binding": "Tapa Blanda",
+   "condition": "Nuevo",
+   "availability": "Stock Disponible - Nuevo",
+   "original_price_clp": 66680,
+   "price_clp": 33340,
+   "discount": "50% dcto.",
+   "used_option": null,
+   "url": "https://www.buscalibre.cl/libro-ciclismo-para-senoras-el-deporte-en-femenino/9798300686055/p/69165010",
+   "isbn": "9798300686055",
+   "pid": "69165010"
+  },
+  {
+   "title": "DIETA SIN GLUTEN Para CICLISMO: Vive sin gluten para obtener tu Mejor Rendimiento",
+   "authors": [
+    "Correa, Mariana"
+   ],
+   "publisher": "Createspace",
+   "year": null,
+   "edition": null,
+   "binding": "Tapa Blanda",
+   "condition": "Nuevo",
+   "availability": "Stock Disponible - Nuevo",
+   "original_price_clp": 63640,
+   "price_clp": 31820,
+   "discount": "50% dcto.",
+   "used_option": null,
+   "url": "https://www.buscalibre.cl/libro-dieta-sin-gluten-para-ciclismo-vive-sin-gluten-para-obtener-tu-mejor-rendimiento/9781512047240/p/58618136",
+   "isbn": "9781512047240",
+   "pid": "58618136"
+  },
+  {
+   "title": "Entrenamiento con pesas y ciclismo de ruta",
+   "authors": [
+    "Jenaro Leguízamo Herrera"
+   ],
+   "publisher": null,
+   "year": 2017,
+   "edition": null,
+   "binding": "Tapa Blanda",
+   "condition": "Nuevo",
+   "availability": "Stock Disponible - Nuevo",
+   "original_price_clp": 133480,
+   "price_clp": 66740,
+   "discount": "50% dcto.",
+   "used_option": null,
+   "url": "https://www.buscalibre.cl/libro-entrenamiento-con-pesas-y-ciclismo-de-ruta/9783841683809/p/65613648",
+   "isbn": "9783841683809",
+   "pid": "65613648"
+  },
+  {
+   "title": "100 CITAS INSPIRADORAS y BRILLANTES PARA EL CICLISMO: CAMBIA PARA SIEMPRE Tu FORMA DE ANDAR EN BICICLETA",
+   "authors": [
+    "Correa, Mariana"
+   ],
+   "publisher": "Createspace",
+   "year": null,
+   "edition": null,
+   "binding": "Tapa Blanda",
+   "condition": "Nuevo",
+   "availability": "Stock Disponible - Nuevo",
+   "original_price_clp": 53450,
+   "price_clp": 26730,
+   "discount": "50% dcto.",
+   "used_option": null,
+   "url": "https://www.buscalibre.cl/libro-100-citas-inspiradoras-y-brillantes-para-el-ciclismo-cambia-para-siempre-tu-forma-de-andar-en-bicicleta/9781981238477/p/60287932",
+   "isbn": "9781981238477",
+   "pid": "60287932"
+  },
+  {
+   "title": "Dieta Gluten Free Para Ciclismo Segunda Edicion: Convierte en un Ciclista Excelente con la Mejor Nutricion",
+   "authors": [
+    "Mariana Correa"
+   ],
+   "publisher": "Createspace",
+   "year": 2018,
+   "edition": null,
+   "binding": "Tapa Blanda",
+   "condition": "Nuevo",
+   "availability": "Stock Disponible - Nuevo",
+   "original_price_clp": 59900,
+   "price_clp": 29950,
+   "discount": "50% dcto.",
+   "used_option": null,
+   "url": "https://www.buscalibre.cl/libro-dieta-gluten-free-para-ciclismo-segunda-edicion-convierte-en-un-ciclista-excelente-con-la-mejor-nutricion/9781986843362/p/50982729",
+   "isbn": "9781986843362",
+   "pid": "50982729"
+  },
+  {
+   "title": "Intensidad en ciclismo",
+   "authors": [
+    "Daniela Lecuona",
+    "Carlos Ramírez",
+    "J. Martín Corbo"
+   ],
+   "publisher": null,
+   "year": 2021,
+   "edition": null,
+   "binding": "Tapa Blanda",
+   "condition": "Nuevo",
+   "availability": "Stock Disponible - Nuevo",
+   "original_price_clp": 110060,
+   "price_clp": 55030,
+   "discount": "50% dcto.",
+   "used_option": null,
+   "url": "https://www.buscalibre.cl/libro-intensidad-en-ciclismo/9786203879827/p/65617306",
+   "isbn": "9786203879827",
+   "pid": "65617306"
+  },
+  {
+   "title": "Edad y rendimiento en ciclismo de velocidad",
+   "authors": [
+    "Luke Del Vecchio"
+   ],
+   "publisher": null,
+   "year": 2024,
+   "edition": null,
+   "binding": "Tapa Blanda",
+   "condition": "Nuevo",
+   "availability": "Stock Disponible - Nuevo",
+   "original_price_clp": 102260,
+   "price_clp": 51130,
+   "discount": "50% dcto.",
+   "used_option": null,
+   "url": "https://www.buscalibre.cl/libro-edad-y-rendimiento-en-ciclismo-de-velocidad/9786207863983/p/65141593",
+   "isbn": "9786207863983",
+   "pid": "65141593"
+  },
+  {
+   "title": "CICLISTA PROMEDIO a CICLISTA INCREIBLE SEGUNDA EDICION: PREPARA TU CUERPO y MENTE PARA TU MEJOR CICLISMO",
+   "authors": [
+    "Correa, Mariana"
+   ],
+   "publisher": "Createspace",
+   "year": null,
+   "edition": null,
+   "binding": "Tapa Blanda",
+   "condition": "Nuevo",
+   "availability": "Stock Disponible - Nuevo",
+   "original_price_clp": 59790,
+   "price_clp": 29900,
+   "discount": "50% dcto.",
+   "used_option": null,
+   "url": "https://www.buscalibre.cl/libro-ciclista-promedio-a-ciclista-increible-segunda-edicion-prepara-tu-cuerpo-y-mente-para-tu-mejor-ciclismo/9781986818155/p/60644296",
+   "isbn": "9781986818155",
+   "pid": "60644296"
+  },
+  {
+   "title": "60  Recetas con Proteinas Para Ciclismo Segunda Edicion: Conviertete un en Ciclista Increible con la Mejor Alimentacion",
+   "authors": [
+    "Mariana Correa"
+   ],
+   "publisher": "Createspace",
+   "year": 2018,
+   "edition": null,
+   "binding": "Tapa Blanda",
+   "condition": "Nuevo",
+   "availability": "Stock Disponible - Nuevo",
+   "original_price_clp": 59460,
+   "price_clp": 29730,
+   "discount": "50% dcto.",
+   "used_option": null,
+   "url": "https://www.buscalibre.cl/libro-60-recetas-con-proteinas-para-ciclismo-segunda-edicion-conviertete-un-en-ciclista-increible-con-la-mejor-alimentacion/9781719032667/p/50986920",
+   "isbn": "9781719032667",
+   "pid": "50986920"
+  },
+  {
+   "title": "Alma y Ruedas: \"Ciclismo y Superación: Estrategias de Entrenamiento, Resiliencia y Psicología Deportiva Para Triunfar en Cada Pedalad de Alan Roca(Independently Published)",
+   "authors": [
+    "Roca Alan"
+   ],
+   "publisher": "Independently Published",
+   "year": null,
+   "edition": null,
+   "binding": "Tapa Blanda",
+   "condition": "Nuevo",
+   "availability": "Stock Disponible - Nuevo",
+   "original_price_clp": 90990,
+   "price_clp": 45500,
+   "discount": "50% dcto.",
+   "used_option": null,
+   "url": "https://www.buscalibre.cl/libro-alma-y-ruedas-ciclismo-y-superacion-estrategias-de-entrenamiento-resiliencia-y-psicologia-deportiva-para-triunfar-en-cada-pedalad-de-alan-roca-independently-published/9798307062142/p/64011839",
+   "isbn": "9798307062142",
+   "pid": "64011839"
+  },
+  {
+   "title": "Interfaz de control portátil para el ciclismo por estimulación eléctrica",
+   "authors": [
+    "Guilherme Ricarte"
+   ],
+   "publisher": null,
+   "year": 2022,
+   "edition": null,
+   "binding": "Tapa Blanda",
+   "condition": "Nuevo",
+   "availability": "Stock Disponible - Nuevo",
+   "original_price_clp": 139330,
+   "price_clp": 69670,
+   "discount": "50% dcto.",
+   "used_option": null,
+   "url": "https://www.buscalibre.cl/libro-interfaz-de-control-portatil-para-el-ciclismo-por-estimulacion-electrica/9786205143803/p/65696630",
+   "isbn": "9786205143803",
+   "pid": "65696630"
+  },
+  {
+   "title": "PEDALADAS EN LA HISTORIA. Las curiosidades más fascinantes del ciclismo: Historia, escándalos, hazañas y secretos del deporte sobre dos ruedas.",
+   "authors": [
+    "A. Ferrer-Cross, Marc"
+   ],
+   "publisher": "Independently Published",
+   "year": null,
+   "edition": null,
+   "binding": "Tapa Blanda",
+   "condition": "Nuevo",
+   "availability": "Stock Disponible - Nuevo",
+   "original_price_clp": 47780,
+   "price_clp": 23890,
+   "discount": "50% dcto.",
+   "used_option": null,
+   "url": "https://www.buscalibre.cl/libro-pedaladas-en-la-historia-las-curiosidades-mas-fascinantes-del-ciclismo-historia-escandalos-hazanas-y-secretos-del-deporte-sobre-dos-ruedas/9798250774574/p/66829583",
+   "isbn": "9798250774574",
+   "pid": "66829583"
+  },
+  {
+   "title": "ENTRENAMIENTO COMPLETO De PESO CORPORAL PARA CICLISMO: LAS MEJORES RUTINAS DE CALISTENIA PARA VOLVERTE Un CICLISTA INCREIBLE",
+   "authors": [
+    "Correa, Mariana"
+   ],
+   "publisher": "Createspace",
+   "year": null,
+   "edition": null,
+   "binding": "Tapa Blanda",
+   "condition": "Nuevo",
+   "availability": "Stock Disponible - Nuevo",
+   "original_price_clp": 66940,
+   "price_clp": 33470,
+   "discount": "50% dcto.",
+   "used_option": null,
+   "url": "https://www.buscalibre.cl/libro-entrenamiento-completo-de-peso-corporal-para-ciclismo-las-mejores-rutinas-de-calistenia-para-volverte-un-ciclista-increible/9781539585770/p/61177074",
+   "isbn": "9781539585770",
+   "pid": "61177074"
+  },
+  {
+   "title": "Crea tu entrenamiento por intervalos en 10 minutos: Ciclismo y ciclistas",
+   "authors": [
+    "Ramírez, Bernabé"
+   ],
+   "publisher": "Independently Published",
+   "year": null,
+   "edition": null,
+   "binding": "Tapa Blanda",
+   "condition": "Nuevo",
+   "availability": "Stock Disponible - Nuevo",
+   "original_price_clp": 178670,
+   "price_clp": 89340,
+   "discount": "50% dcto.",
+   "used_option": null,
+   "url": "https://www.buscalibre.cl/libro-crea-tu-entrenamiento-por-intervalos-en-10-minutos-ciclismo-y-ciclistas/9798558502015/p/61397635",
+   "isbn": "9798558502015",
+   "pid": "61397635"
+  },
+  {
+   "title": "60 DIAS PARA Tu MEJOR CICLISMO: UNA GUIA COMPLETA En ENTRENAMIENTO DE FUERZA Y NUTRICION PARA ACELERAR MAS RAPIDO",
+   "authors": [
+    "Correa, Mariana"
+   ],
+   "publisher": "Createspace",
+   "year": null,
+   "edition": null,
+   "binding": "Tapa Blanda",
+   "condition": "Nuevo",
+   "availability": "Stock Disponible - Nuevo",
+   "original_price_clp": 63730,
+   "price_clp": 31870,
+   "discount": "50% dcto.",
+   "used_option": null,
+   "url": "https://www.buscalibre.cl/libro-60-dias-para-tu-mejor-ciclismo-una-guia-completa-en-entrenamiento-de-fuerza-y-nutricion-para-acelerar-mas-rapido/9781533479938/p/60669765",
+   "isbn": "9781533479938",
+   "pid": "60669765"
+  },
+  {
+   "title": "Recordando mis Programas de Entrenamiento: Carrera Ciclismo Triatlon Natacion",
+   "authors": [
+    "Gpe Mauricio Carre Campos"
+   ],
+   "publisher": "Palibrio",
+   "year": 2012,
+   "edition": null,
+   "binding": "Tapa Dura",
+   "condition": "Nuevo",
+   "availability": "Stock Disponible - Nuevo",
+   "original_price_clp": 87080,
+   "price_clp": 47890,
+   "discount": "45% dcto.",
+   "used_option": null,
+   "url": "https://www.buscalibre.cl/libro-recordando-mis-programas-de-entrenamiento-carrera-ciclismo-triatlon-natacion/9781463327255/p/8966989",
+   "isbn": "9781463327255",
+   "pid": "8966989"
+  },
+  {
+   "title": "ENTRENAMIENTO COMPLETO De PESO CORPORAL PARA CICLISMO SEGUNDA EDICION: LAS MEJORES RUTINAS DE CALISTENIA PARA VOLVERTE Un CICLISTA INCREIBLE",
+   "authors": [
+    "Correa, Mariana"
+   ],
+   "publisher": "Createspace",
+   "year": null,
+   "edition": null,
+   "binding": "Tapa Blanda",
+   "condition": "Nuevo",
+   "availability": "Stock Disponible - Nuevo",
+   "original_price_clp": 64400,
+   "price_clp": 32200,
+   "discount": "50% dcto.",
+   "used_option": null,
+   "url": "https://www.buscalibre.cl/libro-entrenamiento-completo-de-peso-corporal-para-ciclismo-segunda-edicion-las-mejores-rutinas-de-calistenia-para-volverte-un-ciclista-increible/9781725902633/p/58175263",
+   "isbn": "9781725902633",
+   "pid": "58175263"
+  },
+  {
+   "title": "Ciclismo en el Gran Distrito Autónomo de Lomé (Togo)",
+   "authors": [
+    "Mawulolo Koevi",
+    "Iléri Dandonougbo"
+   ],
+   "publisher": null,
+   "year": 2024,
+   "edition": null,
+   "binding": "Tapa Blanda",
+   "condition": "Nuevo",
+   "availability": "Stock Disponible - Nuevo",
+   "original_price_clp": 117870,
+   "price_clp": 58940,
+   "discount": "50% dcto.",
+   "used_option": null,
+   "url": "https://www.buscalibre.cl/libro-ciclismo-en-el-gran-distrito-autonomo-de-lome-togo/9786208075811/p/65158425",
+   "isbn": "9786208075811",
+   "pid": "65158425"
+  },
+  {
+   "title": "ENTRENAMIENTO VEGANO Para CICLISTAS: 60 DIAS PARA LOGRAR SU MEJOR CICLISMO CON EJERCICIOS UNICOS y UN PLAN DE COMIDAS VEGANAS",
+   "authors": [
+    "Correa, Mariana"
+   ],
+   "publisher": "Createspace",
+   "year": null,
+   "edition": null,
+   "binding": "Tapa Blanda",
+   "condition": "Nuevo",
+   "availability": "Stock Disponible - Nuevo",
+   "original_price_clp": 59840,
+   "price_clp": 29920,
+   "discount": "50% dcto.",
+   "used_option": null,
+   "url": "https://www.buscalibre.cl/libro-entrenamiento-vegano-para-ciclistas-60-dias-para-lograr-su-mejor-ciclismo-con-ejercicios-unicos-y-un-plan-de-comidas-veganas/9781978036956/p/60029649",
+   "isbn": "9781978036956",
+   "pid": "60029649"
+  },
+  {
+   "title": "ENTRENAMIENTO VEGANO PARA CICLISTAS SEGUNDA EDiCION: 60 DIAS PARA LOGRAR Su MEJOR CICLISMO CON EJERCICIOS UNICOS Y UN PLAN DE COMIDAS VEGANAS",
+   "authors": [
+    "Correa, Mariana"
+   ],
+   "publisher": "Createspace",
+   "year": null,
+   "edition": null,
+   "binding": "Tapa Blanda",
+   "condition": "Nuevo",
+   "availability": "Stock Disponible - Nuevo",
+   "original_price_clp": 60220,
+   "price_clp": 30110,
+   "discount": "50% dcto.",
+   "used_option": null,
+   "url": "https://www.buscalibre.cl/libro-entrenamiento-vegano-para-ciclistas-segunda-edicion-60-dias-para-lograr-su-mejor-ciclismo-con-ejercicios-unicos-y-un-plan-de-comidas-veganas/9781723396199/p/57999844",
+   "isbn": "9781723396199",
+   "pid": "57999844"
+  },
+  {
+   "title": "En Bicicleta por los Puertos: Un Relato con las Características Básicas de los Principales Puertos de Montaña del Mundo del Ciclismo",
+   "authors": [
+    "Frederic Ràfols Barrufet"
+   ],
+   "publisher": "El Cep I La Nansa Edicions",
+   "year": 2007,
+   "edition": "1 Edición",
+   "binding": "Tapa Blanda",
+   "condition": "Nuevo",
+   "availability": "Stock Disponible - Nuevo",
+   "original_price_clp": 61460,
+   "price_clp": 30730,
+   "discount": "50% dcto.",
+   "used_option": null,
+   "url": "https://www.buscalibre.cl/libro-en-bicicleta-por-los-puertos-un-relato-con-las-caracteristicas-basicas-de-los-principales-puertos-de-montana-del-mundo-del-ciclismo/9788496349414/p/46497386",
+   "isbn": "9788496349414",
+   "pid": "46497386"
+  },
+  {
+   "title": "Prototipo de Prótesis Transradial Unilateral Para Ciclismo: Diseño y Construcción por Fabricación Aditiva",
+   "authors": [
+    "José Vargas"
+   ],
+   "publisher": "Editorial Académica Española",
+   "year": 2021,
+   "edition": null,
+   "binding": "Tapa Blanda",
+   "condition": "Nuevo",
+   "availability": "Stock Disponible - Nuevo",
+   "original_price_clp": 139330,
+   "price_clp": 69670,
+   "discount": "50% dcto.",
+   "used_option": null,
+   "url": "https://www.buscalibre.cl/libro-prototipo-de-protesis-transradial-unilateral-para-ciclismo-diseno-y-construccion-por-fabricacion-aditiva/9786203032703/p/53368405",
+   "isbn": "9786203032703",
+   "pid": "53368405"
+  },
+  {
+   "title": "La influencia del ciclismo en un corredor de maratón que se entrena para una competición de 21 km",
+   "authors": [
+    "Javier Pérez"
+   ],
+   "publisher": null,
+   "year": 2024,
+   "edition": null,
+   "binding": "Tapa Blanda",
+   "condition": "Nuevo",
+   "availability": "Stock Disponible - Nuevo",
+   "original_price_clp": 79450,
+   "price_clp": 43700,
+   "discount": "45% dcto.",
+   "used_option": null,
+   "url": "https://www.buscalibre.cl/libro-la-influencia-del-ciclismo-en-un-corredor-de-maraton-que-se-entrena-para-una-competicion-de-21-km/9783389010556/p/65482244",
+   "isbn": "9783389010556",
+   "pid": "65482244"
+  },
+  {
+   "title": "CICLISMO MAS RAPIDO, MAS SANO y MAS FUERTE: GUIA DE 30 DIAS De FUERZA Y NUTRICION PARA TRANSFORMAR A CUALQUIER CICLISTA EN EL CICLISTA DEFINITIVO",
+   "authors": [
+    "Correa, Mariana"
+   ],
+   "publisher": "Createspace",
+   "year": null,
+   "edition": null,
+   "binding": "Tapa Blanda",
+   "condition": "Nuevo",
+   "availability": "Stock Disponible - Nuevo",
+   "original_price_clp": 64400,
+   "price_clp": 32200,
+   "discount": "50% dcto.",
+   "used_option": null,
+   "url": "https://www.buscalibre.cl/libro-ciclismo-mas-rapido-mas-sano-y-mas-fuerte-guia-de-30-dias-de-fuerza-y-nutricion-para-transformar-a-cualquier-ciclista-en-el-ciclista-definitivo/9781533480002/p/60669799",
+   "isbn": "9781533480002",
+   "pid": "60669799"
+  },
+  {
+   "title": "90 DIAS DE ENTRENAMIENTOS INTENSOS DE CICLISMO y COMIDAS PALEO: CONVIERTASE EN UN CICLISTA MAS RAPIDO Y EN FORMA CON ENTRENAMIENTOS PERSONALIZADOS y P",
+   "authors": [
+    "Correa, Mariana"
+   ],
+   "publisher": "Createspace",
+   "year": null,
+   "edition": null,
+   "binding": "Tapa Blanda",
+   "condition": "Nuevo",
+   "availability": "Stock Disponible - Nuevo",
+   "original_price_clp": 68670,
+   "price_clp": 34340,
+   "discount": "50% dcto.",
+   "used_option": null,
+   "url": "https://www.buscalibre.cl/libro-90-dias-de-entrenamientos-intensos-de-ciclismo-y-comidas-paleo-conviertase-en-un-ciclista-mas-rapido-y-en-forma-con-entrenamientos-personalizados-y-p/9781548491673/p/61745799",
+   "isbn": "9781548491673",
+   "pid": "61745799"
+  }
+ ],
+ "conocidos": 76,
+ "sin_url": []
+}

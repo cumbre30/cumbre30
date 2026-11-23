@@ -77,13 +77,28 @@ De las 18 fichas nuevas del PDF: 13 descartadas por política v4 (serie Mariana 
 
 Portadas: 29/29 verificadas HTTP (image-search; las de OL para Atlas y Placer daban vacías). Nota: la ficha de «El placer del ciclismo» tiene el slug reconstruido — comprobar el enlace al revisar.
 
+## Delta 3 — export completo (gemini-code-1795433122194.json): +4 borradores
+
+Nuevo export del usuario con **105 fichas** (URL limpia de ficha en cada registro). Diff contra todo lo procesado: 76 conocidos + 29 nuevos por ISBN → 24 descartados por política v4 (Mariana Correa/CréateSpace ×13, Independently Published ×3, EAE y vanity ×7, Palibrio) y «En bicicleta por los puertos» (9788496349414) reconocido como OTRA EDICIÓN del borrador existente (9788496349544) → no duplicado. **4 incorporadas**:
+
+1. **Ciclismo** — Ashley Gish, Creative Company/Paperbacks (OL exacto, 2024) → [aventura, personas]
+2. **Ciclismo en carretera. Test de valoración del umbral anaeróbico** — José Ramón Abad Culebras, Wanceulen (casadellibro/popularlibros/librerialuces) → [entrenamiento]
+3. **Ciclismo de precisión** — Edmund R. Burke, Dorleta, Biblioteca Polar Pulsómetro (agapea; la ficha trae el typo «Burker») → [entrenamiento]
+4. **Ciclismo para señoras** — Maria E. Ward, Bravas Literatas, «El deporte en femenino» (llibreriacoma/BRAVAS LITERATAS; clásico original de 1896) → [historia, personas]
+
+Portadas: 33/33 verificadas HTTP. Años null para Ward/Dorleta/Abad (no verificables — regla v4).
+
 ## Pendientes para el equipo editorial
 
 1. Revisar los {n} borradores y publicar por oleadas (igual que el lote ciclismo anterior).
 2. 4 borradores del lote anterior siguen sin ficha en Buscalibre.cl («Bicicleta: salud y ejercicio», «Desde Monterrey en bicicleta», «La bicicleta de Katmandú», «Navarra en Bicicleta») — decidir si se enlazan a otro proveedor o se retiran.
 3. Las portadas se resolvieron por búsqueda de imágenes con verificación HTTP; conviene ojo humano rápido sobre las {con_portada} antes de publicar (que la portada corresponde a la edición ES).
-4. **Faltan ~39 fichas del listado Buscalibre (106 reportadas, 66 en los fragmentos)**: el PDF trae las 3 páginas pero cada una llega truncada al final. Para completar el barrido, exportar/copiar cada página completa (o hacer capturas de las páginas 2 y 3 del sitio); lo pendiente es sobre todo la página 3 (6 de ~34) y el tramo final de las páginas 1-2.
-5. Sin ficha no ingesta: «Ciclismo en carretera. Test de valoración» (José Ramón Abad Culebras, Wanceulen) aparece en el PDF sin enlace — candidato legítimo cuando se tenga su ficha.
+4. Con el export completo (105 fichas) el barrido Buscalibre queda **cubierto**: ya no faltan páginas. El universo de 106 = 76 fichas ya procesadas + 24 autoeditadas descartadas + 1 edición duplicada; no quedan títulos legítimos sin procesar.
+5. Sin ficha no ingesta: «Ciclismo en carretera. Test de valoración» aparecía truncado en el PDF del 23-11 — resuelto con el export completo (ficha 9788498230727).
+
+## Bloqueo de sincronización (23-11 tarde)
+
+Los 4 borradores del delta 3 están curados en el lote (33 total) pero **NO sincronizados a Neon**: el reciclaje del sandbox borró `.env.neon` y `.env.neon.uri` (clave de API de Neon y URI derivado; ambos fuera de git por diseño, commit 353b494). Se necesita que el usuario re-entregue la clave de la API de Neon (o el URI `postgresql://…neon.tech…`) para correr `semilla-lote-es-fichas.mjs --neon` (idempotente, con guardia de registros publicados). Los registros de los deltas 1 y 2 SÍ están en Neon (39 borradores ES verificados en producción antes del reciclaje).
 """
 (DL / "informe-oleada-es-fichas.md").write_text(md, encoding="utf-8")
 print(f"CSV: {DL/'lote-oleada-es-fichas.csv'} ({n} filas)")

@@ -529,5 +529,75 @@
   "proveedor": "buscalibre.cl",
   "portada": "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/1100dff155a8.jpeg",
   "isbn": "9798217496693"
+ },
+ {
+  "titulo": "Ciclismo",
+  "tipo": "libro",
+  "idioma": "es",
+  "categorias": [
+   "aventura",
+   "personas"
+  ],
+  "anio": 2024,
+  "autor": "Ashley Gish",
+  "pais": "Estados Unidos",
+  "extra": "Divulgación juvenil ilustrada · Editorial Creative Company (año confirmado por Open Library)",
+  "urlExterna": "https://www.buscalibre.cl/libro-ciclismo/9781682774786/p/55983612",
+  "resena": "Introducción ilustrada al ciclismo para lectores jóvenes: qué es el deporte, sus modalidades y sus estrellas, con el formato visual de la serie de Creative Company. La primera piedra para el ciclista pequeño de la casa.",
+  "proveedor": "buscalibre.cl",
+  "portada": "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/13c11a0e614b.jpg",
+  "isbn": "9781682774786"
+ },
+ {
+  "titulo": "Ciclismo en carretera. Test de valoración del umbral anaeróbico",
+  "tipo": "libro",
+  "idioma": "es",
+  "categorias": [
+   "entrenamiento"
+  ],
+  "anio": null,
+  "autor": "José Ramón Abad Culebras",
+  "pais": "España",
+  "extra": "Editorial Deportiva Wanceulen",
+  "urlExterna": "https://www.buscalibre.cl/libro-ciclismo-en-carretera-test-valoracion/9788498230727/p/4210033",
+  "resena": "Manual de campo para medir el umbral anaeróbico en ciclistas: protocolos de test, valoración de resultados y su aplicación al entrenamiento en carretera. La herramienta de laboratorio, en versión llana, para entrenadores y ciclistas serios.",
+  "proveedor": "buscalibre.cl",
+  "portada": "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/57606c6ffc44.jpg",
+  "isbn": "9788498230727"
+ },
+ {
+  "titulo": "Ciclismo de precisión",
+  "tipo": "libro",
+  "idioma": "es",
+  "categorias": [
+   "entrenamiento"
+  ],
+  "anio": null,
+  "autor": "Edmund R. Burke",
+  "pais": "Estados Unidos",
+  "extra": "Biblioteca Polar Pulsómetro · Editorial Dorleta (el original en inglés: Precision Cycling)",
+  "urlExterna": "https://www.buscalibre.cl/libro-ciclismo-de-precision-biblioteca-polar-pulsometro/9788487812156/p/3312320",
+  "resena": "Edmund Burke —el fisiólogo que llevó la ciencia al entrenamiento ciclista— explica cómo entrenar por pulsómetro: zonas cardíacas, intensidades y pedaleo preciso. La edición española de Precision Cycling, manifiesto de la era anterior a los medidores de potencia.",
+  "proveedor": "buscalibre.cl",
+  "portada": "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/17d42aeb0ba5.jpg",
+  "isbn": "9788487812156"
+ },
+ {
+  "titulo": "Ciclismo para señoras",
+  "tipo": "libro",
+  "idioma": "es",
+  "categorias": [
+   "historia",
+   "personas"
+  ],
+  "anio": null,
+  "autor": "Maria E. Ward",
+  "pais": "Estados Unidos",
+  "extra": "Colección «El deporte en femenino» · Editorial Bravas Literatas (el clásico original es de 1896)",
+  "urlExterna": "https://www.buscalibre.cl/libro-ciclismo-para-senoras-el-deporte-en-femenino/9798300686055/p/69165010",
+  "resena": "El manual con el que las mujeres aprendieron a pedalear a fines del siglo XIX, rescatado por Bravas Literatas en su colección sobre deporte y mujeres. Historia viva del derecho a la bicicleta: técnica, vestimenta y libertad sobre dos ruedas.",
+  "proveedor": "buscalibre.cl",
+  "portada": "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/573128d5cda6.png",
+  "isbn": "9798300686055"
  }
 ]
