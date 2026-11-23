@@ -1,11 +1,14 @@
 #!/usr/bin/env bash
-# Monitorea la corrida de Actions del tag v1.19.0 y, al terminar,
+# Monitorea la corrida de Actions del tag dado y, al terminar,
 # verifica el Release y sus assets. Sale 0 solo con build success
-# y APK v1.19.0 + latest presentes en el Release.
+# y APK + latest presentes en el Release.
+# Uso: monitorea-release.sh [tag] [apk]  (p. ej. v1.25.0 cumbre30-v1.25.0-code86.apk)
 set -u
+TAG="${1:-v1.25.0}"
+APK="${2:-cumbre30-v1.25.0-code86.apk}"
 REPO="cumbre30/cumbre30"
 RUN_URL_BASE="https://api.github.com/repos/$REPO/actions/runs?per_page=5"
-REL_URL="https://api.github.com/repos/$REPO/releases/tags/v1.19.0"
+REL_URL="https://api.github.com/repos/$REPO/releases/tags/$TAG"
 TK=$(cat /tmp/ghk 2>/dev/null)
 AUTH="Authorization: Bearer $TK"
 DEADLINE=$(( $(date +%s) + 540 )) # 9 min por invocación
@@ -16,7 +19,7 @@ while [ "$(date +%s)" -lt "$DEADLINE" ]; do
 import json, sys
 d = json.load(sys.stdin)
 for r in d.get('workflow_runs', []):
-    if r.get('head_branch') == 'v1.19.0':
+    if r.get('head_branch') == '$TAG':
         print(f\"{r['id']}|{r['status']}|{r.get('conclusion')}\")
         break
 ")
@@ -38,7 +41,7 @@ for j in d.get('jobs', []):
 "
       exit 1
     fi
-    echo "BUILD SUCCESS — verificando Release v1.19.0…"
+    echo "BUILD SUCCESS — verificando Release $TAG…"
     REL=$(curl -s -H "$AUTH" "$REL_URL")
     printf '%s' "$REL" | python3 -c "
 import json, sys
@@ -47,7 +50,7 @@ print('release:', d.get('name'), '| draft:', d.get('draft'), '| published:', d.g
 for a in d.get('assets', []):
     print(f\"  asset: {a['name']} · {a['size']/1048576:.1f} MB · descargas {a['download_count']}\")
 names = [a['name'] for a in d.get('assets', [])]
-ok = 'cumbre30-v1.19.0-code79.apk' in names and 'cumbre30-latest.apk' in names
+ok = '$APK' in names and 'cumbre30-latest.apk' in names
 print('ASSETS OK' if ok else 'ASSETS INCOMPLETOS')
 sys.exit(0 if ok else 1)
 "
