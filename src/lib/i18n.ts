@@ -1056,6 +1056,13 @@ const D: Record<string, E> = {
   // Uniformidad del acceso vía Google (A-01/B-05): casillas y paso de contraseña.
   "pf.googleAcepta": ["Para continuar con Google, acepta los Términos y confirma que tienes 14 años o más.", "To continue with Google, accept the Terms and confirm you are 14 or older.", "Para continuar com o Google, aceite os Termos e confirme que tem 14 anos ou mais."],
   "pf.googleCasillasNota": ["Para crear tu cuenta con Google:", "To create your account with Google:", "Para criar sua conta com o Google:"],
+  // Validador previo del acceso (web): el correo decide la pantalla.
+  "pf.validarContinuar": ["Continuar", "Continue", "Continuar"],
+  "pf.validarNota": ["Validamos tu correo: si ya tienes cuenta pasas directo a iniciar sesión (sin casillas); si no, te llevamos a crearla.", "We check your email: if you already have an account you go straight to sign in (no checkboxes); if not, we take you to create one.", "Verificamos seu e-mail: se você já tem conta, vai direto ao login (sem caixas); se não, levamos você para criar uma."],
+  "pf.validarErr": ["No pudimos validar el correo. Intenta de nuevo.", "We could not verify the email. Try again.", "Não foi possível verificar o e-mail. Tente novamente."],
+  "pf.googleSinPass": ["Tu cuenta se creó con Google y aún no tiene contraseña. Entra con Google, o define una por correo.", "Your account was created with Google and has no password yet. Sign in with Google, or set one via email.", "Sua conta foi criada com o Google e ainda não tem senha. Entre com o Google, ou defina uma por e-mail."],
+  "pf.googleSinPassBoton": ["Definir contraseña por correo", "Set a password via email", "Definir senha por e-mail"],
+  "pf.derivarNota": ["Ese correo no tiene cuenta en Cumbre30. Créala aquí: acepta los Términos y confirma tu edad.", "That email has no Cumbre30 account. Create it here: accept the Terms and confirm your age.", "Esse e-mail não tem conta no Cumbre30. Crie-a aqui: aceite os Termos e confirme sua idade."],
   "pf.googlePassTitulo": ["Crea tu contraseña", "Create your password", "Crie sua senha"],
   "pf.googlePassIntro": ["Tu cuenta se creó con Google. Crea una contraseña para también entrar con tu correo, sin depender de Google.", "Your account was created with Google. Create a password to also sign in with your email, without depending on Google.", "Sua conta foi criada com o Google. Crie uma senha para também entrar com seu e-mail, sem depender do Google."],
   "pf.googlePassGuardar": ["Guardar y entrar", "Save and sign in", "Salvar e entrar"],

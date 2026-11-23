@@ -34,7 +34,28 @@ export async function POST(req: Request) {
     await asegurarColumnasUsuario();
 
     const user = await db.user.findUnique({ where: { email } });
-    if (!user || !verifyPassword(password, user.passwordHash)) {
+    if (!user) {
+      return NextResponse.json(
+        { error: "Correo o contraseña incorrectos." },
+        { status: 401, headers: cors }
+      );
+    }
+    // Cuentas creadas con Google: nacen con passwordHash vacío hasta que
+    // el dueño crea su contraseña (paso «Crea tu contraseña»). El
+    // servidor SÍ reconoce la cuenta: no es un 401 genérico sino una
+    // guía (sinContrasena) para que el cliente derive a Google o al
+    // restablecimiento, nunca lo trate como «cuenta inexistente».
+    if (user.passwordHash === "" || !user.passwordHash) {
+      return NextResponse.json(
+        {
+          error:
+            "Tu cuenta existe y se creó con Google, pero aún no tiene contraseña. Entra con Google y créala, o usa «Olvidé mi contraseña» para definirla por correo.",
+          sinContrasena: true,
+        },
+        { status: 409, headers: cors }
+      );
+    }
+    if (!verifyPassword(password, user.passwordHash)) {
       return NextResponse.json(
         { error: "Correo o contraseña incorrectos." },
         { status: 401, headers: cors }

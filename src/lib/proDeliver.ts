@@ -92,6 +92,27 @@ function transporter() {
   });
 }
 
+/** Envío genérico (reusado por auth/forgot para los códigos de
+ *  restablecimiento): true si salió, false si SMTP no está
+ *  configurado o falló — el llamador decide el fallback. */
+export async function enviarCorreo(opts: { to: string; subject: string; text: string; html: string }): Promise<boolean> {
+  if (!smtpConfigured()) return false;
+  try {
+    await transporter().sendMail({
+      from: `"Cumbre30" <${process.env.GMAIL_USER}>`,
+      to: opts.to,
+      subject: opts.subject,
+      text: opts.text,
+      html: opts.html,
+      replyTo: process.env.GMAIL_USER,
+    });
+    return true;
+  } catch (e) {
+    console.error("[correo] error de envío:", e instanceof Error ? e.message : e);
+    return false;
+  }
+}
+
 export function licenseEmailHtml(email: string, code: string): string {
   return `
   <div style="font-family:Arial,Helvetica,sans-serif;max-width:520px;margin:0 auto;color:#241A11">

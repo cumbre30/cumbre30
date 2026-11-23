@@ -109,6 +109,14 @@ export default function ProfileTab() {
   const edadRef = useRef(false);
   const alCambiarTerminos = (v: boolean) => { setAceptaTerminos(v); terminosRef.current = v; };
   const alCambiarEdad = (v: boolean) => { setConfirmaEdad(v); edadRef.current = v; };
+  // Validador previo (web, petición del usuario): el correo decide si se
+  // muestra el acceso — SIN casillas, que solo aplican al CREAR cuenta —
+  // o se deriva a «Crear cuenta». El APK mantiene su flujo local sin
+  // validador (cuenta en el teléfono + internet incierto).
+  const [validado, setValidado] = useState(false);
+  const [sinContrasena, setSinContrasena] = useState(false); // cuenta Google aún sin contraseña
+  const [validando, setValidando] = useState(false);
+  const [derivar, setDerivar] = useState(false); // mensaje al derivar a registro
   // C-02: resultado de "cerrar otras sesiones".
   const [sesionesMsg, setSesionesMsg] = useState<string | null>(null);
   // A-02: resultado de la exportación de datos personales.
@@ -210,9 +218,51 @@ export default function ProfileTab() {
       if (err) setError(err);
       return;
     }
+    // Validador previo: Enter en el correo (sin contraseña aún) valida.
+    if (!validado) {
+      setBusy(false);
+      void alValidarEmail();
+      return;
+    }
     const err = await authAction(mode, { email, password });
     setBusy(false);
     if (err) setError(err);
+  };
+
+  // Validador previo (web): consulta al servidor si el correo tiene
+  // cuenta y contraseña. Sin cuenta → deriva a «Crear cuenta» (donde
+  // viven las casillas); con cuenta → muestra el acceso sin casillas.
+  const alValidarEmail = async () => {
+    const correo = email.trim();
+    if (!correo || validando) return;
+    setValidando(true);
+    setError(null);
+    setDerivar(false);
+    setSinContrasena(false);
+    try {
+      const r = await fetch("/api/auth/existe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: correo }),
+      });
+      const d = (await r.json().catch(() => ({}))) as { existe?: boolean; tieneContrasena?: boolean; error?: string };
+      if (!r.ok) {
+        setError(d.error ?? t("pf.validarErr"));
+        return;
+      }
+      if (!d.existe) {
+        setMode("register");
+        setDerivar(true);
+        setValidado(false);
+        return;
+      }
+      setSinContrasena(!d.tieneContrasena);
+      setValidado(true);
+    } catch {
+      setError(t("pf.validarErr"));
+    } finally {
+      setValidando(false);
+    }
   };
 
   // C-02: cierra las sesiones en otros dispositivos.
@@ -268,12 +318,9 @@ export default function ProfileTab() {
   };
 
   const signInGoogle = async () => {
-    // Uniformidad A-01/B-05: Google puede crear la cuenta desde
-    // cualquiera de las dos pestañas, así que exige las casillas.
-    if (!aceptaTerminos || !confirmaEdad) {
-      setError(t("pf.googleAcepta"));
-      return;
-    }
+    // Sin casillas obligatorias en el acceso: para cuentas ya creadas el
+    // servidor no las pide. Si Google tuviera que CREAR la cuenta (400),
+    // derivamos a «Crear cuenta», donde viven las casillas.
     setBusyGoogle(true);
     setError(null);
     try {
@@ -282,8 +329,10 @@ export default function ProfileTab() {
       // sesión del servidor (linkGoogle). Sin él, amigos/rides/compartir
       // en el APK nunca sabían de la cuenta Google (bug hasta v1.12.5).
       const { err, nueva } = await googleAuthAction({ sub: acct.sub, email: acct.email, name: acct.name, idToken: acct.idToken, aceptacion: { terminos: aceptaTerminos, edad14: confirmaEdad } });
-      if (err) setError(err);
-      else if (nueva) setAuthView("googlePass"); // paso obligatorio: crear contraseña
+      if (err) {
+        setError(err);
+        if (err.includes("para crear tu cuenta con Google")) setMode("register"); // casillas visibles ahí
+      } else if (nueva) setAuthView("googlePass"); // paso obligatorio: crear contraseña
     } catch (e) {
       setError((e as Error).message || t("pf.googleErr1"));
     } finally {
@@ -352,13 +401,9 @@ export default function ProfileTab() {
     let vivo = true;
     void renderBotonGoogle(el, (idToken) => {
       void (async () => {
-        // Uniformidad A-01/B-05: sin casillas aceptadas no se consulta
-        // al servidor - una cuenta nueva vía Google las exige igual que
-        // el registro por correo.
-        if (!terminosRef.current || !edadRef.current) {
-          setError(t("pf.googleAcepta"));
-          return;
-        }
+        // Sin casillas obligatorias en el acceso: cuentas existentes
+        // entran directo. Si el servidor pide las casillas (400:
+        // Google crearía una cuenta nueva), derivamos a «Crear cuenta».
         try {
           const r = await fetch("/api/auth/google", {
             method: "POST",
@@ -368,6 +413,11 @@ export default function ProfileTab() {
           if (!vivo) return;
           if (!r.ok) {
             const d = (await r.json().catch(() => ({}))) as { error?: string };
+            if (r.status === 400 && d.error) {
+              setError(d.error);
+              setMode("register"); // casillas visibles aquí
+              return;
+            }
             setError(d.error ?? t("pf.googleErr2"));
             return;
           }
@@ -388,7 +438,7 @@ export default function ProfileTab() {
     return () => {
       vivo = false;
     };
-  }, [offline, mode]);
+  }, [offline, mode, validado]);
 
   // «Compartir perfil» se trasladó al Perfil Ciclista (4ª pestaña,
   // v1.13.16): desde allí comparte la tarjeta de arquetipo + ejes.
@@ -533,7 +583,7 @@ export default function ProfileTab() {
 
                 <Button
                   onClick={() => void (offline || fStep === 2 ? confirmReset() : requestReset())}
-                  disabled={fBusy || !fEmail || (offline || fStep === 2 ? !fCode || fPass.length < 6 : false)}
+                  disabled={fBusy || !fEmail || (offline || fStep === 2 ? !fCode || fPass.length < 8 : false)}
                   className="h-11 bg-emerald-600 hover:bg-emerald-500 text-(--c30-on-accent) font-bold"
                 >
                   {fBusy ? t("pf.conectando") : offline || fStep === 2 ? t("pf.resetTitulo") : t("pf.solicitarCodigo")}
@@ -576,14 +626,14 @@ export default function ProfileTab() {
         <div className="flex gap-2">
           <Button
             variant={mode === "login" ? "default" : "outline"}
-            onClick={() => setMode("login")}
+            onClick={() => { setMode("login"); setValidado(false); setSinContrasena(false); setDerivar(false); setError(null); }}
             className={`flex-1 ${mode === "login" ? "bg-emerald-600 hover:bg-emerald-500 text-(--c30-on-accent) font-semibold" : "border-border text-muted-foreground"}`}
           >
             <LogIn className="h-4 w-4 mr-2" /> {t("pf.iniciarSesion")}
           </Button>
           <Button
             variant={mode === "register" ? "default" : "outline"}
-            onClick={() => setMode("register")}
+            onClick={() => { setMode("register"); setDerivar(false); setError(null); }}
             className={`flex-1 ${mode === "register" ? "bg-emerald-600 hover:bg-emerald-500 text-(--c30-on-accent) font-semibold" : "border-border text-muted-foreground"}`}
           >
             <UserPlus className="h-4 w-4 mr-2" /> {t("pf.crearCuenta")}
@@ -600,10 +650,15 @@ export default function ProfileTab() {
         >
           <div className="grid gap-1.5">
             <Label htmlFor="pf-email" className="text-foreground/90">{t("pf.correo")}</Label>
-            <Input id="pf-email" name="email" type="email" inputMode="email" autoCapitalize="none" spellCheck={false} autoComplete="email" className="bg-card border-border" placeholder="tu@correo.cl" value={email} onChange={(e) => setEmail(e.target.value)} />
+            <Input id="pf-email" name="email" type="email" inputMode="email" autoCapitalize="none" spellCheck={false} autoComplete="email" className="bg-card border-border" placeholder="tu@correo.cl" value={email} onChange={(e) => { setEmail(e.target.value); if (mode === "login") { setValidado(false); setSinContrasena(false); } }} />
           </div>
           {mode === "register" && (
             <>
+              {derivar && (
+                <div className="rounded-lg border border-sky-600/40 bg-sky-950/20 p-3 text-xs text-sky-700 dark:text-sky-300">
+                  <p>{t("pf.derivarNota")}</p>
+                </div>
+              )}
               <div className="grid gap-1.5">
                 <Label htmlFor="pf-user" className="text-foreground/90">{t("pf.usuario")}</Label>
                 <Input id="pf-user" name="username" autoCapitalize="none" autoComplete="username" spellCheck={false} className="bg-card border-border" placeholder="ej: ciclista_stgo" value={username} onChange={(e) => setUsername(e.target.value)} />
@@ -625,51 +680,66 @@ export default function ProfileTab() {
               </label>
             </>
           )}
-          <div className="grid gap-1.5">
-            <Label htmlFor="pf-pass" className="text-foreground/90">{t("pf.contrasena")}</Label>
-            <Input id="pf-pass" name="password" type="password" autoComplete={mode === "register" ? "new-password" : "current-password"} className="bg-card border-border" placeholder={t("pf.min6")} value={password} onChange={(e) => setPassword(e.target.value)} />
-          </div>
+          {(mode === "register" || validado) && (
+            <div className="grid gap-1.5">
+              <Label htmlFor="pf-pass" className="text-foreground/90">{t("pf.contrasena")}</Label>
+              <Input id="pf-pass" name="password" type="password" autoComplete={mode === "register" ? "new-password" : "current-password"} className="bg-card border-border" placeholder={t("pf.min6")} value={password} onChange={(e) => setPassword(e.target.value)} />
+            </div>
+          )}
           {error && <p className="text-sm text-red-600 dark:text-red-400" role="alert">{error}</p>}
-          <Button type="submit" disabled={busy || !email || !password || (mode === "register" && (!username || !aceptaTerminos || !confirmaEdad))} className="h-11 bg-emerald-600 hover:bg-emerald-500 text-(--c30-on-accent) font-bold">
-            {busy ? t("pf.conectando") : mode === "login" ? t("pf.entrar") : t("pf.crearMiCuenta")}
-          </Button>
-          {mode === "login" && (
+          {mode === "login" && validado && sinContrasena && (
+            /* El servidor reconoce la cuenta (409 sinContrasena): se creó
+               con Google y aún no tiene contraseña. Ofrecer definir una
+               por correo (código al registro) o entrar con Google. */
+            <div className="rounded-lg border border-emerald-600/40 bg-emerald-950/20 p-3 text-xs text-emerald-700 dark:text-emerald-300 grid gap-2">
+              <p>{t("pf.googleSinPass")}</p>
+              <Button
+                type="button"
+                variant="outline"
+                className="h-9 border-emerald-600/50 text-emerald-700 hover:bg-emerald-950/40 dark:text-emerald-300"
+                onClick={() => { setFEmail(email.trim()); setFCode(""); setFPass(""); setFStep(1); setFMsg(null); setFErr(null); setAuthView("forgot"); }}
+              >
+                {t("pf.googleSinPassBoton")}
+              </Button>
+            </div>
+          )}
+          {mode === "login" && !validado ? (
+            /* Validador previo: solo el correo + validar. Las casillas de
+               Términos/edad NO van en el acceso: se aceptaron al crear la
+               cuenta; viven únicamente en «Crear cuenta». */
+            <>
+              <Button
+                type="button"
+                onClick={() => void alValidarEmail()}
+                disabled={validando || !email}
+                className="h-11 bg-emerald-600 hover:bg-emerald-500 text-(--c30-on-accent) font-bold"
+              >
+                {validando ? t("pf.conectando") : t("pf.validarContinuar")}
+              </Button>
+              <p className="text-[11px] leading-snug text-muted-foreground text-center">{t("pf.validarNota")}</p>
+            </>
+          ) : (
+            <Button type="submit" disabled={busy || !email || (mode === "register" ? !username || !aceptaTerminos || !confirmaEdad : !password)} className="h-11 bg-emerald-600 hover:bg-emerald-500 text-(--c30-on-accent) font-bold">
+              {busy ? t("pf.conectando") : mode === "login" ? t("pf.entrar") : t("pf.crearMiCuenta")}
+            </Button>
+          )}
+          {mode === "login" && validado && (
             <button
               type="button"
-              onClick={() => setAuthView("forgot")}
+              onClick={() => { setFEmail(email.trim()); setAuthView("forgot"); }}
               className="justify-self-center text-xs text-emerald-700 underline-offset-2 hover:underline dark:text-emerald-300"
             >
               {t("pf.olvidaste")}
             </button>
           )}
-          {mode === "login" && offline && (
+          {mode === "login" && validado && offline && (
             <p className="text-[11px] leading-snug text-muted-foreground text-center">
               {t("pf.webCuentaNota")}
             </p>
           )}
 
-          {mode === "login" && (
-            /* Uniformidad A-01/B-05: desde «Iniciar sesión» Google también
-               puede crear la cuenta, así que exige las mismas casillas.
-               Solo importan para la vía Google, no para el login por clave. */
-            <>
-              <p className="text-[11px] text-muted-foreground">{t("pf.googleCasillasNota")}</p>
-              <label className="flex items-start gap-2.5 text-[12px] leading-snug text-muted-foreground">
-                <Checkbox checked={aceptaTerminos} onCheckedChange={(v) => alCambiarTerminos(v === true)} className="mt-0.5" />
-                <span>
-                  {t("pf.aceptoA")}{" "}
-                  <a href="/terminos" className="font-medium text-emerald-600 underline-offset-2 hover:underline dark:text-emerald-400">{t("pf.terminos")}</a>{" "}
-                  {t("pf.aceptoY")}{" "}
-                  <a href="/privacidad" className="font-medium text-emerald-600 underline-offset-2 hover:underline dark:text-emerald-400">{t("pf.privacidad")}</a>
-                </span>
-              </label>
-              <label className="flex items-start gap-2.5 text-[12px] leading-snug text-muted-foreground">
-                <Checkbox checked={confirmaEdad} onCheckedChange={(v) => alCambiarEdad(v === true)} className="mt-0.5" />
-                <span>{t("pf.confirmaEdad")}</span>
-              </label>
-            </>
-          )}
-
+          {(mode === "register" || validado || offline) && (
+          <>
           <div className="flex items-center gap-3 pt-1">
             <div className="h-px flex-1 bg-muted" />
             <span className="text-[11px] uppercase tracking-wide text-muted-foreground/80">{t("pf.o")}</span>
@@ -698,6 +768,8 @@ export default function ProfileTab() {
                 ? t("pf.googleWebErr")
                 : t("pf.googleNota")}
           </p>
+          </>
+          )}
         </form>
         </>
         )}
