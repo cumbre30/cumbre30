@@ -35,6 +35,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { isOfflineMode, offlineUpdateProfile } from "@/lib/offlineAuth";
 import { DEFAULT_BIKE_KG, DEFAULT_RIDER_KG, getRideWeights, hydrateWeightsFromAccount, setRideWeights } from "@/lib/rideWeights";
 import { manualSync, syncStore } from "@/lib/cloudSync";
+import { apiUrl } from "@/lib/backend";
 import { CONTACT_EMAIL } from "@/lib/proConfig";
 import { nativeGoogleSignIn, nativeGoogleSignOut } from "@/lib/googleAuth";
 import { renderBotonGoogle } from "@/lib/googleWeb";
@@ -229,9 +230,12 @@ export default function ProfileTab() {
     if (err) setError(err);
   };
 
-  // Validador previo (web): consulta al servidor si el correo tiene
-  // cuenta y contraseña. Sin cuenta → deriva a «Crear cuenta» (donde
-  // viven las casillas); con cuenta → muestra el acceso sin casillas.
+  // Validador previo (web Y APK): consulta al servidor si el correo
+  // tiene cuenta y contraseña. La decisión la toma el CORREO, nunca
+  // el método de sesión: con cuenta sin contraseña (creada con
+  // Google) se abre «Crea tu contraseña», no un registro nuevo.
+  // Unificado vía apiUrl(): en el APK el fetch relativo moriría en
+  // el webview (v1.26.0 derivaba a «Crear cuenta» por ese bug).
   const alValidarEmail = async () => {
     const correo = email.trim();
     if (!correo || validando) return;
@@ -240,7 +244,12 @@ export default function ProfileTab() {
     setDerivar(false);
     setSinContrasena(false);
     try {
-      const r = await fetch("/api/auth/existe", {
+      const url = apiUrl("/api/auth/existe");
+      if (!url) {
+        setError(t("pf.validarErr"));
+        return;
+      }
+      const r = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: correo }),
@@ -272,7 +281,8 @@ export default function ProfileTab() {
     setSesionesMsg(n === null ? t("pf.sesionesError") : n === 0 ? t("pf.sesionesCero") : t("pf.sesionesOk").replace("{n}", String(n)));
   };
 
-  // Paso 1: pedir el código (server). En offline no hay solicitud remota.
+  // Paso 1: pedir el código (server): llega al correo registrado,
+  // en la web y en el APK por igual.
   const requestReset = async () => {
     setFBusy(true);
     setFErr(null);
@@ -284,10 +294,12 @@ export default function ProfileTab() {
       return;
     }
     setFStep(2);
-    setFMsg(offline ? null : t("pf.solicitudOk"));
+    setFMsg(t("pf.solicitudOk"));
   };
 
-  // Paso 2: cambiar la contraseña con el código (server o código de recuperación).
+  // Paso 2: cambiar la contraseña con el código (6 dígitos del correo
+  // vía server — deja la sesión iniciada — o código de recuperación
+  // local del dispositivo sin internet).
   const confirmReset = async () => {
     setFBusy(true);
     setFErr(null);
@@ -298,6 +310,9 @@ export default function ProfileTab() {
       setFErr(err);
       return;
     }
+    // El reset deja la sesión iniciada (server + espejo local en el
+    // APK): si refreshMe ya trajo la cuenta, la UI cambia sola a la
+    // vista con sesión. fStep 3 queda para el caso sin sesión.
     setFStep(3);
     setFMsg(null);
   };
@@ -531,39 +546,25 @@ export default function ProfileTab() {
                   </div>
                 )}
 
-                {(offline || fStep === 2) && (
+                {fStep === 2 && (
                   <>
-                    {offline && (
-                      <div className="grid gap-1.5">
-                        <Label htmlFor="pf-f-code" className="text-foreground/90">{t("pf.codigoRecuperacion")}</Label>
-                        <Input
-                          id="pf-f-code"
-                          autoCapitalize="characters"
-                          autoComplete="off"
-                          spellCheck={false}
-                          maxLength={9}
-                          className="bg-card border-border font-mono tracking-widest uppercase"
-                          placeholder="XXXX-XXXX"
-                          value={fCode}
-                          onChange={(e) => setFCode(e.target.value.toUpperCase())}
-                        />
-                      </div>
-                    )}
-                    {!offline && (
-                      <div className="grid gap-1.5">
-                        <Label htmlFor="pf-f-code" className="text-foreground/90">{t("pf.codigo6")}</Label>
-                        <Input
-                          id="pf-f-code"
-                          inputMode="numeric"
-                          autoComplete="one-time-code"
-                          maxLength={6}
-                          className="bg-card border-border font-mono tracking-[0.3em]"
-                          placeholder="······"
-                          value={fCode}
-                          onChange={(e) => setFCode(e.target.value.replace(/\D/g, ""))}
-                        />
-                      </div>
-                    )}
+                    {/* Código unificado: 6 dígitos del correo (server,
+                       web y APK) o el código local XXXX-XXXX del
+                       dispositivo como respaldo sin internet. */}
+                    <div className="grid gap-1.5">
+                      <Label htmlFor="pf-f-code" className="text-foreground/90">{t("pf.codigoAcceso")}</Label>
+                      <Input
+                        id="pf-f-code"
+                        autoCapitalize="characters"
+                        autoComplete="one-time-code"
+                        spellCheck={false}
+                        maxLength={9}
+                        className="bg-card border-border font-mono tracking-widest uppercase"
+                        placeholder="······  ·  XXXX-XXXX"
+                        value={fCode}
+                        onChange={(e) => setFCode(e.target.value.toUpperCase().replace(/\s+/g, ""))}
+                      />
+                    </div>
                     <div className="grid gap-1.5">
                       <Label htmlFor="pf-f-pass" className="text-foreground/90">{t("pf.nuevaContrasena")}</Label>
                       <Input
@@ -582,12 +583,24 @@ export default function ProfileTab() {
                 {fErr && <p className="text-sm text-red-600 dark:text-red-400" role="alert">{fErr}</p>}
 
                 <Button
-                  onClick={() => void (offline || fStep === 2 ? confirmReset() : requestReset())}
-                  disabled={fBusy || !fEmail || (offline || fStep === 2 ? !fCode || fPass.length < 8 : false)}
+                  onClick={() => void (fStep === 2 ? confirmReset() : requestReset())}
+                  disabled={fBusy || !fEmail || (fStep === 2 ? !fCode || fPass.length < 8 : false)}
                   className="h-11 bg-emerald-600 hover:bg-emerald-500 text-(--c30-on-accent) font-bold"
                 >
-                  {fBusy ? t("pf.conectando") : offline || fStep === 2 ? t("pf.resetTitulo") : t("pf.solicitarCodigo")}
+                  {fBusy ? t("pf.conectando") : fStep === 2 ? t("pf.resetTitulo") : t("pf.solicitarCodigo")}
                 </Button>
+                {offline && fStep === 1 && (
+                  /* Respaldo sin internet: el código local del
+                     dispositivo (se muestra con la sesión iniciada en
+                     Cuenta → Mis datos) salta directo al paso 2. */
+                  <button
+                    type="button"
+                    onClick={() => { setFStep(2); setFMsg(null); setFErr(null); }}
+                    className="justify-self-center text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+                  >
+                    {t("pf.usarCodigoLocal")}
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => backToForm(true)}
@@ -738,7 +751,10 @@ export default function ProfileTab() {
             </p>
           )}
 
-          {(mode === "register" || validado || offline) && (
+          {/* Google solo con el correo ya validado (existe) o creando
+             cuenta: si el correo no está registrado se deriva a
+             «Crear cuenta» en vez de dejar entrar con Google. */}
+          {(mode === "register" || validado) && (
           <>
           <div className="flex items-center gap-3 pt-1">
             <div className="h-px flex-1 bg-muted" />

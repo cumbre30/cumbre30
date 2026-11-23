@@ -4,6 +4,14 @@ import { db } from "@/lib/db";
 import { asegurarColumnasUsuario, RESET_TTL_MIN } from "@/lib/auth";
 import { guard } from "@/lib/rateLimit";
 import { enviarCorreo } from "@/lib/proDeliver";
+import { corsHeaders, corsPreflight } from "@/lib/apiCors";
+
+// El APK consume esta ruta cruzando origen (webview https://localhost →
+// cumbregeo.cl): sin CORS el paso «Olvidé mi contraseña» del app muere
+// en preflight y solo quedaba el código de recuperación local.
+export function OPTIONS(req: Request) {
+  return corsPreflight(req);
+}
 
 // ============================================================
 // POST /api/auth/forgot - solicita un código de restablecimiento.
@@ -45,16 +53,17 @@ function resetEmailText(code: string, minutos: number): string {
 }
 
 export async function POST(req: Request) {
+  const cors = corsHeaders(req);
   try {
     const body = (await req.json()) as { email?: string };
     const email = (body.email ?? "").trim().toLowerCase();
 
     // Rate limit (C-01): 3 solicitudes por 10 minutos por IP.
-    const limited = guard(req, "forgot", "", 3, 10 * 60_000);
+    const limited = guard(req, "forgot", "", 3, 10 * 60_000, cors);
     if (limited) return limited;
 
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return NextResponse.json({ error: "Ingresa un correo válido." }, { status: 400 });
+      return NextResponse.json({ error: "Ingresa un correo válido." }, { status: 400, headers: cors });
     }
 
     // Autorreparo v1.13.17 (el SELECT de User incluye las columnas nuevas).
@@ -81,9 +90,9 @@ export async function POST(req: Request) {
       console.log(`[forgot] código para ${email}: ${code} (vence en ${RESET_TTL_MIN} min) · enviado por correo: ${enviado ? "sí" : "NO (fallback soporte)"}`);
     }
 
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true }, { headers: cors });
   } catch (e) {
     console.error("[forgot] error real:", e);
-    return NextResponse.json({ error: "No pudimos registrar la solicitud. Intenta de nuevo." }, { status: 500 });
+    return NextResponse.json({ error: "No pudimos registrar la solicitud. Intenta de nuevo." }, { status: 500, headers: cors });
   }
 }

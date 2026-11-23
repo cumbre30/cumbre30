@@ -7,6 +7,7 @@
 import { useSyncExternalStore } from "react";
 import { isOfflineMode, offlineCambiarPassword, offlineChangeUsername, offlineDeleteAccount, offlineForgotReset, offlineGoogleSignIn, offlineImportWebAccount, offlineLogin, offlineLogout, offlineMe, offlineRegister, offlineSetPasswordNueva } from "@/lib/offlineAuth";
 import { cambiarPasswordServidor, passwordInicialServidor } from "@/lib/cloudSync";
+import { apiUrl } from "@/lib/backend";
 import { notificarBienvenida } from "@/lib/notificaciones";
 import { t } from "@/lib/i18n";
 
@@ -160,11 +161,18 @@ export async function authAction(kind: "login" | "register", payload: Record<str
       const err = kind === "login" ? await offlineLogin(credenciales) : await offlineRegister(credenciales);
       if (err) {
         // APK: si el correo no existe en el teléfono puede ser una
-        // cuenta creada en la web (cumbregeo.cl). Con internet, la
-        // verificamos contra el servidor e importamos la cuenta.
-        if (kind === "login" && (await offlineImportWebAccount(payload))) {
+        // cuenta creada en la web (o en otro dispositivo): la cuenta
+        // vive en el servidor y el teléfono solo guarda un espejo.
+        // Con internet la verificamos contra el servidor e importamos.
+        const imp = kind === "login" ? await offlineImportWebAccount(payload) : { ok: false, sinContrasena: false };
+        if (imp.ok) {
           await refreshMe();
           return null;
+        }
+        if (imp.sinContrasena) {
+          // El servidor conoce la cuenta (creada con Google) pero no
+          // tiene contraseña: la guía real es Google o el código por correo.
+          return t("pf.googleSinPassShort");
         }
         return err;
       }
@@ -279,15 +287,19 @@ export async function changeUsername(newUsername: string): Promise<string | null
   }
 }
 
-/** Solicita un código de restablecimiento (server). En offline no aplica:
- *  el APK usa el código de recuperación local desde la misma UI. */
+/** Solicita el código de restablecimiento (server, llega al correo
+ *  registrado). Web y APK por igual: la cuenta vive en el servidor.
+ *  Sin backend configurado devuelve null (la UI sigue al paso del
+ *  código de recuperación local del dispositivo). */
 export async function forgotPassword(email: string): Promise<string | null> {
   try {
-    if (isOfflineMode()) return null;
-    const r = await fetch("/api/auth/forgot", {
+    const url = apiUrl("/api/auth/forgot");
+    if (!url) return null;
+    const r = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email }),
+      signal: AbortSignal.timeout(15_000),
     });
     const d = (await r.json().catch(() => ({}))) as { error?: string };
     if (!r.ok) return d.error ?? t("me.errSolicitud");
@@ -297,21 +309,37 @@ export async function forgotPassword(email: string): Promise<string | null> {
   }
 }
 
-/** Cambia la contraseña con el código: server (soporte) o código de
- *  recuperación local (APK). Devuelve error o null si salió bien. */
+/** Cambia la contraseña con el código. Unificado: el código de 6
+ *  dígitos del correo va al servidor (web y APK — el reset deja la
+ *  sesión iniciada; en el APK además se crea el espejo local con la
+ *  contraseña nueva). El código local XXXX-XXXX del dispositivo sigue
+ *  sirviendo sin internet (solo APK). Devuelve error o null. */
 export async function resetPassword(payload: { email: string; code: string; newPassword: string }): Promise<string | null> {
   try {
-    if (isOfflineMode()) {
-      return await offlineForgotReset({ email: payload.email, recoveryCode: payload.code, newPassword: payload.newPassword });
+    const code = payload.code.trim().toUpperCase();
+    const url = apiUrl("/api/auth/reset");
+    if (/^\d{6}$/.test(code) && url) {
+      const r = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: payload.email, code, newPassword: payload.newPassword }),
+        signal: AbortSignal.timeout(15_000),
+      });
+      const d = (await r.json().catch(() => ({}))) as { error?: string };
+      if (!r.ok) return d.error ?? t("me.errReset");
+      if (isOfflineMode()) {
+        // Espejo local con la contraseña nueva + token de sync: el
+        // teléfono queda capaz de entrar sin internet desde ya.
+        await offlineImportWebAccount({ email: payload.email, password: payload.newPassword });
+      }
+      await refreshMe(); // el reset dejó la sesión iniciada
+      return null;
     }
-    const r = await fetch("/api/auth/reset", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    const d = (await r.json().catch(() => ({}))) as { error?: string };
-    if (!r.ok) return d.error ?? t("me.errReset");
-    return null;
+    if (isOfflineMode()) {
+      // Sin internet o código local XXXX-XXXX: recuperación del dispositivo.
+      return await offlineForgotReset({ email: payload.email, recoveryCode: code, newPassword: payload.newPassword });
+    }
+    return t("me.errReset");
   } catch {
     return t("me.sinConexion");
   }

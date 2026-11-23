@@ -227,27 +227,88 @@ export async function offlineRegister(payload: { email?: string; username?: stri
     return `Ese ${dupEmail ? "correo" : "usuario"} ya está registrado.`;
   }
 
-  const user: OfflineUser = {
-    id: `off-${randomHex(8)}`,
-    email,
-    username,
-    passwordHash: await hashPassword(password),
-    selectedPin: "clasico",
-    bikeBrand: null,
-    bikeType: null,
-    bikeModel: null,
-    bikeSize: null,
-    bikeColor: null,
-    createdAt: new Date().toISOString(),
-    recoveryCode: newRecoveryCode(),
-  };
-  users[email] = user;
-  writeJSON(USERS_KEY, users);
-  setSession(email);
+  // Unificación web/APK: la cuenta nace en el SERVIDOR (cumbregeo.cl),
+  // así que existe desde el primer día también en la web y en cualquier
+  // otro dispositivo. El teléfono guarda un espejo local para entrar
+  // sin internet y el token de sync enlaza el progreso de inmediato.
+  // Rechazos reales del servidor (4xx: usuario ocupado, reglas) se
+  // muestran tal cual; sin red o caída (5xx) se crea local y el sync
+  // la enlaza después (comportamiento histórico).
+  const url = apiUrl("/api/auth/register");
+  if (url) {
+    try {
+      const r = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        // Las casillas ya fueron aceptadas en el formulario del APK.
+        body: JSON.stringify({ email, username, password, terminos: true, edad14: true }),
+        signal: AbortSignal.timeout(15_000),
+      });
+      const d = (await r.json().catch(() => ({}))) as { error?: string; token?: string; expiresAt?: string };
+      if (r.ok) {
+        crearCuentaLocal({ email, username, passwordHash: await hashPassword(password) });
+        if (typeof d.token === "string" && d.token) {
+          setServerToken(d.token, email, d.expiresAt);
+        } else {
+          void registerAndLink(email, username, password); // sin token: enlaza en el próximo sync
+        }
+        return null;
+      }
+      if (r.status >= 400 && r.status < 500 && r.status !== 429) {
+        return d.error ?? "No pudimos crear tu cuenta. Intenta de nuevo.";
+      }
+      // 5xx o 429: seguimos al camino local.
+    } catch {
+      // sin red: camino local con enlace diferido.
+    }
+  }
+
+  crearCuentaLocal({ email, username, passwordHash: await hashPassword(password) });
   // Progreso enlazado a la cuenta: crea/vincula la cuenta en el
   // servidor y deja el outbox subiendo en segundo plano.
   void registerAndLink(email, username, password);
   return null;
+}
+
+/** Espejo local de una cuenta (para entrar sin internet): misma forma
+ *  de datos de OfflineUser y sesión activa en el teléfono. Síncrono a
+ *  propósito: al volver, refreshMe() ya debe ver la cuenta. */
+function crearCuentaLocal(opts: {
+  email: string;
+  username: string;
+  /** Hash PBKDF2 ya calculado ("" para cuentas Google sin contraseña). */
+  passwordHash: string;
+  usernameChangedAt?: string;
+  selectedPin?: string;
+  bikeBrand?: string | null;
+  bikeType?: string | null;
+  bikeModel?: string | null;
+  bikeSize?: string | null;
+  bikeColor?: string | null;
+}): void {
+  const users = readUsers();
+  if (users[opts.email]) {
+    setSession(opts.email); // ya existía espejo: solo sesión
+    return;
+  }
+  const user: OfflineUser = {
+    id: `off-${randomHex(8)}`,
+    email: opts.email,
+    username: opts.username,
+    passwordHash: opts.passwordHash,
+    selectedPin: opts.selectedPin ?? "clasico",
+    bikeBrand: opts.bikeBrand ?? null,
+    bikeType: opts.bikeType ?? null,
+    bikeModel: opts.bikeModel ?? null,
+    bikeSize: opts.bikeSize ?? null,
+    bikeColor: opts.bikeColor ?? null,
+    createdAt: new Date().toISOString(),
+    provider: "local",
+    recoveryCode: newRecoveryCode(),
+  };
+  users[user.email] = user;
+  writeJSON(USERS_KEY, users);
+  setSession(user.email);
 }
 
 export async function offlineLogin(payload: { email?: string; password?: string }): Promise<string | null> {
@@ -296,20 +357,22 @@ function cleanStr(v: unknown): string | null {
 }
 
 /**
- * Intenta importar la cuenta web al teléfono. Devuelve true si la
- * cuenta quedó creada y con sesión iniciada; false si no corresponde
- * (ya hay cuenta local, sin red, credenciales inválidas) - en ese
- * caso la llamada mostró su propio mensaje.
+ * Trae la cuenta del servidor al teléfono (fuente de verdad: cumbregeo.cl).
+ * Casos de retorno:
+ *   - { ok: true }                → cuenta importada y con sesión (token de sync incluido).
+ *   - { ok: false }               → no corresponde (ya hay cuenta local, sin red, credenciales inválidas).
+ *   - { ok: false, sinContrasena: true } → el servidor reconoció la cuenta pero fue creada con
+ *     Google y aún no tiene contraseña (409): la guía es entrar con Google o definirla por correo.
  */
-export async function offlineImportWebAccount(payload: { email?: string; password?: string }): Promise<boolean> {
+export async function offlineImportWebAccount(payload: { email?: string; password?: string }): Promise<{ ok: boolean; sinContrasena?: boolean }> {
   const email = (payload.email ?? "").trim().toLowerCase();
   const password = payload.password ?? "";
-  if (!email || !password) return false;
+  if (!email || !password) return { ok: false };
 
   // Si ya existe una cuenta local con ese correo, el error real es su
   // contraseña local (se arregla con el código de recuperación), no
   // hay que sobreescribir nada.
-  if (readUsers()[email]) return false;
+  if (readUsers()[email]) return { ok: false };
 
   try {
     const r = await fetch(`${SERVER_ORIGIN}/api/auth/login`, {
@@ -318,17 +381,17 @@ export async function offlineImportWebAccount(payload: { email?: string; passwor
       body: JSON.stringify({ email, password }),
       signal: AbortSignal.timeout(12_000),
     });
-    if (!r.ok) return false;
+    if (r.status === 409) return { ok: false, sinContrasena: true }; // cuenta Google sin contraseña
+    if (!r.ok) return { ok: false };
     const d = (await r.json()) as WebLoginPayload;
     const webEmail = (d.email ?? "").trim().toLowerCase();
     let username = (d.username ?? "").trim().toLowerCase();
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(webEmail) || !username) return false;
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(webEmail) || !username) return { ok: false };
     // El nombre debe cumplir las reglas locales; si no, se deriva del correo.
     if (!USERNAME_RE.test(username)) username = "";
 
     const users = readUsers();
-    const user: OfflineUser = {
-      id: `off-${randomHex(8)}`,
+    crearCuentaLocal({
       email: webEmail,
       username: username && !Object.values(users).some((u) => u.username === username)
         ? username
@@ -340,25 +403,19 @@ export async function offlineImportWebAccount(payload: { email?: string; passwor
       bikeModel: cleanStr(d.bikeModel),
       bikeSize: cleanStr(d.bikeSize),
       bikeColor: cleanStr(d.bikeColor),
-      createdAt: new Date().toISOString(),
-      provider: "local",
-      recoveryCode: newRecoveryCode(),
-    };
-    users[user.email] = user;
-    writeJSON(USERS_KEY, users);
+    });
     if (Array.isArray(d.achievements) && d.achievements.length) {
       offlineUnlockAchievements(d.achievements);
     }
-    setSession(user.email);
     // Token de sync (el login lo devuelve para orígenes del APK):
     // con él, el progreso del teléfono se enlaza a la cuenta y el
     // pull trae los km/logros guardados en el servidor.
     if (typeof d.token === "string" && d.token) {
       setServerToken(d.token, webEmail, d.expiresAt);
     }
-    return true;
+    return { ok: true };
   } catch {
-    return false; // sin red o servidor caído: queda el error local
+    return { ok: false }; // sin red o servidor caído: queda el error local
   }
 }
 
