@@ -1,0 +1,68 @@
+🚀 Initializing Z-AI SDK...
+🚀 Invoking function: web_search...
+[
+  {
+    "url": "https://www.buscalibre.cl/libro-digital-hinault-el-tejon/68698689/p/68698689?srsltid=AYCX9vLxEgyhDRcKw7hIoCfty1Yq5Waq4vMiEp_STP8Ymu19q07V3es-",
+    "name": "Hinault. El Tejón comprar en tu tienda online Buscalibre Chile",
+    "snippet": "El ciclista francés es, probablemente, el último gran campeón de la vieja escuela . Su palmarés luce cinco Tours de Francia y un hito único: fue el primer ...",
+    "host_name": "www.buscalibre.cl",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.buscalibre.cl/libro-digital-tadej-pogacar-imparable-la-biografia-definitiva-del-mejor-ciclista-de-la-historia/9788448049133/p/68726890?srsltid=AYCX9vLs_lYnN1F8y7JYZRaBoDIKyUvwgeMbN5KDUuJIBJ_p_lphOxVJ",
+    "name": "Tadej Pogacar: Imparable. La biografía definitiva del mejor",
+    "snippet": "Nov 12, 2026 — La biografía definitiva del mejor ciclista de la historia Andy Mcgrath;Fernando Gari Puig (Autor) el Tour de Francia y el Campeonato Mundial de ...",
+    "host_name": "www.buscalibre.cl",
+    "rank": 1,
+    "date": "Nov 12, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.google.com/goto?url=CAEShQIBxCJF18V5zVjutjnrbetzlQ0SRJO0BLziK5RYLgID1o9zWI1xIsCi6upRwGE9Wrn0TlvoiZJLdCwnHx3MOV9fk2wrWiQQo7HOCk6SRBhgLseYvwJ6SQRFuEFV4QUqKCvflVfmLMkrFF-yW1XjOD2rNDqqhF3Vo_n66I8hYP0V3x52yBpdqWpQASs_s6c9StczydHxGnSmjotLmcXrH80Y-u7g119BvFlkh897iMohc5G_NJ2HNg56zmfgsVCuC4fONbrVwLbezgVvOeNTXgALEtiyYir46krN1ugj0Qdo9Qu8XXbTkRRcW835feSzJ2wNXImDETXCg_0JBtpr0sIqrtQqVpw&gsessionid=6G-0E1cMl_PckrtXicf_kTcsOHO7vovP4fTa_aUJ7LKFX53AbAmofA",
+    "name": "Libro Indurain: La Historia Definitiva del Mejor Corredor",
+    "snippet": "El unico ciclista que ha ganado el Tour de Francia en cinco ocasiones consecutivas . Esta es su historia. Como el gran conquistador y heroe de los 90, ...",
+    "host_name": "www.google.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.google.com/goto?url=CAES-wEBxCJF1xijDK6KYGFoAMSgt85WwPqiJFwVvWHu_7Oj4j_UGmBXv5Bhd6oKwx3WECrmRODkkd68p0gjo_HZntDG1QsRZhrQZH2EnAdHpZqI4lpSOCfs0vPRY8vygJ6pH0fM2mve_tM2nqV48hnrXoIczbNE24nvkr_83glGZbN0qeYKQPF08vgW4nYFu2MzmAorxRiBrvsJebvrP2FSAV7AMaa34PwJO_qE6eYqTCEtRgP7Vj6KSP4BR1_wmPG-NOF-cpxFsFRlDzVa4cZkP5CBpZ1KW2v2ilK2oROg_wtKAB_Gyd_HFC35LQJEbOrh-0ZrjVSS6ssHw6aI6A&gsessionid=6G-0E1cMl_PckrtXicf_kTcsOHO7vovP4fTa_aUJ7LKFX53AbAmofA",
+    "name": "Libro La Historia del Ciclismo en 80 Días",
+    "snippet": "En este libro , se narra esa historia a través de 80 días claves, acompañadas de 80 ilustraciones. ... Contiene además 80 impactantes y preciosas ilustraciones del ... Read more",
+    "host_name": "www.google.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.google.com/goto?url=CAESxgEBxCJF17n6upmNADWvmu9mG3wGjULkO7bKobkS6sugRZl475n6OnO3j-XNKgOCiDFeVaozhXFoaItzrztVRSNBx9tDuFOIFdWmJyBGsA-0IGygeY6ro8unu_mI60NrXgrh296kdeRlC9FOMB1F6XloMC5t53lI2em5NGUPQsuBobEwZZ44ahFqUajcPrJYFLhlTSkTEPuwv07mXQtyJH6LcIVVNkCQR7AXwFbJFD6rDItUG5NGv8Rpi-3_c0lHIQqIh40XIdc&gsessionid=6G-0E1cMl_PckrtXicf_kTcsOHO7vovP4fTa_aUJ7LKFX53AbAmofA",
+    "name": "Libro Sagan. Mi Mundo De Peter Sagan,John Deering",
+    "snippet": "Desde el 2015 al 2017, Peter Sagan consiguió lo que parecía imposible: venció tres Campeonatos del Mundo de ruta seguidos, garantizando así su paso a los ...",
+    "host_name": "www.google.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.google.com/goto?url=CAES2AEBxCJF1-UHcKU7djX1yZXhsSyvHhzSMM50MNV_7xQILkz-y3Y4x86pkCO9A2BjagH7PsSLkLTfVXsPsiI8hFo7tQu1b9PA0-N5jSf8-m3RMPMFkNZ1QclhMUAM2g2vMHcUgVAos6j43z6yMksH_LFAQqQ5SuJHaVxSa0Q_QgnoNptigQfiCAkg0R8wOuC-n5ldt0wL5gySoK9UP0U-HDO8F4bIC3o4DZVVuOo43sdaD9MhMyKxuA8SCecKrehmeL9Od3AW9nK4umCYoGArgfr0-CKGQOWKezM&gsessionid=6G-0E1cMl_PckrtXicf_kTcsOHO7vovP4fTa_aUJ7LKFX53AbAmofA",
+    "name": "Libro Gino Bartali: El Hombre de Hierro De Franc Lluis I GirÓ",
+    "snippet": "Gino Bartali fue una de las grandes figuras del deporte del Siglo XX . Considerado uno de los mejores ciclistas de todos los tiempos, formó parte de una red ... Read more",
+    "host_name": "www.google.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.google.com/goto?url=CAES0gEBxCJF1yah6ywTzXxfDuRu6U3gLniR-4hkGB4O2iXoVKOeB55ovz2JosbaaJTmOVzIterJP5x_VQEBwCnqcwVSqLKKipMW1b78FTjDdnD92CuvVG3xaK9GYgc-0Mn7nIktYbsqBEq0sFK2ND7QTrg-3culNbSTZDI1YouuI8CDedU3C684mGrGGxgBJrD4GW7Mei_n2KC0KKbBAW6ZHmM-m8lyo0eRyTHj7JRReeLfCtMOk-WTJfwso0wrdE9c5A0IG-frLy_q3K_8T_Y7LXoeUXQ&gsessionid=6G-0E1cMl_PckrtXicf_kTcsOHO7vovP4fTa_aUJ7LKFX53AbAmofA",
+    "name": "Libro La Carrera Contra la Stasi De Herbie Sykes",
+    "snippet": "Alcanzó el podio de La Carrera de la Paz, el equivalente al Tour de Francia del bloque del Este, Herbie Sykes nos descubre una increíble historia. Una historia ...",
+    "host_name": "www.google.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  }
+]
+🎉 Function invocation completed!

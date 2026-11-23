@@ -1,0 +1,77 @@
+🚀 Initializing Z-AI SDK...
+🚀 Invoking function: web_search...
+[
+  {
+    "url": "https://www.buscalibre.cl/libro-manual-de-reparacion-de-bicicletas-una-guia-paso-a-paso/9789682447310/p/1741259?srsltid=AYCX9vKfB5A9s1GEW-5T1edgBNvRO-js2K5IoarzFFpPrNoOfAiTF95Y",
+    "name": "Libro Manual de Reparacion de Bicicletas. Una Guia Paso",
+    "snippet": "Es de interés para el aficionado, el ciclista profesional y para aquellos que deseen aprender el oficio de la reparación de bicicletas . Read more",
+    "host_name": "www.buscalibre.cl",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.google.com/goto?url=CAES7gEBxCJF1ybECWxk3IzHN4_AFTsgenxbS6IYPEFJIMLEv_CN5wM98pR-d4ZOuA80BZgPo0pVYN1AagTlATpBYHBK0ApuCC2bP6_ppMSgkmhUJzZbgq46DoScIhQnlOoHTz1HE7kuuZX2h3Oa6e_eC2gHejIQnVA4EvAB5xwpb5WFcICsa9PaWtrtitmteDKfL_R6k3cJJA4ZpJYOsNhxEA5UosKPQQEIlZ6J1MosT5IAn2PeO-eWUDDTpsx_kkLUQ-NtUhkcNruPeo1L24gUekqJKEQ75OrABlvrBrGPpKf_wdEzAHDU5_0aFAiCF2Qe&gsessionid=ZAa4nvhTDPUdhmhX5CezV8PCV1ck_j14MzWeERoXbSEPTqCr76tGFw",
+    "name": "Curso Profesional de Armado y Reparación de Bicicletas",
+    "snippet": "Aprenderás los fundamentos esenciales de la mecánica de bicicletas , desde los conceptos básicos hasta el ajuste preciso de las partes móviles. Descubrirás cómo ... Read more",
+    "host_name": "www.google.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.google.com/goto?url=CAESswIBxCJF1xmnukwcwgQnX69o7z0OsuzQOBC4idR6_cnazMEhhBqKw7rx557YmRRAkr8XM_WO_MZwhJRX8vqKu7hLiEOFhRH6eBByc-JfU0VF3np98VM3GJc6YyTp1-D1yRiKGRRY_eVDSsQBz8ubEwdxHfCtLalRt4BTRehV-4fLo9fDFsAaLcD-yLHrXKICh_nTRBmayQ3qFiE_5A1g2Xts3VFjoTsUE4pgtn433A1iWWfkwgn5M64VJm8puV_FYMldIVae1MvXcBcQXneGiYRblHK9zXbMA6G-SfxM5wAx0bPvhPa-nvJFfki80NIia8b53oSnmfEEdoushGWF8enRWGKiI7r8DS3Mw-6znDNVNgx-e79-Cp8HhIkeg3jonCPDl8S3fw75xeB8gdxuLkYMJb7e&gsessionid=ZAa4nvhTDPUdhmhX5CezV8PCV1ck_j14MzWeERoXbSEPTqCr76tGFw",
+    "name": "Libro Módulo Formativo 2. Mantenimiento y Conducción de",
+    "snippet": "... Mantenimiento, reparación y traslado de bicicletas Capítulo 1. Material y equipo1. Bicicleta: componentes básicos2. Tipos de bicicleta: carretera, híbrida y ...",
+    "host_name": "www.google.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.google.com/goto?url=CAESsgEBxCJF1yKJrATIR5AP-pXru8sgia1FN5KfOHngg19FucoYjUqOzFWSmHndAj3gLz6JlJXLWxyp6WX6HYelZS6_1ueIG52PCpbrcpmZlMSVpCjDILY7CiSrvkzlAA6PZhBK-NTf66pfUYBmmx0uIjfp6EcLMukNwLNr-NXeYuRS23oK1NYrqUu45HQRxMRH4yTJcdt6kvTDnOJnaAPqxMU1S_Yq-cBbHIfYN8r5zqRKnsdh&gsessionid=ZAa4nvhTDPUdhmhX5CezV8PCV1ck_j14MzWeERoXbSEPTqCr76tGFw",
+    "name": "Libro Curso Profesional de Armado y Reparación de Bicicletas",
+    "snippet": "Aprenderás los fundamentos esenciales de la mecánica de bicicletas , desde los conceptos básicos hasta el ajuste preciso de las partes móviles. Descubrirás cómo ...",
+    "host_name": "www.google.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.google.com/goto?url=CAES7gEBxCJF1__6zonWkWyEWGUaMd7Zy2ez0oclz_z_x6Ei-ByNUTu9GXA0UOYuGjLKzN3tW6DUDwkUzPvYyow79USEwP9JSOWaSFgEsTOlO3kyoscPieLO8FdsN5AQZdA83Q8nY9ggvwXkCPibyZN4HqoBWZiu94nxj9nQOz9kdHNRXa20VTkvQPs_MkN77ayvg-eEyPF1Y6BLfqjsiPpFWFmBKQhFKknf1PXdsrngF0xsJzL3_e3kHx0IBjzJRlJ4E8rgS7t2oQQw7Bt2NUKJdoODfBA_anUVGdWGuAJaeL0H4yfE_wVGakAP2IO2Gszn&gsessionid=ZAa4nvhTDPUdhmhX5CezV8PCV1ck_j14MzWeERoXbSEPTqCr76tGFw",
+    "name": "cuidado del automovil: mnl de mantenimiento y reparacion",
+    "snippet": "Libro Físico. Editorial. Editorial Limusa. Autor. chilton. Tema. mecanica y servicio automotriz, bicicletas . Año. 2000. ISBN. 9681815335. ISBN13. 9789681815332.",
+    "host_name": "www.google.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.google.com/goto?url=CAES6gEBxCJF170nKrYF0chQHTkqKM6-p6y0PvluoqB0w08m3Mo8lS67A9fID2Kk512V1GJo3rQ9H__DyOYe5JZ2h2niOG1D7XkjkyX9CeNHVYAJSzNqBtWVgoqtyuiPdlSAWTfR6WtFZqECYk2Cw9XfbxBDD64phNI-2PLKoVG2XL6cbaUsl4t3JcXsgHJTm4crLu9PynyhHTQ5ktbghF4_Bn-xL2t0PHvB9sNp0ojZ0DPjN4bw1JzIO5iGvJIf3zBamHnBKfCeFHDrkz-OyY9TBFOWOYti6nNhNncqr2Na5kRMyixqSHSWlDXUmyg&gsessionid=ZAa4nvhTDPUdhmhX5CezV8PCV1ck_j14MzWeERoXbSEPTqCr76tGFw",
+    "name": "Motores Diesel Localizacion y Reparacion de Averias",
+    "snippet": "Mantenimiento planificado . Motores Diesel Localizacion y Reparacion. Libro Físico Autor ・ automotriz,bicicletas Año 1999 Idioma Español ・ 3 unidades $ 56.400 ...",
+    "host_name": "www.google.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.google.com/goto?url=CAESsAEBxCJF1_LTP0roomEIPX9VeI2xUKUT-Cy6zxVz1S3zKJI6mH0QqhCenvI52UVa_t5J2adQxwO3WopXZ7zpK38h33XG6GQ1FCfYntsnsexgmhg8-YAWybMtKd0Idrf5IShMgOQLVvXepZT5a726fwrhgFdWVbjwcTXFxaTkiSn2dMiISQ1NFIk7QCE6Ahag-EVdNrxUy8eFFf1rQUc-jbtVUJifhXd-9C6XjnmiNibx8g&gsessionid=ZAa4nvhTDPUdhmhX5CezV8PCV1ck_j14MzWeERoXbSEPTqCr76tGFw",
+    "name": "Libros del Autor Edicion Emd",
+    "snippet": "Manual del Karting: Mecánica , reparación , mantenimiento y seguridad. reparación , mantenimiento Manual Electricidad",
+    "host_name": "www.google.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.google.com/goto?url=CAES0AEBxCJF1yJqELa18d_JZaLsHB4UQ5IXz6tg6g18c-PQY997RjV-_yVdbv31DQ4BUfEkXBD2QsDvuwZKiU0TPHBw-w1SMAlIviao02ceFPPFtJHa60qi4yY-KdIhnIAnt-v79PFkOhlhAJeWqkv8AG6iX_CjkcF5Jy70sl7vIYXCCYBifu2WVNHDrWKT4gMPoCN5ExwsdQSbkElFwUSK-Uh93i9oIw16j_1_hWmFr6t7BSC8J2RX7Udahu01bjpr-XPlsassRiP-XuCCF6C4kLyf&gsessionid=ZAa4nvhTDPUdhmhX5CezV8PCV1ck_j14MzWeERoXbSEPTqCr76tGFw",
+    "name": "Libro El Libro de la Bicicleta De Diego Maldonado",
+    "snippet": "El lector va a encontrar toda la información, tanto sobre datos técnicos de cada uno de los componentes, como los ajustes y reparaciones básicas que se le ... Read more",
+    "host_name": "www.google.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  }
+]
+🎉 Function invocation completed!

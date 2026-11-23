@@ -1,0 +1,95 @@
+🚀 Initializing Z-AI SDK...
+🚀 Invoking function: web_search...
+[
+  {
+    "url": "https://www.buscalibre.cl/libro-curso-de-mountain-bike/9788431519735/p/4289701?srsltid=AYCX9vJhaYfERqoRu15zf4j1mgV0_OTcbNH-P1welSlG1E6igooXcFrF",
+    "name": "Libro curso de mountain bike De - Santiago",
+    "snippet": "de mountain bike curso de mountain bike curso de mountain bike Formato Libro Físico ISBN 8431519738 ISBN13 9788431519735 ・ $ 23.470 Costos ・ nuestro catálogo ...",
+    "host_name": "www.buscalibre.cl",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.buscalibre.cl/libro-mountain-biking/9781791147495/p/54568436?srsltid=AYCX9vKAO3ZBy03UoX8WFxy1kf6x5T9nnw0InwrmqKWwvJL16Jsr1YTr",
+    "name": "Libro Mountain Biking (en Inglés) De Michael S De Medeiro",
+    "snippet": "Mountain Biking (en Inglés) Michael S De Medeiro . Mountain Biking (en Inglés) Michael S De Medeiro (Autor) $ 44.880$ 22.440 -50% Buscalibre Chile: El Rosal",
+    "host_name": "www.buscalibre.cl",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.google.com/goto?url=CAES0QEBxCJF18J1CHSePdRrVBeG2BtlYKToUvIgzKsVp2b0S5-CiWd5i5He_FRihUp_fbt_nJXYlgN9Dc6uFLpfQXZJ25tST3MtritbravCThtpDEdV16qiOYarlWbEvOiVqNTpfCuFTx66tzz7hVbrvqHfuxXH_fdHxiVfcB5jMrm8R1-d8QHfVFVuZqpJnqu1-f9GsbrYCG-VQbxkM8P_ZPHXRSUH38tNNgfXtGBxwDc13zo2_wrkjusLyXWu4v9_LVzXxOINVXuGNxoH12-zszclKQ&gsessionid=VVM0dnxWmHC-8X25-uUnbi7hXpt-mb3mVZghRJG2ol43cSF65AGrNQ",
+    "name": "Libro el libro del mountain bike De pablo bueno",
+    "snippet": "libro del mountain bike Pablo Bueno (Autor ) $ 48.550$ 24.280 -50% tapa blanda, 22x17 cms, 158 páginas materia: excursiones. nuestro catálogo son Originales.",
+    "host_name": "www.google.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.google.com/goto?url=CAESyAEBxCJF174gaCOIncpVqxnmt0MaSE1FLP3ICi3FPevr5cHgo_lpqy8s9VM5IH9ONH6wbFbIPramL_aEgcRNKEusqXtVElyl8ot6LRkHh0GmDiGVpP5geRCmV8dVyha438VVRSkgBJszokKQN3pxy4zRfbqs_r9pcyAXShu9MICeoPmNQ7u4EylxpFoI_JsbuiI7EARui98pRN7WqbQlAIW_70B1YGIvy6hcDFuPeo_USzbTtr5CtjhR-2ZltiraEPbxQWXD9aQXaA&gsessionid=VVM0dnxWmHC-8X25-uUnbi7hXpt-mb3mVZghRJG2ol43cSF65AGrNQ",
+    "name": "Libro Todo Sobre la btt De Ulrich Stanciu - Santiago",
+    "snippet": "Envío: 9 a 14 días háb. $ 20.220. Costos de importación incluídos en el precio ✓. Libro Nuevo. Quedan 6 unidades. Read more",
+    "host_name": "www.google.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.google.com/goto?url=CAESzgEBxCJF1_DNpZMW-Ck5XD9jLm96AAh_nr-IuS5mW3rnhxYJoy-gr4QEC7TtG780zpPDqkW-uOG-5zX7u_NtXHWVphOQfO_D63VKwUrxxUBhVh9xX6LVnMbJ2Pwl_6nNR9PKX_3G5i_vJff5bszn73iX82tpNrlKTEle7KeV_BcnrC3OPyXcU6OhcIvnChxdP3ShyBWxJJGmDuVt4MCtO2wF4POXvAQxaup4ujVj9OvnrT0wGObDNU3zWBjIoHeuCqAy-yvk4BRYxPgDnakqSA&gsessionid=VVM0dnxWmHC-8X25-uUnbi7hXpt-mb3mVZghRJG2ol43cSF65AGrNQ",
+    "name": "Libro extreme mountain biking De kelley macaulay",
+    "snippet": "ISBN 0778717240. Libro Físico extreme mountain biking … 2 unidades $ 17.250. Buscalibre Chile: El Rosal 5123, Huechuraba, Región Metropolitana, Chile.",
+    "host_name": "www.google.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.google.com/goto?url=CAEShQIBxCJF1wWE6CyxjvWZnE5P1LDfdPd1Y08pr0nwrytFyah9laoLwKJAruTr0QLVZwa8486e4fIcuBdVLHxH7_SNf0rw28zq-QMAbsC3DZCQhziCL9sd0xbR0KNc3CH96Bb2ueA9rPtA7mF60sz3GqkE5pmD8eDHmvUgjevLDhS5GKJj9Wbi6iKLhfcLLQ-rMfZyTDO7-MplO1ncz86ZJJOmQOwQ_tT5az4v_olEYr6Ouzx9lyqJJTFPwnFjUsNepdiXMwj1Bb51OooQTLNwnUjtL-pU-OLXVJec9riGdhksrpbVZkWcX3XeXluN8n76l0ugnHH5jZseY-9TpqbZ1va3yV4GhHI&gsessionid=VVM0dnxWmHC-8X25-uUnbi7hXpt-mb3mVZghRJG2ol43cSF65AGrNQ",
+    "name": "Libros sobre Ciclismo general y cicloturismo",
+    "snippet": "El mejor catálogo de libros de Ciclismo general y cicloturismo! Compra aquí tu próxima lectura.",
+    "host_name": "www.google.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.google.com/goto?url=CAESkAIBxCJF19FDycnNe6xKIfdBFgh2lpIP4j2yNBpHUYzgiuM1DoqcLdcWlnF_Z3J9eXjRvEuGApUlrY2Z4GGMIRBchvQKEvVByGLm3ZGOUB_TZ7dGmEyXto1kn0TB__NtGN4WyMPmH99ie7wawtGSINZDlPGRBOztS9kMLqEO1_EiikcSRi-JABR6XiM_7pofHRfwaDmnTsAEg0G_rg8w55z0zxROFNhiRB_fy6T5JfWmaydvJYJOs1vCx7Rmy7rteqB-uTM7U8bnbDsNbMjljNcfXiGtQnDB7FLWEJ9I26M5IuntqDHzkvKvKYb0dejuvBr_5oGx43oQEWci9xmYo67ztFLDH2X-Kly2cGTlW9-niQ&gsessionid=VVM0dnxWmHC-8X25-uUnbi7hXpt-mb3mVZghRJG2ol43cSF65AGrNQ",
+    "name": "https://www.buscalibre.us/v2/cp?rto=https://www.bu",
+    "snippet": "No information is available for this page. Learn why",
+    "host_name": "www.google.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.google.com/goto?url=CAES1wEBxCJF1y8eURi82351BLYV2BvP_o9dZLWbLGp51BOzvMplIC-3aPwqJwB1q45ppdLca5F6RsYReNQ6rTAcIQtwcCyNrMNQQWPfaiut8HJMdD8JuXi7T2zUsLgLIlJTfuS4XOae6eLSdUMRFHZAwWrZjykesbAnkaXAIG5Zb6yNqlLy__DZkkxMRUQe2ejSvCuHu8Sip7evyS5y2x7GrJv67zyxdxZAEYW7xHRyG2w2RWEYhuq9gaMVkjVBGzTL0DGPSvQZD2ksQCcEkA_1NgfUg2KuzSkCtQ&gsessionid=VVM0dnxWmHC-8X25-uUnbi7hXpt-mb3mVZghRJG2ol43cSF65AGrNQ",
+    "name": "Libro Manual Completo de Mountain Bike De Tim Brink",
+    "snippet": "En esta guía, dirigida a entusiastas del mountain bike de todo tipo , encontrará también información detallada sobre temas de seguridad, nutrición, dispositivos ... Read more",
+    "host_name": "www.google.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.google.com/goto?url=CAESmQEBxCJF18KcG5aZ8vwCONNRFbaYGLgRdfx7L6s2va7zehMy1L_Jo52xd0SdKbU8YhUnBB65CxXCSNqktrYa0kPBfeFhRCXAM68A-jx68UpHdkLxfBpEnFMCa5sGSlbupmPCPC71E7nJpGMh8DPO04gm5sNxVXc-X4cP1tQj6B3vsRl2mmRh9m110nZi7nPOdjgPDqwFkAii-f0&gsessionid=VVM0dnxWmHC-8X25-uUnbi7hXpt-mb3mVZghRJG2ol43cSF65AGrNQ",
+    "name": "Libro Guia Maestra de la Mountain Bike De Varios Autores",
+    "snippet": "Guia Maestra de la Mountain Bike Ed Pavelka . Contiene consejos de expertos para vencer curvas, trialeras, pendientes, descensos, colinas, barro y todo tipo de ...",
+    "host_name": "www.google.com",
+    "rank": 8,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.google.com/goto?url=CAESjwEBxCJF1292LvDjhQ9HE3lD7AepCSVbYL-20vL8V3EaD-qHqAVqAlC4HEQv7A4YMXQc9_b2uxzHKVwTtDNSClryKx6MoGXBBcxL0V82U1ZZNpCkK1LxrtoP--LZTyrMs07IxIHFHISLXS5K91YScvw3VRZ-dZBkD4kamXRP0P9peah1Z5m_5uztZHDgRm65zg&gsessionid=VVM0dnxWmHC-8X25-uUnbi7hXpt-mb3mVZghRJG2ol43cSF65AGrNQ",
+    "name": "Libro el libro del mountain bike De pablo bueno - Buscalibre",
+    "snippet": "ediciones desnivel, s.l., tapa blanda, 22x17 cms, 158 páginas materia: excursiones. montañismo. camping., fecha publicación: 06/1992 - ver opiniones y ...",
+    "host_name": "www.google.com",
+    "rank": 9,
+    "date": "",
+    "favicon": ""
+  }
+]
+🎉 Function invocation completed!
