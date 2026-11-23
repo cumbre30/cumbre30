@@ -35,8 +35,6 @@ import { useRutaProyectada } from "@/hooks/useRutaProyectada";
 import { fetchAvisosOperativos, textoAviso, type AvisoOperativo } from "@/lib/avisos";
 import { getFcConfig, HrTracker, zonaLabel, type ZonaId } from "@/lib/zonasFc";
 import { initAhorroAutomatico, setAhorroBateria, wakeLockSuspendido } from "@/lib/rideBateria";
-import { isNativeApp } from "@/lib/rideNative";
-import { MusicaBoton, MusicaPanel } from "@/components/MusicaPanel";
 import { t, useLang } from "@/lib/i18n";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { LatLng } from "@/lib/park";
@@ -107,13 +105,9 @@ export function RideView(p: Props) {
   const lang = useLang(); // re-render al cambiar el idioma (selector)
   const [sosOpen, setSosOpen] = useState(false);
   const [sosMsg, setSosMsg] = useState<string | null>(null);
-  // Música (v1.12.3): panel de sesiones de media en el ride. Solo
-  // APK: en la web no hay sesiones de media que controlar.
-  const [musicaOpen, setMusicaOpen] = useState(false);
   // Sensores Bluetooth (v1.12.14c): pulso y rueda viven en un panel
   // que se abre desde el botón del banner (al lado del de música).
   const [sensorOpen, setSensorOpen] = useState(false);
-  const esNativo = isNativeApp();
   // Punto 4: banner de avisos colapsado a icono por defecto.
   const [avisosOpen, setAvisosOpen] = useState(false);
   // Punto 8: pestaña activa de la caja-filtro (stats o bitácora) y
@@ -461,7 +455,6 @@ export function RideView(p: Props) {
         {/* Música (v1.12.3): sesiones de media del teléfono al lado
             derecho del ahorro de batería - solo APK, sin abandonar
             las métricas del ride. */}
-        {esNativo && <MusicaBoton abierto={musicaOpen} onToggle={() => setMusicaOpen((v) => !v)} activo={false} />}
         {/* Sensores Bluetooth (v1.12.14c): el apartado sale de la caja de
             stats y vive en este botón del banner, al lado derecho del de
             música. Borde verde con pulso conectado. */}
@@ -482,9 +475,6 @@ export function RideView(p: Props) {
           <Siren className="h-3.5 w-3.5" /> SOS
         </button>
       </div>
-
-      {/* Panel de música (v1.12.3): sesiones de media activas + control */}
-      {esNativo && <MusicaPanel abierto={musicaOpen} onCerrar={() => setMusicaOpen(false)} />}
 
       {/* Panel de sensores (v1.12.14c): SIEMPRE montado, se oculta con CSS
           al cerrar - desmontarlo mataría las conexiones BLE ya establecidas

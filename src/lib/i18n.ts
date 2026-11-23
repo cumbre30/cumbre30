@@ -220,17 +220,6 @@ const D: Record<string, E> = {
   "clima.bloqueadorFuerte": ["UV muy alto: bloqueador, gorra y anteojos", "Very high UV: sunscreen, hat and glasses", "UV muito alto: protetor, boné e óculos"],
 
   // ---------- música en el ride (v1.12.3: sesiones de media de Android) ----------
-  "mus.aria": ["Control de música", "Music control", "Controle de música"],
-  "mus.titulo": ["Música", "Music", "Música"],
-  "mus.sub": ["Controla la música de tu teléfono (Spotify, YouTube Music o cualquier app) sin salir del ride: igual que los botones de tus audífonos. Sin cuentas ni Premium.", "Control the music on your phone (Spotify, YouTube Music or any app) without leaving the ride screen: just like your headphone buttons. No accounts, no Premium.", "Controle a música do seu telefone (Spotify, YouTube Music ou qualquer app) sem sair do pedal: como os botões do seu fone. Sem contas e sem Premium."],
-  "mus.permiso": ["Cumbre30 necesita el «acceso a las notificaciones» de Android para ver los controles de música: es el mismo permiso que piden los audífonos. No leemos tus notificaciones. Si aparece «Aplicación restringida»: en Información de la aplicación abre el menú ⋮ → «Permitir ajustes restringidos», vuelve y pulsa «Permitir acceso» de nuevo para terminar.", "Cumbre30 needs Android's «notification access» to see music controls: it is the same permission headphones use. We do not read your notifications. If it shows «Restricted app»: in App info open the ⋮ menu → «Allow restricted settings», come back and press «Grant access» again to finish.", "A Cumbre30 precisa do «acesso às notificações» do Android para ver os controles de música: é a mesma permissão que os fones usam. Não lemos suas notificações. Se aparecer «App restrita»: em Informações do aplicativo abra o menu ⋮ → «Permitir ajustes restritos», volte e toque em «Permitir acesso» de novo para terminar."],
-  "mus.permisoBtn": ["Permitir acceso", "Grant access", "Permitir acesso"],
-  "mus.revisar": ["Ya lo permití · revisar", "I already allowed it · recheck", "Já permiti · verificar"],
-  "mus.sinSesiones": ["Abre tu app de música y pon algo en marcha: aparecerá aquí.", "Open your music app and start playing: it will appear here.", "Abra seu app de música e toque algo: ele aparecerá aqui."],
-  "mus.prevAria": ["Canción anterior", "Previous track", "Faixa anterior"],
-  "mus.playAria": ["Reproducir", "Play", "Tocar"],
-  "mus.pauseAria": ["Pausar", "Pause", "Pausar"],
-  "mus.nextAria": ["Canción siguiente", "Next track", "Próxima faixa"],
 
   // ---------- revisar actualizaciones (v1.12.4) ----------
   "act.titulo": ["Revisar actualizaciones", "Check for updates", "Buscar atualizações"],
