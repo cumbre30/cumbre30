@@ -6,7 +6,7 @@
 
 import { useSyncExternalStore } from "react";
 import { isOfflineMode, offlineCambiarPassword, offlineChangeUsername, offlineDeleteAccount, offlineForgotReset, offlineGoogleSignIn, offlineImportWebAccount, offlineLogin, offlineLogout, offlineMe, offlineRegister, offlineSetPasswordNueva } from "@/lib/offlineAuth";
-import { cambiarPasswordServidor, passwordInicialServidor } from "@/lib/cloudSync";
+import { cambiarPasswordServidor, passwordInicialServidor, serverToken, forgetToken } from "@/lib/cloudSync";
 import { apiUrl } from "@/lib/backend";
 import { notificarBienvenida } from "@/lib/notificaciones";
 import { t } from "@/lib/i18n";
@@ -380,16 +380,27 @@ export async function revokeOtherSessions(): Promise<number | null> {
 
 /**
  * Baja definitiva de la cuenta (Google Play exige eliminación in-app).
- * Servidor: DELETE /api/auth/account (cascade en el schema). APK:
- * offlineDeleteAccount borra cuenta, sesión, rides y -si es la última
- * cuenta del dispositivo- logros y licencia Pro locales.
+ * Servidor: DELETE /api/auth/account (cascade en el schema) con cookie
+ * (web) o Bearer (APK, vía apiUrl — el fetch relativo muere en el
+ * webview). APK offline: offlineDeleteAccount borra cuenta, sesión,
+ * rides y -si es la última cuenta del dispositivo- logros y licencia
+ * Pro locales.
  */
 export async function deleteAccount(): Promise<void> {
   try {
     if (isOfflineMode()) {
       offlineDeleteAccount();
     } else {
-      await fetch("/api/auth/account", { method: "DELETE" });
+      const url = apiUrl("/api/auth/account");
+      const token = serverToken();
+      if (url) {
+        await fetch(url, {
+          method: "DELETE",
+          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+          signal: AbortSignal.timeout(15_000),
+        });
+        if (token) forgetToken();
+      }
     }
   } catch {
     // sin conexión

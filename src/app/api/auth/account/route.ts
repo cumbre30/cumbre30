@@ -10,8 +10,10 @@ import { getSessionUser, SESSION_COOKIE } from "@/lib/auth";
 // eliminación borra sesiones, rides, códigos de reset y amistades.
 // ============================================================
 
-export async function DELETE() {
-  const user = await getSessionUser();
+export async function DELETE(req: Request) {
+  // req explícito: el APK baja la cuenta con Bearer (el webview no
+  // comparte cookie con capacitor://localhost), la web sigue con cookie.
+  const user = await getSessionUser(req);
   if (!user) {
     return NextResponse.json({ error: "Sin sesión" }, { status: 401 });
   }

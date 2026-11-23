@@ -92,3 +92,4 @@ public/cumbre30-codigo.zip
 /.jdk21/
 /.android-sdk/
 /.apk-hold/
+.secrets/
