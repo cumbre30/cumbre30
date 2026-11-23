@@ -96,13 +96,15 @@ Portadas: 33/33 verificadas HTTP. Años null para Ward/Dorleta/Abad (no verifica
 4. Con el export completo (105 fichas) el barrido Buscalibre queda **cubierto**: ya no faltan páginas. El universo de 106 = 76 fichas ya procesadas + 24 autoeditadas descartadas + 1 edición duplicada; no quedan títulos legítimos sin procesar.
 5. Sin ficha no ingesta: «Ciclismo en carretera. Test de valoración» aparecía truncado en el PDF del 23-11 — resuelto con el export completo (ficha 9788498230727).
 
-## Estado de sincronización (23-11 tarde, tras restaurar credenciales)
+## Sincronización COMPLETADA (23-11 tarde)
 
-Los 4 borradores del delta 3 están curados en el lote (33 total). Push a GitHub completado (c381469 → a13f0e3). Credenciales restauradas y guardadas fuera de git (chmod 600): clave de API de Neon (`.env.neon`), token de GitHub y token de Vercel.
+**Los 4 borradores del delta 3 están en Neon y PUBLICADOS para revisión** (decisión del usuario: los INSERTs nuevos nacen `publicado=true` — flag `--publicar` añadido a la semilla; los re-runs nunca tocan `publicado/destacado/proveedor`). Resultado: `creados 4 · actualizados 29` — los 29 borradores ES previos siguen intactos como borradores.
 
-**La siembra en Neon queda a la espera del org_id**: la clave de Neon es org-scoped y la API exige `org_id` para listar proyectos («org_id is required, you can find it on your organization settings page»). La vía de recuperar el URI desde Vercel tampoco aplica: `DATABASE_URL` está marcada como *sensitive* (write-only, no legible por API ni por `env pull`). Con el org_id (una línea: consola de Neon → Organization settings → el identificador `org-…` de la URL) corre `scripts/deriva-uri-neon.py` → `.env.neon.uri`, y luego `semilla-lote-es-fichas.mjs --publicar`.
+**Estado de Neon tras la siembra:** en → 89 publicados · es → **14 publicados** (10 previos + 4 nuevos) + 39 borradores · pt → 4 borradores · destacado=0 en todo el catálogo · 0 enlaces `/libros/search` · lote 33/33 con portada.
 
-**Modo de siembra acordado con el usuario**: los INSERTS NUEVOS nacen con `publicado=true` (flag `--publicar`, añadido a la semilla) para revisarlos directo en el módulo Cultura; los re-runs NUNCA tocan `publicado/destacado/proveedor`, así los 29 borradores ES previos y los publicados quedan intactos. Resultado esperado tras siembra: 14 públicos es (10 actuales + 4 nuevos), destacado=0.
+**E2E en producción (cumbregeo.cl, con sesión desechable creada y eliminada):** sin filtro → 103 registros · `?idioma=es` → **14** (todos buscalibre.cl) · `?idioma=en` → 89 · `?idioma=pt` → 0 · `q=krabbé` → 1. Los 4 nuevos son visibles ya en el módulo Cultura (idioma es) para el ojo editorial.
+
+**Infraestructura de conexión restaurada** (tras el reciclaje del sandbox): clave de API de Neon (`.env.neon`) + org_id (`org-broad-cloud-28449650`, `.env.neon.org`) → `scripts/deriva-uri-neon.py` deriva el URI vía API v2 (`/projects?org_id=` → `/connection_uri?branch_id=&database_name=neondb&role_name=neondb_owner`) → `.env.neon.uri`. Todo chmod 600 fuera de git. La vía Vercel (`DATABASE_URL`) no aplica: la variable es *sensitive* (no legible por API). La semilla corre contra el endpoint pooled (pgbouncer) con resolución IPv4+SNI propia.
 """
 (DL / "informe-oleada-es-fichas.md").write_text(md, encoding="utf-8")
 print(f"CSV: {DL/'lote-oleada-es-fichas.csv'} ({n} filas)")

@@ -33,9 +33,12 @@ branches = api(f"/projects/{pid}/branches").get("branches", [])
 main = next((b for b in branches if b.get("primary")), branches[0] if branches else None)
 if not main:
     sys.exit("sin ramas")
-uris = api(f"/projects/{pid}/connection_uris?branch_id={main['id']}").get("connection_uris", [])
-uri = next((u["connection_uri"] for u in uris if "-pooler" not in u["connection_uri"]),
-           uris[0]["connection_uri"] if uris else "")
+dbs = api(f"/projects/{pid}/branches/{main['id']}/databases").get("databases", [])
+dbname = dbs[0]["name"] if dbs else "neondb"
+roles = api(f"/projects/{pid}/branches/{main['id']}/roles").get("roles", [])
+role = next((x["name"] for x in roles if x.get("name") != " NO_PASSWORD"), roles[0]["name"] if roles else "neondb_owner")
+r = api(f"/projects/{pid}/connection_uri?branch_id={main['id']}&database_name={dbname}&role_name={role}")
+uri = r.get("uri") or r.get("connection_uri") or ""
 if not uri:
     sys.exit("sin connection_uri")
 out = BASE / ".env.neon.uri"
