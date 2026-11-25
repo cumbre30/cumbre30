@@ -1,18 +1,18 @@
 // ============================================================
-// Credenciales de Spotify (v1.28.0) — ÚNICO lugar a tocar.
+// Credenciales de Spotify (v1.28.1) — ÚNICO lugar a tocar.
 //
-// 1. En developers.spotify.com/dashboard crea la app «Cumbre30»:
-//      · Redirect URI: cumbre30://callback  (botón Add → Save)
-//      · ¿Qué API/SDK usarás?: marca «Android»
-// 2. Copia el Client ID (Settings → Basic Information) y pégalo
-//    abajo entre comillas. El Client Secret NO se usa (ni se
-//    sube nunca al repo): App Remote no lo necesita.
+// App «Cumbre30» en developers.spotify.com/dashboard:
+//      · Redirect URI: cumbre30://callback  (registrada)
+//      · SDK Android: package cl.cumbre30.app + SHA-1 de release
+//        (D6:D0:BB:2A:CA:31:D1:EC:A6:5C:98:06:73:DE:55:01:71:D5:EE:68)
+//      · Client ID configurado desde v1.28.1 (panel activo).
 //
-// Mientras el Client ID siga como marcador, el panel de Spotify
-// se muestra como «se activa próximamente» y no intenta conectar.
+// El Client ID NO es un secreto (identificador público de la
+// app en OAuth; por eso va al repo). El Client Secret no se usa
+// ni se sube nunca: App Remote no lo necesita.
 // ============================================================
 
-export const SPOTIFY_CLIENT_ID = "PON_AQUI_TU_CLIENT_ID";
+export const SPOTIFY_CLIENT_ID = "2735ca16199c4c5fb721bb21f586bb9b";
 export const SPOTIFY_REDIRECT_URI = "cumbre30://callback";
 
 /** true solo cuando ya reemplazaste el marcador por el Client ID real. */
