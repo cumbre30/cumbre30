@@ -15,7 +15,9 @@
 //     y Premium.
 //   · Estados del panel: sin configurar (Client ID pendiente) →
 //     sin Spotify instalada → sin sesión → sin autorización →
-//     conectado (pista + play/pause/saltar).
+//     conectado (pista + play/pause/saltar). El botón «Conectar»
+//     es SIEMPRE visible sin conexión y la conexión nativa tiene
+//     timeout de 30 s (v1.28.2): el panel nunca se queda vacío.
 //   · Solo APK: en la web no se renderiza (RideView).
 // ============================================================
 
@@ -100,6 +102,17 @@ export function SpotifyPanel({ abierto, onCerrar }: { abierto: boolean; onCerrar
     };
   }, [abierto, refrescar]);
 
+  // Latido (v1.28.2): mientras el panel está abierto sin conexión,
+  // consulta el estado cada 5 s — recoge conexiones que llegan tarde
+  // (tras el timeout nativo de 30 s) o reconexiones espontáneas.
+  useEffect(() => {
+    if (!abierto || estado.conectado) return;
+    const id = setInterval(() => {
+      void refrescar();
+    }, 5000);
+    return () => clearInterval(id);
+  }, [abierto, estado.conectado, refrescar]);
+
   // Conexión automática al abrir: una sola vez por apertura.
   useEffect(() => {
     if (!abierto || !spotifyConfigurado() || conectando) return;
@@ -139,18 +152,26 @@ export function SpotifyPanel({ abierto, onCerrar }: { abierto: boolean; onCerrar
       </div>
 
       {/* Sin configurar / sin app / sin sesión / sin autorización */}
-      {aviso && (
-        <div className="mt-2.5">
-          <p className="text-[11px] leading-snug text-foreground/80">{t(aviso.clave)}</p>
-          {!sinConfig && instalada && motivo !== null && (
+      {aviso && <p className="mt-2.5 text-[11px] leading-snug text-foreground/80">{t(aviso.clave)}</p>}
+
+      {/* Sin conectar (v1.28.2): botón de conexión SIEMPRE visible — antes
+          solo aparecía tras un error y, si la conexión nativa tardaba, el
+          panel se quedaba vacío y parecía roto. Mientras conecta se muestra
+          «Conectando…»; sin errores previos se explica el flujo (sp.sub). */}
+      {!estado.conectado && !sinConfig && instalada && (
+        conectando ? (
+          <p className="mt-2.5 text-[11.5px] font-semibold text-foreground/80">{t("sp.conectando")}</p>
+        ) : (
+          <>
+            {!aviso && <p className="mt-2.5 text-[11px] leading-snug text-muted-foreground">{t("sp.sub")}</p>}
             <button
               onClick={() => void conectar()}
-              className="mt-2 h-9 w-full rounded-lg bg-emerald-600 text-[12px] font-bold text-white hover:bg-emerald-500"
+              className="mt-2.5 h-9 w-full rounded-lg bg-emerald-600 text-[12px] font-bold text-white hover:bg-emerald-500"
             >
-              {conectando ? t("sp.conectando") : t("sp.reconectar")}
+              {motivo ? t("sp.reconectar") : t("sp.conectar")}
             </button>
-          )}
-        </div>
+          </>
+        )
       )}
 
       {/* Conectado: pista actual + controles de transporte */}

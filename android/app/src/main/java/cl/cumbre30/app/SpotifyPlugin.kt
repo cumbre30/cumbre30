@@ -122,22 +122,50 @@ class SpotifyPlugin : Plugin() {
             .setRedirectUri(redirectUri)
             .showAuthView(true)
             .build()
+        // Guard de timeout (v1.28.2): si Spotify nunca responde (app vieja,
+        // proceso muerto, consentimiento que no aparece), la llamada JS se
+        // quedaría colgada para siempre y el panel se ve VACÍO. A los 30 s
+        // devolvemos error. El guard anti doble-resolve evita que un callback
+        // tardío rompa la llamada ya resuelta; si Spotify conecta DESPUÉS del
+        // timeout, la conexión queda viva y la reconexión la detecta por
+        // isConnected (o el latido del panel por estado()).
+        val resuelto = java.util.concurrent.atomic.AtomicBoolean(false)
+        val main = android.os.Handler(android.os.Looper.getMainLooper())
+        val timeout = Runnable {
+            if (resuelto.compareAndSet(false, true)) {
+                call.resolve(
+                    JSObject().put("ok", false).put("motivo", "error")
+                        .put("detalle", "Spotify no respondió en 30 s; abre la app de Spotify y reconecta")
+                )
+            }
+        }
+        main.postDelayed(timeout, 30_000L)
         SpotifyAppRemote.connect(bridge.context, params, object : Connector.ConnectionListener {
             override fun onConnected(conectado: SpotifyAppRemote) {
+                // La conexión se guarda SIEMPRE: aunque la llamada ya se
+                // resolviera por timeout, la conexión tardía es utilizable.
                 remoto = conectado
                 suscribir(conectado)
-                call.resolve(JSObject().put("ok", true).put("motivo", "ok"))
+                if (resuelto.compareAndSet(false, true)) {
+                    main.removeCallbacks(timeout)
+                    call.resolve(JSObject().put("ok", true).put("motivo", "ok"))
+                }
             }
 
             override fun onFailure(t: Throwable) {
-                limpiar()
-                val motivo = when (t) {
-                    is CouldNotFindSpotifyApp -> "sinApp"
-                    is NotLoggedInException -> "sinSesion"
-                    is UserNotAuthorizedException, is AuthenticationFailedException -> "autorizacion"
-                    else -> "error"
+                if (resuelto.compareAndSet(false, true)) {
+                    main.removeCallbacks(timeout)
+                    // Solo limpiamos si ganamos la carrera: limpiar() aquí con
+                    // un connect posterior en marcha borraría su conexión.
+                    limpiar()
+                    val motivo = when (t) {
+                        is CouldNotFindSpotifyApp -> "sinApp"
+                        is NotLoggedInException -> "sinSesion"
+                        is UserNotAuthorizedException, is AuthenticationFailedException -> "autorizacion"
+                        else -> "error"
+                    }
+                    call.resolve(JSObject().put("ok", false).put("motivo", motivo).put("detalle", t.message ?: ""))
                 }
-                call.resolve(JSObject().put("ok", false).put("motivo", motivo).put("detalle", t.message ?: ""))
             }
         })
     }

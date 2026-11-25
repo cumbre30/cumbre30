@@ -229,6 +229,7 @@ const D: Record<string, E> = {
   "sp.autorizacion": ["Spotify no autorizó la conexión: confirma que la app «Cumbre30» tenga tu cuenta permitida en el panel de desarrolladores (User Management) y vuelve a intentar.", "Spotify did not authorize the connection: make sure the «Cumbre30» app has your account allowed in the developer dashboard (User Management) and try again.", "O Spotify não autorizou a conexão: confirme que o app «Cumbre30» tem sua conta permitida no painel de desenvolvedores (User Management) e tente de novo."],
   "sp.error": ["No se pudo conectar con Spotify. Revisa la conexión y vuelve a intentar.", "Could not connect to Spotify. Check your connection and try again.", "Não foi possível conectar ao Spotify. Verifique a conexão e tente de novo."],
   "sp.reconectar": ["Reconectar", "Reconnect", "Reconectar"],
+  "sp.conectar": ["Conectar Spotify", "Connect Spotify", "Conectar Spotify"],
   "sp.conectando": ["Conectando…", "Connecting…", "Conectando…"],
   "sp.sinReproduccion": ["Abre Spotify y pon algo en marcha: aparecerá aquí.", "Open Spotify and start playing: it will appear here.", "Abra o Spotify e toque algo: ele aparecerá aqui."],
   "sp.prevAria": ["Canción anterior", "Previous track", "Faixa anterior"],
