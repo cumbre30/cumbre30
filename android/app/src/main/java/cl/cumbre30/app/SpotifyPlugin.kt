@@ -84,6 +84,11 @@ class SpotifyPlugin : Plugin() {
         o.put("tocando", !ps.isPaused)
         o.put("posicionMs", ps.playbackPosition)
         o.put("duracionMs", ps.track?.duration ?: 0L)
+        // v1.28.4: el evento solo nace de una conexión viva — se marca
+        // conectado para que ningún consumidor que reemplace su estado
+        // con este payload pierda la conexión de vista (el panel caía a
+        // «Instala la app de Spotify…» en cada cambio de canción).
+        o.put("conectado", true)
         return o
     }
 
@@ -245,12 +250,15 @@ class SpotifyPlugin : Plugin() {
     @PluginMethod
     fun estado(call: PluginCall) {
         val o = JSObject()
-        o.put("instalada", instaladaSpotify())
-        o.put("version", versionSpotify())
-        o.put("conectado", remoto?.isConnected == true)
+        // v1.28.4: primero el caché del reproductor (pista, tocando, … y
+        // el conectado=true que trae todo evento); DESPUÉS los flags
+        // autoritativos — un caché viejo no debe mentir sobre conectado.
         ultimoEstado?.let { s ->
             for (k in s.keys()) o.put(k, s.get(k))
         }
+        o.put("instalada", instaladaSpotify())
+        o.put("version", versionSpotify())
+        o.put("conectado", remoto?.isConnected == true)
         call.resolve(o)
     }
 

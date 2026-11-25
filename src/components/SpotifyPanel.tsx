@@ -1,12 +1,12 @@
 "use client";
 
 // ============================================================
-// Spotify en el ride (v1.28.0): botón junto al de sensores +
-// panel expandible. Controla la reproducción de la app de
-// Spotify vía App Remote SDK — el reemplazo del antiguo panel
-// de MediaSessions (v1.12.3, eliminado en v1.27.2 porque el
-// «acceso a las notificaciones» que exigía disparaba el bloqueo
-// de Play Protect como fraude).
+// Spotify en el ride (v1.28.0; v1.28.4 evento del reproductor):
+// botón junto al de sensores + panel expandible. Controla la
+// reproducción de la app de Spotify vía App Remote SDK — el
+// reemplazo del antiguo panel de MediaSessions (v1.12.3,
+// eliminado en v1.27.2 porque el «acceso a las notificaciones»
+// que exigía disparaba el bloqueo de Play Protect como fraude).
 //
 //   · Mecanismo: SpotifyAppRemote.connect — la app de Spotify
 //     muestra SU PROPIO diálogo de autorización (una sola vez)
@@ -96,8 +96,24 @@ export function SpotifyPanel({ abierto, onCerrar }: { abierto: boolean; onCerrar
     let handle: PluginListenerHandle | null = null;
     void onSpotifyEstado((s) => {
       if (!vivo.current) return;
-      setEstado(s);
-      if (s.conectado) setMotivo(null);
+      // v1.28.4: el evento del reproductor solo trae la pista — se
+      // FUSIONA con el estado previo forzando conectado. Reemplazarlo
+      // entero (hasta v1.28.3) borraba instalada/conectado: en cada
+      // cambio de canción el panel caía a «Instala la app de Spotify…»
+      // con los controles fuera (visto en el video del ride). Si llega
+      // un evento sin pista (transición entre temas) se conserva la
+      // anterior para no titilar.
+      setEstado((prev) => {
+        const sinPista = !s.pista && !!prev.pista;
+        return {
+          ...prev,
+          ...s,
+          ...(sinPista ? { pista: prev.pista, artista: prev.artista, album: prev.album, uri: prev.uri, duracionMs: prev.duracionMs } : {}),
+          conectado: true,
+        };
+      });
+      setMotivo(null);
+      setDetalle(null);
     }).then((h) => {
       handle = h;
     });
