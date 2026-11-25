@@ -98,3 +98,6 @@ public/cumbre30-codigo.zip
 .android-sdk/
 .gradle-home/
 .jdk21/
+
+# credenciales CI (excluidas del repo)
+.tokens/
