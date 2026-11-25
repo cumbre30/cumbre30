@@ -26,6 +26,7 @@ import type { PluginListenerHandle } from "@capacitor/core";
 import { Music2, Pause, Play, SkipBack, SkipForward } from "lucide-react";
 import { t, useLang } from "@/lib/i18n";
 import {
+  abrirSpotify,
   onSpotifyEstado,
   spotifyAccion,
   spotifyConectar,
@@ -54,6 +55,7 @@ export function SpotifyPanel({ abierto, onCerrar }: { abierto: boolean; onCerrar
   const [estado, setEstado] = useState<SpotifyEstado>(spotifyEstadoVacio());
   const [conectando, setConectando] = useState(false);
   const [motivo, setMotivo] = useState<string | null>(null);
+  const [detalle, setDetalle] = useState<string | null>(null);
   const vivo = useRef(true);
 
   useEffect(() => {
@@ -70,18 +72,20 @@ export function SpotifyPanel({ abierto, onCerrar }: { abierto: boolean; onCerrar
     if (!s.conectado) setMotivo((m) => m); // conserva el motivo visible
   }, []);
 
-  const conectar = useCallback(async () => {
+  const conectar = useCallback(async (mostrarAuth: boolean) => {
     if (conectando) return;
     setConectando(true);
     setMotivo(null);
-    const r = await spotifyConectar(SPOTIFY_CLIENT_ID, SPOTIFY_REDIRECT_URI);
+    const r = await spotifyConectar(SPOTIFY_CLIENT_ID, SPOTIFY_REDIRECT_URI, mostrarAuth);
     if (!vivo.current) return;
     setConectando(false);
     if (r.ok) {
       setMotivo(null);
+      setDetalle(null);
       void refrescar();
     } else {
       setMotivo(r.motivo);
+      setDetalle(r.detalle?.trim() || null);
     }
   }, [conectando, refrescar]);
 
@@ -113,13 +117,17 @@ export function SpotifyPanel({ abierto, onCerrar }: { abierto: boolean; onCerrar
     return () => clearInterval(id);
   }, [abierto, estado.conectado, refrescar]);
 
-  // Conexión automática al abrir: una sola vez por apertura.
+  // Conexión automática al abrir (v1.28.3): UNA sola vez por apertura y
+  // SILENCIOSA (mostrarAuth=false) — usa la sesión ya abierta de Spotify
+  // y falla RÁPIDO con motivo preciso; el botón manual sí abre el diálogo
+  // de autorización (antes el auto-connect con auth view era lo que se
+  // quedaba colgado sin responder).
   useEffect(() => {
     if (!abierto || !spotifyConfigurado() || conectando) return;
     void (async () => {
       const s = await spotifyEstado();
       if (!vivo.current || s.conectado) return;
-      void conectar();
+      void conectar(false);
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [abierto]);
@@ -154,10 +162,21 @@ export function SpotifyPanel({ abierto, onCerrar }: { abierto: boolean; onCerrar
       {/* Sin configurar / sin app / sin sesión / sin autorización */}
       {aviso && <p className="mt-2.5 text-[11px] leading-snug text-foreground/80">{t(aviso.clave)}</p>}
 
-      {/* Sin conectar (v1.28.2): botón de conexión SIEMPRE visible — antes
-          solo aparecía tras un error y, si la conexión nativa tardaba, el
-          panel se quedaba vacío y parecía roto. Mientras conecta se muestra
-          «Conectando…»; sin errores previos se explica el flujo (sp.sub). */}
+      {/* Diagnóstico (v1.28.3): detalle técnico del fallo + versión de la
+          app de Spotify instalada — convierte «no conecta» en un dato. */}
+      {motivo !== null && (detalle || estado.version) && (
+        <p className="mt-1 text-[10px] leading-snug text-muted-foreground/80">
+          {detalle ? detalle : ""}
+          {detalle && estado.version ? " · " : ""}
+          {estado.version ? `Spotify ${estado.version}` : ""}
+        </p>
+      )}
+
+      {/* Sin conectar (v1.28.3): botón de conexión SIEMPRE visible —
+          el manual abre el diálogo de autorización de Spotify; junto a él,
+          «Abrir Spotify» para confirmar sesión/actualización. Mientras
+          conecta se muestra «Conectando…»; sin errores previos se explica
+          el flujo (sp.sub). */}
       {!estado.conectado && !sinConfig && instalada && (
         conectando ? (
           <p className="mt-2.5 text-[11.5px] font-semibold text-foreground/80">{t("sp.conectando")}</p>
@@ -165,10 +184,16 @@ export function SpotifyPanel({ abierto, onCerrar }: { abierto: boolean; onCerrar
           <>
             {!aviso && <p className="mt-2.5 text-[11px] leading-snug text-muted-foreground">{t("sp.sub")}</p>}
             <button
-              onClick={() => void conectar()}
+              onClick={() => void conectar(true)}
               className="mt-2.5 h-9 w-full rounded-lg bg-emerald-600 text-[12px] font-bold text-white hover:bg-emerald-500"
             >
               {motivo ? t("sp.reconectar") : t("sp.conectar")}
+            </button>
+            <button
+              onClick={() => void abrirSpotify()}
+              className="mt-1.5 h-8 w-full rounded-lg border border-border text-[11.5px] font-bold text-foreground hover:bg-accent"
+            >
+              {t("sp.abrir")}
             </button>
           </>
         )

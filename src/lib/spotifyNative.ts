@@ -14,6 +14,8 @@ import { registerPlugin, type PluginListenerHandle } from "@capacitor/core";
 
 export interface SpotifyEstado {
   instalada: boolean;
+  /** Versión de la app de Spotify instalada (diagnóstico v1.28.3). */
+  version?: string;
   conectado: boolean;
   pista: string;
   artista: string;
@@ -36,8 +38,9 @@ export type MotivoSpotify =
   | "error";
 
 export interface SpotifyNativePluginInterface {
-  instalada(): Promise<{ instalada: boolean }>;
-  conectar(o: { clientId: string; redirectUri: string }): Promise<{ ok: boolean; motivo: MotivoSpotify; detalle?: string }>;
+  instalada(): Promise<{ instalada: boolean; version?: string }>;
+  conectar(o: { clientId: string; redirectUri: string; mostrarAuth?: boolean }): Promise<{ ok: boolean; motivo: MotivoSpotify; detalle?: string }>;
+  abrir(): Promise<{ ok: boolean; motivo?: MotivoSpotify; detalle?: string }>;
   desconectar(): Promise<void>;
   estado(): Promise<SpotifyEstado>;
   accion(o: { accion: AccionSpotify }): Promise<{ ok: boolean; motivo?: MotivoSpotify }>;
@@ -48,7 +51,7 @@ export const SpotifyNative = registerPlugin<SpotifyNativePluginInterface>("Spoti
 
 /** Estado vacío para la web / errores de la llamada. */
 export function spotifyEstadoVacio(): SpotifyEstado {
-  return { instalada: false, conectado: false, pista: "", artista: "", album: "", uri: "", tocando: false, posicionMs: 0, duracionMs: 0 };
+  return { instalada: false, version: "", conectado: false, pista: "", artista: "", album: "", uri: "", tocando: false, posicionMs: 0, duracionMs: 0 };
 }
 
 /** ¿Spotify está instalada en el teléfono? Web → false. */
@@ -62,14 +65,27 @@ export async function spotifyInstalada(): Promise<boolean> {
   }
 }
 
-/** Conecta con Spotify (dispara su diálogo de autorización si falta). */
-export async function spotifyConectar(clientId: string, redirectUri: string): Promise<{ ok: boolean; motivo: MotivoSpotify; detalle?: string }> {
+/** Conecta con Spotify. mostrarAuth=false → sincedón con la sesión
+ *  ya abierta (falla rápido con motivo preciso); mostrarAuth=true →
+ *  dispara el diálogo de autorización de la app de Spotify. */
+export async function spotifyConectar(clientId: string, redirectUri: string, mostrarAuth = true): Promise<{ ok: boolean; motivo: MotivoSpotify; detalle?: string }> {
   try {
     const { isNativeApp } = await import("@/lib/rideNative");
     if (!isNativeApp()) return { ok: false, motivo: "error" };
-    return await SpotifyNative.conectar({ clientId, redirectUri });
+    return await SpotifyNative.conectar({ clientId, redirectUri, mostrarAuth });
   } catch {
     return { ok: false, motivo: "error" };
+  }
+}
+
+/** Abre la app de Spotify (chequeo de sesión / actualización). */
+export async function abrirSpotify(): Promise<void> {
+  try {
+    const { isNativeApp } = await import("@/lib/rideNative");
+    if (!isNativeApp()) return;
+    await SpotifyNative.abrir();
+  } catch {
+    /* nada */
   }
 }
 

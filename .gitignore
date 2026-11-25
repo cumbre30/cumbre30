@@ -93,3 +93,8 @@ public/cumbre30-codigo.zip
 /.android-sdk/
 /.apk-hold/
 .secrets/
+
+# SDK de Android descargado localmente (build del sandbox)
+.android-sdk/
+.gradle-home/
+.jdk21/

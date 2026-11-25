@@ -1,18 +1,25 @@
 package cl.cumbre30.app
 
 // ============================================================
-// Plugin Capacitor "SpotifyNative" (v1.28.0): control de la
-// reproducción de Spotify durante el ride vía App Remote SDK.
+// Plugin Capacitor "SpotifyNative" (v1.28.0; v1.28.3 diagnóstico):
+// control de la reproducción de Spotify durante el ride vía App
+// Remote SDK.
 //
 //   Conexión:
-//     conectar({ clientId, redirectUri })
-//       → SpotifyAppRemote.connect: la app de Spotify muestra
-//         SU PROPIO diálogo de autorización (una vez) y queda
-//         enlazada por servicio. Sin «acceso a las
-//         notificaciones», sin listeners, sin permisos nuevos:
-//         el único requisito declarado es <queries> para ver
-//         com.spotify.music (Android 11+).
+//     conectar({ clientId, redirectUri, mostrarAuth })
+//       → SpotifyAppRemote.connect: con mostrarAuth=false intenta
+//         SINCEDÓN con la sesión ya abierta de Spotify (falla
+//         RÁPIDO con motivo claro si falta sesión o permiso);
+//         con mostrarAuth=true la app de Spotify muestra SU
+//         PROPIO diálogo de autorización (una vez). Sin «acceso
+//         a las notificaciones», sin listeners, sin permisos
+//         nuevos: el único requisito declarado es <queries> para
+//         ver com.spotify.music (Android 11+).
+//     abrir()      → abre la app de Spotify (chequeo de sesión).
 //     desconectar()  ·  estado()  ·  accion({ accion })
+//   Diagnóstico (v1.28.3): estado()/instalada() incluyen la
+//   versión de la app de Spotify y todo fallo lleva su detalle
+//   (clase + mensaje de la excepción) para ver la causa real.
 //
 //   Eventos:
 //     "spotifyEstado" → { pista, artista, album, uri, tocando,
@@ -25,6 +32,7 @@ package cl.cumbre30.app
 // ============================================================
 
 import android.content.Intent
+import android.util.Log
 import com.getcapacitor.JSObject
 import com.getcapacitor.Plugin
 import com.getcapacitor.PluginCall
@@ -56,6 +64,15 @@ class SpotifyPlugin : Plugin() {
             bridge.context.packageManager.getLaunchIntentForPackage(PAQUETE_SPOTIFY) != null
         } catch (e: Exception) {
             false
+        }
+
+    /** Versión de la app de Spotify instalada (diagnóstico: versionName
+     *  del paquete com.spotify.music; "" si no se puede leer). */
+    private fun versionSpotify(): String =
+        try {
+            bridge.context.packageManager.getPackageInfo(PAQUETE_SPOTIFY, 0).versionName ?: ""
+        } catch (e: Exception) {
+            ""
         }
 
     private fun jsEstado(ps: PlayerState): JSObject {
@@ -93,15 +110,18 @@ class SpotifyPlugin : Plugin() {
 
     @PluginMethod
     fun instalada(call: PluginCall) {
-        call.resolve(JSObject().put("instalada", instaladaSpotify()))
+        call.resolve(JSObject().put("instalada", instaladaSpotify()).put("version", versionSpotify()))
     }
 
-    /** Conecta con la app de Spotify. Respuesta: { ok, motivo } con
-     *  motivo = ok | sinApp | sinSesion | autorizacion | error. */
+    /** Conecta con la app de Spotify. Respuesta: { ok, motivo, detalle }
+     *  con motivo = ok | sinApp | sinConfig | sinSesion | autorizacion | error.
+     *  mostrarAuth=false → sincedón con la sesión de Spotify (falla rápido
+     *  con motivo preciso); mostrarAuth=true → su diálogo de autorización. */
     @PluginMethod
     fun conectar(call: PluginCall) {
         val clientId = call.getString("clientId") ?: ""
         val redirectUri = call.getString("redirectUri") ?: ""
+        val mostrarAuth = call.getBoolean("mostrarAuth", false) ?: false
         if (!instaladaSpotify()) {
             call.resolve(JSObject().put("ok", false).put("motivo", "sinApp"))
             return
@@ -120,8 +140,9 @@ class SpotifyPlugin : Plugin() {
         limpiar()
         val params = ConnectionParams.Builder(clientId)
             .setRedirectUri(redirectUri)
-            .showAuthView(true)
+            .showAuthView(mostrarAuth)
             .build()
+        Log.w("SpotifyPlugin", "conectar: mostrandoAuth=$mostrarAuth spotify=${versionSpotify()}")
         // Guard de timeout (v1.28.2): si Spotify nunca responde (app vieja,
         // proceso muerto, consentimiento que no aparece), la llamada JS se
         // quedaría colgada para siempre y el panel se ve VACÍO. A los 30 s
@@ -140,34 +161,73 @@ class SpotifyPlugin : Plugin() {
             }
         }
         main.postDelayed(timeout, 30_000L)
-        SpotifyAppRemote.connect(bridge.context, params, object : Connector.ConnectionListener {
-            override fun onConnected(conectado: SpotifyAppRemote) {
-                // La conexión se guarda SIEMPRE: aunque la llamada ya se
-                // resolviera por timeout, la conexión tardía es utilizable.
-                remoto = conectado
-                suscribir(conectado)
-                if (resuelto.compareAndSet(false, true)) {
-                    main.removeCallbacks(timeout)
-                    call.resolve(JSObject().put("ok", true).put("motivo", "ok"))
-                }
-            }
-
-            override fun onFailure(t: Throwable) {
-                if (resuelto.compareAndSet(false, true)) {
-                    main.removeCallbacks(timeout)
-                    // Solo limpiamos si ganamos la carrera: limpiar() aquí con
-                    // un connect posterior en marcha borraría su conexión.
-                    limpiar()
-                    val motivo = when (t) {
-                        is CouldNotFindSpotifyApp -> "sinApp"
-                        is NotLoggedInException -> "sinSesion"
-                        is UserNotAuthorizedException, is AuthenticationFailedException -> "autorizacion"
-                        else -> "error"
+        // connect() en el HILO PRINCIPAL (como el demo oficial del SDK;
+        // Capacitor invoca los métodos del plugin en un hilo de fondo).
+        main.post {
+            try {
+                SpotifyAppRemote.connect(bridge.context, params, object : Connector.ConnectionListener {
+                    override fun onConnected(conectado: SpotifyAppRemote) {
+                        // La conexión se guarda SIEMPRE: aunque la llamada ya se
+                        // resolviera por timeout, la conexión tardía es utilizable.
+                        remoto = conectado
+                        suscribir(conectado)
+                        Log.w("SpotifyPlugin", "onConnected")
+                        if (resuelto.compareAndSet(false, true)) {
+                            main.removeCallbacks(timeout)
+                            call.resolve(JSObject().put("ok", true).put("motivo", "ok"))
+                        }
                     }
-                    call.resolve(JSObject().put("ok", false).put("motivo", motivo).put("detalle", t.message ?: ""))
+
+                    override fun onFailure(t: Throwable) {
+                        Log.w("SpotifyPlugin", "onFailure: ${t.javaClass.simpleName}: ${t.message}")
+                        if (resuelto.compareAndSet(false, true)) {
+                            main.removeCallbacks(timeout)
+                            // Solo limpiamos si ganamos la carrera: limpiar() aquí con
+                            // un connect posterior en marcha borraría su conexión.
+                            limpiar()
+                            val motivo = when (t) {
+                                is CouldNotFindSpotifyApp -> "sinApp"
+                                is NotLoggedInException -> "sinSesion"
+                                is UserNotAuthorizedException, is AuthenticationFailedException -> "autorizacion"
+                                else -> "error"
+                            }
+                            val detalle = "${t.javaClass.simpleName}: ${t.message ?: "(sin mensaje)"}"
+                            call.resolve(JSObject().put("ok", false).put("motivo", motivo).put("detalle", detalle))
+                        }
+                    }
+                })
+            } catch (e: Exception) {
+                if (resuelto.compareAndSet(false, true)) {
+                    main.removeCallbacks(timeout)
+                    call.resolve(
+                        JSObject().put("ok", false).put("motivo", "error")
+                            .put("detalle", "connect: ${e.javaClass.simpleName}: ${e.message ?: "(sin mensaje)"}")
+                    )
                 }
             }
-        })
+        }
+    }
+
+    /** Abre la app de Spotify (para que el usuario confirme sesión /
+     *  actualice la app antes de Reconectar). */
+    @PluginMethod
+    fun abrir(call: PluginCall) {
+        val i = try {
+            bridge.context.packageManager.getLaunchIntentForPackage(PAQUETE_SPOTIFY)
+        } catch (e: Exception) {
+            null
+        }
+        if (i == null) {
+            call.resolve(JSObject().put("ok", false).put("motivo", "sinApp"))
+            return
+        }
+        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        try {
+            bridge.activity?.startActivity(i) ?: bridge.context.startActivity(i)
+            call.resolve(JSObject().put("ok", true))
+        } catch (e: Exception) {
+            call.resolve(JSObject().put("ok", false).put("motivo", "error").put("detalle", e.message ?: ""))
+        }
     }
 
     @PluginMethod
@@ -181,11 +241,12 @@ class SpotifyPlugin : Plugin() {
         call.resolve()
     }
 
-    /** Estado actual: { instalada, conectado, pista, artista, … } */
+    /** Estado actual: { instalada, version, conectado, pista, artista, … } */
     @PluginMethod
     fun estado(call: PluginCall) {
         val o = JSObject()
         o.put("instalada", instaladaSpotify())
+        o.put("version", versionSpotify())
         o.put("conectado", remoto?.isConnected == true)
         ultimoEstado?.let { s ->
             for (k in s.keys()) o.put(k, s.get(k))

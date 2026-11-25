@@ -1,0 +1,16 @@
+// Espejos Maven para builds LOCALES en el sandbox: repo.maven.apache.org
+// limita por IP (429) y desde Aliyun su espejo responde al instante.
+// No cambia el proyecto: se pasa con --init-script y el CI sigue usando
+// google()/mavenCentral() originales.
+allprojects {
+    buildscript {
+        repositories {
+            maven { url 'https://maven.aliyun.com/repository/public' }
+            maven { url 'https://maven.aliyun.com/repository/google' }
+        }
+    }
+    repositories {
+        maven { url 'https://maven.aliyun.com/repository/public' }
+        maven { url 'https://maven.aliyun.com/repository/google' }
+    }
+}
