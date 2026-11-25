@@ -41,8 +41,8 @@ android {
         applicationId "cl.cumbre30.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 90
-        versionName "1.27.2"
+        versionCode 91
+        versionName "1.28.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -78,6 +78,13 @@ repositories {
 
 dependencies {
     implementation fileTree(include: ['*.jar'], dir: 'libs')
+    // Spotify App Remote SDK (v0.8.0, appremote 2.1.0): AAR oficial de
+    // github.com/spotify/android-sdk/releases — no está en Maven Central.
+    // Controla la reproducción de la app de Spotify instalada (play/pause/
+    // saltar + pista actual) SIN permisos de notificaciones: el «acceso
+    // a las notificaciones» que Play Protect marcaba como fraude queda
+    // fuera del proyecto para siempre.
+    implementation files('libs/spotify-app-remote-release-0.8.0.aar')
     implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
     implementation "androidx.coordinatorlayout:coordinatorlayout:$androidxCoordinatorLayoutVersion"
     implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"

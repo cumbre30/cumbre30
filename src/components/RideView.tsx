@@ -35,6 +35,8 @@ import { useRutaProyectada } from "@/hooks/useRutaProyectada";
 import { fetchAvisosOperativos, textoAviso, type AvisoOperativo } from "@/lib/avisos";
 import { getFcConfig, HrTracker, zonaLabel, type ZonaId } from "@/lib/zonasFc";
 import { initAhorroAutomatico, setAhorroBateria, wakeLockSuspendido } from "@/lib/rideBateria";
+import { isNativeApp } from "@/lib/rideNative";
+import { SpotifyBoton, SpotifyPanel } from "@/components/SpotifyPanel";
 import { t, useLang } from "@/lib/i18n";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { LatLng } from "@/lib/park";
@@ -105,8 +107,12 @@ export function RideView(p: Props) {
   const lang = useLang(); // re-render al cambiar el idioma (selector)
   const [sosOpen, setSosOpen] = useState(false);
   const [sosMsg, setSosMsg] = useState<string | null>(null);
+  // Spotify (v1.28.0): control de la reproducción de la app de
+  // Spotify vía App Remote (sin permisos de notificaciones).
+  const [spotifyOpen, setSpotifyOpen] = useState(false);
+  const esNativo = isNativeApp();
   // Sensores Bluetooth (v1.12.14c): pulso y rueda viven en un panel
-  // que se abre desde el botón del banner (al lado del de música).
+  // que se abre desde el botón del banner (al lado del de Spotify).
   const [sensorOpen, setSensorOpen] = useState(false);
   // Punto 4: banner de avisos colapsado a icono por defecto.
   const [avisosOpen, setAvisosOpen] = useState(false);
@@ -452,12 +458,13 @@ export function RideView(p: Props) {
         >
           <BatteryCharging className="h-4 w-4" />
         </button>
-        {/* Música (v1.12.3): sesiones de media del teléfono al lado
+        {/* Spotify (v1.28.0): control de la app de Spotify al lado
             derecho del ahorro de batería - solo APK, sin abandonar
             las métricas del ride. */}
+        {esNativo && <SpotifyBoton abierto={spotifyOpen} onToggle={() => setSpotifyOpen((v) => !v)} />}
         {/* Sensores Bluetooth (v1.12.14c): el apartado sale de la caja de
             stats y vive en este botón del banner, al lado derecho del de
-            música. Borde verde con pulso conectado. */}
+            Spotify. Borde verde con pulso conectado. */}
         <button
           onClick={() => setSensorOpen((v) => !v)}
           aria-label={t("sens.aria")}
@@ -482,6 +489,10 @@ export function RideView(p: Props) {
       <div className={sensorOpen ? "" : "hidden"}>
         <SensorPanel onBpm={onBpm} />
       </div>
+
+      {/* Panel de Spotify (v1.28.0): App Remote conecta con la app de
+          Spotify (autorización una vez) y muestra pista + controles. */}
+      {esNativo && <SpotifyPanel abierto={spotifyOpen} onCerrar={() => setSpotifyOpen(false)} />}
 
       {/* Punto 4: banner de avisos completo (colapsado por defecto) */}
       {avisosOpen && (

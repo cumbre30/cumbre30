@@ -6,6 +6,11 @@
 *.ap_
 *.aab
 
+# Excepción: AAR VENDIDO (dependencia, no artefacto de build).
+# El App Remote SDK de Spotify no está en Maven Central; el binario
+# oficial va al repo para que Actions lo compile.
+!app/libs/spotify-app-remote-release-0.8.0.aar
+
 # Files for the ART/Dalvik VM
 *.dex
 

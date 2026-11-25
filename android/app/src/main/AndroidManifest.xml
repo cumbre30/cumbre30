@@ -1,6 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android" xmlns:tools="http://schemas.android.com/tools">
 
+    <!-- Spotify App Remote (v1.28.0): visibilidad de paquetes exigida por
+         Android 11+ para detectar y conectarse a la app de Spotify. No es
+         un permiso: solo permite consultar si Spotify está instalada y
+         abrir su UI de conexión. Reemplaza el antiguo listener de
+         notificaciones (eliminado en v1.27.2). -->
+    <queries>
+        <package android:name="com.spotify.music" />
+    </queries>
+
     <application
         android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"
@@ -20,6 +29,16 @@
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+            <!-- Retorno de la autorización de Spotify (redirect URI
+                 cumbre30://callback, registrado en el dashboard de
+                 developers.spotify.com). -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="cumbre30" android:host="callback" />
             </intent-filter>
 
         </activity>

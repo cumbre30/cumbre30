@@ -219,7 +219,22 @@ const D: Record<string, E> = {
   "clima.bloqueador": ["Usa bloqueador solar", "Use sunscreen", "Use protetor solar"],
   "clima.bloqueadorFuerte": ["UV muy alto: bloqueador, gorra y anteojos", "Very high UV: sunscreen, hat and glasses", "UV muito alto: protetor, boné e óculos"],
 
-  // ---------- música en el ride (v1.12.3: sesiones de media de Android) ----------
+  // ---------- Spotify en el ride (v1.28.0: App Remote SDK) ----------
+  "sp.aria": ["Spotify", "Spotify", "Spotify"],
+  "sp.titulo": ["Spotify", "Spotify", "Spotify"],
+  "sp.sub": ["Controla Spotify desde el ride: pausa, play y salta canciones sin salir de las métricas. La app de Spotify pide tu permiso una sola vez.", "Control Spotify from the ride: pause, play and skip without leaving the metrics. The Spotify app asks for your permission once.", "Controle o Spotify do pedal: pause, toque e pule sem sair das métricas. O app do Spotify pede sua permissão uma única vez."],
+  "sp.configPendiente": ["Spotify se activa en una próxima actualización de la app.", "Spotify will be enabled in an upcoming app update.", "O Spotify será ativado em uma próxima atualização do app."],
+  "sp.sinApp": ["Instala la app de Spotify en tu teléfono para controlarla desde el ride.", "Install the Spotify app on your phone to control it from the ride.", "Instale o app do Spotify no seu telefone para controlá-lo do pedal."],
+  "sp.sinSesion": ["Abre Spotify e inicia sesión con tu cuenta, luego pulsa Reconectar.", "Open Spotify and sign in with your account, then tap Reconnect.", "Abra o Spotify e entre com sua conta, depois toque em Reconectar."],
+  "sp.autorizacion": ["Spotify no autorizó la conexión: confirma que la app «Cumbre30» tenga tu cuenta permitida en el panel de desarrolladores (User Management) y vuelve a intentar.", "Spotify did not authorize the connection: make sure the «Cumbre30» app has your account allowed in the developer dashboard (User Management) and try again.", "O Spotify não autorizou a conexão: confirme que o app «Cumbre30» tem sua conta permitida no painel de desenvolvedores (User Management) e tente de novo."],
+  "sp.error": ["No se pudo conectar con Spotify. Revisa la conexión y vuelve a intentar.", "Could not connect to Spotify. Check your connection and try again.", "Não foi possível conectar ao Spotify. Verifique a conexão e tente de novo."],
+  "sp.reconectar": ["Reconectar", "Reconnect", "Reconectar"],
+  "sp.conectando": ["Conectando…", "Connecting…", "Conectando…"],
+  "sp.sinReproduccion": ["Abre Spotify y pon algo en marcha: aparecerá aquí.", "Open Spotify and start playing: it will appear here.", "Abra o Spotify e toque algo: ele aparecerá aqui."],
+  "sp.prevAria": ["Canción anterior", "Previous track", "Faixa anterior"],
+  "sp.playAria": ["Reproducir", "Play", "Tocar"],
+  "sp.pauseAria": ["Pausar", "Pause", "Pausar"],
+  "sp.nextAria": ["Canción siguiente", "Next track", "Próxima faixa"],
 
   // ---------- revisar actualizaciones (v1.12.4) ----------
   "act.titulo": ["Revisar actualizaciones", "Check for updates", "Buscar atualizações"],

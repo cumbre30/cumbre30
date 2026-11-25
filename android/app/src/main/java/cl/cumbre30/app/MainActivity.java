@@ -18,6 +18,8 @@ public class MainActivity extends BridgeActivity {
     registerPlugin(RideNativePlugin.class);
     // Inicio de sesión con Google (selector de cuentas nativo)
     registerPlugin(GoogleAuthPlugin.class);
+    // Control de Spotify durante el ride (App Remote, sin permisos)
+    registerPlugin(SpotifyPlugin.class);
     super.onCreate(savedInstanceState);
     hideStatusBar();
   }
