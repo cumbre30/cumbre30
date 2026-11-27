@@ -152,6 +152,9 @@ const CSS = `
    secundarios para las secciones nuevas. El comercio (planes,
    modal) conserva su acento ámbar histórico intacto. ── */
 #geo-root{--acento-n:#5a8f57;--acento-n-osc:#48774a;--tierra:#b9a58c;--piedra:#f0ede6;--cuerpo:#42514b}
+/* Kickers de las secciones corporativas en verde natural; los de la
+   vista planes (comercio) conservan el ámbar histórico. */
+#geo-root #bloques .seccion-kicker,#geo-root #soluciones .seccion-kicker,#geo-root #nosotros .seccion-kicker,#geo-root #contacto .seccion-kicker{color:var(--acento-n)}
 #geo-root .nav{display:flex;align-items:center;gap:20px}
 #geo-root .nav a{color:var(--texto);text-decoration:none;font-weight:600;font-size:.88rem;opacity:.8;transition:opacity .15s}
 #geo-root .nav a:hover{opacity:1;color:var(--verde)}
