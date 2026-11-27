@@ -595,15 +595,19 @@ export default function GeoSite({
                     className="mockup-rapiqo"
                     viewBox="0 0 360 240"
                     role="img"
-                    aria-label="Mockup de la interfaz de RAPIQO, la aplicación de escritorio de CumbreDocs"
+                    aria-label="Mockup de la interfaz de RAPIQO, la aplicación web de CumbreDocs"
                   >
+                    {/* Chrome de navegador (RAPIQO es una web) */}
                     <rect width="360" height="240" rx="10" fill="#f0ede6" />
-                    <rect x="0" y="0" width="360" height="26" rx="10" fill="#14453d" />
-                    <rect x="0" y="16" width="360" height="10" fill="#14453d" />
-                    <circle cx="17" cy="13" r="4" fill="#e8a33d" />
-                    <circle cx="31" cy="13" r="4" fill="#5a8f57" />
-                    <circle cx="45" cy="13" r="4" fill="#b9a58c" />
-                    <text x="180" y="17.5" textAnchor="middle" fill="#fff" fontSize="10" fontWeight="700" letterSpacing="2">RAPIQO</text>
+                    <rect x="0" y="0" width="360" height="26" rx="10" fill="#e3ded4" />
+                    <rect x="0" y="16" width="360" height="10" fill="#e3ded4" />
+                    <circle cx="16" cy="13" r="3.5" fill="#e8a33d" />
+                    <circle cx="29" cy="13" r="3.5" fill="#b9a58c" />
+                    <path d="M44 9 l-5 4 5 4" stroke="#6d7c76" strokeWidth="1.6" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M52 9 l5 4 -5 4" stroke="#c9c4ba" strokeWidth="1.6" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                    <rect x="64" y="4" width="200" height="18" rx="9" fill="#fff" stroke="#d8d3c8" />
+                    <circle cx="76" cy="13" r="3" fill="#5a8f57" />
+                    <text x="84" y="16.5" fontSize="9" fill="#6d7c76">rapiqo.cumbregeo.cl</text>
                     <rect x="12" y="38" width="90" height="190" rx="8" fill="#fff" stroke="#e3ded4" />
                     <rect x="22" y="50" width="70" height="16" rx="4" fill="#e7f2e6" />
                     <text x="30" y="61.5" fontSize="8" fontWeight="700" fill="#2e5e2b">PDF</text>
@@ -637,7 +641,7 @@ export default function GeoSite({
                     <span className="estado desarrollo">En desarrollo</span>
                   </h4>
                   <p style={{ color: "var(--cuerpo)", fontSize: ".95rem", margin: "8px 0 0" }}>
-                    Una herramienta de escritorio para procesar, convertir y trabajar con documentos PDF, Office y otros
+                    Una herramienta web para procesar, convertir y trabajar con documentos PDF, Office y otros
                     formatos.
                   </p>
                   <ul>
@@ -645,7 +649,7 @@ export default function GeoSite({
                       "Procesamiento de documentos PDF, Office, HTML y tablas",
                       "Conversión entre formatos de documento",
                       "Edición y gestión centralizada de archivos",
-                      "Aplicación de escritorio independiente",
+                      "Aplicación web independiente",
                     ].map((c) => (
                       <li key={c}>
                         <CheckCircle2 style={{ width: 15, height: 15 }} aria-hidden /> {c}

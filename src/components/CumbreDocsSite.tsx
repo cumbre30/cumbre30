@@ -60,16 +60,20 @@ function MockupRapiqo() {
       className="mockup"
       viewBox="0 0 360 240"
       role="img"
-      aria-label="Mockup de la interfaz de RAPIQO, aplicación de escritorio"
+      aria-label="Mockup de la interfaz de RAPIQO, aplicación web"
       style={{ display: "block", width: "100%", height: "auto" }}
     >
+      {/* Chrome de navegador (RAPIQO es una web) */}
       <rect width="360" height="240" rx="10" fill="#f0ede6" />
-      <rect x="0" y="0" width="360" height="26" rx="10" fill="#14453d" />
-      <rect x="0" y="16" width="360" height="10" fill="#14453d" />
-      <circle cx="17" cy="13" r="4" fill="#e8a33d" />
-      <circle cx="31" cy="13" r="4" fill="#5a8f57" />
-      <circle cx="45" cy="13" r="4" fill="#b9a58c" />
-      <text x="180" y="17.5" textAnchor="middle" fill="#fff" fontSize="10" fontWeight="700" letterSpacing="2">RAPIQO</text>
+      <rect x="0" y="0" width="360" height="26" rx="10" fill="#e3ded4" />
+      <rect x="0" y="16" width="360" height="10" fill="#e3ded4" />
+      <circle cx="16" cy="13" r="3.5" fill="#e8a33d" />
+      <circle cx="29" cy="13" r="3.5" fill="#b9a58c" />
+      <path d="M44 9 l-5 4 5 4" stroke="#6d7c76" strokeWidth="1.6" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M52 9 l5 4 -5 4" stroke="#c9c4ba" strokeWidth="1.6" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+      <rect x="64" y="4" width="200" height="18" rx="9" fill="#fff" stroke="#d8d3c8" />
+      <circle cx="76" cy="13" r="3" fill="#5a8f57" />
+      <text x="84" y="16.5" fontSize="9" fill="#6d7c76">rapiqo.cumbregeo.cl</text>
       <rect x="12" y="38" width="90" height="190" rx="8" fill="#fff" stroke="#e3ded4" />
       <rect x="22" y="50" width="70" height="16" rx="4" fill="#e7f2e6" />
       <text x="30" y="61.5" fontSize="8" fontWeight="700" fill="#2e5e2b">PDF</text>
@@ -104,7 +108,7 @@ const ALCANCE_RAPIQO = [
   "Procesamiento de documentos PDF, Office, HTML y tablas",
   "Conversión entre formatos de documento",
   "Edición y gestión centralizada de archivos",
-  "Aplicación de escritorio para Windows, macOS y Linux",
+  "Aplicación web: se usa desde el navegador, sin instalar nada",
 ];
 
 export default function CumbreDocsSite() {
@@ -131,7 +135,7 @@ export default function CumbreDocsSite() {
           <span className="kicker">CumbreDocs · Línea Documentos &amp; Productividad</span>
           <h1>Documentos, más simples.</h1>
           <p>
-            CumbreDocs es el ecosistema de CumbreGeo para trabajar con documentos: herramientas propias, de escritorio,
+            CumbreDocs es el ecosistema de CumbreGeo para trabajar con documentos: herramientas propias en la web,
             pensadas para procesar, convertir y organizar archivos sin fricción.
           </p>
         </div>
@@ -152,14 +156,14 @@ export default function CumbreDocsSite() {
               <h3>Propósito</h3>
               <p>
                 Simplificar el trabajo cotidiano con documentos: procesar, convertir, editar y gestionar archivos en
-                una sola herramienta de escritorio, sin subir nada a ningún servidor.
+                una sola herramienta web, con la privacidad como principio de diseño.
               </p>
             </div>
             <div className="tarjeta">
               <h3>Filosofía de desarrollo</h3>
               <p>
                 La misma del estudio: productos funcionales que resuelven problemas concretos, con desarrollo continuo,
-                sin publicidad y con los datos del usuario en su propio equipo.
+                sin publicidad y con la privacidad y la autonomía como principios.
               </p>
             </div>
           </div>
@@ -197,7 +201,7 @@ export default function CumbreDocsSite() {
                   <span className="estado">En desarrollo</span>
                 </h4>
                 <p style={{ color: "#42514b", fontSize: ".95rem", margin: "8px 0 0" }}>
-                  Una herramienta de escritorio para procesar, convertir y trabajar con documentos PDF, Office y otros
+                  Una herramienta web para procesar, convertir y trabajar con documentos PDF, Office y otros
                   formatos.
                 </p>
                 <ul className="dots">
@@ -208,8 +212,8 @@ export default function CumbreDocsSite() {
                   ))}
                 </ul>
                 <p style={{ margin: "0 0 16px", fontSize: ".88rem", color: "var(--gris)" }}>
-                  Aún no hay versión pública ni descargas disponibles. Cuando esté lista, el enlace aparecerá aquí y en
-                  el sitio de CumbreGeo.
+                  Aún no hay versión pública disponible. Cuando lo esté, el enlace aparecerá aquí y en el sitio de
+                  CumbreGeo.
                 </p>
                 <a className="btn btn-secundario" href={`mailto:${CONTACT_EMAIL}?subject=RAPIQO · consulta`}>
                   <Mail style={{ width: 16, height: 16, verticalAlign: "-3px" }} aria-hidden /> Consultar por RAPIQO
