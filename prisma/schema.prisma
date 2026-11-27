@@ -594,3 +594,24 @@ model CulturaFavorito {
   @@unique([userId, recursoId])
   @@map("cultura_favoritos")
 }
+
+// ============================================================
+// Mensajes del formulario de contacto del sitio corporativo
+// (/geo#contacto, v1.29.0): consultas comerciales y soporte de
+// productos. Se guarda en DB (fuente de verdad) y se reenvía por
+// correo al buzón de contacto (mismo Gmail SMTP de proDeliver).
+model MensajeContacto {
+  id        String   @id @default(cuid())
+  nombre    String
+  correo    String
+  // comercial | soporte
+  tipo      String
+  mensaje   String
+  // false → pendiente de revisión del equipo
+  leido     Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([correo])
+  @@index([createdAt])
+  @@map("mensajes_contacto")
+}

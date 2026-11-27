@@ -2,17 +2,32 @@ import type { Metadata } from "next";
 import GeoSite from "@/components/GeoSite";
 
 // ============================================================
-// /geo - Sitio público de Cumbre GEO (diseño del prototipo aprobado).
-// Vistas internas: home ⇄ planes. ?vista=planes abre directo la
-// vista de planes y ?app=<id> selecciona la app de los planes
-// (lo usan los redirects nombrados por app: /cumbre30pro y el
-// alias heredado /pro, para mantener vivos los enlaces antiguos).
+// /geo - Portada corporativa de CumbreGeo (v1.29.0, brief cumbregeo.cl).
+// CumbreGeo como marca matriz: líneas Outdoor & Geospatial y
+// Documentos & Productividad (CumbreDocs → RAPIQO). Vistas internas:
+// home ⇄ planes. ?vista=planes abre directo la vista de planes y
+// ?app=<id> selecciona la app de los planes (lo usan los redirects
+// nombrados por app: /cumbre30pro y el alias heredado /pro).
 // ============================================================
 
 export const metadata: Metadata = {
-  title: "Cumbre GEO - Tecnología para descubrir",
+  // SEO de la portada (brief §8): posiciona a CumbreGeo como
+  // desarrollador de soluciones tecnológicas — sin competir con las
+  // palabras clave de cada producto (esas viven en su página).
+  title: "CumbreGeo | Desarrollo de aplicaciones y soluciones digitales",
   description:
-    "Qué hacemos y cómo lo hacemos: tecnología para descubrir, con motor GPS propio, cartografía open source y herramientas que funcionan sin señal. Conoce Cumbre30, sus detalles y sus planes.",
+    "Descubre CumbreGeo, un ecosistema de aplicaciones y herramientas digitales propias para navegación, ciclismo, documentos y productividad.",
+  alternates: { canonical: "/geo" },
+  openGraph: {
+    title: "CumbreGeo | Desarrollo de aplicaciones y soluciones digitales",
+    description:
+      "Ecosistema de aplicaciones y herramientas digitales propias para navegación, ciclismo, documentos y productividad. Líneas Outdoor & Geospatial y CumbreDocs.",
+    url: "/geo",
+    siteName: "CumbreGeo",
+    images: [{ url: "/og-cumbregeo.jpg", width: 1200, height: 630, alt: "CumbreGeo · Tecnología que conecta ideas con soluciones" }],
+    locale: "es_CL",
+    type: "website",
+  },
 };
 
 export default async function GeoPage({
