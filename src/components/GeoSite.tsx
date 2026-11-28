@@ -649,7 +649,7 @@ export default function GeoSite({
                       "Procesamiento de documentos PDF, Office, HTML y tablas",
                       "Conversión entre formatos de documento",
                       "Edición y gestión centralizada de archivos",
-                      "Aplicación web independiente",
+                      "Web app: tus documentos no salen de tu navegador",
                     ].map((c) => (
                       <li key={c}>
                         <CheckCircle2 style={{ width: 15, height: 15 }} aria-hidden /> {c}

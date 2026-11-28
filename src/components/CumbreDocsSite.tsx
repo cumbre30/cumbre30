@@ -108,7 +108,7 @@ const ALCANCE_RAPIQO = [
   "Procesamiento de documentos PDF, Office, HTML y tablas",
   "Conversión entre formatos de documento",
   "Edición y gestión centralizada de archivos",
-  "Aplicación web: se usa desde el navegador, sin instalar nada",
+  "Aplicación web: procesamiento en tu navegador, sin subir documentos",
 ];
 
 export default function CumbreDocsSite() {
@@ -156,14 +156,15 @@ export default function CumbreDocsSite() {
               <h3>Propósito</h3>
               <p>
                 Simplificar el trabajo cotidiano con documentos: procesar, convertir, editar y gestionar archivos en
-                una sola herramienta web, con la privacidad como principio de diseño.
+                una sola herramienta web, sin subir documentos a ningún servidor — el procesamiento corre en tu
+                navegador.
               </p>
             </div>
             <div className="tarjeta">
               <h3>Filosofía de desarrollo</h3>
               <p>
                 La misma del estudio: productos funcionales que resuelven problemas concretos, con desarrollo continuo,
-                sin publicidad y con la privacidad y la autonomía como principios.
+                sin publicidad y con tus documentos siempre dentro de tu navegador.
               </p>
             </div>
           </div>
