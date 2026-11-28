@@ -199,7 +199,7 @@ export default function ComentariosProducto({ producto }: { producto: "cumbre30"
         ) : fallo ? (
           <p className="comentario-vacio">No se pudieron cargar los comentarios.</p>
         ) : lista.length === 0 ? (
-          <p className="comentario-vacio">Aún no hay evaluaciones — sé la primera persona en opinar.</p>
+          <p className="comentario-vacio">Aún no hay evaluaciones: sé la primera persona en opinar.</p>
         ) : (
           lista.map((c) => (
             <article key={c.id} className="comentario-item">
