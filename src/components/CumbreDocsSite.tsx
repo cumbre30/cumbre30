@@ -1,12 +1,11 @@
 // ============================================================
-// CumbreDocsSite (v1.29.0): contenido de la página /geo/cumbredocs.
+// CumbreDocsSite (v1.29.3): contenido de la página /geo/cumbredocs.
 // Línea DOCUMENTOS & PRODUCTIVIDAD de CumbreGeo — RAPIQO es su
-// primer producto (estado real: en desarrollo). Componente de
-// servidor (sin estado); estilos acotados a #cd-root con la
-// misma paleta corporativa del sitio.
+// primer producto (estado real: versión web 2.9.0 en línea en
+// rapiqo.cumbregeo.cl). Componente de servidor (sin estado);
+// estilos acotados a #cd-root con la misma paleta corporativa.
 // ============================================================
-import { CheckCircle2, FileText, Mail } from "lucide-react";
-import { CONTACT_EMAIL } from "@/lib/proConfig";
+import { CheckCircle2, FileText } from "lucide-react";
 
 const CSS = `
 #cd-root{--verde:#14453d;--verde-osc:#0b2b26;--acento-n:#5a8f57;--tierra:#b9a58c;--piedra:#f0ede6;--crema:#f6f4ef;--texto:#24312d;--gris:#6d7c76;--borde:#e3ded4;--blanco:#fff;--radio:16px;--sombra:0 8px 24px rgba(11,43,38,.10);color:var(--texto);background:var(--crema);line-height:1.6;font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
@@ -39,6 +38,7 @@ const CSS = `
 #cd-root .producto-head h3{margin:0;font-size:1rem;color:var(--verde-osc);letter-spacing:.03em}
 #cd-root .producto-cuerpo{display:grid;grid-template-columns:300px 1fr;gap:28px;padding:26px;align-items:center}
 #cd-root .estado{display:inline-block;font-size:.72rem;font-weight:700;padding:4px 12px;border-radius:999px;margin-left:8px;vertical-align:middle;background:#f6ecdb;color:#8a6a2f;border:1px solid #ecd9b7}
+#cd-root .estado.disponible{background:#e7f2e6;color:#2e5e2b;border:1px solid #cfe4cd}
 #cd-root ul.dots{margin:14px 0 18px;padding:0;list-style:none;display:grid;gap:7px}
 #cd-root ul.dots li{display:flex;gap:8px;align-items:flex-start;font-size:.92rem;color:#42514b}
 #cd-root ul.dots li svg{flex-shrink:0;color:var(--acento-n);margin-top:2px}
@@ -193,13 +193,13 @@ export default function CumbreDocsSite() {
               <div style={{ border: "1px solid var(--borde)", borderRadius: 12, background: "var(--blanco)", padding: 10 }}>
                 <MockupRapiqo />
                 <p style={{ margin: "8px 0 0", fontSize: ".78rem", color: "var(--gris)", textAlign: "center" }}>
-                  Mockup de interfaz · funcionalidades en desarrollo activo
+                  Interfaz de RAPIQO 2.9.0 · en línea en rapiqo.cumbregeo.cl
                 </p>
               </div>
               <div>
                 <h4 className="nombre">
                   RAPIQO
-                  <span className="estado">En desarrollo</span>
+                  <span className="estado disponible">Disponible · beta web</span>
                 </h4>
                 <p style={{ color: "#42514b", fontSize: ".95rem", margin: "8px 0 0" }}>
                   Una herramienta web para procesar, convertir y trabajar con documentos PDF, Office y otros
@@ -213,12 +213,18 @@ export default function CumbreDocsSite() {
                   ))}
                 </ul>
                 <p style={{ margin: "0 0 16px", fontSize: ".88rem", color: "var(--gris)" }}>
-                  Aún no hay versión pública disponible. Cuando lo esté, el enlace aparecerá aquí y en el sitio de
-                  CumbreGeo.
+                  La versión web ya está disponible en <b>rapiqo.cumbregeo.cl</b> — funciona en el navegador, sin
+                  instalar nada. La licencia PRO (pago único, $14.990 CLP) se compra por MercadoPago y la clave llega
+                  por correo; se activa offline en Ajustes → Licencia.
                 </p>
-                <a className="btn btn-secundario" href={`mailto:${CONTACT_EMAIL}?subject=RAPIQO · consulta`}>
-                  <Mail style={{ width: 16, height: 16, verticalAlign: "-3px" }} aria-hidden /> Consultar por RAPIQO
-                </a>
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                  <a className="btn btn-acento" href="https://rapiqo.cumbregeo.cl" target="_blank" rel="noreferrer">
+                    Abrir RAPIQO ↗
+                  </a>
+                  <a className="btn btn-secundario" href="https://mpago.la/2wvHvUS" target="_blank" rel="noreferrer">
+                    Licencia PRO · MercadoPago
+                  </a>
+                </div>
               </div>
             </div>
           </div>

@@ -638,7 +638,7 @@ export default function GeoSite({
                   <p className="linea-de">Línea CumbreDocs</p>
                   <h4 className="producto-nombre">
                     RAPIQO
-                    <span className="estado desarrollo">En desarrollo</span>
+                    <span className="estado disponible">Disponible · beta web</span>
                   </h4>
                   <p style={{ color: "var(--cuerpo)", fontSize: ".95rem", margin: "8px 0 0" }}>
                     Una herramienta web para procesar, convertir y trabajar con documentos PDF, Office y otros
@@ -657,9 +657,12 @@ export default function GeoSite({
                     ))}
                   </ul>
                   <div className="producto-acciones">
+                    <a className="btn btn-acento" href="https://rapiqo.cumbregeo.cl" target="_blank" rel="noreferrer">
+                      Abrir RAPIQO
+                    </a>
                     <a className="btn btn-secundario" href="/geo/cumbredocs">Conocer CumbreDocs</a>
                   </div>
-                  <p className="producto-nota">Mockup de interfaz · funcionalidades en desarrollo activo.</p>
+                  <p className="producto-nota">Primera versión web en línea (2.9.0): rapiqo.cumbregeo.cl.</p>
                 </div>
               </div>
             </div>

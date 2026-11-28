@@ -102,3 +102,4 @@ public/cumbre30-codigo.zip
 # credenciales CI (excluidas del repo)
 .tokens/
 tmp/
+rapiqo-keys/

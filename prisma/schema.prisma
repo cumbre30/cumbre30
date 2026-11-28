@@ -102,6 +102,22 @@ model ProDelivery {
   @@index([email])
 }
 
+// Entrega de licencias RAPIQO (venta web de la línea CumbreDocs,
+// ver src/lib/rapiqoDeliver.ts). Misma idempotencia que ProDelivery:
+// un pago de Mercado Pago entrega exactamente UNA clave RQ1 aunque
+// el webhook se repita.
+model RapiqoDelivery {
+  id        String   @id @default(cuid())
+  paymentId String   @unique
+  email     String
+  license   String
+  amount    Int
+  via       String // webhook | sync | manual
+  createdAt DateTime @default(now())
+
+  @@index([email])
+}
+
 model Ride {
   id           String   @id @default(cuid())
   userId       String
