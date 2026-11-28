@@ -525,9 +525,14 @@ export default function GeoSite({
   };
 
   // Navegación por anclas dentro de la vista home (cierra el menú móvil).
+  // «#» = Inicio: sube al tope de la página.
   const irA = (ancla: string) => (e: MouseEvent) => {
     e.preventDefault();
     setMenuAbierto(false);
+    if (ancla === "#") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
     const destino = document.querySelector(ancla);
     if (destino) destino.scrollIntoView({ behavior: "smooth", block: "start" });
     else window.scrollTo({ top: 0, behavior: "smooth" });
@@ -588,6 +593,7 @@ export default function GeoSite({
             </a>
             <nav className="nav" aria-label="Navegación principal">
               <a href="#" onClick={irA("#")}>Inicio</a>
+              <a href="#soluciones" onClick={irA("#soluciones")}>Soluciones</a>
               <a href="#nosotros" onClick={irA("#nosotros")}>Nosotros</a>
               <a href="#contacto" onClick={irA("#contacto")}>Contacto</a>
             </nav>
@@ -597,6 +603,7 @@ export default function GeoSite({
           </div>
           <nav className={`nav-movil${menuAbierto ? " abierto" : ""}`} aria-label="Menú móvil">
             <a href="#" onClick={irA("#")}>Inicio</a>
+            <a href="#soluciones" onClick={irA("#soluciones")}>Soluciones</a>
             <a href="#nosotros" onClick={irA("#nosotros")}>Nosotros</a>
             <a href="#contacto" onClick={irA("#contacto")}>Contacto</a>
           </nav>
