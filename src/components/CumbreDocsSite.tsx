@@ -132,7 +132,7 @@ export default function CumbreDocsSite() {
       {/* Hero de la línea */}
       <div className="hero">
         <div className="contenedor">
-          <span className="kicker">CumbreDocs · Línea Documentos &amp; Productividad</span>
+          <span className="kicker">CumbreDocs</span>
           <h1>Documentos, más simples.</h1>
           <p>
             CumbreDocs es el ecosistema de CumbreGeo para trabajar con documentos: herramientas propias en la web,
@@ -186,7 +186,7 @@ export default function CumbreDocsSite() {
                 <FileText style={{ width: 20, height: 20 }} aria-hidden />
               </span>
               <div>
-                <h3>DOCUMENTOS &amp; PRODUCTIVIDAD · CUMBREDOCS</h3>
+                <h3>CumbreDocs</h3>
               </div>
             </div>
             <div className="producto-cuerpo">

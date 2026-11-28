@@ -446,11 +446,6 @@ function FooterGeo() {
             </p>
           </div>
           <div>
-            <h4>Líneas</h4>
-            <a href="#soluciones">Outdoor &amp; Geospatial</a>
-            <a href="/geo/cumbredocs">Documentos &amp; Productividad</a>
-          </div>
-          <div>
             <h4>Productos</h4>
             <a href="/geo/cumbreoutdoor">CumbreOutdoor</a>
             <a href="/geo/cumbredocs">CumbreDocs</a>
@@ -670,7 +665,7 @@ export default function GeoSite({
                   <Mountain style={{ width: 20, height: 20 }} aria-hidden />
                 </span>
                 <div>
-                  <h3>OUTDOOR &amp; GEOSPATIAL</h3>
+                  <h3>CumbreOutdoor</h3>
                   <p>Soluciones digitales para explorar, navegar y conectar con el entorno.</p>
                 </div>
               </div>
@@ -679,7 +674,6 @@ export default function GeoSite({
                   <img src={app30.imagenes[0]?.src} alt="Cumbre30 registrando un ride con mapa en vivo" />
                 </div>
                 <div>
-                  <p className="linea-de">Línea CumbreOutdoor</p>
                   <h4 className="producto-nombre">
                     {app30.nombre}
                     <span className="estado disponible">Disponible · v{app30.version}</span>
@@ -711,7 +705,7 @@ export default function GeoSite({
                   <FileText style={{ width: 20, height: 20 }} aria-hidden />
                 </span>
                 <div>
-                  <h3>DOCUMENTOS &amp; PRODUCTIVIDAD</h3>
+                  <h3>CumbreDocs</h3>
                   <p>Herramientas digitales para trabajar con documentos de forma más simple y eficiente.</p>
                 </div>
               </div>
@@ -720,7 +714,6 @@ export default function GeoSite({
                   <MockupRapiqoGeo />
                 </div>
                 <div>
-                  <p className="linea-de">Línea CumbreDocs</p>
                   <h4 className="producto-nombre">
                     RAPIQO
                     <span className="estado disponible">Disponible · v{RAPIQO_VERSION}</span>
@@ -752,11 +745,6 @@ export default function GeoSite({
                 </div>
               </div>
             </div>
-
-            <p className="producto-nota">
-              La línea Outdoor seguirá creciendo con nuevas aplicaciones geográficas y outdoor; en Documentos &amp;
-              Productividad, RAPIQO es el primer producto del ecosistema CumbreDocs.
-            </p>
           </div>
         </section>
 
@@ -1371,13 +1359,6 @@ export default function GeoSite({
               {app.id === "rapiqo" ? (
                 <>
                   {/* RAPIQO (v1.29.5): web en producción, sin APK */}
-                  <a href={RAPIQO_URL} target="_blank" rel="noreferrer" className="btn btn-acento apk-btn">
-                    Abrir RAPIQO en el navegador
-                  </a>
-                  <p className="apk-nota">
-                    Web app: funciona en el navegador, sin instalar nada. Una vez cargada, procesa incluso sin
-                    conexión.
-                  </p>
                   <div className="capturas" style={{ justifyContent: "center" }}>
                     <div
                       style={{

@@ -86,7 +86,7 @@ export default function CumbreOutdoorSite() {
       {/* Hero de la línea */}
       <div className="hero">
         <div className="contenedor">
-          <span className="kicker">CumbreOutdoor · Línea Outdoor &amp; Geospatial</span>
+          <span className="kicker">CumbreOutdoor</span>
           <h1>Explora, con tecnología propia.</h1>
           <p>
             CumbreOutdoor es la línea outdoor y geoespacial de CumbreGeo: aplicaciones propias para explorar, navegar
@@ -139,7 +139,7 @@ export default function CumbreOutdoorSite() {
                 <Mountain style={{ width: 20, height: 20 }} aria-hidden />
               </span>
               <div>
-                <h3>OUTDOOR &amp; GEOSPATIAL · CUMBREOUTDOOR</h3>
+                <h3>CumbreOutdoor</h3>
               </div>
             </div>
             <div className="producto-cuerpo">
