@@ -593,11 +593,8 @@ export default function GeoSite({
             </a>
             <nav className="nav" aria-label="Navegación principal">
               <a href="#" onClick={irA("#")}>Inicio</a>
-              <a href="#soluciones" onClick={irA("#soluciones")}>Soluciones</a>
-              <a href="/geo/cumbredocs">CumbreDocs</a>
               <a href="#nosotros" onClick={irA("#nosotros")}>Nosotros</a>
               <a href="#contacto" onClick={irA("#contacto")}>Contacto</a>
-              <a className="nav-cta" href="#soluciones" onClick={irA("#soluciones")}>Explorar soluciones</a>
             </nav>
             <button className="nav-toggle" onClick={() => setMenuAbierto((v) => !v)} aria-expanded={menuAbierto} aria-label="Abrir o cerrar el menú">
               {menuAbierto ? <X style={{ width: 20, height: 20 }} aria-hidden /> : <Menu style={{ width: 20, height: 20 }} aria-hidden />}
@@ -605,16 +602,13 @@ export default function GeoSite({
           </div>
           <nav className={`nav-movil${menuAbierto ? " abierto" : ""}`} aria-label="Menú móvil">
             <a href="#" onClick={irA("#")}>Inicio</a>
-            <a href="#soluciones" onClick={irA("#soluciones")}>Soluciones</a>
-            <a href="/geo/cumbredocs" onClick={() => setMenuAbierto(false)}>CumbreDocs</a>
             <a href="#nosotros" onClick={irA("#nosotros")}>Nosotros</a>
             <a href="#contacto" onClick={irA("#contacto")}>Contacto</a>
-            <a className="nav-cta" href="#soluciones" onClick={irA("#soluciones")}>Explorar soluciones</a>
           </nav>
         </header>
 
         {/* Hero corporativo (brief §4.A): textos del brief tal cual,
-            motivo topográfico + mockup real de Cumbre30 en vivo. */}
+            motivo topográfico sobre fondo verde, sin imagen. */}
         <div className="hero" id="top">
           <svg className="hero-topo" viewBox="0 0 1200 620" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
             <g fill="none" stroke="#ffffff" strokeOpacity="0.09" strokeWidth="1.5">
@@ -638,20 +632,8 @@ export default function GeoSite({
                 cotidianas.
               </p>
               <div className="hero-acciones">
-                <a className="btn btn-acento" href="#soluciones" onClick={irA("#soluciones")}>Explorar soluciones</a>
                 <a className="btn btn-borde-blanco" href="#nosotros" onClick={irA("#nosotros")}>Conocer CumbreGeo</a>
               </div>
-            </div>
-            <div className="hero-visual">
-              <div className="ventana">
-                <div className="ventana-barra" aria-hidden="true">
-                  <span />
-                  <span />
-                  <span />
-                </div>
-                <img src="/apps/cumbre30/01-ride.jpg" alt="Cumbre30 en funcionamiento durante un ride" />
-              </div>
-              <div className="ventana-pie">Cumbre30 · ride en vivo</div>
             </div>
           </div>
         </div>
