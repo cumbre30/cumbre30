@@ -281,6 +281,7 @@ const CSS = `
 #geo-root .comentario-cab time{margin-left:auto;font-size:.78rem}
 #geo-root .comentario-item p{margin:6px 0 0;font-size:.92rem;color:var(--cuerpo);overflow-wrap:anywhere}
 #geo-root .comentario-vacio{color:var(--gris);font-size:.88rem;margin:8px 0 0}
+#geo-root .comentario-forma .hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
 `;
 
 type Vista = "home" | "planes" | "planesRapiqo";
