@@ -1,10 +1,10 @@
 // ============================================================
-// /geo/cumbredocs (v1.29.0): página de la línea DOCUMENTOS &
+// /geo/cumbredocs (v1.29.4): página de la línea DOCUMENTOS &
 // PRODUCTIVIDAD. Presenta el ecosistema CumbreDocs y destaca
 // RAPIQO como su primer producto.
 //   · Solo funcionalidades y alcance definidos por el producto:
 //     nada de features inventadas ni integraciones prometidas.
-//   · Estado real: versión web 2.9.0 en línea (rapiqo.cumbregeo.cl);
+//   · Estado real: versión web 2.9.1 en línea (rapiqo.cumbregeo.cl);
 //     licencia PRO por MercadoPago con entrega de clave por correo.
 //   · Estética: misma paleta corporativa del sitio (#geo-root),
 //     acotada a #cd-root para no filtrarse al resto del sitio.

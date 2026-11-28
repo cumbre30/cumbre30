@@ -662,7 +662,7 @@ export default function GeoSite({
                     </a>
                     <a className="btn btn-secundario" href="/geo/cumbredocs">Conocer CumbreDocs</a>
                   </div>
-                  <p className="producto-nota">Primera versión web en línea (2.9.0): rapiqo.cumbregeo.cl.</p>
+                  <p className="producto-nota">Primera versión web en línea (2.9.1): rapiqo.cumbregeo.cl.</p>
                 </div>
               </div>
             </div>

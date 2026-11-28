@@ -193,7 +193,7 @@ export default function CumbreDocsSite() {
               <div style={{ border: "1px solid var(--borde)", borderRadius: 12, background: "var(--blanco)", padding: 10 }}>
                 <MockupRapiqo />
                 <p style={{ margin: "8px 0 0", fontSize: ".78rem", color: "var(--gris)", textAlign: "center" }}>
-                  Interfaz de RAPIQO 2.9.0 · en línea en rapiqo.cumbregeo.cl
+                  Interfaz de RAPIQO 2.9.1 · en línea en rapiqo.cumbregeo.cl
                 </p>
               </div>
               <div>
