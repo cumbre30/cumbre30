@@ -110,7 +110,7 @@ export default function CumbreOutdoorSite() {
               <h3>Propósito</h3>
               <p>
                 Acompañar el recorrido de principio a fin: registrar, navegar y comprobar lo vivido con datos propios,
-                mapas offline y constancias verificables — todo desde el teléfono, sin publicidad.
+                mapas offline y constancias verificables, todo desde el teléfono, sin publicidad.
               </p>
             </div>
             <div className="tarjeta">
@@ -131,7 +131,7 @@ export default function CumbreOutdoorSite() {
           <h2 className="seccion-titulo">El primer producto: Cumbre30</h2>
           <p className="seccion-sub">
             Cumbre30 es el primer producto de CumbreOutdoor y define el rumbo de la línea. La línea seguirá creciendo
-            con nuevas aplicaciones geográficas y outdoor — aquí se anunciarán cuando estén en camino.
+            con nuevas aplicaciones geográficas y outdoor; aquí se anunciarán cuando estén en camino.
           </p>
           <div className="producto">
             <div className="producto-head">
@@ -164,16 +164,6 @@ export default function CumbreOutdoorSite() {
                     </li>
                   ))}
                 </ul>
-                <p style={{ margin: "0 0 16px", fontSize: ".88rem", color: "var(--gris)" }}>
-                  Gratis, sin publicidad y hecha en Chile. El Plan Pro (pago único, $6.500 precio fundador) desbloquea
-                  export GPX, constancias ilimitadas, segmentos del cerro, buscador universal, historial completo y
-                  estadísticas avanzadas — se compra por MercadoPago y el código llega por correo.
-                </p>
-                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                  <a className="btn btn-acento" href="/demo">Probar demo ↗</a>
-                  <a className="btn btn-secundario" href="/geo?vista=planes&amp;app=cumbre30">Ver planes Pro · $6.500</a>
-                  <a className="btn btn-secundario" href="/geo#soluciones">Ver detalles y descarga</a>
-                </div>
               </div>
             </div>
           </div>

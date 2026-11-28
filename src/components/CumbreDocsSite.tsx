@@ -156,7 +156,7 @@ export default function CumbreDocsSite() {
               <h3>Propósito</h3>
               <p>
                 Simplificar el trabajo cotidiano con documentos: procesar, convertir, editar y gestionar archivos en
-                una sola herramienta web, sin subir documentos a ningún servidor — el procesamiento corre en tu
+                una sola herramienta web, sin subir documentos a ningún servidor: el procesamiento corre en tu
                 navegador.
               </p>
             </div>
@@ -178,7 +178,7 @@ export default function CumbreDocsSite() {
           <h2 className="seccion-titulo">El primer producto: RAPIQO</h2>
           <p className="seccion-sub">
             RAPIQO es el primer producto de CumbreDocs y define el rumbo de la línea. La línea seguirá creciendo con
-            nuevas herramientas documentales — aquí se anunciarán cuando estén en camino.
+            nuevas herramientas documentales; aquí se anunciarán cuando estén en camino.
           </p>
           <div className="producto">
             <div className="producto-head">
@@ -212,19 +212,6 @@ export default function CumbreDocsSite() {
                     </li>
                   ))}
                 </ul>
-                <p style={{ margin: "0 0 16px", fontSize: ".88rem", color: "var(--gris)" }}>
-                  La versión web ya está disponible en <b>rapiqo.cumbregeo.cl</b> — funciona en el navegador, sin
-                  instalar nada. La licencia PRO (pago único, $14.990 CLP) se compra por MercadoPago y la clave llega
-                  por correo; se activa offline en Ajustes → Licencia.
-                </p>
-                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                  <a className="btn btn-acento" href="https://rapiqo.cumbregeo.cl" target="_blank" rel="noreferrer">
-                    Abrir RAPIQO ↗
-                  </a>
-                  <a className="btn btn-secundario" href="https://mpago.la/2wvHvUS" target="_blank" rel="noreferrer">
-                    Licencia PRO · MercadoPago
-                  </a>
-                </div>
               </div>
             </div>
           </div>

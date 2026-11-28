@@ -370,11 +370,6 @@ const RAPIQO_MODAL: ModalApp = {
       cuerpo:
         "Sin cuentas, sin subidas y sin rastreo: RAPIQO se ejecuta íntegramente en tu navegador y el procesamiento funciona incluso sin conexión. Los documentos de la sesión viven en la memoria de la pestaña y se liberan al cerrarla.",
     },
-    {
-      titulo: "Licencia PRO",
-      cuerpo:
-        "Pago único $14.990. Incluye: lotes y flujos sin límite de archivos ni de etapas; plantillas de flujo guardadas y reutilizables; todas las herramientas actuales y futuras de la plataforma web; funciones nuevas durante 12 meses (la app ya instalada sigue funcionando para siempre). La clave (RQ1.…) se compra por MercadoPago, llega por correo y se activa offline en Ajustes → Licencia.",
-    },
   ],
   imagenes: [],
   apk: { disponible: false },
@@ -457,17 +452,12 @@ function FooterGeo() {
           </div>
           <div>
             <h4>Productos</h4>
-            <a href="/geo?vista=planes&amp;app=cumbre30">Cumbre30</a>
             <a href="/geo/cumbreoutdoor">CumbreOutdoor</a>
             <a href="/geo/cumbredocs">CumbreDocs</a>
-            <a href="/geo/cumbredocs#rapiqo">RAPIQO</a>
           </div>
           <div>
-            <h4>Contacto y legal</h4>
+            <h4>Contacto</h4>
             <a href="#contacto">Formulario de contacto</a>
-            <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>
-            <a href="/geo/cumbre30/privacidad">Política de privacidad</a>
-            <a href="/geo/cumbre30/terminos">Términos y condiciones</a>
           </div>
         </div>
         <div className="footer-base">© {new Date().getFullYear()} CumbreGeo · Todos los derechos reservados.</div>
@@ -777,10 +767,6 @@ export default function GeoSite({
                     </a>
                     <a className="btn btn-fantasma" href="/geo/cumbredocs">Conocer CumbreDocs</a>
                   </div>
-                  <p className="producto-nota">
-                    Licencia PRO de pago único (${RAPIQO_PRECIO}) con entrega de clave por correo · versión web en
-                    línea ({RAPIQO_VERSION}): rapiqo.cumbregeo.cl.
-                  </p>
                 </div>
               </div>
             </div>
@@ -1311,7 +1297,7 @@ export default function GeoSite({
               }}
             >
               <Wifi style={{ width: 18, height: 18, flexShrink: 0, color: "var(--verde)", marginTop: 2 }} aria-hidden />
-              RAPIQO funciona 100% en tu navegador: una vez cargada la página, todo el procesamiento es local —
+              RAPIQO funciona 100% en tu navegador: una vez cargada la página, todo el procesamiento es local,
               incluso sin conexión.
             </p>
           </div>
@@ -1426,9 +1412,7 @@ export default function GeoSite({
                       </p>
                     </div>
                   </div>
-                  <h4 style={{ color: "var(--verde-osc)", margin: "0 0 6px" }}>Descripción</h4>
-                  <p style={{ color: C.cuerpo, fontSize: ".95rem", margin: 0 }}>{app.descripcionBreve}</p>
-                  <h4 style={{ color: "var(--verde-osc)", margin: "22px 0 2px" }}>Detalle completo</h4>
+                  <h4 style={{ color: "var(--verde-osc)", margin: "0 0 6px" }}>Detalle completo</h4>
                   <div className="acordeon">
                     {app.detalleCompleto.map((s, i) => (
                       <details key={s.titulo} open={i === 0}>
@@ -1439,18 +1423,6 @@ export default function GeoSite({
                         <div className="cuerpo">{s.cuerpo}</div>
                       </details>
                     ))}
-                  </div>
-                  <div className="modal-enlaces">
-                    <a className="enlace-app" href={RAPIQO_PAY_URL} target="_blank" rel="noopener noreferrer">
-                      <ShoppingBag style={{ width: 15, height: 15 }} aria-hidden /> Licencia PRO · MercadoPago
-                      (${RAPIQO_PRECIO})
-                    </a>
-                    <a className="enlace-app" href="/geo/cumbredocs">
-                      Conocer CumbreDocs
-                    </a>
-                    <a className="enlace-app" href={`mailto:${CONTACT_EMAIL}`}>
-                      <Mail style={{ width: 15, height: 15 }} aria-hidden /> Correo de contacto
-                    </a>
                   </div>
                 </>
               ) : (
@@ -1566,7 +1538,7 @@ export default function GeoSite({
               )}
 
               {/* Comentarios del modal (v1.29.5): evaluación obligatoria +
-                  comentario, recientes primero — para ambos productos. */}
+                  comentario, recientes primero, para ambos productos. */}
               <ComentariosProducto producto={app.id === "rapiqo" ? "rapiqo" : "cumbre30"} />
             </div>
 
