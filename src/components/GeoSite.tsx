@@ -1,7 +1,7 @@
 "use client";
 
 // ============================================================
-// /geo - Sitio público corporativo de CumbreGeo (v1.29.0).
+// /geo - Sitio público corporativo de CumbreGeo (v1.29.5).
 // Rediseño integral (brief cumbregeo.cl): CumbreGeo pasa a ser
 // marca matriz con dos líneas de producto:
 //   · OUTDOOR & GEOSPATIAL (Cumbre30 y futuras apps geográficas)
@@ -21,8 +21,9 @@
 //               activación, aporte voluntario y FAQ. Las rutas
 //               /cumbre30pro (canónica) y /pro (alias heredado)
 //               siguen redirigiendo acá con ?vista=planes&app=<id>.
-//   · Modal:    detalle de Cumbre30 intacto (APK, capturas,
-//               acordeón, enlaces Play Store).
+//   · Modal:    detalle de Cumbre30 (APK, capturas, acordeón,
+//               enlaces Play Store) + modal propio de RAPIQO;
+//               ambos con evaluaciones y comentarios (v1.29.5).
 //   · Footer:   completo (líneas, productos, contacto, legal).
 // Los estilos van incrustados y acotados a #geo-root.
 // ============================================================
@@ -51,7 +52,8 @@ import {
   Wifi,
   X,
 } from "lucide-react";
-import { APPS, type AppCatalogo } from "@/lib/appsCatalog";
+import { APPS } from "@/lib/appsCatalog";
+import ComentariosProducto from "@/components/ComentariosProducto";
 import { CONTACT_EMAIL, DONATE_OPTIONS, PRO_BENEFITS, PRO_PAY_URL } from "@/lib/proConfig";
 
 const C = {
@@ -255,9 +257,33 @@ const CSS = `
   #geo-root .form .fila{grid-template-columns:1fr}
   #geo-root section{padding:48px 0}
 }
+/* ── Comentarios del modal (v1.29.5): evaluación obligatoria +
+   comentario, recientes primero. Componente ComentariosProducto. ── */
+#geo-root .comentarios{margin-top:24px;padding-top:18px;border-top:1px solid var(--borde)}
+#geo-root .comentario-titulo{display:flex;align-items:center;gap:10px;flex-wrap:wrap;color:var(--verde-osc);margin:0 0 12px}
+#geo-root .comentario-promedio{display:inline-flex;align-items:center;gap:5px;font-size:.85rem;font-weight:700;color:var(--gris)}
+#geo-root .comentario-forma{position:relative;display:grid;gap:10px;background:#fbfaf6;border:1px solid var(--borde);border-radius:14px;padding:14px 16px}
+#geo-root .campo-etiqueta{display:block;font-size:.8rem;font-weight:700;color:var(--verde-osc);margin:0 0 4px}
+#geo-root .estrellas-elegir{display:flex;gap:4px}
+#geo-root .estrella-btn{background:none;border:none;padding:2px;color:#d8d3c8}
+#geo-root .estrella-btn[aria-checked="true"],#geo-root .estrella-btn:hover{color:var(--acento)}
+#geo-root .comentario-forma label{display:block;font-size:.8rem;font-weight:700;color:var(--verde-osc);margin:0 0 4px}
+#geo-root .comentario-forma input,#geo-root .comentario-forma textarea{width:100%;box-sizing:border-box;font:inherit;padding:9px 11px;border:1px solid var(--borde);border-radius:10px;background:var(--blanco);color:var(--texto)}
+#geo-root .comentario-forma input:focus,#geo-root .comentario-forma textarea:focus{outline:2px solid var(--acento-n);outline-offset:1px;border-color:var(--acento-n)}
+#geo-root .comentario-enviar{justify-self:start;display:inline-flex;align-items:center;gap:7px}
+#geo-root .comentario-aviso{display:flex;gap:7px;align-items:center;font-size:.85rem;font-weight:600;margin:0}
+#geo-root .comentario-aviso.ok{color:#2e5e2b}
+#geo-root .comentario-aviso.error{color:#8c3d24}
+#geo-root .comentario-lista{display:grid;gap:10px;margin-top:14px}
+#geo-root .comentario-item{background:var(--blanco);border:1px solid var(--borde);border-radius:12px;padding:12px 14px}
+#geo-root .comentario-cab{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:.85rem;color:var(--gris)}
+#geo-root .comentario-cab b{color:var(--verde-osc)}
+#geo-root .comentario-cab time{margin-left:auto;font-size:.78rem}
+#geo-root .comentario-item p{margin:6px 0 0;font-size:.92rem;color:var(--cuerpo);overflow-wrap:anywhere}
+#geo-root .comentario-vacio{color:var(--gris);font-size:.88rem;margin:8px 0 0}
 `;
 
-type Vista = "home" | "planes";
+type Vista = "home" | "planes" | "planesRapiqo";
 
 // Tres bloques bajo el hero (brief §4.A) — textos del brief tal cual.
 const BLOQUES = [
@@ -282,6 +308,126 @@ const CUMBRE30_FEATURES = [
   "Constancias de ride con QR verificable",
   "Plan Pro de pago único: sin suscripción ni publicidad",
 ];
+
+// RAPIQO (v1.29.5): datos reales del producto desplegado en
+// rapiqo.cumbregeo.cl (dist 2.9.1). Los beneficios de PRO son los
+// textos exactos del paywall de la app — nada inventado.
+const RAPIQO_VERSION = "2.9.1";
+const RAPIQO_URL = "https://rapiqo.cumbregeo.cl";
+const RAPIQO_PAY_URL = "https://mpago.la/2wvHvUS";
+const RAPIQO_PRECIO = "14.990";
+const RAPIQO_PRO_BENEFITS = [
+  "Lotes y flujos sin límite de archivos ni de etapas",
+  "Plantillas de flujo guardadas y reutilizables",
+  "Todas las herramientas actuales y futuras de la plataforma web",
+  "Funciones nuevas durante 12 meses; la app ya instalada sigue funcionando para siempre",
+];
+
+// Estructura mínima que consume el modal de detalles (las apps del
+// catálogo cumplen de sobra; RAPIQO no está en el catálogo y define
+// el suyo).
+type ModalApp = {
+  id: string;
+  nombre: string;
+  icono: string;
+  version: string | null;
+  versionCode?: number;
+  descripcionBreve: string;
+  detalleCompleto: { titulo: string; cuerpo: string }[];
+  imagenes: { src: string; alt: string }[];
+  apk: { disponible: boolean; url?: string | null; nota?: string };
+  planes: { publicado: boolean };
+  enlaces?: {
+    contacto: string;
+    privacidad: string;
+    terminos?: string | null;
+    eliminarCuenta: string;
+  };
+};
+
+// Modal «Ver detalles» de RAPIQO: secciones tomadas del producto real.
+const RAPIQO_MODAL: ModalApp = {
+  id: "rapiqo",
+  nombre: "RAPIQO",
+  icono: "",
+  version: RAPIQO_VERSION,
+  descripcionBreve:
+    "Una herramienta web para procesar, convertir y trabajar con documentos PDF, Office y otros formatos: unificar, organizar, optimizar, convertir, proteger, extraer, OCR, comparar e inspeccionar. Todo el procesamiento ocurre en tu navegador.",
+  detalleCompleto: [
+    {
+      titulo: "Herramientas",
+      cuerpo:
+        "Un pack completo para acelerar tus procesos con documentos: unificar, organizar, optimizar, convertir, proteger, extraer, OCR, comparar e inspeccionar. Cada herramienta ejecuta una operación real.",
+    },
+    {
+      titulo: "Flujo por etapas",
+      cuerpo:
+        "Encadena pasos en procesos reutilizables o procesa muchos archivos de una vez: renombrar, convertir, optimizar y organizar por lotes. Eliges la política de fallos: omitir archivo y seguir, continuar con la etapa siguiente o cancelar el proceso.",
+    },
+    {
+      titulo: "Privacidad local-first",
+      cuerpo:
+        "Sin cuentas, sin subidas y sin rastreo: RAPIQO se ejecuta íntegramente en tu navegador y el procesamiento funciona incluso sin conexión. Los documentos de la sesión viven en la memoria de la pestaña y se liberan al cerrarla.",
+    },
+    {
+      titulo: "Licencia PRO",
+      cuerpo:
+        "Pago único $14.990. Incluye: lotes y flujos sin límite de archivos ni de etapas; plantillas de flujo guardadas y reutilizables; todas las herramientas actuales y futuras de la plataforma web; funciones nuevas durante 12 meses (la app ya instalada sigue funcionando para siempre). La clave (RQ1.…) se compra por MercadoPago, llega por correo y se activa offline en Ajustes → Licencia.",
+    },
+  ],
+  imagenes: [],
+  apk: { disponible: false },
+  planes: { publicado: false },
+};
+
+// Mockup de la interfaz de RAPIQO (reutilizable desde la tarjeta
+// y desde el modal de detalles).
+function MockupRapiqoGeo() {
+  return (
+    <svg
+      className="mockup-rapiqo"
+      viewBox="0 0 360 240"
+      role="img"
+      aria-label="Mockup de la interfaz de RAPIQO, la aplicación web de CumbreDocs"
+    >
+      {/* Chrome de navegador (RAPIQO es una web) */}
+      <rect width="360" height="240" rx="10" fill="#f0ede6" />
+      <rect x="0" y="0" width="360" height="26" rx="10" fill="#e3ded4" />
+      <rect x="0" y="16" width="360" height="10" fill="#e3ded4" />
+      <circle cx="16" cy="13" r="3.5" fill="#e8a33d" />
+      <circle cx="29" cy="13" r="3.5" fill="#b9a58c" />
+      <path d="M44 9 l-5 4 5 4" stroke="#6d7c76" strokeWidth="1.6" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M52 9 l5 4 -5 4" stroke="#c9c4ba" strokeWidth="1.6" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+      <rect x="64" y="4" width="200" height="18" rx="9" fill="#fff" stroke="#d8d3c8" />
+      <circle cx="76" cy="13" r="3" fill="#5a8f57" />
+      <text x="84" y="16.5" fontSize="9" fill="#6d7c76">rapiqo.cumbregeo.cl</text>
+      <rect x="12" y="38" width="90" height="190" rx="8" fill="#fff" stroke="#e3ded4" />
+      <rect x="22" y="50" width="70" height="16" rx="4" fill="#e7f2e6" />
+      <text x="30" y="61.5" fontSize="8" fontWeight="700" fill="#2e5e2b">PDF</text>
+      <rect x="22" y="74" width="70" height="16" rx="4" fill="#f0ede6" />
+      <text x="30" y="85.5" fontSize="8" fontWeight="700" fill="#42514b">DOCX</text>
+      <rect x="22" y="98" width="70" height="16" rx="4" fill="#f0ede6" />
+      <text x="30" y="109.5" fontSize="8" fontWeight="700" fill="#42514b">XLSX</text>
+      <rect x="22" y="122" width="70" height="16" rx="4" fill="#f0ede6" />
+      <text x="30" y="133.5" fontSize="8" fontWeight="700" fill="#42514b">HTML</text>
+      <rect x="22" y="146" width="70" height="16" rx="4" fill="#f0ede6" />
+      <text x="30" y="157.5" fontSize="8" fontWeight="700" fill="#42514b">CSV</text>
+      <rect x="116" y="38" width="232" height="190" rx="8" fill="#fff" stroke="#e3ded4" />
+      <text x="132" y="62" fontSize="11" fontWeight="700" fill="#14453d">informe-anual.pdf</text>
+      <rect x="132" y="74" width="170" height="8" rx="4" fill="#f0ede6" />
+      <rect x="132" y="88" width="140" height="8" rx="4" fill="#f0ede6" />
+      <rect x="132" y="102" width="160" height="8" rx="4" fill="#f0ede6" />
+      <rect x="132" y="116" width="110" height="8" rx="4" fill="#f0ede6" />
+      <rect x="132" y="138" width="52" height="20" rx="5" fill="#e7f2e6" />
+      <text x="158" y="151.5" textAnchor="middle" fontSize="8.5" fontWeight="700" fill="#2e5e2b">PDF</text>
+      <path d="M196 148 h28 m0 0 l-7 -5 m7 5 l-7 5" stroke="#5a8f57" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+      <rect x="236" y="138" width="52" height="20" rx="5" fill="#f0ede6" />
+      <text x="262" y="151.5" textAnchor="middle" fontSize="8.5" fontWeight="700" fill="#42514b">DOCX</text>
+      <rect x="132" y="186" width="96" height="26" rx="8" fill="#5a8f57" />
+      <text x="180" y="202.5" textAnchor="middle" fill="#fff" fontSize="10.5" fontWeight="700">Convertir</text>
+    </svg>
+  );
+}
 
 // Footer corporativo completo (brief §6): compartido por las vistas
 // home y planes. Enlaces reales — sin inventar rutas.
@@ -311,6 +457,7 @@ function FooterGeo() {
           <div>
             <h4>Productos</h4>
             <a href="/geo?vista=planes&amp;app=cumbre30">Cumbre30</a>
+            <a href="/geo/cumbreoutdoor">CumbreOutdoor</a>
             <a href="/geo/cumbredocs">CumbreDocs</a>
             <a href="/geo/cumbredocs#rapiqo">RAPIQO</a>
           </div>
@@ -345,7 +492,12 @@ export default function GeoSite({
     const a = appInicial ? APPS.find((x) => x.id === appInicial && x.planes.publicado) : null;
     return a ? a.id : null;
   });
-  const app = appId ? APPS.find((a) => a.id === appId) ?? null : null;
+  const app: ModalApp | null =
+    appId === "rapiqo"
+      ? RAPIQO_MODAL
+      : appId
+        ? ((APPS.find((a) => a.id === appId) as unknown as ModalApp) ?? null)
+        : null;
   const appPlanes = (planAppId ? APPS.find((a) => a.id === planAppId) : null) ?? APPS.find((a) => a.planes.publicado) ?? null;
   const app30 = APPS.find((a) => a.id === "cumbre30") ?? APPS[0];
 
@@ -418,7 +570,7 @@ export default function GeoSite({
     }
   };
 
-  const irAPlanes = (a: AppCatalogo) => {
+  const irAPlanes = (a: { id: string; planes: { publicado: boolean } }) => {
     if (!a.planes.publicado) return;
     setPlanAppId(a.id);
     mostrarVista("planes");
@@ -554,7 +706,7 @@ export default function GeoSite({
                   <img src={app30.imagenes[0]?.src} alt="Cumbre30 registrando un ride con mapa en vivo" />
                 </div>
                 <div>
-                  <p className="linea-de">Línea Outdoor</p>
+                  <p className="linea-de">Línea CumbreOutdoor</p>
                   <h4 className="producto-nombre">
                     {app30.nombre}
                     <span className="estado disponible">Disponible · v{app30.version}</span>
@@ -573,6 +725,7 @@ export default function GeoSite({
                     <button className="btn btn-primario" onClick={() => irAPlanes(app30)}>Ver planes</button>
                     <button className="btn btn-secundario" onClick={() => setAppId(app30.id)}>Ver detalles</button>
                     <a className="btn btn-fantasma" href="/demo">Probar demo</a>
+                    <a className="btn btn-fantasma" href="/geo/cumbreoutdoor">Conocer CumbreOutdoor</a>
                   </div>
                 </div>
               </div>
@@ -591,54 +744,13 @@ export default function GeoSite({
               </div>
               <div className="producto">
                 <div className="producto-visual" style={{ padding: 10 }}>
-                  <svg
-                    className="mockup-rapiqo"
-                    viewBox="0 0 360 240"
-                    role="img"
-                    aria-label="Mockup de la interfaz de RAPIQO, la aplicación web de CumbreDocs"
-                  >
-                    {/* Chrome de navegador (RAPIQO es una web) */}
-                    <rect width="360" height="240" rx="10" fill="#f0ede6" />
-                    <rect x="0" y="0" width="360" height="26" rx="10" fill="#e3ded4" />
-                    <rect x="0" y="16" width="360" height="10" fill="#e3ded4" />
-                    <circle cx="16" cy="13" r="3.5" fill="#e8a33d" />
-                    <circle cx="29" cy="13" r="3.5" fill="#b9a58c" />
-                    <path d="M44 9 l-5 4 5 4" stroke="#6d7c76" strokeWidth="1.6" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-                    <path d="M52 9 l5 4 -5 4" stroke="#c9c4ba" strokeWidth="1.6" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-                    <rect x="64" y="4" width="200" height="18" rx="9" fill="#fff" stroke="#d8d3c8" />
-                    <circle cx="76" cy="13" r="3" fill="#5a8f57" />
-                    <text x="84" y="16.5" fontSize="9" fill="#6d7c76">rapiqo.cumbregeo.cl</text>
-                    <rect x="12" y="38" width="90" height="190" rx="8" fill="#fff" stroke="#e3ded4" />
-                    <rect x="22" y="50" width="70" height="16" rx="4" fill="#e7f2e6" />
-                    <text x="30" y="61.5" fontSize="8" fontWeight="700" fill="#2e5e2b">PDF</text>
-                    <rect x="22" y="74" width="70" height="16" rx="4" fill="#f0ede6" />
-                    <text x="30" y="85.5" fontSize="8" fontWeight="700" fill="#42514b">DOCX</text>
-                    <rect x="22" y="98" width="70" height="16" rx="4" fill="#f0ede6" />
-                    <text x="30" y="109.5" fontSize="8" fontWeight="700" fill="#42514b">XLSX</text>
-                    <rect x="22" y="122" width="70" height="16" rx="4" fill="#f0ede6" />
-                    <text x="30" y="133.5" fontSize="8" fontWeight="700" fill="#42514b">HTML</text>
-                    <rect x="22" y="146" width="70" height="16" rx="4" fill="#f0ede6" />
-                    <text x="30" y="157.5" fontSize="8" fontWeight="700" fill="#42514b">CSV</text>
-                    <rect x="116" y="38" width="232" height="190" rx="8" fill="#fff" stroke="#e3ded4" />
-                    <text x="132" y="62" fontSize="11" fontWeight="700" fill="#14453d">informe-anual.pdf</text>
-                    <rect x="132" y="74" width="170" height="8" rx="4" fill="#f0ede6" />
-                    <rect x="132" y="88" width="140" height="8" rx="4" fill="#f0ede6" />
-                    <rect x="132" y="102" width="160" height="8" rx="4" fill="#f0ede6" />
-                    <rect x="132" y="116" width="110" height="8" rx="4" fill="#f0ede6" />
-                    <rect x="132" y="138" width="52" height="20" rx="5" fill="#e7f2e6" />
-                    <text x="158" y="151.5" textAnchor="middle" fontSize="8.5" fontWeight="700" fill="#2e5e2b">PDF</text>
-                    <path d="M196 148 h28 m0 0 l-7 -5 m7 5 l-7 5" stroke="#5a8f57" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-                    <rect x="236" y="138" width="52" height="20" rx="5" fill="#f0ede6" />
-                    <text x="262" y="151.5" textAnchor="middle" fontSize="8.5" fontWeight="700" fill="#42514b">DOCX</text>
-                    <rect x="132" y="186" width="96" height="26" rx="8" fill="#5a8f57" />
-                    <text x="180" y="202.5" textAnchor="middle" fill="#fff" fontSize="10.5" fontWeight="700">Convertir</text>
-                  </svg>
+                  <MockupRapiqoGeo />
                 </div>
                 <div>
                   <p className="linea-de">Línea CumbreDocs</p>
                   <h4 className="producto-nombre">
                     RAPIQO
-                    <span className="estado disponible">Disponible · beta web</span>
+                    <span className="estado disponible">Disponible · v{RAPIQO_VERSION}</span>
                   </h4>
                   <p style={{ color: "var(--cuerpo)", fontSize: ".95rem", margin: "8px 0 0" }}>
                     Una herramienta web para procesar, convertir y trabajar con documentos PDF, Office y otros
@@ -657,12 +769,17 @@ export default function GeoSite({
                     ))}
                   </ul>
                   <div className="producto-acciones">
-                    <a className="btn btn-acento" href="https://rapiqo.cumbregeo.cl" target="_blank" rel="noreferrer">
+                    <button className="btn btn-primario" onClick={() => mostrarVista("planesRapiqo")}>Ver planes</button>
+                    <button className="btn btn-secundario" onClick={() => setAppId("rapiqo")}>Ver detalles</button>
+                    <a className="btn btn-acento" href={RAPIQO_URL} target="_blank" rel="noreferrer">
                       Abrir RAPIQO
                     </a>
-                    <a className="btn btn-secundario" href="/geo/cumbredocs">Conocer CumbreDocs</a>
+                    <a className="btn btn-fantasma" href="/geo/cumbredocs">Conocer CumbreDocs</a>
                   </div>
-                  <p className="producto-nota">Primera versión web en línea (2.9.1): rapiqo.cumbregeo.cl.</p>
+                  <p className="producto-nota">
+                    Licencia PRO de pago único (${RAPIQO_PRECIO}) con entrega de clave por correo · versión web en
+                    línea ({RAPIQO_VERSION}): rapiqo.cumbregeo.cl.
+                  </p>
                 </div>
               </div>
             </div>
@@ -1032,6 +1149,222 @@ export default function GeoSite({
         <FooterGeo />
       </div>
 
+      {/* ═══════════ VISTA: PLANES RAPIQO (v1.29.5) ═══════════ */}
+      <div className={`vista${vista === "planesRapiqo" ? " activa" : ""}`}>
+        <header>
+          <div className="contenedor header-inner">
+            <a
+              className="logo"
+              href="#"
+              onClick={(e) => {
+                e.preventDefault();
+                mostrarVista("home");
+              }}
+            >
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden>
+                <path d="M3 19L10 6l4 7 2-3 5 9H3z" fill="#14453d" />
+                <circle cx="18" cy="5" r="2" fill="#e8a33d" />
+              </svg>
+              CUMBRE GEO
+            </a>
+          </div>
+        </header>
+
+        <div className="contenedor" style={{ paddingBottom: 48 }}>
+          <div className="barra-volver">
+            <button className="btn btn-fantasma" onClick={() => mostrarVista("home")}>
+              ← Volver al home
+            </button>
+            <button className="btn btn-secundario" onClick={() => setAppId("rapiqo")}>
+              Ver detalles
+            </button>
+          </div>
+
+          <span className="seccion-kicker">Planes · RAPIQO</span>
+          <h2 className="seccion-titulo">Licencia PRO · pago único</h2>
+          <p className="seccion-sub">Desbloquea todo el potencial de RAPIQO de una sola vez, para siempre.</p>
+
+          {/* Precio + compra: link de pago real de MercadoPago (app RAPIQO) */}
+          <div className="bloque-pro" style={{ textAlign: "center" }}>
+            <span
+              style={{
+                display: "inline-flex",
+                width: 64,
+                height: 64,
+                borderRadius: 20,
+                background: "linear-gradient(150deg, var(--verde-osc), var(--verde))",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <FileText style={{ width: 30, height: 30, color: "#fff" }} aria-hidden />
+            </span>
+            <h3 style={{ fontSize: "1.6rem", marginTop: 12 }}>
+              RAPIQO <span style={{ color: "var(--acento)" }}>Pro</span>
+            </h3>
+            <p style={{ color: "var(--gris)", margin: "4px 0 0" }}>
+              Un pack completo para tus procesos con documentos: sin límites de lotes ni de etapas.
+            </p>
+
+            <p style={{ fontSize: "3rem", fontWeight: 800, color: "var(--verde-osc)", margin: "20px 0 0", lineHeight: 1 }}>
+              ${RAPIQO_PRECIO}
+            </p>
+            <p style={{ color: "#8a6a2f", fontSize: ".85rem", margin: "6px 0 18px" }}>
+              pago único · sin suscripción · para siempre
+            </p>
+
+            <a
+              href={RAPIQO_PAY_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn btn-primario"
+              style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "16px 22px", fontSize: "1rem" }}
+            >
+              <ShoppingBag style={{ width: 20, height: 20 }} aria-hidden /> Comprar Pro - ${RAPIQO_PRECIO}
+            </a>
+            <p style={{ color: "var(--gris)", fontSize: ".85rem", margin: "14px auto 0", maxWidth: 480 }}>
+              Pagas con Mercado Pago y recibes tu clave{" "}
+              <span style={{ fontFamily: "ui-monospace, monospace", color: "var(--verde-osc)" }}>RQ1.…</span> por
+              correo, automáticamente una vez aprobado el pago. Después la activas en la app:{" "}
+              <b style={{ color: "var(--texto)" }}>Ajustes → Licencia</b>.
+            </p>
+          </div>
+
+          {/* Qué desbloquea: textos exactos del paywall de la app (dist 2.9.1) */}
+          <div className="bloque-pro">
+            <span className="seccion-kicker">Qué desbloquea Pro</span>
+            <div>
+              {RAPIQO_PRO_BENEFITS.map((b) => (
+                <div key={b} className="beneficio">
+                  <BadgeCheck style={{ width: 18, height: 18, flexShrink: 0, color: "var(--verde)", marginTop: 2 }} aria-hidden />
+                  <span>{b}</span>
+                </div>
+              ))}
+            </div>
+            <p
+              style={{
+                display: "flex",
+                gap: 10,
+                alignItems: "flex-start",
+                background: "#fbfaf6",
+                border: "1px solid var(--borde)",
+                borderRadius: 12,
+                padding: "12px 14px",
+                color: "var(--gris)",
+                fontSize: ".88rem",
+                marginTop: 16,
+              }}
+            >
+              <Wifi style={{ width: 18, height: 18, flexShrink: 0, color: "var(--verde)", marginTop: 2 }} aria-hidden />
+              Pago único: la clave se verifica en tu dispositivo, sin registro ni conexión obligatoria. La edición
+              gratuita sigue disponible; Pro quita los límites de lotes y flujos y agrega las plantillas guardadas.
+            </p>
+          </div>
+
+          {/* Cómo activar */}
+          <div className="bloque-pro">
+            <span className="seccion-kicker">Cómo activar tu clave</span>
+            <div style={{ display: "grid", gap: 16, marginTop: 8 }}>
+              <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+                <span className="paso-num">1</span>
+                <div>
+                  <p style={{ margin: 0, fontWeight: 700, color: "var(--verde-osc)" }}>Paga con Mercado Pago</p>
+                  <p style={{ margin: "2px 0 0", color: "var(--gris)", fontSize: ".92rem" }}>
+                    Desde el botón de arriba: tarjeta, dinero en cuenta o efectivo en agentes.
+                  </p>
+                </div>
+              </div>
+              <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+                <span className="paso-num">2</span>
+                <div>
+                  <p style={{ margin: 0, fontWeight: 700, color: "var(--verde-osc)" }}>Recibe tu clave por correo</p>
+                  <p style={{ margin: "2px 0 0", color: "var(--gris)", fontSize: ".92rem" }}>
+                    La clave empieza por <span style={{ fontFamily: "ui-monospace, monospace" }}>RQ1.</span> y llega
+                    automáticamente (normalmente en minutos; si demora, escríbenos con tu comprobante a{" "}
+                    {CONTACT_EMAIL}).
+                  </p>
+                </div>
+              </div>
+              <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+                <span className="paso-num">3</span>
+                <div>
+                  <p style={{ margin: 0, fontWeight: 700, color: "var(--verde-osc)" }}>Actívala en la app</p>
+                  <p style={{ margin: "2px 0 0", color: "var(--gris)", fontSize: ".92rem" }}>
+                    Abre RAPIQO → Ajustes → Licencia → pega tu clave. La verificación es local en tu dispositivo.
+                  </p>
+                </div>
+              </div>
+            </div>
+            <p
+              style={{
+                display: "flex",
+                gap: 10,
+                alignItems: "flex-start",
+                background: "#fbfaf6",
+                border: "1px solid var(--borde)",
+                borderRadius: 12,
+                padding: "12px 14px",
+                color: "var(--gris)",
+                fontSize: ".88rem",
+                marginTop: 16,
+              }}
+            >
+              <Wifi style={{ width: 18, height: 18, flexShrink: 0, color: "var(--verde)", marginTop: 2 }} aria-hidden />
+              RAPIQO funciona 100% en tu navegador: una vez cargada la página, todo el procesamiento es local —
+              incluso sin conexión.
+            </p>
+          </div>
+
+          {/* FAQ */}
+          <div className="bloque-pro">
+            <span className="seccion-kicker">Preguntas frecuentes</span>
+            <div style={{ display: "grid", gap: 10, marginTop: 8 }}>
+              <div className="faq-card">
+                <p className="q">¿Es un pago único o suscripción?</p>
+                <p className="a">Pago único: activas PRO para siempre en ese dispositivo, sin renovaciones ni cobros automáticos.</p>
+              </div>
+              <div className="faq-card">
+                <p className="q">¿Cuándo llega la clave?</p>
+                <p className="a">
+                  Automáticamente por correo una vez aprobado el pago (normalmente en minutos). Si demora, escríbenos
+                  a {CONTACT_EMAIL} con tu comprobante.
+                </p>
+              </div>
+              <div className="faq-card">
+                <p className="q">¿Necesito internet para usar RAPIQO?</p>
+                <p className="a">
+                  Para pagar, recibir y activar la clave sí. Para usar la app no: una vez cargada, todo el
+                  procesamiento ocurre en tu navegador, incluso sin conexión.
+                </p>
+              </div>
+              <div className="faq-card">
+                <p className="q">¿La edición gratuita sigue disponible?</p>
+                <p className="a">
+                  Sí. La versión gratuita procesa lotes con límites de archivos y etapas; PRO los quita y además
+                  permite guardar plantillas de flujo reutilizables.
+                </p>
+              </div>
+            </div>
+            <p
+              style={{
+                display: "flex",
+                gap: 8,
+                alignItems: "center",
+                justifyContent: "center",
+                color: "var(--gris)",
+                fontSize: ".78rem",
+                marginTop: 18,
+              }}
+            >
+              <KeyRound style={{ width: 13, height: 13 }} aria-hidden /> Pago seguro procesado por Mercado Pago -
+              CumbreGeo no almacena datos de tarjetas.
+            </p>
+          </div>
+        </div>
+
+        <FooterGeo />
+      </div>
+
       {/* ═══════════ MODAL: DETALLE DE APP ═══════════ */}
       <div
         className={`modal-fondo${app ? " abierto" : ""}`}
@@ -1049,134 +1382,207 @@ export default function GeoSite({
                 <X style={{ width: 18, height: 18 }} aria-hidden />
               </button>
               <div className="app-icono">
-                <img src={app.icono} alt={`Ícono de ${app.nombre}`} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                {app.id === "rapiqo" ? (
+                  <FileText style={{ width: 30, height: 30, color: "#fff" }} aria-hidden />
+                ) : (
+                  <img src={app.icono} alt={`Ícono de ${app.nombre}`} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                )}
               </div>
               <div>
                 <h3>{app.nombre}</h3>
                 <div className="version">
-                  Versión {app.version} · build {app.versionCode}
+                  {app.id === "rapiqo"
+                    ? `Versión ${RAPIQO_VERSION} · beta web`
+                    : `Versión ${app.version} · build ${app.versionCode}`}
                 </div>
               </div>
             </div>
 
             <div className="modal-cuerpo">
-              {/* Demo en vivo (v1.11.0): la web corre la app en modo demo
-                  en el navegador - probar sin instalar. Solo Cumbre30. */}
-              {app.id === "cumbre30" && (
+              {app.id === "rapiqo" ? (
                 <>
-                  <a
-                    href="/demo"
-                    className="btn btn-secundario apk-btn"
-                  >
-                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" aria-hidden>
-                      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2" />
-                      <path d="M10 8.5v7l6-3.5-6-3.5z" fill="currentColor" />
-                    </svg>
-                    Probar demo en el navegador
+                  {/* RAPIQO (v1.29.5): web en producción, sin APK */}
+                  <a href={RAPIQO_URL} target="_blank" rel="noreferrer" className="btn btn-acento apk-btn">
+                    Abrir RAPIQO en el navegador
                   </a>
-                  <p className="apk-nota">Prueba en línea la subida Pío Nono → Plaza México, sin instalar nada.</p>
-                </>
-              )}
-              {/* APK: activo con el link de Google Drive del catálogo.
-                  La prop apkActivo queda como vía alternativa para el
-                  flujo /api/apk + APK_DOWNLOAD_URL (DEPLOY.md · paso 6). */}
-              {app.apk.disponible || (apkActivo && !!app.apk.url) ? (
-                <>
-                  <a
-                    href={app.apk.url ?? "#"}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="btn btn-primario apk-btn"
-                  >
-                    <Download style={{ width: 20, height: 20 }} aria-hidden /> Descargar APK
-                  </a>
-                  <p className="apk-nota">Instalación directa desde el archivo APK.</p>
-                  {/* Verificación de constancias (v1.12.0): el QR del PDF
-                      llega a /verificar; el enlace directo vive aquí para
-                      quien quiera comprobar un ride sin escanear. */}
-                  <a href="/verificar" className="apk-verificar">
-                    Verificar constancia de un ride
-                  </a>
-                  <p className="apk-nota">Comprueba el código de integridad de cualquier constancia con QR.</p>
+                  <p className="apk-nota">
+                    Web app: funciona en el navegador, sin instalar nada. Una vez cargada, procesa incluso sin
+                    conexión.
+                  </p>
+                  <div className="capturas" style={{ justifyContent: "center" }}>
+                    <div
+                      style={{
+                        flex: "0 1 420px",
+                        border: "1px solid var(--borde)",
+                        borderRadius: 14,
+                        background: "var(--piedra)",
+                        padding: 10,
+                      }}
+                    >
+                      <MockupRapiqoGeo />
+                      <p style={{ margin: "8px 0 0", fontSize: ".78rem", color: "var(--gris)", textAlign: "center" }}>
+                        Interfaz de RAPIQO {RAPIQO_VERSION}
+                      </p>
+                    </div>
+                  </div>
+                  <h4 style={{ color: "var(--verde-osc)", margin: "0 0 6px" }}>Descripción</h4>
+                  <p style={{ color: C.cuerpo, fontSize: ".95rem", margin: 0 }}>{app.descripcionBreve}</p>
+                  <h4 style={{ color: "var(--verde-osc)", margin: "22px 0 2px" }}>Detalle completo</h4>
+                  <div className="acordeon">
+                    {app.detalleCompleto.map((s, i) => (
+                      <details key={s.titulo} open={i === 0}>
+                        <summary>
+                          {s.titulo}
+                          <ChevronDown style={{ width: 16, height: 16, flexShrink: 0 }} aria-hidden />
+                        </summary>
+                        <div className="cuerpo">{s.cuerpo}</div>
+                      </details>
+                    ))}
+                  </div>
+                  <div className="modal-enlaces">
+                    <a className="enlace-app" href={RAPIQO_PAY_URL} target="_blank" rel="noopener noreferrer">
+                      <ShoppingBag style={{ width: 15, height: 15 }} aria-hidden /> Licencia PRO · MercadoPago
+                      (${RAPIQO_PRECIO})
+                    </a>
+                    <a className="enlace-app" href="/geo/cumbredocs">
+                      Conocer CumbreDocs
+                    </a>
+                    <a className="enlace-app" href={`mailto:${CONTACT_EMAIL}`}>
+                      <Mail style={{ width: 15, height: 15 }} aria-hidden /> Correo de contacto
+                    </a>
+                  </div>
                 </>
               ) : (
                 <>
-                  <button className="btn btn-primario apk-btn" disabled>
-                    <Lock style={{ width: 18, height: 18 }} aria-hidden /> Descargar APK
-                  </button>
-                  <p className="apk-nota">{app.apk.nota || "Disponible próximamente."}</p>
+                  {/* Demo en vivo (v1.11.0): la web corre la app en modo demo
+                      en el navegador - probar sin instalar. Solo Cumbre30. */}
+                  {app.id === "cumbre30" && (
+                    <>
+                      <a
+                        href="/demo"
+                        className="btn btn-secundario apk-btn"
+                      >
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" aria-hidden>
+                          <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2" />
+                          <path d="M10 8.5v7l6-3.5-6-3.5z" fill="currentColor" />
+                        </svg>
+                        Probar demo en el navegador
+                      </a>
+                      <p className="apk-nota">Prueba en línea la subida Pío Nono → Plaza México, sin instalar nada.</p>
+                    </>
+                  )}
+                  {/* APK: activo con el link de Google Drive del catálogo.
+                      La prop apkActivo queda como vía alternativa para el
+                      flujo /api/apk + APK_DOWNLOAD_URL (DEPLOY.md · paso 6). */}
+                  {app.apk.disponible || (apkActivo && !!app.apk.url) ? (
+                    <>
+                      <a
+                        href={app.apk.url ?? "#"}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="btn btn-primario apk-btn"
+                      >
+                        <Download style={{ width: 20, height: 20 }} aria-hidden /> Descargar APK
+                      </a>
+                      <p className="apk-nota">Instalación directa desde el archivo APK.</p>
+                      {/* Verificación de constancias (v1.12.0): el QR del PDF
+                          llega a /verificar; el enlace directo vive aquí para
+                          quien quiera comprobar un ride sin escanear. */}
+                      <a href="/verificar" className="apk-verificar">
+                        Verificar constancia de un ride
+                      </a>
+                      <p className="apk-nota">Comprueba el código de integridad de cualquier constancia con QR.</p>
+                    </>
+                  ) : (
+                    <>
+                      <button className="btn btn-primario apk-btn" disabled>
+                        <Lock style={{ width: 18, height: 18 }} aria-hidden /> Descargar APK
+                      </button>
+                      <p className="apk-nota">{app.apk.nota || "Disponible próximamente."}</p>
+                    </>
+                  )}
+
+                  {/* Capturas (las mismas de Play Store) */}
+                  <div className="capturas">
+                    {app.imagenes.map((img) => (
+                      <img key={img.src} src={img.src} alt={img.alt} />
+                    ))}
+                  </div>
+
+                  <h4 style={{ color: "var(--verde-osc)", margin: "0 0 6px" }}>Descripción</h4>
+                  <p style={{ color: C.cuerpo, fontSize: ".95rem", margin: 0 }}>{app.descripcionBreve}</p>
+
+                  <h4 style={{ color: "var(--verde-osc)", margin: "22px 0 2px" }}>Detalle completo</h4>
+                  <div className="acordeon">
+                    {app.detalleCompleto.map((s, i) => (
+                      <details key={s.titulo} open={i === 0}>
+                        <summary>
+                          {s.titulo}
+                          <ChevronDown style={{ width: 16, height: 16, flexShrink: 0 }} aria-hidden />
+                        </summary>
+                        <div className="cuerpo">{s.cuerpo}</div>
+                      </details>
+                    ))}
+                  </div>
+
+                  {/* Accesos exclusivos de la app (catálogo · enlaces): soporte
+                      y privacidad que Play exige por app. Footer del sitio
+                      queda limpio: estos enlaces solo viven acá. */}
+                  {app.enlaces && (
+                    <div className="modal-enlaces">
+                      <a className="enlace-app" href={app.enlaces.contacto}>
+                        <Mail style={{ width: 15, height: 15 }} aria-hidden /> Correo de contacto
+                      </a>
+                      <a
+                        className="enlace-app"
+                        href={app.enlaces.privacidad}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <ShieldCheck style={{ width: 15, height: 15 }} aria-hidden /> Privacidad
+                      </a>
+                      {app.enlaces.terminos && (
+                        <a
+                          className="enlace-app"
+                          href={app.enlaces.terminos}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          <ScrollText style={{ width: 15, height: 15 }} aria-hidden /> Términos y condiciones
+                        </a>
+                      )}
+                      <a
+                        className="enlace-app"
+                        href={app.enlaces.eliminarCuenta}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <Trash2 style={{ width: 15, height: 15 }} aria-hidden /> Eliminar mi cuenta
+                      </a>
+                    </div>
+                  )}
                 </>
               )}
 
-              {/* Capturas (las mismas de Play Store) */}
-              <div className="capturas">
-                {app.imagenes.map((img) => (
-                  <img key={img.src} src={img.src} alt={img.alt} />
-                ))}
-              </div>
-
-              <h4 style={{ color: "var(--verde-osc)", margin: "0 0 6px" }}>Descripción</h4>
-              <p style={{ color: C.cuerpo, fontSize: ".95rem", margin: 0 }}>{app.descripcionBreve}</p>
-
-              <h4 style={{ color: "var(--verde-osc)", margin: "22px 0 2px" }}>Detalle completo</h4>
-              <div className="acordeon">
-                {app.detalleCompleto.map((s, i) => (
-                  <details key={s.titulo} open={i === 0}>
-                    <summary>
-                      {s.titulo}
-                      <ChevronDown style={{ width: 16, height: 16, flexShrink: 0 }} aria-hidden />
-                    </summary>
-                    <div className="cuerpo">{s.cuerpo}</div>
-                  </details>
-                ))}
-              </div>
-
-              {/* Accesos exclusivos de la app (catálogo · enlaces): soporte
-                  y privacidad que Play exige por app. Footer del sitio
-                  queda limpio: estos enlaces solo viven acá. */}
-              {app.enlaces && (
-                <div className="modal-enlaces">
-                  <a className="enlace-app" href={app.enlaces.contacto}>
-                    <Mail style={{ width: 15, height: 15 }} aria-hidden /> Correo de contacto
-                  </a>
-                  <a
-                    className="enlace-app"
-                    href={app.enlaces.privacidad}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <ShieldCheck style={{ width: 15, height: 15 }} aria-hidden /> Privacidad
-                  </a>
-                  {app.enlaces.terminos && (
-                    <a
-                      className="enlace-app"
-                      href={app.enlaces.terminos}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      <ScrollText style={{ width: 15, height: 15 }} aria-hidden /> Términos y condiciones
-                    </a>
-                  )}
-                  <a
-                    className="enlace-app"
-                    href={app.enlaces.eliminarCuenta}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <Trash2 style={{ width: 15, height: 15 }} aria-hidden /> Eliminar mi cuenta
-                  </a>
-                </div>
-              )}
+              {/* Comentarios del modal (v1.29.5): evaluación obligatoria +
+                  comentario, recientes primero — para ambos productos. */}
+              <ComentariosProducto producto={app.id === "rapiqo" ? "rapiqo" : "cumbre30"} />
             </div>
 
             <div className="modal-foot">
               <button className="btn btn-fantasma" onClick={() => setAppId(null)}>
                 Volver al home
               </button>
-              {app.planes.publicado && (
-                <button className="btn btn-secundario" onClick={() => irAPlanes(app)}>
+              {app.id === "rapiqo" ? (
+                <button className="btn btn-secundario" onClick={() => mostrarVista("planesRapiqo")}>
                   Ver planes
                 </button>
+              ) : (
+                app.planes.publicado && (
+                  <button className="btn btn-secundario" onClick={() => irAPlanes(app)}>
+                    Ver planes
+                  </button>
+                )
               )}
             </div>
           </div>

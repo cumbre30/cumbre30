@@ -1,7 +1,7 @@
 // ============================================================
-// CumbreDocsSite (v1.29.3): contenido de la página /geo/cumbredocs.
+// CumbreDocsSite (v1.29.5): contenido de la página /geo/cumbredocs.
 // Línea DOCUMENTOS & PRODUCTIVIDAD de CumbreGeo — RAPIQO es su
-// primer producto (estado real: versión web 2.9.0 en línea en
+// primer producto (estado real: versión web 2.9.1 en línea en
 // rapiqo.cumbregeo.cl). Componente de servidor (sin estado);
 // estilos acotados a #cd-root con la misma paleta corporativa.
 // ============================================================
@@ -199,7 +199,7 @@ export default function CumbreDocsSite() {
               <div>
                 <h4 className="nombre">
                   RAPIQO
-                  <span className="estado disponible">Disponible · beta web</span>
+                  <span className="estado disponible">Disponible · v2.9.1</span>
                 </h4>
                 <p style={{ color: "#42514b", fontSize: ".95rem", margin: "8px 0 0" }}>
                   Una herramienta web para procesar, convertir y trabajar con documentos PDF, Office y otros

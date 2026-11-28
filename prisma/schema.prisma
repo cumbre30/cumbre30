@@ -631,3 +631,24 @@ model MensajeContacto {
   @@index([createdAt])
   @@map("mensajes_contacto")
 }
+
+// ============================================================
+// Evaluaciones y comentarios públicos de productos (v1.29.5):
+// casilla dentro del modal «Ver detalles» de /geo (Cumbre30 y
+// RAPIQO). La evaluación (1-5) es obligatoria y va acompañada
+// de un comentario; el listado se muestra recientes primero.
+// Publicación inmediata: la moderación previa es la validación
+// zod + honeypot + rate-limit de /api/comentarios.
+model Comentario {
+  id         String   @id @default(cuid())
+  // cumbre30 | rapiqo
+  producto   String
+  evaluacion Int
+  comentario String
+  // opcional en el formulario → «Anónimo»
+  nombre     String   @default("Anónimo")
+  createdAt  DateTime @default(now())
+
+  @@index([producto, createdAt])
+  @@map("comentarios")
+}
